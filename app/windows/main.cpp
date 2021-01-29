@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "d_glfw.h"
+#include "d_vulkan_man.h"
 
 
 int main(int argc, char** argv) {
@@ -8,7 +9,9 @@ int main(int argc, char** argv) {
         std::cout << "Argument[" << i << "] " << argv[i] << std::endl;
     }
 
-    dal::WindowGLFW window;
+    dal::WindowGLFW window("Dalbrargi Windows");
+    dal::VulkanState state;
+    state.init("Dalbrargi Windows", {});
 
     while (!window.should_close()) {
         window.do_frame();

@@ -22,8 +22,10 @@ namespace {
 namespace dal {
 
 
-    WindowGLFW::WindowGLFW() {
-        this->m_window = ::create_glfw_window(800, 450, "Dalbaragi Windows");
+    WindowGLFW::WindowGLFW(const char* const title) {
+        this->m_title = title;
+
+        this->m_window = ::create_glfw_window(800, 450, title);
         if (nullptr == this->m_window) {
             throw std::runtime_error{ "Failed to create glfw window" };
         }
@@ -41,6 +43,17 @@ namespace dal {
 
     bool WindowGLFW::should_close() const {
         return glfwWindowShouldClose(reinterpret_cast<GLFWwindow*>(this->m_window));
+    }
+
+    std::vector<const char*> WindowGLFW::get_vulkan_extensions() const {
+        std::vector<const char*> result;
+
+        uint32_t ext_count = 0;
+        const char** glfw_extensions = nullptr;
+        glfw_extensions = glfwGetRequiredInstanceExtensions(&ext_count);
+        std::vector<const char*> extensions(glfw_extensions, glfw_extensions + ext_count);
+
+        return result;
     }
 
 }
