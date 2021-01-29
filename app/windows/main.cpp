@@ -10,5 +10,9 @@ int main(int argc, char** argv) {
 
     dal::WindowGLFW window;
 
+    while (!window.should_close()) {
+        window.do_frame();
+    }
+
     return 0;
 }
