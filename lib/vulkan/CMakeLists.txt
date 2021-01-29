@@ -11,8 +11,18 @@ add_library(libdal_vulkan STATIC
 target_compile_features(libdal_vulkan PUBLIC cxx_std_17)
 target_include_directories(libdal_vulkan PUBLIC ./)
 
+if (ANDROID)
+    target_sources(libdal_vulkan
+    PRIVATE
+        vulkan_wrapper.h     vulkan_wrapper.cpp
+    )
+endif()
+
 
 # Link libraries
+
+target_link_libraries(libdal_vulkan PUBLIC libdal_util)
+
 
 if(WIN32)
     target_link_libraries(libdal_vulkan PUBLIC Vulkan::Vulkan)

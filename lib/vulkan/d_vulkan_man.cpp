@@ -1,13 +1,19 @@
 #include "d_vulkan_man.h"
 
 #include <array>
-#include <iostream>
+#include <string>
 #include <stdexcept>
+
+#ifdef __ANDROID__
+#include "vulkan_wrapper.h"
+#endif
 
 #include <vulkan/vulkan.h>
 
+#include "d_logger.h"
 
-#define DAL_VK_DEBUG
+
+//#define DAL_VK_DEBUG
 
 
 namespace {
@@ -57,7 +63,8 @@ namespace {
         std::vector<VkPhysicalDevice> devices(device_count);
         vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
 
-        std::vector<PhysicalDevice> result(device_count);
+        std::vector<PhysicalDevice> result;
+        result.reserve(device_count);
         for (const auto& x : devices) {
             result.emplace_back(x);
         }
@@ -85,25 +92,19 @@ namespace {
 
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
             return VK_FALSE;
-            std::cerr << "[VERB] ";
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            std::cerr << "[INFO] ";
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            std::cerr << "[WARN] ";
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            std::cerr << "[ERRO] ";
             break;
         default:
-            std::cerr << "[WTF?] ";
             break;
 
         }
 
         const auto err_msg = std::string{ "Vulkan Debug: " } + pCallbackData->pMessage;
-        std::cerr << err_msg << std::endl;
         return VK_FALSE;
     }
 
@@ -180,7 +181,6 @@ namespace {
 #endif
 
         VkInstance instance = VK_NULL_HANDLE;
-        std::cout  << vkCreateInstance << std::endl;
         const auto create_result = vkCreateInstance(&createInfo, nullptr, &instance);
 
         if (VK_SUCCESS == create_result) {
@@ -206,12 +206,26 @@ namespace dal {
         }
 
         bool init(const char* const window_title, std::vector<const char*> extensions) {
+#ifdef __ANDROID__
+            if (0 == InitVulkan()) {
+                return false;
+            }
+#endif
+
             this->m_instance = ::create_vulkan_instance(window_title, extensions);
 
             const auto phys_devices = ::get_phys_devices(this->m_instance);
-            std::cout << "There are " << phys_devices.size() << " physical devices: " << std::endl;
+
+            auto& logger = dal::LoggerSingleton::inst();
+            const auto ss = std::string{} + "There are " + std::to_string(phys_devices.size()) + " physical devices: ";
+            logger.simple_print(ss.c_str());
             for (auto& x : phys_devices) {
-                std::cout << "Physical device: " << x.name() << "(" << x.device_type_str() << ")" << std::endl;
+                std::string text;
+                text += x.name();
+                text += " (";
+                text += x.device_type_str();
+                text += ")";
+                logger.simple_print(text.c_str());
             }
 
             return this->is_ready();
