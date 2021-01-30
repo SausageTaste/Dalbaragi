@@ -6,12 +6,9 @@
 #include <cstring>
 #include <stdexcept>
 
-#ifdef __ANDROID__
-#include "vulkan_wrapper.h"
-#endif
-#include <vulkan/vulkan.h>
-
 #include "d_logger.h"
+
+#include "d_vulkan_header.h"
 
 
 //#define DAL_VK_DEBUG
@@ -385,7 +382,7 @@ namespace dal {
 
             this->m_instance = ::create_vulkan_instance(window_title, extensions);
             this->m_surface = reinterpret_cast<VkSurfaceKHR>(surface_create_func(this->m_instance));
-            if (nullptr == this->m_surface) {
+            if (VK_NULL_HANDLE == this->m_surface) {
                 return false;
             }
 

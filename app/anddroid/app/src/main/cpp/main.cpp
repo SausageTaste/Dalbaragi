@@ -3,18 +3,50 @@
 #include <android_native_app_glue.h>
 
 #include <d_vulkan_man.h>
+#include <d_vulkan_header.h>
 #include <d_logger.h>
 
 
 namespace {
 
+    auto& logger = dal::LoggerSingleton::inst();
+
+
     void simple_print(const char* const text) {
         __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "%s", text);
     }
 
-    void init2() {
+    void init(ANativeWindow* const native_window) {
+        const std::vector<const char*> instanceExt{
+            "VK_KHR_surface",
+            "VK_KHR_android_surface",
+        };
+        const auto surface_creator = [native_window](void* vk_instance) -> void* {
+            VkAndroidSurfaceCreateInfoKHR create_info{
+                .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
+                .pNext = nullptr,
+                .flags = 0,
+                .window = native_window,
+            };
+
+            VkSurfaceKHR surface = VK_NULL_HANDLE;
+            const auto create_result = vkCreateAndroidSurfaceKHR(
+                reinterpret_cast<VkInstance>(vk_instance),
+                &create_info,
+                nullptr,
+                &surface
+            );
+
+            if (VK_SUCCESS != create_result) {
+                logger.simple_print("failed to create vulkan surface");
+                return nullptr;
+            }
+
+            return reinterpret_cast<void*>(surface);
+        };
+
         dal::VulkanState state;
-        state.init("shit", {});
+        state.init("shit", instanceExt, surface_creator);
     }
 
 }
@@ -26,7 +58,7 @@ extern "C" {
         switch (cmd) {
             case APP_CMD_INIT_WINDOW:
                 __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: init window");
-                ::init2();
+                ::init(state->window);
                 break;
             case APP_CMD_WINDOW_RESIZED:
                 __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: init window");
