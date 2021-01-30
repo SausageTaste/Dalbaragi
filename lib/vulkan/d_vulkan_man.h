@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <functional>
 
 
 namespace dal {
@@ -14,7 +15,11 @@ namespace dal {
     public:
         ~VulkanState();
 
-        bool init(const char* const window_title, std::vector<const char*> extensions);
+        bool init(
+            const char* const window_title,
+            const std::vector<const char*>& extensions,
+            std::function<void*(void*)> surface_create_func
+        );
         void destroy();
 
     };

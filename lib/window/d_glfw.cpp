@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 
@@ -16,11 +17,28 @@ namespace {
         return glfwCreateWindow(width, height, title, nullptr, nullptr);
     }
 
+    VkSurfaceKHR create_vk_surface(const VkInstance instance, GLFWwindow* const window) {
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+        const auto create_result = glfwCreateWindowSurface(
+            instance,
+            window,
+            nullptr,
+            &surface
+        );
+
+        if (VK_SUCCESS != create_result)
+            return nullptr;
+
+        if (VK_NULL_HANDLE == surface)
+            return nullptr;
+
+        return surface;
+    }
+
 }
 
 
 namespace dal {
-
 
     WindowGLFW::WindowGLFW(const char* const title) {
         this->m_title = title;
@@ -46,14 +64,21 @@ namespace dal {
     }
 
     std::vector<const char*> WindowGLFW::get_vulkan_extensions() const {
-        std::vector<const char*> result;
-
         uint32_t ext_count = 0;
         const char** glfw_extensions = nullptr;
         glfw_extensions = glfwGetRequiredInstanceExtensions(&ext_count);
         std::vector<const char*> extensions(glfw_extensions, glfw_extensions + ext_count);
 
-        return result;
+        return extensions;
+    }
+
+    std::function<void*(void*)> WindowGLFW::get_vk_surface_creator() const {
+        return [this](void* vk_instance) -> void* {
+            return ::create_vk_surface(
+                reinterpret_cast<VkInstance>(vk_instance),
+                reinterpret_cast<GLFWwindow*>(this->m_window)
+            );
+        };
     }
 
 }

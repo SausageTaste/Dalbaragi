@@ -25,13 +25,13 @@ target_link_libraries(libdal_vulkan PUBLIC libdal_util)
 
 
 if(WIN32)
-    target_link_libraries(libdal_vulkan PUBLIC Vulkan::Vulkan)
-    target_compile_definitions(libdal_vulkan PUBLIC VK_USE_PLATFORM_WIN32_KHR)
+    target_link_libraries(libdal_vulkan PRIVATE Vulkan::Vulkan)
+    target_compile_definitions(libdal_vulkan PRIVATE VK_USE_PLATFORM_WIN32_KHR)
 
 elseif ("${CMAKE_SYSTEM}" MATCHES "Linux")
-    target_link_libraries(libdal_vulkan PUBLIC Vulkan::Vulkan)
+    target_link_libraries(libdal_vulkan PRIVATE Vulkan::Vulkan)
 
 elseif (ANDROID)
-    target_compile_definitions(libdal_vulkan PUBLIC VK_USE_PLATFORM_ANDROID_KHR)
+    target_compile_definitions(libdal_vulkan PRIVATE VK_USE_PLATFORM_ANDROID_KHR)
 
 endif()
