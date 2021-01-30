@@ -28,6 +28,9 @@ if(WIN32)
     target_link_libraries(libdal_vulkan PUBLIC Vulkan::Vulkan)
     target_compile_definitions(libdal_vulkan PUBLIC VK_USE_PLATFORM_WIN32_KHR)
 
+elseif ("${CMAKE_SYSTEM}" MATCHES "Linux")
+    target_link_libraries(libdal_vulkan PUBLIC Vulkan::Vulkan)
+
 elseif (ANDROID)
     target_compile_definitions(libdal_vulkan PUBLIC VK_USE_PLATFORM_ANDROID_KHR)
 

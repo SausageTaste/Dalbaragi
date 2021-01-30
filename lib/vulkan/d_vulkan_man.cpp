@@ -2,6 +2,7 @@
 
 #include <array>
 #include <string>
+#include <cstring>
 #include <stdexcept>
 
 #ifdef __ANDROID__
