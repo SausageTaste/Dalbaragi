@@ -13,9 +13,12 @@
 #include "d_vulkan_header.h"
 
 
-#define DAL_VK_DEBUG
+#if !defined(NDEBUG) && !defined(__ANDROID__)
+    #define DAL_VK_DEBUG
+#endif
 
 
+// Physical device
 namespace {
 
     class QueueFamilyIndices {
@@ -242,6 +245,7 @@ namespace {
 }
 
 
+// Instance creation, validation layer
 namespace {
 
     constexpr std::array<const char*, 1> VAL_LAYERS_TO_USE = {
