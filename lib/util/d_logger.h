@@ -1,18 +1,18 @@
 #pragma once
 
 #include <vector>
-#include <functional>
+#include <memory>
+
+#include "d_log_channel.h"
 
 
 namespace dal {
 
     class LoggerSingleton {
 
-    public:
-        using print_func_t = std::function<void(const char*)>;
-
     private:
-        std::vector<print_func_t> m_print_funcs;
+        std::vector<std::shared_ptr<ILogChannel>> m_outputs;
+        LogLevel m_level = LogLevel::info;
 
     private:
         LoggerSingleton() = default;
@@ -23,16 +23,80 @@ namespace dal {
             return inst;
         }
 
-        void add_print_func(const print_func_t& func) {
-            this->m_print_funcs.push_back(func);
+        void add_channel(std::shared_ptr<ILogChannel> ptr);
+
+        template <typename _ChTyp>
+        void emplace_channel() {
+            auto ptr = std::shared_ptr<ILogChannel>(new _ChTyp);
+            this->add_channel(ptr);
         }
 
-        void simple_print(const char* const text) const {
-            for (auto& x : this->m_print_funcs) {
-                x(text);
-            }
+        void put(
+            const LogLevel level, const char* const str,
+            const int line, const char* const func, const char* const file
+        );
+
+        void put_verbose(
+            const char* const str,
+            const int line, const char* const func, const char* const file
+        ) {
+            this->put(LogLevel::verbose, str, line, func, file);
+        }
+        void put_debug(
+            const char* const str,
+            const int line, const char* const func, const char* const file
+        ) {
+            this->put(LogLevel::debug, str, line, func, file);
+        }
+        void put_info(
+            const char* const str,
+            const int line, const char* const func, const char* const file
+        ) {
+            this->put(LogLevel::info, str, line, func, file);
+        }
+        void put_warn(
+            const char* const str,
+            const int line, const char* const func, const char* const file
+        ) {
+            this->put(LogLevel::warning, str, line, func, file);
+        }
+        void put_error(
+            const char* const str,
+            const int line, const char* const func, const char* const file
+        ) {
+            this->put(LogLevel::error, str, line, func, file);
+        }
+        void put_fatal(
+            const char* const str,
+            const int line, const char* const func, const char* const file
+        ) {
+            this->put(LogLevel::fatal, str, line, func, file);
         }
 
     };
 
 }
+
+
+#define DAL_ENABLE_ASSERT
+
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
+#define dalVerbose(str) dal::LoggerSingleton::inst().put_verbose((str), __LINE__, __func__, __FILE__);
+#define dalDebug(str)   dal::LoggerSingleton::inst().put_debug((str),   __LINE__, __func__, __FILE__);
+#define dalInfo(str)    dal::LoggerSingleton::inst().put_info((str),    __LINE__, __func__, __FILE__);
+#define dalWarn(str)    dal::LoggerSingleton::inst().put_warn((str),    __LINE__, __func__, __FILE__);
+#define dalError(str)   dal::LoggerSingleton::inst().put_error((str),   __LINE__, __func__, __FILE__);
+#define dalFatal(str)   dal::LoggerSingleton::inst().put_fatal((str),   __LINE__, __func__, __FILE__);
+#define dalAbort(str) { dal::LoggerSingleton::inst().put_fatal((str),   __LINE__, __func__, __FILE__); throw -1; }
+
+
+#ifdef DAL_ENABLE_ASSERT
+    #define dalAssert(condition) { if (!(condition)) dalAbort("Assertion failed ( " TOSTRING(condition) " ), file " __FILE__ ", line " TOSTRING(__LINE__)); }
+    #define dalAssertm(condition, message) { if (!(condition)) dalAbort(message); }
+#else
+    #define dalAssert(condition) (condition)
+    #define dalAssertm(condition, message) (condition)
+#endif

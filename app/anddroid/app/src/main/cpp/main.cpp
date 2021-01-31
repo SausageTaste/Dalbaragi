@@ -1,20 +1,55 @@
 #include <jni.h>
+#include <fmt/format.h>
 #include <android/log.h>
 #include <android_native_app_glue.h>
 
+#include <d_logger.h>
 #include <d_vulkan_man.h>
 #include <d_vulkan_header.h>
-#include <d_logger.h>
 
 
 namespace {
 
     auto& logger = dal::LoggerSingleton::inst();
 
+    class LogChannel_Logcat : public dal::ILogChannel {
 
-    void simple_print(const char* const text) {
-        __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "%s", text);
-    }
+    public:
+        void put(
+            const dal::LogLevel level, const char* const str,
+            const int line, const char* const func, const char* const file
+        ) override {
+            __android_log_print(
+                map_log_levels(level),
+                "vulkan_practice",
+                "[%s] %s",
+                dal::get_log_level_str(level),
+                str
+            );
+        }
+
+    private:
+        static android_LogPriority map_log_levels(const dal::LogLevel level) {
+            switch (level) {
+                case dal::LogLevel::verbose:
+                    return ANDROID_LOG_VERBOSE;
+                case dal::LogLevel::info:
+                    return ANDROID_LOG_INFO;
+                case dal::LogLevel::debug:
+                    return ANDROID_LOG_DEBUG;
+                case dal::LogLevel::warning:
+                    return ANDROID_LOG_WARN;
+                case dal::LogLevel::error:
+                    return ANDROID_LOG_ERROR;
+                case dal::LogLevel::fatal:
+                    return ANDROID_LOG_FATAL;
+                default:
+                    return ANDROID_LOG_UNKNOWN;
+            }
+        }
+
+    };
+
 
     void init(ANativeWindow* const native_window) {
         const std::vector<const char*> instanceExt{
@@ -36,11 +71,7 @@ namespace {
                 nullptr,
                 &surface
             );
-
-            if (VK_SUCCESS != create_result) {
-                logger.simple_print("failed to create vulkan surface");
-                return nullptr;
-            }
+            dalAssert(VK_SUCCESS == create_result);
 
             return reinterpret_cast<void*>(surface);
         };
@@ -57,51 +88,51 @@ extern "C" {
     void handle_cmd(android_app* const state, const int32_t cmd) {
         switch (cmd) {
             case APP_CMD_INIT_WINDOW:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: init window");
+                dalInfo("handle cmd: init window");
                 ::init(state->window);
                 break;
             case APP_CMD_WINDOW_RESIZED:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: init window");
+                dalInfo("handle cmd: init window");
                 break;
             case APP_CMD_DESTROY:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: destroy");
+                dalInfo("handle cmd: destroy");
                 break;
             case APP_CMD_PAUSE:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: pause");
+                dalInfo("handle cmd: pause");
                 break;
             case APP_CMD_RESUME:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: resume");
+                dalInfo("handle cmd: resume");
                 break;
             case APP_CMD_START:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: start");
+                dalInfo("handle cmd: start");
                 break;
             case APP_CMD_STOP:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: stop");
+                dalInfo("handle cmd: stop");
                 break;
             case APP_CMD_GAINED_FOCUS:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: focus gained");
+                dalInfo("handle cmd: focus gained");
                 break;
             case APP_CMD_LOST_FOCUS:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: focus lost");
+                dalInfo("handle cmd: focus lost");
                 break;
             case APP_CMD_INPUT_CHANGED:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: input changed");
+                dalInfo("handle cmd: input changed");
                 break;
             case APP_CMD_TERM_WINDOW:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: window terminated");
+                dalInfo("handle cmd: window terminated");
                 break;
             case APP_CMD_SAVE_STATE:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd: save state");
+                dalInfo("handle cmd: save state");
                 break;
             default:
-                __android_log_print(ANDROID_LOG_VERBOSE, "vulkan_practice", "handle cmd; unknown (%d)", cmd);
+                dalInfo( fmt::format("handle cmd; unknown ({})", cmd).c_str() );
                 break;
         }
     }
 
     void android_main(struct android_app *pApp) {
         pApp->onAppCmd = handle_cmd;
-        dal::LoggerSingleton::inst().add_print_func(::simple_print);
+        logger.emplace_channel<LogChannel_Logcat>();
 
         int events;
         android_poll_source *pSource;

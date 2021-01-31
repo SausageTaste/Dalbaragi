@@ -13,7 +13,7 @@
 #include "d_vulkan_header.h"
 
 
-#if !defined(NDEBUG) && !defined(__ANDROID__) || true
+#if !defined(NDEBUG) && !defined(__ANDROID__)
     #define DAL_VK_DEBUG
 #endif
 
@@ -94,108 +94,6 @@ namespace {
 }
 
 
-// Logical device
-namespace {
-
-    class LogicalDevice {
-
-    private:
-        VkDevice m_handle = VK_NULL_HANDLE;
-
-        VkQueue m_graphics_queue = VK_NULL_HANDLE;
-        VkQueue m_present_queue = VK_NULL_HANDLE;
-
-    public:
-        LogicalDevice() = default;
-        LogicalDevice(const LogicalDevice&) = delete;
-        LogicalDevice& operator=(const LogicalDevice&) = delete;
-
-    public:
-
-        LogicalDevice(LogicalDevice&& other) noexcept {
-            std::swap(this->m_handle, other.m_handle);
-            std::swap(this->m_graphics_queue, other.m_graphics_queue);
-            std::swap(this->m_present_queue, other.m_present_queue);
-        }
-        LogicalDevice& operator=(LogicalDevice&& other) noexcept {
-            std::swap(this->m_handle, other.m_handle);
-            std::swap(this->m_graphics_queue, other.m_graphics_queue);
-            std::swap(this->m_present_queue, other.m_present_queue);
-            return *this;
-        }
-
-        ~LogicalDevice() {
-            this->destroy();
-        }
-
-        bool init(const VkSurfaceKHR surface, const VkPhysicalDevice phys_device) {
-            const auto indices = ::find_queue_families(surface, phys_device);
-
-            // Create vulkan device
-            {
-                std::vector<VkDeviceQueueCreateInfo> create_info_queues;
-                std::set<uint32_t> unique_queue_families{ indices.graphics_family(), indices.present_family() };
-                const float queuePriority = 1;
-
-                for ( const auto queue_family : unique_queue_families ) {
-                    VkDeviceQueueCreateInfo create_info{};
-                    create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-                    create_info.queueFamilyIndex = queue_family;
-                    create_info.queueCount = 1;
-                    create_info.pQueuePriorities = &queuePriority;
-                    create_info_queues.push_back(create_info);
-                }
-
-                VkPhysicalDeviceFeatures device_features{};
-                device_features.samplerAnisotropy = true;
-
-                VkDeviceCreateInfo create_info_device{};
-                create_info_device.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-                create_info_device.queueCreateInfoCount    = create_info_queues.size();
-                create_info_device.pQueueCreateInfos       = create_info_queues.data();
-                create_info_device.pEnabledFeatures        = &device_features;
-                create_info_device.enabledExtensionCount   = ::PHYS_DEVICE_EXTENSIONS.size();
-                create_info_device.ppEnabledExtensionNames = ::PHYS_DEVICE_EXTENSIONS.data();
-#ifdef DAL_VK_DEBUG
-                create_info_device.enabledLayerCount   = ::VAL_LAYERS_TO_USE.size();
-                create_info_device.ppEnabledLayerNames = ::VAL_LAYERS_TO_USE.data();
-#endif
-
-                if (VK_SUCCESS != vkCreateDevice(phys_device, &create_info_device, nullptr, &this->m_handle)) {
-                    return false;
-                }
-            }
-
-            vkGetDeviceQueue(this->m_handle, indices.graphics_family(), 0, &this->m_graphics_queue);
-            vkGetDeviceQueue(this->m_handle, indices.present_family(), 0, &this->m_present_queue);
-
-            return true;
-        }
-
-        void destroy() {
-            // Queues are destoryed implicitly when the corresponding VkDevice is destroyed.
-
-            if (VK_NULL_HANDLE != this->m_handle) {
-                vkDestroyDevice(this->m_handle, nullptr);
-                this->m_handle = VK_NULL_HANDLE;
-            }
-        }
-
-        auto& get() const {
-            return this->m_handle;
-        }
-        auto& queue_graphics() const {
-            return this->m_graphics_queue;
-        }
-        auto& queue_present() const {
-            return this->m_present_queue;
-        }
-
-    };
-
-}
-
-
 // Physical device
 namespace {
 
@@ -232,11 +130,16 @@ namespace {
     class PhysDeviceInfo {
 
     private:
-        VkPhysicalDeviceProperties m_properties;
-        VkPhysicalDeviceFeatures m_features;
+        VkPhysicalDeviceProperties m_properties{};
+        VkPhysicalDeviceFeatures m_features{};
         QueueFamilyIndices m_queue_families;
         SwapChainSupportDetails m_swapchain_details;
         std::vector<VkExtensionProperties> m_available_extensions;
+
+    public:
+        PhysDeviceInfo() = default;
+        PhysDeviceInfo(const PhysDeviceInfo&) = default;
+        PhysDeviceInfo& operator=(const PhysDeviceInfo&) = default;
 
     public:
         PhysDeviceInfo(const VkSurfaceKHR surface, const VkPhysicalDevice phys_device) {
@@ -271,12 +174,11 @@ namespace {
             }
         }
 
-        bool is_usable() const {
-            if (!this->m_features.geometryShader)
-                return false;
-            if (!this->m_features.samplerAnisotropy)
-                return false;
+        bool does_support_anisotropic_sampling() const {
+            return this->m_features.samplerAnisotropy;
+        }
 
+        bool is_usable() const {
             if (!this->does_support_all_extensions( ::PHYS_DEVICE_EXTENSIONS.begin(), ::PHYS_DEVICE_EXTENSIONS.end() ))
                 return false;
 
@@ -351,6 +253,7 @@ namespace {
         }
 
         auto& get() const {
+            dalAssert(VK_NULL_HANDLE != this->m_handle);
             return this->m_handle;
         }
 
@@ -377,14 +280,16 @@ namespace {
     }
 
     template <bool _PrintInfo>
-    PhysicalDevice get_best_phys_device(const VkInstance instance, const VkSurfaceKHR surface) {
+    auto get_best_phys_device(const VkInstance instance, const VkSurfaceKHR surface) {
         const auto phys_devices = ::get_phys_devices(instance);
-        unsigned best_score = 0;
-        PhysicalDevice best_device = VK_NULL_HANDLE;
-        auto& logger = dal::LoggerSingleton::inst();
 
-        if constexpr (_PrintInfo)
-            logger.simple_print( fmt::format("Physical devices count: {}", phys_devices.size()).c_str() );
+        unsigned best_score = 0;
+        PhysicalDevice best_device;
+        PhysDeviceInfo best_info;
+
+        if constexpr (_PrintInfo) {
+            dalInfo(fmt::format("Physical devices count: {}", phys_devices.size()).c_str());
+        }
 
         for (auto& x : phys_devices) {
             const auto info = x.make_info(surface);
@@ -393,14 +298,114 @@ namespace {
             if (this_score > best_score) {
                 best_score = this_score;
                 best_device = x;
+                best_info = info;
             }
 
-            if constexpr (_PrintInfo)
-                logger.simple_print( fmt::format("{} ({}) : {}", info.name(), info.device_type_str(), this_score).c_str() );
+            if constexpr (_PrintInfo) {
+                dalInfo(fmt::format("{} ({}) : {}", info.name(), info.device_type_str(), this_score).c_str());
+            }
         }
 
-        return best_device;
+        return std::make_pair(best_device, best_info);
     }
+
+}
+
+
+// Logical device
+namespace {
+
+    class LogicalDevice {
+
+    private:
+        VkDevice m_handle = VK_NULL_HANDLE;
+
+        VkQueue m_graphics_queue = VK_NULL_HANDLE;
+        VkQueue m_present_queue = VK_NULL_HANDLE;
+
+    public:
+        LogicalDevice() = default;
+        LogicalDevice(const LogicalDevice&) = delete;
+        LogicalDevice& operator=(const LogicalDevice&) = delete;
+
+    public:
+        LogicalDevice(LogicalDevice&& other) noexcept {
+            std::swap(this->m_handle, other.m_handle);
+            std::swap(this->m_graphics_queue, other.m_graphics_queue);
+            std::swap(this->m_present_queue, other.m_present_queue);
+        }
+        LogicalDevice& operator=(LogicalDevice&& other) noexcept {
+            std::swap(this->m_handle, other.m_handle);
+            std::swap(this->m_graphics_queue, other.m_graphics_queue);
+            std::swap(this->m_present_queue, other.m_present_queue);
+            return *this;
+        }
+
+        ~LogicalDevice() {
+            this->destroy();
+        }
+
+        void init(const VkSurfaceKHR surface, const PhysicalDevice& phys_device, const PhysDeviceInfo& phys_info) {
+            const auto indices = ::find_queue_families(surface, phys_device.get());
+
+            // Create vulkan device
+            {
+                std::vector<VkDeviceQueueCreateInfo> create_info_queues;
+                std::set<uint32_t> unique_queue_families{ indices.graphics_family(), indices.present_family() };
+                const float queuePriority = 1;
+
+                for ( const auto queue_family : unique_queue_families ) {
+                    VkDeviceQueueCreateInfo create_info{};
+                    create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+                    create_info.queueFamilyIndex = queue_family;
+                    create_info.queueCount = 1;
+                    create_info.pQueuePriorities = &queuePriority;
+                    create_info_queues.push_back(create_info);
+                }
+
+                VkPhysicalDeviceFeatures device_features{};
+                device_features.samplerAnisotropy = phys_info.does_support_anisotropic_sampling();
+
+                VkDeviceCreateInfo create_info_device{};
+                create_info_device.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+                create_info_device.queueCreateInfoCount    = create_info_queues.size();
+                create_info_device.pQueueCreateInfos       = create_info_queues.data();
+                create_info_device.pEnabledFeatures        = &device_features;
+                create_info_device.enabledExtensionCount   = ::PHYS_DEVICE_EXTENSIONS.size();
+                create_info_device.ppEnabledExtensionNames = ::PHYS_DEVICE_EXTENSIONS.data();
+#ifdef DAL_VK_DEBUG
+                create_info_device.enabledLayerCount   = ::VAL_LAYERS_TO_USE.size();
+                create_info_device.ppEnabledLayerNames = ::VAL_LAYERS_TO_USE.data();
+#endif
+
+                const auto create_result = vkCreateDevice(phys_device.get(), &create_info_device, nullptr, &this->m_handle);
+                dalAssert(VK_SUCCESS == create_result);
+            }
+
+            vkGetDeviceQueue(this->m_handle, indices.graphics_family(), 0, &this->m_graphics_queue);
+            vkGetDeviceQueue(this->m_handle, indices.present_family(), 0, &this->m_present_queue);
+        }
+
+        void destroy() {
+            // Queues are destoryed implicitly when the corresponding VkDevice is destroyed.
+
+            if (VK_NULL_HANDLE != this->m_handle) {
+                vkDestroyDevice(this->m_handle, nullptr);
+                this->m_handle = VK_NULL_HANDLE;
+            }
+        }
+
+        auto& get() const {
+            return this->m_handle;
+        }
+        auto& queue_graphics() const {
+            return this->m_graphics_queue;
+        }
+        auto& queue_present() const {
+            return this->m_present_queue;
+        }
+
+    };
 
 }
 
@@ -417,24 +422,26 @@ namespace {
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData
     ) {
+        const auto err_msg = fmt::format("{}", pCallbackData->pMessage);
+
         switch ( messageSeverity ) {
-
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            return VK_FALSE;
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            break;
-        default:
-            break;
-
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+                dalVerbose(err_msg.c_str());
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+                dalInfo(err_msg.c_str());
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+                dalWarn(err_msg.c_str());
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+                dalError(err_msg.c_str());
+                break;
+            default:
+                dalWarn(err_msg.c_str())
+                break;
         }
 
-        const auto err_msg = std::string{ "Vulkan Debug: " } + pCallbackData->pMessage;
-        dal::LoggerSingleton::inst().simple_print(err_msg.c_str());
         return VK_FALSE;
     }
 
@@ -575,6 +582,7 @@ namespace dal {
         VkInstance m_instance = VK_NULL_HANDLE;
         VkSurfaceKHR m_surface = VK_NULL_HANDLE;
         PhysicalDevice m_phys_device;
+        PhysDeviceInfo m_phys_info;
         LogicalDevice m_logi_device;
 
 #ifdef DAL_VK_DEBUG
@@ -586,39 +594,32 @@ namespace dal {
             this->destroy();
         }
 
-        bool init(
+        void init(
             const char* const window_title,
             const std::vector<const char*>& extensions,
             const std::function<void*(void*)> surface_create_func
         ) {
 #ifdef __ANDROID__
-            if (0 == InitVulkan()) {
-                return false;
-            }
+            dalAssert(1 == InitVulkan());
 #endif
             this->destroy();
 
             this->m_instance = ::create_vulkan_instance(window_title, extensions);
-            if (VK_NULL_HANDLE == this->m_instance)
-                return false;
+            dalAssert(VK_NULL_HANDLE != this->m_instance);
 
             this->m_surface = reinterpret_cast<VkSurfaceKHR>(surface_create_func(this->m_instance));
-            if (VK_NULL_HANDLE == this->m_surface)
-                return false;
+            dalAssert(VK_NULL_HANDLE != this->m_surface);
 
 #ifdef DAL_VK_DEBUG
             this->m_debug_messenger = ::create_debug_messenger(this->m_instance);
-            if (VK_NULL_HANDLE == this->m_debug_messenger)
-                return false;
+            dalAssert(VK_NULL_HANDLE != this->m_debug_messenger);
 #endif
 
-            this->m_phys_device = ::get_best_phys_device<true>(this->m_instance, this->m_surface);
+            std::tie(this->m_phys_device, this->m_phys_info) = ::get_best_phys_device<true>(this->m_instance, this->m_surface);
 #ifdef DAL_VK_DEBUG
             //::test_vk_validation(phys_devices[0].get());
 #endif
-            this->m_logi_device.init(this->m_surface, this->m_phys_device.get());
-
-            return this->is_ready();
+            this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
         }
 
         void destroy() {
@@ -642,17 +643,6 @@ namespace dal {
             }
         }
 
-        bool is_ready() const {
-            if (VK_NULL_HANDLE == this->m_instance) {
-                return false;
-            }
-            if (VK_NULL_HANDLE == this->m_surface) {
-                return false;
-            }
-
-            return true;
-        }
-
     };
 
 }
@@ -664,13 +654,13 @@ namespace dal {
         this->destroy();
     }
 
-    bool VulkanState::init(
+    void VulkanState::init(
         const char* const window_title,
         const std::vector<const char*>& extensions,
         std::function<void*(void*)> surface_create_func
     ) {
         this->m_pimpl = new Pimpl;
-        return this->m_pimpl->init(window_title, extensions, surface_create_func);
+        this->m_pimpl->init(window_title, extensions, surface_create_func);
     }
 
     void VulkanState::destroy() {

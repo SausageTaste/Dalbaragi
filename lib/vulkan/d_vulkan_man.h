@@ -15,7 +15,7 @@ namespace dal {
     public:
         ~VulkanState();
 
-        bool init(
+        void init(
             const char* const window_title,
             const std::vector<const char*>& extensions,
             std::function<void*(void*)> surface_create_func
