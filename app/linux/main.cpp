@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
     dal::WindowGLFW window("Dalbrargi Linux");
     dal::VulkanState state;
-    state.init("Dalbrargi Linux", {});
+    state.init("Dalbrargi Linux", window.get_vulkan_extensions(), window.get_vk_surface_creator());
 
     while (!window.should_close()) {
         window.do_frame();
