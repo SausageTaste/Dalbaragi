@@ -21,6 +21,11 @@
 // Physical device
 namespace {
 
+    constexpr std::array<const char*, 1> PHYS_DEVICE_EXTENSIONS = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    };
+
+
     class QueueFamilyIndices {
 
     private:
@@ -111,16 +116,9 @@ namespace {
     }
 
 
-    class PhysicalDevice {
+    class PhysDeviceInfo {
 
     private:
-        const std::array<const char*, 1> DEVICE_EXTENSIONS = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        };
-
-    private:
-        VkPhysicalDevice m_handle = VK_NULL_HANDLE;
-
         VkPhysicalDeviceProperties m_properties;
         VkPhysicalDeviceFeatures m_features;
         QueueFamilyIndices m_queue_families;
@@ -128,27 +126,20 @@ namespace {
         std::vector<VkExtensionProperties> m_available_extensions;
 
     public:
-        PhysicalDevice() = default;
-
-        PhysicalDevice(const VkPhysicalDevice phys_device, const VkSurfaceKHR surface)
-            : m_handle(phys_device)
-        {
-            vkGetPhysicalDeviceProperties(this->m_handle, &this->m_properties);
-            vkGetPhysicalDeviceFeatures(this->m_handle, &this->m_features);
-            this->m_queue_families = ::find_queue_families(surface, this->m_handle);
-            this->m_swapchain_details = ::query_swapchain_support(surface, this->m_handle);
+        PhysDeviceInfo(const VkSurfaceKHR surface, const VkPhysicalDevice phys_device) {
+            vkGetPhysicalDeviceProperties(phys_device, &this->m_properties);
+            vkGetPhysicalDeviceFeatures(phys_device, &this->m_features);
+            this->m_queue_families = ::find_queue_families(surface, phys_device);
+            this->m_swapchain_details = ::query_swapchain_support(surface, phys_device);
 
             {
                 uint32_t extension_count;
-                vkEnumerateDeviceExtensionProperties(this->m_handle, nullptr, &extension_count, nullptr);
+                vkEnumerateDeviceExtensionProperties(phys_device, nullptr, &extension_count, nullptr);
                 this->m_available_extensions.resize(extension_count);
-                vkEnumerateDeviceExtensionProperties(this->m_handle, nullptr, &extension_count, this->m_available_extensions.data());
+                vkEnumerateDeviceExtensionProperties(phys_device, nullptr, &extension_count, this->m_available_extensions.data());
             }
         }
 
-        auto& get() const {
-            return this->m_handle;
-        }
         auto name() const {
             return this->m_properties.deviceName;
         }
@@ -173,7 +164,7 @@ namespace {
             if (!this->m_features.samplerAnisotropy)
                 return false;
 
-            if (!this->does_support_all_extensions( this->DEVICE_EXTENSIONS.begin(), this->DEVICE_EXTENSIONS.end() ))
+            if (!this->does_support_all_extensions( ::PHYS_DEVICE_EXTENSIONS.begin(), ::PHYS_DEVICE_EXTENSIONS.end() ))
                 return false;
 
             if (!this->m_queue_families.is_complete())
@@ -227,7 +218,37 @@ namespace {
     };
 
 
-    std::vector<PhysicalDevice> get_phys_devices(const VkInstance instance, const VkSurfaceKHR surface) {
+    class PhysicalDevice {
+
+    private:
+
+    private:
+        VkPhysicalDevice m_handle = VK_NULL_HANDLE;
+
+    public:
+        PhysicalDevice() = default;
+        PhysicalDevice(const PhysicalDevice&) = default;
+        PhysicalDevice& operator=(const PhysicalDevice&) = default;
+
+    public:
+        PhysicalDevice(const VkPhysicalDevice phys_device)
+            : m_handle(phys_device)
+        {
+
+        }
+
+        auto& get() const {
+            return this->m_handle;
+        }
+
+        auto make_info(const VkSurfaceKHR surface) const {
+            return ::PhysDeviceInfo{ surface, this->m_handle };
+        }
+
+    };
+
+
+    std::vector<PhysicalDevice> get_phys_devices(const VkInstance instance) {
         uint32_t device_count = 0;
         vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
         std::vector<VkPhysicalDevice> devices(device_count);
@@ -236,7 +257,7 @@ namespace {
         std::vector<PhysicalDevice> result;
         result.reserve(device_count);
         for (const auto& x : devices) {
-            result.push_back(::PhysicalDevice{x, surface});
+            result.push_back(::PhysicalDevice{x});
         }
 
         return result;
@@ -418,6 +439,7 @@ namespace dal {
     private:
         VkInstance m_instance = VK_NULL_HANDLE;
         VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+        PhysicalDevice m_phys_device;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
@@ -425,7 +447,7 @@ namespace dal {
 
     public:
         ~Pimpl() {
-            //this->destroy();
+            this->destroy();
         }
 
         bool init(
@@ -454,16 +476,25 @@ namespace dal {
                 return false;
 #endif
 
-            const auto phys_devices = ::get_phys_devices(this->m_instance, this->m_surface);
+            const auto phys_devices = ::get_phys_devices(this->m_instance);
+            unsigned best_score = 0;
 
             auto& logger = dal::LoggerSingleton::inst();
             logger.simple_print( fmt::format("Physical devices count: {}", phys_devices.size()).c_str() );
             for (auto& x : phys_devices) {
-                logger.simple_print( fmt::format("{} ({}) : {}", x.name(), x.device_type_str(), x.calc_score()).c_str() );
+                const auto info = x.make_info(this->m_surface);
+                const auto this_score = info.calc_score();
+
+                if (this_score > best_score) {
+                    best_score = this_score;
+                    this->m_phys_device = x;
+                }
+
+                logger.simple_print( fmt::format("{} ({}) : {}", info.name(), info.device_type_str(), this_score).c_str() );
             }
 
 #ifdef DAL_VK_DEBUG
-            ::test_vk_validation(phys_devices[0].get());
+            //::test_vk_validation(phys_devices[0].get());
 #endif
 
             return this->is_ready();
