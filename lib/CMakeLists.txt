@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.4.1)
 
-
 set(extern_dir ./../extern)
+
+
+add_subdirectory(${extern_dir}/fmt ${CMAKE_CURRENT_BINARY_DIR}/fmt)
 
 
 if (WIN32)

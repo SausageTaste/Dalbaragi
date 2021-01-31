@@ -6,6 +6,8 @@
 #include <cstring>
 #include <stdexcept>
 
+#include <fmt/format.h>
+
 #include "d_logger.h"
 
 #include "d_vulkan_header.h"
@@ -389,16 +391,9 @@ namespace dal {
             const auto phys_devices = ::get_phys_devices(this->m_instance, this->m_surface);
 
             auto& logger = dal::LoggerSingleton::inst();
-            const auto ss = std::string{} + "There are " + std::to_string(phys_devices.size()) + " physical devices: ";
-            logger.simple_print(ss.c_str());
+            logger.simple_print( fmt::format("Physical devices count: {}", phys_devices.size()).c_str() );
             for (auto& x : phys_devices) {
-                std::string text;
-                text += x.name();
-                text += " (";
-                text += x.device_type_str();
-                text += ") : ";
-                text += std::to_string(x.calc_score());
-                logger.simple_print(text.c_str());
+                logger.simple_print( fmt::format("{} ({}) : {}", x.name(), x.device_type_str(), x.calc_score()).c_str() );
             }
 
             return this->is_ready();
