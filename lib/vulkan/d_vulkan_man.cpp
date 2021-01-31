@@ -13,7 +13,7 @@
 #include "d_vulkan_header.h"
 
 
-//#define DAL_VK_DEBUG
+#define DAL_VK_DEBUG
 
 
 namespace {
@@ -143,6 +143,9 @@ namespace {
             }
         }
 
+        auto& get() const {
+            return this->m_handle;
+        }
         auto name() const {
             return this->m_properties.deviceName;
         }
@@ -246,6 +249,8 @@ namespace {
     };
 
 
+#ifdef DAL_VK_DEBUG
+
     VKAPI_ATTR VkBool32 VKAPI_CALL callback_vk_debug(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -269,32 +274,8 @@ namespace {
         }
 
         const auto err_msg = std::string{ "Vulkan Debug: " } + pCallbackData->pMessage;
+        dal::LoggerSingleton::inst().simple_print(err_msg.c_str());
         return VK_FALSE;
-    }
-
-
-    VkApplicationInfo make_info_vulkan_app(const char* const window_title) {
-        VkApplicationInfo appInfo = {};
-
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = window_title;
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "Dalbaragi";
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_0;
-
-        return appInfo;
-    }
-
-    VkDebugUtilsMessengerCreateInfoEXT make_info_debug_messenger(const PFN_vkDebugUtilsMessengerCallbackEXT& callback) {
-        VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
-
-        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        createInfo.pfnUserCallback = callback_vk_debug;
-
-        return createInfo;
     }
 
     bool check_validation_layer_support() {
@@ -320,6 +301,75 @@ namespace {
         return true;
     }
 
+    VkDebugUtilsMessengerCreateInfoEXT make_info_debug_messenger() {
+        VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
+
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.pfnUserCallback = callback_vk_debug;
+
+        return createInfo;
+    }
+
+    void destroyDebugUtilsMessengerEXT(
+        const VkInstance instance,
+        const VkDebugUtilsMessengerEXT debugMessenger,
+        const VkAllocationCallbacks* const pAllocator
+    ) {
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+        if ( func != nullptr ) {
+            func(instance, debugMessenger, pAllocator);
+        }
+    }
+
+    VkResult createDebugUtilsMessengerEXT(
+        const VkInstance instance,
+        const VkDebugUtilsMessengerCreateInfoEXT* const pCreateInfo,
+        const VkAllocationCallbacks* const pAllocator,
+        VkDebugUtilsMessengerEXT* const pDebugMessenger
+    ) {
+        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+        if (nullptr != func) {
+            return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+        }
+        else {
+            return VK_ERROR_EXTENSION_NOT_PRESENT;
+        }
+    }
+
+    VkDebugUtilsMessengerEXT create_debug_messenger(const VkInstance& instance) {
+        const auto createInfo = ::make_info_debug_messenger();
+
+        VkDebugUtilsMessengerEXT result = VK_NULL_HANDLE;
+        if (VK_SUCCESS != ::createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &result)) {
+            return VK_NULL_HANDLE;
+        }
+
+        return result;
+    }
+
+    void test_vk_validation(const VkPhysicalDevice phys_device) {
+        VkDeviceCreateInfo info{};
+        VkDevice tmp = VK_NULL_HANDLE;
+        vkCreateDevice(phys_device, &info, nullptr, &tmp);
+    }
+
+#endif
+
+
+    VkApplicationInfo make_info_vulkan_app(const char* const window_title) {
+        VkApplicationInfo appInfo = {};
+
+        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        appInfo.pApplicationName = window_title;
+        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+        appInfo.pEngineName = "Dalbaragi";
+        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+        appInfo.apiVersion = VK_API_VERSION_1_0;
+
+        return appInfo;
+    }
 
     VkInstance create_vulkan_instance(const char* const window_title, std::vector<const char*> extensions) {
         const auto appInfo = ::make_info_vulkan_app(window_title);
@@ -327,7 +377,6 @@ namespace {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
-        const auto debug_info = ::make_info_debug_messenger(nullptr);
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
@@ -339,6 +388,7 @@ namespace {
             return nullptr;
         }
 
+        const auto debug_info = ::make_info_debug_messenger();
         createInfo.enabledLayerCount = ::VAL_LAYERS_TO_USE.size();
         createInfo.ppEnabledLayerNames = ::VAL_LAYERS_TO_USE.data();
         createInfo.pNext = reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(&debug_info);
@@ -365,9 +415,13 @@ namespace dal {
         VkInstance m_instance = VK_NULL_HANDLE;
         VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 
+#ifdef DAL_VK_DEBUG
+        VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
+#endif
+
     public:
         ~Pimpl() {
-            this->destroy();
+            //this->destroy();
         }
 
         bool init(
@@ -383,10 +437,18 @@ namespace dal {
             this->destroy();
 
             this->m_instance = ::create_vulkan_instance(window_title, extensions);
-            this->m_surface = reinterpret_cast<VkSurfaceKHR>(surface_create_func(this->m_instance));
-            if (VK_NULL_HANDLE == this->m_surface) {
+            if (VK_NULL_HANDLE == this->m_instance)
                 return false;
-            }
+
+            this->m_surface = reinterpret_cast<VkSurfaceKHR>(surface_create_func(this->m_instance));
+            if (VK_NULL_HANDLE == this->m_surface)
+                return false;
+
+#ifdef DAL_VK_DEBUG
+            this->m_debug_messenger = ::create_debug_messenger(this->m_instance);
+            if (VK_NULL_HANDLE == this->m_debug_messenger)
+                return false;
+#endif
 
             const auto phys_devices = ::get_phys_devices(this->m_instance, this->m_surface);
 
@@ -396,10 +458,21 @@ namespace dal {
                 logger.simple_print( fmt::format("{} ({}) : {}", x.name(), x.device_type_str(), x.calc_score()).c_str() );
             }
 
+#ifdef DAL_VK_DEBUG
+            ::test_vk_validation(phys_devices[0].get());
+#endif
+
             return this->is_ready();
         }
 
         void destroy() {
+#ifdef DAL_VK_DEBUG
+            if (VK_NULL_HANDLE != this->m_debug_messenger) {
+                ::destroyDebugUtilsMessengerEXT(this->m_instance, this->m_debug_messenger, nullptr);
+                this->m_debug_messenger = VK_NULL_HANDLE;
+            }
+#endif
+
             if (VK_NULL_HANDLE != this->m_surface) {
                 vkDestroySurfaceKHR(this->m_instance, this->m_surface, nullptr);
                 this->m_surface = VK_NULL_HANDLE;
