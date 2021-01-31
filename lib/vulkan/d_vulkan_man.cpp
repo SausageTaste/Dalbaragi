@@ -13,13 +13,17 @@
 #include "d_vulkan_header.h"
 
 
-#if !defined(NDEBUG) && !defined(__ANDROID__)
+#if !defined(NDEBUG) && !defined(__ANDROID__) || true
     #define DAL_VK_DEBUG
 #endif
 
 
-// Physical device
+// Vulkan utils
 namespace {
+
+    constexpr std::array<const char*, 1> VAL_LAYERS_TO_USE = {
+        "VK_LAYER_KHRONOS_validation",
+    };
 
     constexpr std::array<const char*, 1> PHYS_DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -86,6 +90,115 @@ namespace {
 
         return indices;
     }
+
+}
+
+
+// Logical device
+namespace {
+
+    class LogicalDevice {
+
+    private:
+        VkDevice m_handle = VK_NULL_HANDLE;
+
+        VkQueue m_graphics_queue = VK_NULL_HANDLE;
+        VkQueue m_present_queue = VK_NULL_HANDLE;
+
+    public:
+        LogicalDevice() = default;
+        LogicalDevice(const LogicalDevice&) = delete;
+        LogicalDevice& operator=(const LogicalDevice&) = delete;
+
+    public:
+
+        LogicalDevice(LogicalDevice&& other) noexcept {
+            std::swap(this->m_handle, other.m_handle);
+            std::swap(this->m_graphics_queue, other.m_graphics_queue);
+            std::swap(this->m_present_queue, other.m_present_queue);
+        }
+        LogicalDevice& operator=(LogicalDevice&& other) noexcept {
+            std::swap(this->m_handle, other.m_handle);
+            std::swap(this->m_graphics_queue, other.m_graphics_queue);
+            std::swap(this->m_present_queue, other.m_present_queue);
+            return *this;
+        }
+
+        ~LogicalDevice() {
+            this->destroy();
+        }
+
+        bool init(const VkSurfaceKHR surface, const VkPhysicalDevice phys_device) {
+            const auto indices = ::find_queue_families(surface, phys_device);
+
+            // Create vulkan device
+            {
+                std::vector<VkDeviceQueueCreateInfo> create_info_queues;
+                std::set<uint32_t> unique_queue_families{ indices.graphics_family(), indices.present_family() };
+                const float queuePriority = 1;
+
+                for ( const auto queue_family : unique_queue_families ) {
+                    VkDeviceQueueCreateInfo create_info{};
+                    create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+                    create_info.queueFamilyIndex = queue_family;
+                    create_info.queueCount = 1;
+                    create_info.pQueuePriorities = &queuePriority;
+                    create_info_queues.push_back(create_info);
+                }
+
+                VkPhysicalDeviceFeatures device_features{};
+                device_features.samplerAnisotropy = true;
+
+                VkDeviceCreateInfo create_info_device{};
+                create_info_device.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+                create_info_device.queueCreateInfoCount    = create_info_queues.size();
+                create_info_device.pQueueCreateInfos       = create_info_queues.data();
+                create_info_device.pEnabledFeatures        = &device_features;
+                create_info_device.enabledExtensionCount   = ::PHYS_DEVICE_EXTENSIONS.size();
+                create_info_device.ppEnabledExtensionNames = ::PHYS_DEVICE_EXTENSIONS.data();
+#ifdef DAL_VK_DEBUG
+                create_info_device.enabledLayerCount   = ::VAL_LAYERS_TO_USE.size();
+                create_info_device.ppEnabledLayerNames = ::VAL_LAYERS_TO_USE.data();
+#endif
+
+                if (VK_SUCCESS != vkCreateDevice(phys_device, &create_info_device, nullptr, &this->m_handle)) {
+                    return false;
+                }
+            }
+
+            vkGetDeviceQueue(this->m_handle, indices.graphics_family(), 0, &this->m_graphics_queue);
+            vkGetDeviceQueue(this->m_handle, indices.present_family(), 0, &this->m_present_queue);
+
+            return true;
+        }
+
+        void destroy() {
+            // Queues are destoryed implicitly when the corresponding VkDevice is destroyed.
+
+            if (VK_NULL_HANDLE != this->m_handle) {
+                vkDestroyDevice(this->m_handle, nullptr);
+                this->m_handle = VK_NULL_HANDLE;
+            }
+        }
+
+        auto& get() const {
+            return this->m_handle;
+        }
+        auto& queue_graphics() const {
+            return this->m_graphics_queue;
+        }
+        auto& queue_present() const {
+            return this->m_present_queue;
+        }
+
+    };
+
+}
+
+
+// Physical device
+namespace {
+
 
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR m_capabilities;
@@ -263,15 +376,37 @@ namespace {
         return result;
     }
 
+    template <bool _PrintInfo>
+    PhysicalDevice get_best_phys_device(const VkInstance instance, const VkSurfaceKHR surface) {
+        const auto phys_devices = ::get_phys_devices(instance);
+        unsigned best_score = 0;
+        PhysicalDevice best_device = VK_NULL_HANDLE;
+        auto& logger = dal::LoggerSingleton::inst();
+
+        if constexpr (_PrintInfo)
+            logger.simple_print( fmt::format("Physical devices count: {}", phys_devices.size()).c_str() );
+
+        for (auto& x : phys_devices) {
+            const auto info = x.make_info(surface);
+            const auto this_score = info.calc_score();
+
+            if (this_score > best_score) {
+                best_score = this_score;
+                best_device = x;
+            }
+
+            if constexpr (_PrintInfo)
+                logger.simple_print( fmt::format("{} ({}) : {}", info.name(), info.device_type_str(), this_score).c_str() );
+        }
+
+        return best_device;
+    }
+
 }
 
 
 // Instance creation, validation layer
 namespace {
-
-    constexpr std::array<const char*, 1> VAL_LAYERS_TO_USE = {
-        "VK_LAYER_KHRONOS_validation",
-    };
 
 
 #ifdef DAL_VK_DEBUG
@@ -440,6 +575,7 @@ namespace dal {
         VkInstance m_instance = VK_NULL_HANDLE;
         VkSurfaceKHR m_surface = VK_NULL_HANDLE;
         PhysicalDevice m_phys_device;
+        LogicalDevice m_logi_device;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
@@ -476,31 +612,18 @@ namespace dal {
                 return false;
 #endif
 
-            const auto phys_devices = ::get_phys_devices(this->m_instance);
-            unsigned best_score = 0;
-
-            auto& logger = dal::LoggerSingleton::inst();
-            logger.simple_print( fmt::format("Physical devices count: {}", phys_devices.size()).c_str() );
-            for (auto& x : phys_devices) {
-                const auto info = x.make_info(this->m_surface);
-                const auto this_score = info.calc_score();
-
-                if (this_score > best_score) {
-                    best_score = this_score;
-                    this->m_phys_device = x;
-                }
-
-                logger.simple_print( fmt::format("{} ({}) : {}", info.name(), info.device_type_str(), this_score).c_str() );
-            }
-
+            this->m_phys_device = ::get_best_phys_device<true>(this->m_instance, this->m_surface);
 #ifdef DAL_VK_DEBUG
             //::test_vk_validation(phys_devices[0].get());
 #endif
+            this->m_logi_device.init(this->m_surface, this->m_phys_device.get());
 
             return this->is_ready();
         }
 
         void destroy() {
+            this->m_logi_device.destroy();
+
 #ifdef DAL_VK_DEBUG
             if (VK_NULL_HANDLE != this->m_debug_messenger) {
                 ::destroyDebugUtilsMessengerEXT(this->m_instance, this->m_debug_messenger, nullptr);
