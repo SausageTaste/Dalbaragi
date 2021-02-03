@@ -11,6 +11,7 @@
 #include "d_logger.h"
 
 #include "d_vulkan_header.h"
+#include "d_swapchain.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -583,6 +584,8 @@ namespace dal {
         PhysicalDevice m_phys_device;
         PhysDeviceInfo m_phys_info;
         LogicalDevice m_logi_device;
+
+        SwapchainManager m_swapchain;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
