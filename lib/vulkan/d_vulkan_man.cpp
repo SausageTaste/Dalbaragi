@@ -97,7 +97,6 @@ namespace {
 // Physical device
 namespace {
 
-
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR m_capabilities;
         std::vector<VkSurfaceFormatKHR> m_formats;
