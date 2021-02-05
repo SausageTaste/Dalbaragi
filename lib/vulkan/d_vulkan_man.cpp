@@ -30,110 +30,19 @@ namespace {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
 
-
-    class QueueFamilyIndices {
-
-    private:
-        static constexpr uint32_t NULL_VAL = -1;
-
-    private:
-        uint32_t m_graphics_family = NULL_VAL;
-        uint32_t m_present_family = NULL_VAL;
-
-    public:
-        bool is_complete(void) const noexcept {
-            if (this->NULL_VAL == this->m_graphics_family)
-                return false;
-            if (this->NULL_VAL == this->m_present_family)
-                return false;
-
-            return true;
-        }
-
-        uint32_t graphics_family(void) const noexcept {
-            return this->m_graphics_family;
-        }
-        uint32_t present_family(void) const noexcept {
-            return this->m_present_family;
-        }
-
-        void set_graphics_family(const uint32_t v) noexcept {
-            this->m_graphics_family = v;
-        }
-        void set_present_family(const uint32_t v) noexcept {
-            this->m_present_family = v;
-        }
-
-    };
-
-    QueueFamilyIndices find_queue_families(const VkSurfaceKHR surface, const VkPhysicalDevice phys_device) {
-        QueueFamilyIndices indices;
-
-        uint32_t queue_family_count = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(phys_device, &queue_family_count, nullptr);
-        std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
-        vkGetPhysicalDeviceQueueFamilyProperties(phys_device, &queue_family_count, queue_families.data());
-
-        for (size_t i = 0; i < queue_families.size(); ++i) {
-            const auto& queue_family = queue_families[i];
-
-            if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-                indices.set_graphics_family(i);
-
-            VkBool32 present_support = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(phys_device, i, surface, &present_support);
-            if (present_support)
-                indices.set_present_family(i);
-
-            if (indices.is_complete())
-                break;
-        }
-
-        return indices;
-    }
-
 }
 
 
 // Physical device
 namespace {
 
-    struct SwapChainSupportDetails {
-        VkSurfaceCapabilitiesKHR m_capabilities;
-        std::vector<VkSurfaceFormatKHR> m_formats;
-        std::vector<VkPresentModeKHR> m_present_modes;
-    };
-
-    SwapChainSupportDetails query_swapchain_support(const VkSurfaceKHR surface, const VkPhysicalDevice device) {
-        SwapChainSupportDetails result;
-
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &result.m_capabilities);
-
-        uint32_t format_count = 0;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, nullptr);
-        if (0 != format_count) {
-            result.m_formats.resize(format_count);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, result.m_formats.data());
-        }
-
-        uint32_t present_mode_count = 0;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count, nullptr);
-        if (0 != present_mode_count) {
-            result.m_present_modes.resize(present_mode_count);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count, result.m_present_modes.data());
-        }
-
-        return result;
-    }
-
-
     class PhysDeviceInfo {
 
     private:
         VkPhysicalDeviceProperties m_properties{};
         VkPhysicalDeviceFeatures m_features{};
-        QueueFamilyIndices m_queue_families;
-        SwapChainSupportDetails m_swapchain_details;
+        dal::QueueFamilyIndices m_queue_families;
+        dal::SwapChainSupportDetails m_swapchain_details;
         std::vector<VkExtensionProperties> m_available_extensions;
 
     public:
@@ -145,8 +54,8 @@ namespace {
         PhysDeviceInfo(const VkSurfaceKHR surface, const VkPhysicalDevice phys_device) {
             vkGetPhysicalDeviceProperties(phys_device, &this->m_properties);
             vkGetPhysicalDeviceFeatures(phys_device, &this->m_features);
-            this->m_queue_families = ::find_queue_families(surface, phys_device);
-            this->m_swapchain_details = ::query_swapchain_support(surface, phys_device);
+            this->m_queue_families.init(surface, phys_device);
+            this->m_swapchain_details.init(surface, phys_device);
 
             {
                 uint32_t extension_count;
@@ -302,7 +211,7 @@ namespace {
             }
 
             if constexpr (_PrintInfo) {
-                dalInfo(fmt::format("{} ({}) : {}", info.name(), info.device_type_str(), this_score).c_str());
+                dalInfo(fmt::format(" * {} ({}) : {}", info.name(), info.device_type_str(), this_score).c_str());
             }
         }
 
@@ -346,7 +255,7 @@ namespace {
         }
 
         void init(const VkSurfaceKHR surface, const PhysicalDevice& phys_device, const PhysDeviceInfo& phys_info) {
-            const auto indices = ::find_queue_families(surface, phys_device.get());
+            const dal::QueueFamilyIndices indices{ surface, phys_device.get() };
 
             // Create vulkan device
             {
@@ -598,6 +507,8 @@ namespace dal {
 
         void init(
             const char* const window_title,
+            const unsigned init_width,
+            const unsigned init_height,
             const std::vector<const char*>& extensions,
             const std::function<void*(void*)> surface_create_func
         ) {
@@ -621,10 +532,13 @@ namespace dal {
 #ifdef DAL_VK_DEBUG
             //::test_vk_validation(phys_devices[0].get());
 #endif
+
             this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
+            this->m_swapchain.init(init_width, init_height, this->m_surface, this->m_phys_device.get(), this->m_logi_device.get());
         }
 
         void destroy() {
+            this->m_swapchain.destroy(this->m_logi_device.get());
             this->m_logi_device.destroy();
 
 #ifdef DAL_VK_DEBUG
@@ -658,11 +572,13 @@ namespace dal {
 
     void VulkanState::init(
         const char* const window_title,
+        const unsigned init_width,
+        const unsigned init_height,
         const std::vector<const char*>& extensions,
         std::function<void*(void*)> surface_create_func
     ) {
         this->m_pimpl = new Pimpl;
-        this->m_pimpl->init(window_title, extensions, surface_create_func);
+        this->m_pimpl->init(window_title, init_width, init_height, extensions, surface_create_func);
     }
 
     void VulkanState::destroy() {

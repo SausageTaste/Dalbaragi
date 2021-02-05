@@ -25,6 +25,8 @@ namespace dal {
         auto& title() const {
             return this->m_title;
         }
+        uint32_t width() const;
+        uint32_t height() const;
 
     };
 

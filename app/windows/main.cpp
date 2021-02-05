@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
 
     dal::WindowGLFW window("Dalbrargi Windows");
     dal::VulkanState state;
-    state.init("Dalbrargi Windows", window.get_vulkan_extensions(), window.get_vk_surface_creator());
+    state.init("Dalbrargi Windows", window.width(), window.height(), window.get_vulkan_extensions(), window.get_vk_surface_creator());
 
     while (!window.should_close()) {
         window.do_frame();
