@@ -33,8 +33,15 @@ int main(int argc, char** argv) {
     dal::LoggerSingleton::inst().emplace_channel<LogChannel_COUT>();
 
     dal::WindowGLFW window("Dalbrargi Windows");
-    dal::VulkanState state;
-    state.init("Dalbrargi Windows", window.width(), window.height(), window.get_vulkan_extensions(), window.get_vk_surface_creator());
+    dal::VulkanState state(
+        "Dalbrargi Windows",
+        window.width(),
+        window.height(),
+        window.get_vulkan_extensions(),
+        window.get_vk_surface_creator()
+    );
+
+    dalInfo("Done init");
 
     while (!window.should_close()) {
         window.do_frame();

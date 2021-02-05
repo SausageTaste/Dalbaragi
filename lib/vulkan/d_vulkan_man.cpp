@@ -592,6 +592,7 @@ namespace dal {
         const std::vector<const char*>& extensions,
         std::function<void*(void*)> surface_create_func
     ) {
+        this->destroy();
         this->m_pimpl = new Pimpl;
         this->m_pimpl->init(window_title, init_width, init_height, extensions, surface_create_func);
     }
