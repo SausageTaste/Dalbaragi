@@ -61,11 +61,11 @@ namespace dal {
     class SwapchainManager {
 
     private:
+        std::vector<VkImage> m_images;
         VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
 
         VkFormat m_image_format;
         VkExtent2D m_extent;
-        uint32_t m_needed_images_count;
 
     public:
         ~SwapchainManager();

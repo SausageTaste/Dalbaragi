@@ -135,14 +135,14 @@ namespace dal {
 
         this->m_image_format = surface_format.format;
         this->m_extent = ::choose_extent(swapchain_support.m_capabilities, desired_width, desired_height);
-        this->m_needed_images_count = ::choose_image_count(swapchain_support);
+        const auto needed_images_count = ::choose_image_count(swapchain_support);
 
         // Create swap chain
         {
             VkSwapchainCreateInfoKHR create_info_swapchain{};
             create_info_swapchain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
             create_info_swapchain.surface = surface;
-            create_info_swapchain.minImageCount = this->m_needed_images_count;
+            create_info_swapchain.minImageCount = needed_images_count;
             create_info_swapchain.imageFormat = surface_format.format;
             create_info_swapchain.imageColorSpace = surface_format.colorSpace;
             create_info_swapchain.imageExtent = this->m_extent;
@@ -169,9 +169,18 @@ namespace dal {
             dalAssert(VK_SUCCESS == create_result_swapchain);
         }
 
+        // Create images
+        {
+            uint32_t image_count = 0;
+            vkGetSwapchainImagesKHR(logi_device, this->m_swapChain, &image_count, nullptr);
+            this->m_images.resize(image_count, VK_NULL_HANDLE);
+            vkGetSwapchainImagesKHR(logi_device, this->m_swapChain, &image_count, this->m_images.data());
+        }
     }
 
     void SwapchainManager::destroy(const VkDevice logi_device) {
+        this->m_images.clear();
+
         if (VK_NULL_HANDLE != this->m_swapChain) {
             vkDestroySwapchainKHR(logi_device, this->m_swapChain, nullptr);
             this->m_swapChain = VK_NULL_HANDLE;
