@@ -227,8 +227,9 @@ namespace {
     class LogicalDevice {
 
     private:
-        VkDevice m_handle = VK_NULL_HANDLE;
+        dal::QueueFamilyIndices m_queue_indices;
 
+        VkDevice m_handle = VK_NULL_HANDLE;
         VkQueue m_graphics_queue = VK_NULL_HANDLE;
         VkQueue m_present_queue = VK_NULL_HANDLE;
 
@@ -243,6 +244,7 @@ namespace {
             std::swap(this->m_graphics_queue, other.m_graphics_queue);
             std::swap(this->m_present_queue, other.m_present_queue);
         }
+
         LogicalDevice& operator=(LogicalDevice&& other) noexcept {
             std::swap(this->m_handle, other.m_handle);
             std::swap(this->m_graphics_queue, other.m_graphics_queue);
@@ -255,12 +257,12 @@ namespace {
         }
 
         void init(const VkSurfaceKHR surface, const PhysicalDevice& phys_device, const PhysDeviceInfo& phys_info) {
-            const dal::QueueFamilyIndices indices{ surface, phys_device.get() };
+            this->m_queue_indices.init(surface, phys_device.get());
 
             // Create vulkan device
             {
                 std::vector<VkDeviceQueueCreateInfo> create_info_queues;
-                std::set<uint32_t> unique_queue_families{ indices.graphics_family(), indices.present_family() };
+                std::set<uint32_t> unique_queue_families{ this->indices().graphics_family(), this->indices().present_family() };
                 const float queuePriority = 1;
 
                 for ( const auto queue_family : unique_queue_families ) {
@@ -291,8 +293,8 @@ namespace {
                 dalAssert(VK_SUCCESS == create_result);
             }
 
-            vkGetDeviceQueue(this->m_handle, indices.graphics_family(), 0, &this->m_graphics_queue);
-            vkGetDeviceQueue(this->m_handle, indices.present_family(), 0, &this->m_present_queue);
+            vkGetDeviceQueue(this->m_handle, this->indices().graphics_family(), 0, &this->m_graphics_queue);
+            vkGetDeviceQueue(this->m_handle, this->indices().present_family(), 0, &this->m_present_queue);
         }
 
         void destroy() {
@@ -307,9 +309,15 @@ namespace {
         auto& get() const {
             return this->m_handle;
         }
+
+        const dal::QueueFamilyIndices& indices() const {
+            return this->m_queue_indices;
+        }
+
         auto& queue_graphics() const {
             return this->m_graphics_queue;
         }
+
         auto& queue_present() const {
             return this->m_present_queue;
         }
@@ -534,7 +542,14 @@ namespace dal {
 #endif
 
             this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
-            this->m_swapchain.init(init_width, init_height, this->m_surface, this->m_phys_device.get(), this->m_logi_device.get());
+            this->m_swapchain.init(
+                init_width,
+                init_height,
+                this->m_logi_device.indices(),
+                this->m_surface,
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
         }
 
         void destroy() {

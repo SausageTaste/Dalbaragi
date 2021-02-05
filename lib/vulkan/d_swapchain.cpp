@@ -1,5 +1,7 @@
 #include "d_swapchain.h"
 
+#include <array>
+
 #include "d_logger.h"
 
 
@@ -43,6 +45,16 @@ namespace {
 
             return extent;
         }
+    }
+
+    uint32_t choose_image_count(const dal::SwapChainSupportDetails& swapchain_support) {
+        uint32_t image_count = swapchain_support.m_capabilities.minImageCount + 1;
+
+        if (swapchain_support.m_capabilities.maxImageCount > 0 && image_count > swapchain_support.m_capabilities.maxImageCount) {
+            image_count = swapchain_support.m_capabilities.maxImageCount;
+        }
+
+        return image_count;
     }
 
 }
@@ -112,53 +124,44 @@ namespace dal {
     void SwapchainManager::init(
         const unsigned desired_width,
         const unsigned desired_height,
+        const QueueFamilyIndices& indices,
         const VkSurfaceKHR surface,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        const SwapChainSupportDetails swapchain_support(surface, phys_device);
+        const SwapChainSupportDetails swapchain_support{ surface, phys_device };
+        const VkSurfaceFormatKHR surface_format = ::choose_surface_format(swapchain_support.m_formats);
+        const VkPresentModeKHR present_mode = ::choose_present_mode(swapchain_support.m_present_modes);
 
-        const VkSurfaceFormatKHR surfaceFormat = ::choose_surface_format(swapchain_support.m_formats);
-        const VkPresentModeKHR presentMode = ::choose_present_mode(swapchain_support.m_present_modes);
-        const VkExtent2D extent = ::choose_extent(swapchain_support.m_capabilities, desired_width, desired_height);
-
-        // Simply sticking to this minimum means that we may sometimes have to wait on the driver to complete
-        // internal operations before we can acquire another image to render to. Therefore it is recommended to
-        // request at least one more image than the minimum.
-        uint32_t imageCount = swapchain_support.m_capabilities.minImageCount + 1;
-        if (swapchain_support.m_capabilities.maxImageCount > 0 && imageCount > swapchain_support.m_capabilities.maxImageCount) {
-            imageCount = swapchain_support.m_capabilities.maxImageCount;
-        }
+        this->m_image_format = surface_format.format;
+        this->m_extent = ::choose_extent(swapchain_support.m_capabilities, desired_width, desired_height);
+        this->m_needed_images_count = ::choose_image_count(swapchain_support);
 
         // Create swap chain
         {
             VkSwapchainCreateInfoKHR create_info_swapchain{};
             create_info_swapchain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
             create_info_swapchain.surface = surface;
-            create_info_swapchain.minImageCount = imageCount;
-            create_info_swapchain.imageFormat = surfaceFormat.format;
-            create_info_swapchain.imageColorSpace = surfaceFormat.colorSpace;
-            create_info_swapchain.imageExtent = extent;
+            create_info_swapchain.minImageCount = this->m_needed_images_count;
+            create_info_swapchain.imageFormat = surface_format.format;
+            create_info_swapchain.imageColorSpace = surface_format.colorSpace;
+            create_info_swapchain.imageExtent = this->m_extent;
             create_info_swapchain.imageArrayLayers = 1;
             create_info_swapchain.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-            const QueueFamilyIndices indices{ surface, phys_device };
-            uint32_t queueFamilyIndices[] = { indices.graphics_family(), indices.present_family() };
-
+            const std::array<uint32_t, 2> queue_family_indices{ indices.graphics_family(), indices.present_family() };
             if (indices.graphics_family() != indices.present_family()) {
                 create_info_swapchain.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-                create_info_swapchain.queueFamilyIndexCount = 2;
-                create_info_swapchain.pQueueFamilyIndices = queueFamilyIndices;
+                create_info_swapchain.queueFamilyIndexCount = queue_family_indices.size();
+                create_info_swapchain.pQueueFamilyIndices = queue_family_indices.data();
             }
             else {
                 create_info_swapchain.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-                create_info_swapchain.queueFamilyIndexCount = 0; // Optional
-                create_info_swapchain.pQueueFamilyIndices = nullptr; // Optional
             }
 
             create_info_swapchain.preTransform = swapchain_support.m_capabilities.currentTransform;
             create_info_swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-            create_info_swapchain.presentMode = presentMode;
+            create_info_swapchain.presentMode = present_mode;
             create_info_swapchain.clipped = VK_TRUE;
             create_info_swapchain.oldSwapchain = VK_NULL_HANDLE;
 
@@ -166,8 +169,6 @@ namespace dal {
             dalAssert(VK_SUCCESS == create_result_swapchain);
         }
 
-        this->m_image_format = surfaceFormat.format;
-        this->m_extent = extent;
     }
 
     void SwapchainManager::destroy(const VkDevice logi_device) {

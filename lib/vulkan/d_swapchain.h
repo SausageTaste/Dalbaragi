@@ -65,6 +65,7 @@ namespace dal {
 
         VkFormat m_image_format;
         VkExtent2D m_extent;
+        uint32_t m_needed_images_count;
 
     public:
         ~SwapchainManager();
@@ -72,6 +73,7 @@ namespace dal {
         void init(
             const unsigned desired_width,
             const unsigned desired_height,
+            const QueueFamilyIndices& indices,
             const VkSurfaceKHR surface,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
