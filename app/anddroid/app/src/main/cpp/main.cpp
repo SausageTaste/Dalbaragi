@@ -51,17 +51,17 @@ namespace {
     };
 
 
-    void init(ANativeWindow* const native_window) {
+    void init(android_app* const state) {
         const std::vector<const char*> instanceExt{
             "VK_KHR_surface",
             "VK_KHR_android_surface",
         };
-        const auto surface_creator = [native_window](void* vk_instance) -> void* {
+        const auto surface_creator = [state](void* vk_instance) -> void* {
             VkAndroidSurfaceCreateInfoKHR create_info{
                 .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
                 .pNext = nullptr,
                 .flags = 0,
-                .window = native_window,
+                .window = state->window,
             };
 
             VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -76,8 +76,27 @@ namespace {
             return reinterpret_cast<void*>(surface);
         };
 
-        dal::VulkanState state;
-        state.init("shit", instanceExt, surface_creator);
+        if (nullptr != state->userData) {
+            auto& engine = *reinterpret_cast<dal::VulkanState*>(state->userData);
+
+            engine.destroy();
+            engine.init(
+                "shit",
+                ANativeWindow_getWidth(state->window),
+                ANativeWindow_getHeight(state->window),
+                instanceExt,
+                surface_creator
+            );
+        }
+        else {
+            state->userData = new dal::VulkanState(
+                "shit",
+                ANativeWindow_getWidth(state->window),
+                ANativeWindow_getHeight(state->window),
+                instanceExt,
+                surface_creator
+            );
+        }
     }
 
 }
@@ -89,7 +108,7 @@ extern "C" {
         switch (cmd) {
             case APP_CMD_INIT_WINDOW:
                 dalInfo("handle cmd: init window");
-                ::init(state->window);
+                ::init(state);
                 break;
             case APP_CMD_WINDOW_RESIZED:
                 dalInfo("handle cmd: init window");
