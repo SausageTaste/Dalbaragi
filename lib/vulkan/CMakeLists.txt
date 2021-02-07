@@ -9,6 +9,7 @@ add_library(libdal_vulkan STATIC
     d_vulkan_man.h       d_vulkan_man.cpp
     d_vulkan_header.h
     d_swapchain.h        d_swapchain.cpp
+    d_image_obj.h        d_image_obj.cpp
 )
 target_compile_features(libdal_vulkan PUBLIC cxx_std_17)
 target_include_directories(libdal_vulkan PUBLIC ./)

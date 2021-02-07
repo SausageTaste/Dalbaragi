@@ -176,10 +176,30 @@ namespace dal {
             this->m_images.resize(image_count, VK_NULL_HANDLE);
             vkGetSwapchainImagesKHR(logi_device, this->m_swapChain, &image_count, this->m_images.data());
         }
+
+        // Image Views
+        {
+            this->m_views.resize(this->m_images.size());
+            for ( size_t i = 0; i < this->m_images.size(); i++ ) {
+                const auto result = this->m_views[i].init(
+                    this->m_images[i],
+                    this->m_image_format,
+                    1,
+                    VK_IMAGE_ASPECT_COLOR_BIT,
+                    logi_device
+                );
+                dalAssert(result);
+            }
+        }
     }
 
     void SwapchainManager::destroy(const VkDevice logi_device) {
         this->m_images.clear();
+
+        for (auto& view : this->m_views) {
+            view.destroy(logi_device);
+        }
+        this->m_views.clear();
 
         if (VK_NULL_HANDLE != this->m_swapChain) {
             vkDestroySwapchainKHR(logi_device, this->m_swapChain, nullptr);

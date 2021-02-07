@@ -3,7 +3,7 @@
 #include <vector>
 #include <algorithm>
 
-#include "d_vulkan_header.h"
+#include "d_image_obj.h"
 
 
 namespace dal {
@@ -62,6 +62,7 @@ namespace dal {
 
     private:
         std::vector<VkImage> m_images;
+        std::vector<ImageView> m_views;
         VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
 
         VkFormat m_image_format;
