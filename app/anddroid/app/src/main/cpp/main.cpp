@@ -10,7 +10,7 @@
 
 namespace {
 
-    auto& logger = dal::LoggerSingleton::inst();
+    auto& g_logger = dal::LoggerSingleton::inst();
 
     class LogChannel_Logcat : public dal::ILogChannel {
 
@@ -151,7 +151,7 @@ extern "C" {
 
     void android_main(struct android_app *pApp) {
         pApp->onAppCmd = handle_cmd;
-        logger.emplace_channel<LogChannel_Logcat>();
+        g_logger.emplace_channel<LogChannel_Logcat>();
 
         int events;
         android_poll_source *pSource;

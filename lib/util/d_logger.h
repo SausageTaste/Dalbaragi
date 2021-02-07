@@ -18,7 +18,7 @@ namespace dal {
         LoggerSingleton() = default;
 
     public:
-        static auto& inst() {
+        static auto& inst() noexcept {
             static LoggerSingleton inst;
             return inst;
         }
