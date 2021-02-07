@@ -8,6 +8,9 @@
 
 namespace dal {
 
+    std::shared_ptr<ILogChannel> get_log_channel_cout();
+
+
     class LoggerSingleton {
 
     private:

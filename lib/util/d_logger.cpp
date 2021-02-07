@@ -1,5 +1,36 @@
 #include "d_logger.h"
 
+#include <iostream>
+
+
+namespace {
+
+    class LogChannel_COUT : public dal::ILogChannel {
+
+    public:
+        virtual void put(
+            const dal::LogLevel level, const char* const str,
+            const int line, const char* const func, const char* const file
+        ) override {
+            if (static_cast<int>(level) >= static_cast<int>(dal::LogLevel::warning))
+                std::cerr << "[" << dal::get_log_level_str(level) << "] " << str << std::endl;
+            else
+                std::cout << "[" << dal::get_log_level_str(level) << "] " << str << std::endl;
+        }
+
+    };
+
+}
+
+
+namespace dal {
+
+    std::shared_ptr<ILogChannel> get_log_channel_cout() {
+        return std::shared_ptr<ILogChannel>{ new LogChannel_COUT };
+    }
+
+}
+
 
 namespace dal {
 
