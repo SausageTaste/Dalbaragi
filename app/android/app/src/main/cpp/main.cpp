@@ -19,7 +19,7 @@ namespace {
         ) override {
             __android_log_print(
                 map_log_levels(level),
-                "vulkan_practice",
+                "dalbaragi",
                 "[%s] %s",
                 dal::get_log_level_str(level),
                 str
