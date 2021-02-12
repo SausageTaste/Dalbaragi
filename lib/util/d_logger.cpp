@@ -50,4 +50,10 @@ namespace dal {
         }
     }
 
+    void LoggerSingleton::flush() {
+        for (auto& x : this->m_outputs) {
+            x->flush();
+        }
+    }
+
 }

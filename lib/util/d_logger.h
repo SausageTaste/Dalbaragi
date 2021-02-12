@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <cstdlib>
 
 #include "d_log_channel.h"
 
@@ -33,6 +34,8 @@ namespace dal {
             auto ptr = std::shared_ptr<ILogChannel>(new _ChTyp);
             this->add_channel(ptr);
         }
+
+        void flush();
 
         void put(
             const LogLevel level, const char* const str,
@@ -93,7 +96,12 @@ namespace dal {
 #define dalWarn(str)    dal::LoggerSingleton::inst().put_warn((str),    __LINE__, __func__, __FILE__);
 #define dalError(str)   dal::LoggerSingleton::inst().put_error((str),   __LINE__, __func__, __FILE__);
 #define dalFatal(str)   dal::LoggerSingleton::inst().put_fatal((str),   __LINE__, __func__, __FILE__);
-#define dalAbort(str) { dal::LoggerSingleton::inst().put_fatal((str),   __LINE__, __func__, __FILE__); throw -1; }
+
+#define dalAbort(str) {                                                             \
+    dal::LoggerSingleton::inst().put_fatal((str),   __LINE__, __func__, __FILE__);  \
+    dal::LoggerSingleton::inst().flush();                                           \
+    std::exit(EXIT_FAILURE);                                                        \
+}
 
 
 #ifdef DAL_ENABLE_ASSERT
