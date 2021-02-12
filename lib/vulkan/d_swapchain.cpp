@@ -68,7 +68,7 @@ namespace dal {
         std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
         vkGetPhysicalDeviceQueueFamilyProperties(phys_device, &queue_family_count, queue_families.data());
 
-        for (size_t i = 0; i < queue_families.size(); ++i) {
+        for (uint32_t i = 0; i < queue_families.size(); ++i) {
             const auto& queue_family = queue_families[i];
 
             if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
