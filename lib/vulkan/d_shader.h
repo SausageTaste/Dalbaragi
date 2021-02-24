@@ -17,10 +17,11 @@ namespace dal {
         ShaderPipeline() = default;
         ShaderPipeline(const ShaderPipeline&) = delete;
         ShaderPipeline& operator=(const ShaderPipeline&) = delete;
-        ShaderPipeline(ShaderPipeline&&) = delete;
-        ShaderPipeline& operator=(ShaderPipeline&&) = delete;
 
     public:
+        ShaderPipeline(ShaderPipeline&&) noexcept;
+        ShaderPipeline& operator=(ShaderPipeline&&) noexcept;
+
         void init(const VkPipeline pipeline, const VkPipelineLayout layout, const VkDevice logi_device);
         void init(const std::pair<VkPipeline, VkPipelineLayout>& pipeline, const VkDevice logi_device);
         void destroy(const VkDevice logi_device);
