@@ -12,6 +12,7 @@
 
 #include "d_vulkan_header.h"
 #include "d_swapchain.h"
+#include "d_shader.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -503,6 +504,7 @@ namespace dal {
         LogicalDevice m_logi_device;
 
         SwapchainManager m_swapchain;
+        PipelineManager m_pipelines;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
@@ -550,6 +552,7 @@ namespace dal {
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
+            this->m_pipelines.init(this->m_logi_device.get());
         }
 
         void destroy() {
