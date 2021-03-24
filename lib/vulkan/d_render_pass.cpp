@@ -37,6 +37,17 @@ namespace {
         subpasses[0].colorAttachmentCount = color_attachment_ref.size();
         subpasses[0].pColorAttachments = color_attachment_ref.data();
 
+        // Dependencies
+        // ---------------------------------------------------------------------------------
+
+        std::array<VkSubpassDependency, 1> dependency{};
+        dependency.at(0).srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.at(0).dstSubpass = 0;
+        dependency.at(0).srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.at(0).srcAccessMask = 0;
+        dependency.at(0).dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.at(0).dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
         // Create render pass
         // ---------------------------------------------------------------------------------
 
@@ -46,8 +57,8 @@ namespace {
         renderpass_info.pAttachments    = attachments.data();
         renderpass_info.subpassCount    = subpasses.size();
         renderpass_info.pSubpasses      = subpasses.data();
-        renderpass_info.dependencyCount = 0;
-        renderpass_info.pDependencies   = nullptr;
+        renderpass_info.dependencyCount = dependency.size();
+        renderpass_info.pDependencies   = dependency.data();
 
         VkRenderPass renderpass = VK_NULL_HANDLE;
         if ( VK_SUCCESS != vkCreateRenderPass(logi_device, &renderpass_info, nullptr, &renderpass) ) {

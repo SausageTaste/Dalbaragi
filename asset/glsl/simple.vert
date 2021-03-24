@@ -6,8 +6,8 @@ layout(location = 0) out vec3 v_frag_color;
 
 const vec2 POSITIONS[3] = vec2[](
     vec2( 0.0, -0.5),
-    vec2( 0.5,  0.5),
-    vec2(-0.5,  0.5)
+    vec2(-0.5,  0.5),
+    vec2( 0.5,  0.5)
 );
 
 const vec3 COLORS[3] = vec3[](

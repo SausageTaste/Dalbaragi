@@ -23,6 +23,10 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
+        auto& swapchain_fbuf() const {
+            return this->m_swapchain_fbuf;
+        }
+
     };
 
 }

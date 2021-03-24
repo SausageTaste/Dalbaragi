@@ -515,6 +515,8 @@ namespace dal {
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
 #endif
 
+        size_t m_cur_frame_index = 0;
+
     public:
         Pimpl() = default;
 
@@ -583,6 +585,12 @@ namespace dal {
                 this->m_logi_device.indices().graphics_family(),
                 this->m_logi_device.get()
             );
+            this->m_cmd_man.record_all_simple(
+                this->m_fbuf_man.swapchain_fbuf(),
+                this->m_swapchain.extent(),
+                this->m_renderpasses.rp_rendering().get(),
+                this->m_pipelines.get_simple().pipeline()
+            );
         }
 
         void destroy() {
@@ -612,7 +620,52 @@ namespace dal {
         }
 
         void update() {
+            this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).wait(this->m_logi_device.get());
+            const auto img_index = this->m_swapchain.acquire_next_img_index(this->m_cur_frame_index, this->m_logi_device.get());
 
+            auto img_fences = this->m_swapchain.sync_man().fences_image_in_flight();
+            if (nullptr != img_fences.at(img_index)) {
+                img_fences.at(img_index)->wait(this->m_logi_device.get());
+            }
+            img_fences.at(img_index) = &this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index);
+
+            std::array<VkSemaphore, 1> waitSemaphores{ this->m_swapchain.sync_man().semaphore_img_available(this->m_cur_frame_index).get() };
+            std::array<VkPipelineStageFlags, 1> waitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+            std::array<VkSemaphore, 1> signalSemaphores{ this->m_swapchain.sync_man().semaphore_render_finished(this->m_cur_frame_index).get() };
+
+            VkSubmitInfo submitInfo{};
+            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfo.waitSemaphoreCount = waitSemaphores.size();
+            submitInfo.pWaitSemaphores = waitSemaphores.data();
+            submitInfo.pWaitDstStageMask = waitStages.data();
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &this->m_cmd_man.cmd_buffer_at(img_index);
+            submitInfo.signalSemaphoreCount = signalSemaphores.size();
+            submitInfo.pSignalSemaphores = signalSemaphores.data();
+
+            this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).reset(this->m_logi_device.get());
+            if (vkQueueSubmit(this->m_logi_device.queue_graphics(), 1, &submitInfo, this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).get()) != VK_SUCCESS) {
+                dalAbort("failed to submit draw command buffer!");
+            }
+
+            VkPresentInfoKHR presentInfo{};
+            presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+            presentInfo.waitSemaphoreCount = signalSemaphores.size();
+            presentInfo.pWaitSemaphores = signalSemaphores.data();
+
+            VkSwapchainKHR swapChains[] = {this->m_swapchain.swapchain()};
+            presentInfo.swapchainCount = 1;
+            presentInfo.pSwapchains = swapChains;
+            presentInfo.pImageIndices = &img_index;
+            presentInfo.pResults = nullptr;
+
+            vkQueuePresentKHR(this->m_logi_device.queue_present(), &presentInfo);
+
+            this->m_cur_frame_index = (this->m_cur_frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
+        }
+
+        void wait_device_idle() const {
+            vkDeviceWaitIdle(this->m_logi_device.get());
         }
 
     };
@@ -643,6 +696,14 @@ namespace dal {
             delete this->m_pimpl;
             this->m_pimpl = nullptr;
         }
+    }
+
+    void VulkanState::update() {
+        this->m_pimpl->update();
+    }
+
+    void VulkanState::wait_device_idle() const {
+        this->m_pimpl->wait_device_idle();
     }
 
 }

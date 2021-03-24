@@ -33,7 +33,12 @@ namespace dal {
             const std::vector<const char*>& extensions,
             std::function<void*(void*)> surface_create_func
         );
+
         void destroy();
+
+        void update();
+
+        void wait_device_idle() const;
 
     };
 

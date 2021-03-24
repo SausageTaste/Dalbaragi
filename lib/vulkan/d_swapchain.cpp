@@ -60,6 +60,7 @@ namespace {
 }
 
 
+// QueueFamilyIndices, SwapChainSupportDetails
 namespace dal {
 
     void QueueFamilyIndices::init(const VkSurfaceKHR surface, const VkPhysicalDevice phys_device) {
@@ -115,6 +116,53 @@ namespace dal {
 }
 
 
+// SwapchainSyncManager
+namespace dal {
+
+    void SwapchainSyncManager::init(const uint32_t swapchain_count, const VkDevice logi_device) {
+        this->destroy(logi_device);
+
+        this->m_img_available.resize(MAX_FRAMES_IN_FLIGHT);
+        for (auto& sem : this->m_img_available) {
+            sem.init(logi_device);
+        }
+
+        this->m_render_finished.resize(MAX_FRAMES_IN_FLIGHT);
+        for (auto& sem : this->m_render_finished) {
+            sem.init(logi_device);
+        }
+
+        this->m_frame_in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
+        for (auto& fence : this->m_frame_in_flight_fences) {
+            fence.init(logi_device);
+        }
+
+        this->m_img_in_flight_fences.resize(swapchain_count, nullptr);
+    }
+
+    void SwapchainSyncManager::destroy(const VkDevice logi_device) {
+        for (auto& sem : this->m_img_available) {
+            sem.destory(logi_device);
+        }
+        this->m_img_available.clear();
+
+        for (auto& sem : this->m_render_finished) {
+            sem.destory(logi_device);
+        }
+        this->m_render_finished.clear();
+
+        for (auto& x : this->m_frame_in_flight_fences) {
+            x.destory(logi_device);
+        }
+        this->m_frame_in_flight_fences.clear();
+
+        this->m_img_in_flight_fences.clear();
+    }
+
+}
+
+
+// SwapchainManager
 namespace dal {
 
     SwapchainManager::~SwapchainManager() {
@@ -191,9 +239,12 @@ namespace dal {
                 dalAssert(result);
             }
         }
+
+        this->m_sync_man.init(this->size(), logi_device);
     }
 
     void SwapchainManager::destroy(const VkDevice logi_device) {
+        this->m_sync_man.destroy(logi_device);
         this->m_images.clear();
 
         for (auto& view : this->m_views) {
@@ -210,6 +261,21 @@ namespace dal {
     uint32_t SwapchainManager::size() const {
         dalAssert(this->views().size() == this->m_images.size());
         return this->views().size();
+    }
+
+    uint32_t SwapchainManager::acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const {
+        uint32_t result;
+
+        vkAcquireNextImageKHR(
+            logi_device,
+            this->m_swapChain,
+            UINT64_MAX,
+            this->m_sync_man.semaphore_img_available(cur_img_index).get(),  // Signaled when the presentation engine is finished using the image
+            VK_NULL_HANDLE,
+            &result
+        );
+
+        return result;
     }
 
 }

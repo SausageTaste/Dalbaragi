@@ -56,6 +56,10 @@ namespace dal {
             const VkPipeline graphics_pipeline
         );
 
+        auto& cmd_buffer_at(const size_t index) const {
+            return this->m_cmd_buffers.at(index);
+        }
+
     };
 
 }

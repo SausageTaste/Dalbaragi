@@ -25,7 +25,9 @@ int main(int argc, char** argv) {
 
     while (!window.should_close()) {
         window.do_frame();
+        state.update();
     }
 
+    state.wait_device_idle();
     return 0;
 }
