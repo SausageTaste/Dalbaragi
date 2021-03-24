@@ -13,6 +13,7 @@
 #include "d_vulkan_header.h"
 #include "d_swapchain.h"
 #include "d_shader.h"
+#include "d_render_pass.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -331,7 +332,6 @@ namespace {
 // Instance creation, validation layer
 namespace {
 
-
 #ifdef DAL_VK_DEBUG
 
     VKAPI_ATTR VkBool32 VKAPI_CALL callback_vk_debug(
@@ -505,10 +505,19 @@ namespace dal {
 
         SwapchainManager m_swapchain;
         PipelineManager m_pipelines;
+        RenderPassManager m_renderpasses;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
 #endif
+
+    public:
+        Pimpl() = default;
+
+        Pimpl(const Pimpl&) = delete;
+        Pimpl& operator=(const Pimpl&) = delete;
+        Pimpl(Pimpl&&) = delete;
+        Pimpl& operator=(Pimpl&&) = delete;
 
     public:
         ~Pimpl() {
@@ -552,10 +561,18 @@ namespace dal {
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
-            this->m_pipelines.init(this->m_logi_device.get());
+            this->m_renderpasses.init({ this->m_swapchain.format() }, this->m_logi_device.get());
+            this->m_pipelines.init(
+                this->m_swapchain.extent(),
+                nullptr, 0,
+                this->m_renderpasses.rp_rendering().get(),
+                this->m_logi_device.get()
+            );
         }
 
         void destroy() {
+            this->m_pipelines.destroy(this->m_logi_device.get());
+            this->m_renderpasses.destroy(this->m_logi_device.get());
             this->m_swapchain.destroy(this->m_logi_device.get());
             this->m_logi_device.destroy();
 
