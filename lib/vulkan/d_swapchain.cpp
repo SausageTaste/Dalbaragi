@@ -207,4 +207,9 @@ namespace dal {
         }
     }
 
+    uint32_t SwapchainManager::size() const {
+        dalAssert(this->views().size() == this->m_images.size());
+        return this->views().size();
+    }
+
 }

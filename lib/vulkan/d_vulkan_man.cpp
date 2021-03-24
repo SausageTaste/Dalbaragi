@@ -15,6 +15,7 @@
 #include "d_shader.h"
 #include "d_render_pass.h"
 #include "d_framebuffer.h"
+#include "d_command.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -508,6 +509,7 @@ namespace dal {
         PipelineManager m_pipelines;
         RenderPassManager m_renderpasses;
         FbufManager m_fbuf_man;
+        CmdPoolManager m_cmd_man;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
@@ -576,9 +578,15 @@ namespace dal {
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
+            this->m_cmd_man.init(
+                this->m_swapchain.size(),
+                this->m_logi_device.indices().graphics_family(),
+                this->m_logi_device.get()
+            );
         }
 
         void destroy() {
+            this->m_cmd_man.destroy(this->m_logi_device.get());
             this->m_pipelines.destroy(this->m_logi_device.get());
             this->m_fbuf_man.destroy(this->m_logi_device.get());
             this->m_renderpasses.destroy(this->m_logi_device.get());
@@ -601,6 +609,10 @@ namespace dal {
                 vkDestroyInstance(this->m_instance, nullptr);
                 this->m_instance = VK_NULL_HANDLE;
             }
+        }
+
+        void update() {
+
         }
 
     };

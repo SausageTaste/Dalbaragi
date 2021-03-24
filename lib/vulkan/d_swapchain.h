@@ -82,6 +82,8 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
+        uint32_t size() const;
+
         auto format() const {
             return this->m_image_format;
         }

@@ -13,6 +13,7 @@ add_library(libdal_vulkan STATIC
     d_shader.h           d_shader.cpp
     d_render_pass.h      d_render_pass.cpp
     d_framebuffer.h      d_framebuffer.cpp
+    d_command.h          d_command.cpp
 )
 target_compile_features(libdal_vulkan PUBLIC cxx_std_17)
 target_include_directories(libdal_vulkan PUBLIC ./)
