@@ -14,6 +14,37 @@ namespace {
 }
 
 
+// Common functions
+namespace {
+
+    class FileReadOnly_Null : public dal::filesystem::FileReadOnly {
+
+    public:
+        bool open(const char* const path) override {
+            return false;
+        }
+
+        void close() override {
+
+        }
+
+        bool is_ready() override {
+            return false;
+        }
+
+        size_t size() override {
+            return 0;
+        }
+
+        bool read(void* const dst, const size_t dst_size) override {
+            return false;
+        }
+
+    };
+
+}
+
+
 // Desktop functions (Windows and Linux)
 namespace {
 
@@ -24,10 +55,6 @@ namespace {
         size_t m_size = 0;
 
     public:
-        ~FileReadOnly_STL() override {
-
-        }
-
         bool open(const char* const path) override {
             this->close();
 
@@ -102,7 +129,7 @@ namespace dal::filesystem::asset {
         std::unique_ptr<FileReadOnly> file{ new FileReadOnly_STL };
 
         if ( !file->open(file_path.string().c_str()) ) {
-            return nullptr;
+            return std::unique_ptr<FileReadOnly>{ new FileReadOnly_Null };
         }
         else {
             return file;
