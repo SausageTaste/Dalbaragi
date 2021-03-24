@@ -90,6 +90,10 @@ namespace dal {
             return this->m_extent;
         }
 
+        auto& views() const {
+            return this->m_views;
+        }
+
     };
 
 }

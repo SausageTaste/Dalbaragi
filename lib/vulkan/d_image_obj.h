@@ -40,6 +40,10 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
+        auto get() const {
+            return this->m_view;
+        }
+
     };
 
 }

@@ -14,6 +14,7 @@
 #include "d_swapchain.h"
 #include "d_shader.h"
 #include "d_render_pass.h"
+#include "d_framebuffer.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -506,6 +507,7 @@ namespace dal {
         SwapchainManager m_swapchain;
         PipelineManager m_pipelines;
         RenderPassManager m_renderpasses;
+        FbufManager m_fbuf_man;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
@@ -562,6 +564,12 @@ namespace dal {
                 this->m_logi_device.get()
             );
             this->m_renderpasses.init({ this->m_swapchain.format() }, this->m_logi_device.get());
+            this->m_fbuf_man.init(
+                this->m_swapchain.views(),
+                this->m_swapchain.extent(),
+                this->m_renderpasses.rp_rendering().get(),
+                this->m_logi_device.get()
+            );
             this->m_pipelines.init(
                 this->m_swapchain.extent(),
                 nullptr, 0,
@@ -572,6 +580,7 @@ namespace dal {
 
         void destroy() {
             this->m_pipelines.destroy(this->m_logi_device.get());
+            this->m_fbuf_man.destroy(this->m_logi_device.get());
             this->m_renderpasses.destroy(this->m_logi_device.get());
             this->m_swapchain.destroy(this->m_logi_device.get());
             this->m_logi_device.destroy();
