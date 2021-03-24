@@ -17,12 +17,17 @@ namespace dal::filesystem {
 
         virtual void close() = 0;
 
+        virtual bool is_ready() = 0;
+
         virtual size_t size() = 0;
 
         virtual bool read(void* const dst, const size_t dst_size) = 0;
 
         template <typename T>
         bool read_stl(T& output) {
+            if (!this->is_ready())
+                return false;
+
             output.resize(this->size());
             return this->read(output.data(), output.size());
         }
@@ -30,6 +35,10 @@ namespace dal::filesystem {
         template <typename T>
         std::optional<T> read_stl() {
             T output{};
+
+            if (!this->is_ready())
+                return std::nullopt;
+
             output.resize(this->size());
             return this->read_stl(output) ? std::optional<T>{output} : std::nullopt;
         }

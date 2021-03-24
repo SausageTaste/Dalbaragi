@@ -44,6 +44,10 @@ namespace {
             this->m_size = 0;
         }
 
+        bool is_ready() override {
+            return this->m_file.is_open();
+        }
+
         size_t size() override {
             return this->m_size;
         }
