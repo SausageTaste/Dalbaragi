@@ -125,11 +125,11 @@ namespace {
 
 
     dal::ShaderPipeline make_pipeline_simple(const VkDevice logi_device) {
-        const auto vert_src = dal::filesystem::asset::open("shader/simple_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = dal::filesystem::asset::open("spv/simple_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'simple_v.spv' not found");
         }
-        const auto frag_src = dal::filesystem::asset::open("shader/simple_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = dal::filesystem::asset::open("spv/simple_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'simple_f.spv' not found");
         }
