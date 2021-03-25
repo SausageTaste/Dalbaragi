@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "d_vulkan_header.h"
+#include "d_filesystem.h"
 
 
 namespace dal {
@@ -53,6 +54,7 @@ namespace dal {
 
     public:
         void init(
+            dal::filesystem::AssetManager& asset_mgr,
             const VkExtent2D& swapchain_extent,
             const VkDescriptorSetLayout* const desc_set_layouts, const uint32_t desc_set_layout_count,
             const VkRenderPass renderpass,

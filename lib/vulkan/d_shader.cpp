@@ -329,16 +329,17 @@ namespace {
 
 
     dal::ShaderPipeline make_pipeline_simple(
+        dal::filesystem::AssetManager& asset_mgr,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout* const desc_set_layouts, const uint32_t desc_set_layout_count,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
-        const auto vert_src = dal::filesystem::asset::open("spv/simple_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = asset_mgr.open("spv/simple_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'simple_v.spv' not found");
         }
-        const auto frag_src = dal::filesystem::asset::open("spv/simple_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = asset_mgr.open("spv/simple_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'simple_f.spv' not found");
         }
@@ -412,6 +413,7 @@ namespace {
 namespace dal {
 
     void PipelineManager::init(
+        dal::filesystem::AssetManager& asset_mgr,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout* const desc_set_layouts, const uint32_t desc_set_layout_count,
         const VkRenderPass renderpass,
@@ -420,6 +422,7 @@ namespace dal {
         this->destroy(logi_device);
 
         this->m_simple = ::make_pipeline_simple(
+            asset_mgr,
             swapchain_extent,
             desc_set_layouts, desc_set_layout_count,
             renderpass,

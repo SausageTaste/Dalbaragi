@@ -6,6 +6,7 @@
 #include <d_logger.h>
 #include <d_vulkan_man.h>
 #include <d_vulkan_header.h>
+#include <d_filesystem.h>
 
 
 namespace {
@@ -50,6 +51,9 @@ namespace {
 
 
     void init(android_app* const state) {
+        dal::filesystem::AssetManager asset_manager;
+        asset_manager.set_android_asset_manager(state->activity->assetManager);
+
         const std::vector<const char*> instanceExt{
             "VK_KHR_surface",
             "VK_KHR_android_surface",
@@ -82,6 +86,7 @@ namespace {
                 "shit",
                 ANativeWindow_getWidth(state->window),
                 ANativeWindow_getHeight(state->window),
+                asset_manager,
                 instanceExt,
                 surface_creator
             );
@@ -91,6 +96,7 @@ namespace {
                 "shit",
                 ANativeWindow_getWidth(state->window),
                 ANativeWindow_getHeight(state->window),
+                asset_manager,
                 instanceExt,
                 surface_creator
             );
@@ -159,7 +165,17 @@ extern "C" {
                     pSource->process(pApp, pSource);
                 }
             }
+
+            if (nullptr != pApp->userData) {
+                auto &engine = *reinterpret_cast<dal::VulkanState *>(pApp->userData);
+                engine.update();
+            }
         } while (!pApp->destroyRequested);
+
+        if (nullptr != pApp->userData) {
+            auto &engine = *reinterpret_cast<dal::VulkanState *>(pApp->userData);
+            engine.wait_device_idle();
+        }
     }
 
 }

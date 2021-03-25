@@ -534,6 +534,7 @@ namespace dal {
             const char* const window_title,
             const unsigned init_width,
             const unsigned init_height,
+            dal::filesystem::AssetManager& asset_mgr,
             const std::vector<const char*>& extensions,
             const std::function<void*(void*)> surface_create_func
         ) {
@@ -575,6 +576,7 @@ namespace dal {
                 this->m_logi_device.get()
             );
             this->m_pipelines.init(
+                asset_mgr,
                 this->m_swapchain.extent(),
                 nullptr, 0,
                 this->m_renderpasses.rp_rendering().get(),
@@ -683,12 +685,15 @@ namespace dal {
         const char* const window_title,
         const unsigned init_width,
         const unsigned init_height,
+        dal::filesystem::AssetManager& asset_mgr,
         const std::vector<const char*>& extensions,
         std::function<void*(void*)> surface_create_func
     ) {
         this->destroy();
         this->m_pimpl = new Pimpl;
-        this->m_pimpl->init(window_title, init_width, init_height, extensions, surface_create_func);
+        this->m_pimpl->init(window_title, init_width, init_height, asset_mgr, extensions, surface_create_func);
+
+        dalInfo(fmt::format("Init surface size: {} x {}", init_width, init_height).c_str());
     }
 
     void VulkanState::destroy() {

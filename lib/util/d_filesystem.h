@@ -5,6 +5,8 @@
 #include <memory>
 #include <optional>
 
+#include "d_defines.h"
+
 
 namespace dal::filesystem {
 
@@ -48,10 +50,25 @@ namespace dal::filesystem {
 }
 
 
-namespace dal::filesystem::asset {
+namespace dal::filesystem {
 
-    std::vector<std::string> listfile(const char* const path);
+    class AssetManager {
 
-    std::unique_ptr<FileReadOnly> open(const char* const path);
+#ifdef DAL_OS_ANDROID
+    private:
+        void* m_ptr_asset_manager = nullptr;
+
+    public:
+        void set_android_asset_manager(void* const ptr_asset_manager) {
+            this->m_ptr_asset_manager = ptr_asset_manager;
+        }
+#endif
+
+    public:
+        std::vector<std::string> listfile(const char* const path);
+
+        std::unique_ptr<FileReadOnly> open(const char* const path);
+
+    };
 
 }
