@@ -11,19 +11,25 @@ int main(int argc, char** argv) {
     }
 
     dal::LoggerSingleton::inst().add_channel(dal::get_log_channel_cout());
+    dal::filesystem::AssetManager asset_mgr;
 
     dal::WindowGLFW window("Dalbrargi Linux");
     dal::VulkanState state(
         "Dalbrargi Linux",
         window.width(),
         window.height(),
+        asset_mgr,
         window.get_vulkan_extensions(),
         window.get_vk_surface_creator()
     );
 
+    dalInfo("Done init");
+
     while (!window.should_close()) {
         window.do_frame();
+        state.update();
     }
 
+    state.wait_device_idle();
     return 0;
 }

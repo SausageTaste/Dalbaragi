@@ -24,9 +24,9 @@
     #   error "Unknown Apple platform"
     #endif
 #elif __linux__
-    #define DAL_LINUX
+    #define DAL_OS_LINUX
 #elif __unix__ // all unices not caught above
-    #define DAL_UNIX
+    #define DAL_OS_UNIX
 #elif defined(_POSIX_VERSION)
     // POSIX
 #else

@@ -55,7 +55,7 @@ namespace {
 
 // Desktop functions (Windows and Linux)
 namespace {
-#if defined(DAL_OS_WINDOWS)
+#if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
 namespace desktop {
 
     class FileReadOnly_STL : public dal::filesystem::FileReadOnly {
@@ -246,10 +246,10 @@ namespace dal::filesystem {
     std::vector<std::string> AssetManager::listfile(const char* const path) {
         std::vector<std::string> result;
 
-#if defined(DAL_OS_WINDOWS)
+#if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
         ::desktop::listfile(path, result);
 
-#else defined(DAL_OS_ANDROID)
+#elif defined(DAL_OS_ANDROID)
         dalAssert(nullptr != this->m_ptr_asset_manager);
         ::android::listfile_asset(path, result, this->m_ptr_asset_manager);
 #endif
@@ -259,7 +259,7 @@ namespace dal::filesystem {
 
     std::unique_ptr<FileReadOnly> AssetManager::open(const char* const path) {
 
-#if defined(DAL_OS_WINDOWS)
+#if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
         const auto file_path = ::desktop::get_asset_dir() / path;
         std::unique_ptr<dal::filesystem::FileReadOnly> file{ new ::desktop::FileReadOnly_STL };
         file->open(file_path.string().c_str());
