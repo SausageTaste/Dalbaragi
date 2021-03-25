@@ -6,11 +6,10 @@
 #include <d_logger.h>
 #include <d_vulkan_man.h>
 #include <d_vulkan_header.h>
+#include <d_filesystem.h>
 
 
 namespace {
-
-    auto& logger = dal::LoggerSingleton::inst();
 
     class LogChannel_Logcat : public dal::ILogChannel {
 
@@ -21,7 +20,7 @@ namespace {
         ) override {
             __android_log_print(
                 map_log_levels(level),
-                "vulkan_practice",
+                "dalbaragi",
                 "[%s] %s",
                 dal::get_log_level_str(level),
                 str
@@ -51,17 +50,20 @@ namespace {
     };
 
 
-    void init(ANativeWindow* const native_window) {
+    void init(android_app* const state) {
+        dal::filesystem::AssetManager asset_manager;
+        asset_manager.set_android_asset_manager(state->activity->assetManager);
+
         const std::vector<const char*> instanceExt{
             "VK_KHR_surface",
             "VK_KHR_android_surface",
         };
-        const auto surface_creator = [native_window](void* vk_instance) -> void* {
+        const auto surface_creator = [state](void* vk_instance) -> void* {
             VkAndroidSurfaceCreateInfoKHR create_info{
                 .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
                 .pNext = nullptr,
                 .flags = 0,
-                .window = native_window,
+                .window = state->window,
             };
 
             VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -76,8 +78,29 @@ namespace {
             return reinterpret_cast<void*>(surface);
         };
 
-        dal::VulkanState state;
-        state.init("shit", instanceExt, surface_creator);
+        if (nullptr != state->userData) {
+            auto& engine = *reinterpret_cast<dal::VulkanState*>(state->userData);
+
+            engine.destroy();
+            engine.init(
+                "shit",
+                ANativeWindow_getWidth(state->window),
+                ANativeWindow_getHeight(state->window),
+                asset_manager,
+                instanceExt,
+                surface_creator
+            );
+        }
+        else {
+            state->userData = new dal::VulkanState(
+                "shit",
+                ANativeWindow_getWidth(state->window),
+                ANativeWindow_getHeight(state->window),
+                asset_manager,
+                instanceExt,
+                surface_creator
+            );
+        }
     }
 
 }
@@ -89,7 +112,7 @@ extern "C" {
         switch (cmd) {
             case APP_CMD_INIT_WINDOW:
                 dalInfo("handle cmd: init window");
-                ::init(state->window);
+                ::init(state);
                 break;
             case APP_CMD_WINDOW_RESIZED:
                 dalInfo("handle cmd: init window");
@@ -132,7 +155,7 @@ extern "C" {
 
     void android_main(struct android_app *pApp) {
         pApp->onAppCmd = handle_cmd;
-        logger.emplace_channel<LogChannel_Logcat>();
+        dal::LoggerSingleton::inst().emplace_channel<LogChannel_Logcat>();
 
         int events;
         android_poll_source *pSource;
@@ -142,7 +165,17 @@ extern "C" {
                     pSource->process(pApp, pSource);
                 }
             }
+
+            if (nullptr != pApp->userData) {
+                auto &engine = *reinterpret_cast<dal::VulkanState *>(pApp->userData);
+                engine.update();
+            }
         } while (!pApp->destroyRequested);
+
+        if (nullptr != pApp->userData) {
+            auto &engine = *reinterpret_cast<dal::VulkanState *>(pApp->userData);
+            engine.wait_device_idle();
+        }
     }
 
 }

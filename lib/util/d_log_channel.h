@@ -23,6 +23,8 @@ namespace dal {
             const int line, const char* const func, const char* const file
         ) = 0;
 
+        virtual void flush() {}
+
     };
 
 }

@@ -81,4 +81,16 @@ namespace dal {
         };
     }
 
+    uint32_t WindowGLFW::width() const {
+        int width = 0;
+        glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(this->m_window), &width, nullptr);
+        return width;
+    }
+
+    uint32_t WindowGLFW::height() const {
+        int height = 0;
+        glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(this->m_window), nullptr, &height);
+        return height;
+    }
+
 }

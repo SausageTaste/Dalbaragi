@@ -8,6 +8,13 @@ project(LibDalbaragi_Vulkan
 add_library(libdal_vulkan STATIC
     d_vulkan_man.h       d_vulkan_man.cpp
     d_vulkan_header.h
+    d_swapchain.h        d_swapchain.cpp
+    d_image_obj.h        d_image_obj.cpp
+    d_shader.h           d_shader.cpp
+    d_render_pass.h      d_render_pass.cpp
+    d_framebuffer.h      d_framebuffer.cpp
+    d_command.h          d_command.cpp
+    d_sync_primitives.h  d_sync_primitives.cpp
 )
 target_compile_features(libdal_vulkan PUBLIC cxx_std_17)
 target_include_directories(libdal_vulkan PUBLIC ./)

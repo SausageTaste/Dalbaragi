@@ -3,26 +3,7 @@
 #include "d_glfw.h"
 #include "d_vulkan_man.h"
 #include "d_logger.h"
-
-
-namespace {
-
-    class LogChannel_COUT : public dal::ILogChannel {
-
-    public:
-        virtual void put(
-            const dal::LogLevel level, const char* const str,
-            const int line, const char* const func, const char* const file
-        ) override {
-            if (static_cast<int>(level) >= static_cast<int>(dal::LogLevel::warning))
-                std::cerr << "[" << dal::get_log_level_str(level) << "] " << str << std::endl;
-            else
-                std::cout << "[" << dal::get_log_level_str(level) << "] " << str << std::endl;
-        }
-
-    };
-
-}
+#include "d_filesystem.h"
 
 
 int main(int argc, char** argv) {
@@ -30,15 +11,26 @@ int main(int argc, char** argv) {
         std::cout << "Argument[" << i << "] " << argv[i] << std::endl;
     }
 
-    dal::LoggerSingleton::inst().emplace_channel<LogChannel_COUT>();
+    dal::LoggerSingleton::inst().add_channel(dal::get_log_channel_cout());
+    dal::filesystem::AssetManager asset_mgr;
 
     dal::WindowGLFW window("Dalbrargi Windows");
-    dal::VulkanState state;
-    state.init("Dalbrargi Windows", window.get_vulkan_extensions(), window.get_vk_surface_creator());
+    dal::VulkanState state(
+        "Dalbrargi Windows",
+        window.width(),
+        window.height(),
+        asset_mgr,
+        window.get_vulkan_extensions(),
+        window.get_vk_surface_creator()
+    );
+
+    dalInfo("Done init");
 
     while (!window.should_close()) {
         window.do_frame();
+        state.update();
     }
 
+    state.wait_device_idle();
     return 0;
 }
