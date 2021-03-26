@@ -252,6 +252,7 @@ namespace dal::filesystem {
 #elif defined(DAL_OS_ANDROID)
         dalAssert(nullptr != this->m_ptr_asset_manager);
         ::android::listfile_asset(path, result, this->m_ptr_asset_manager);
+
 #endif
 
         return result;
