@@ -202,6 +202,8 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
+        this->destroy(logi_device);
+
         const SwapChainSupportDetails swapchain_support{ surface, phys_device };
         const VkSurfaceFormatKHR surface_format = ::choose_surface_format(swapchain_support.m_formats);
         const VkPresentModeKHR present_mode = ::choose_present_mode(swapchain_support.m_present_modes);

@@ -511,6 +511,9 @@ namespace dal {
         FbufManager m_fbuf_man;
         CmdPoolManager m_cmd_man;
 
+        // Non-vulkan members
+        dal::filesystem::AssetManager* m_asset_man = nullptr;
+
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
 #endif
@@ -544,6 +547,8 @@ namespace dal {
             dalAssert(1 == InitVulkan());
 #endif
             this->destroy();
+
+            this->m_asset_man = &asset_mgr;
 
             this->m_instance = ::create_vulkan_instance(window_title, extensions);
             dalAssert(VK_NULL_HANDLE != this->m_instance);
@@ -624,13 +629,16 @@ namespace dal {
         }
 
         void update() {
+            if (this->m_screen_resize_notified) {
+                this->m_screen_resize_notified = this->recreate_swapchain();
+                return;
+            }
+
             this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).wait(this->m_logi_device.get());
             const auto [acquire_result, img_index] = this->m_swapchain.acquire_next_img_index(this->m_cur_frame_index, this->m_logi_device.get());
 
             if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
-                this->m_screen_resize_notified = false;
-                dalAbort("Swapchain recreation needed");
-                this->recreate_swapchain();
+                this->m_screen_resize_notified = this->recreate_swapchain();
                 return;
             }
             else if (ImgAcquireResult::success == acquire_result) {
@@ -685,11 +693,49 @@ namespace dal {
             vkDeviceWaitIdle(this->m_logi_device.get());
         }
 
-        void recreate_swapchain() {
+        bool recreate_swapchain() {
             const auto spec = this->m_swapchain.make_spec();
             this->wait_device_idle();
 
+            if (0 == this->m_new_extent.width || 0 == this->m_new_extent.height) {
+                return true;
+            }
 
+            this->m_swapchain.init(
+                this->m_new_extent.width,
+                this->m_new_extent.height,
+                this->m_logi_device.indices(),
+                this->m_surface,
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+            this->m_renderpasses.init({ this->m_swapchain.format() }, this->m_logi_device.get());
+            this->m_fbuf_man.init(
+                this->m_swapchain.views(),
+                this->m_swapchain.extent(),
+                this->m_renderpasses.rp_rendering().get(),
+                this->m_logi_device.get()
+            );
+            this->m_pipelines.init(
+                *this->m_asset_man,
+                this->m_swapchain.extent(),
+                nullptr, 0,
+                this->m_renderpasses.rp_rendering().get(),
+                this->m_logi_device.get()
+            );
+            this->m_cmd_man.init(
+                this->m_swapchain.size(),
+                this->m_logi_device.indices().graphics_family(),
+                this->m_logi_device.get()
+            );
+            this->m_cmd_man.record_all_simple(
+                this->m_fbuf_man.swapchain_fbuf(),
+                this->m_swapchain.extent(),
+                this->m_renderpasses.rp_rendering().get(),
+                this->m_pipelines.get_simple().pipeline()
+            );
+
+            return false;
         }
 
         void on_screen_resize(const unsigned width, const unsigned height) {
@@ -697,7 +743,7 @@ namespace dal {
             this->m_new_extent.width = width;
             this->m_new_extent.height = height;
 
-            dalInfo(fmt::format("Screen resized: {} x {}", width, height).c_str());
+            dalInfo(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
         }
 
     };

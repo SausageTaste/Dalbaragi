@@ -14,6 +14,7 @@ namespace dal {
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
+        this->destroy(logi_device);
         this->m_swapchain_fbuf.resize(swapchain_views.size());
 
         for (uint32_t i = 0; i < swapchain_views.size(); ++i) {
