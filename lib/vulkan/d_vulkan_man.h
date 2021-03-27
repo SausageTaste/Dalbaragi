@@ -44,6 +44,8 @@ namespace dal {
 
         void wait_device_idle() const;
 
+        void on_screen_resize(const unsigned width, const unsigned height);
+
     };
 
 }

@@ -141,6 +141,9 @@ namespace dal {
     };
 
 
+    enum class ImgAcquireResult{ success, fail, out_of_date, suboptimal };
+
+
     class SwapchainManager {
 
     private:
@@ -190,7 +193,7 @@ namespace dal {
 
         SwapchainSpec make_spec() const;
 
-        uint32_t acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const;
+        std::pair<ImgAcquireResult, uint32_t> acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const;
 
     };
 

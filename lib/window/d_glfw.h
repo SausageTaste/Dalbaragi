@@ -22,6 +22,8 @@ namespace dal {
         std::vector<const char*> get_vulkan_extensions() const;
         std::function<void*(void*)> get_vk_surface_creator() const;
 
+        void set_callback_fbuf_resize(std::function<void(int, int)> func);
+
         auto& title() const {
             return this->m_title;
         }

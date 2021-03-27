@@ -35,6 +35,14 @@ namespace {
         return surface;
     }
 
+
+    std::function<void(int, int)> g_callback_func_buf_resize;
+
+    static void callback_fbuf_resize(GLFWwindow* window, int width, int height) {
+        if (g_callback_func_buf_resize)
+            g_callback_func_buf_resize(width, height);
+    }
+
 }
 
 
@@ -43,10 +51,13 @@ namespace dal {
     WindowGLFW::WindowGLFW(const char* const title) {
         this->m_title = title;
 
-        this->m_window = ::create_glfw_window(800, 450, title);
-        if (nullptr == this->m_window) {
+        const auto window = ::create_glfw_window(800, 450, title);
+        if (nullptr == window) {
             throw std::runtime_error{ "Failed to create glfw window" };
         }
+        this->m_window = window;
+
+        glfwSetFramebufferSizeCallback(window, ::callback_fbuf_resize);
     }
 
     WindowGLFW::~WindowGLFW() {
@@ -79,6 +90,10 @@ namespace dal {
                 reinterpret_cast<GLFWwindow*>(this->m_window)
             );
         };
+    }
+
+    void WindowGLFW::set_callback_fbuf_resize(std::function<void(int, int)> func) {
+        g_callback_func_buf_resize = func;
     }
 
     uint32_t WindowGLFW::width() const {

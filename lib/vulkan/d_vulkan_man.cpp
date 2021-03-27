@@ -516,6 +516,8 @@ namespace dal {
 #endif
 
         size_t m_cur_frame_index = 0;
+        bool m_screen_resize_notified = false;
+        VkExtent2D m_new_extent;
 
     public:
         Pimpl() = default;
@@ -623,7 +625,20 @@ namespace dal {
 
         void update() {
             this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).wait(this->m_logi_device.get());
-            const auto img_index = this->m_swapchain.acquire_next_img_index(this->m_cur_frame_index, this->m_logi_device.get());
+            const auto [acquire_result, img_index] = this->m_swapchain.acquire_next_img_index(this->m_cur_frame_index, this->m_logi_device.get());
+
+            if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
+                this->m_screen_resize_notified = false;
+                dalAbort("Swapchain recreation needed");
+                this->recreate_swapchain();
+                return;
+            }
+            else if (ImgAcquireResult::success == acquire_result) {
+
+            }
+            else {
+                dalAbort("Failed to acquire swapchain image");
+            }
 
             auto img_fences = this->m_swapchain.sync_man().fences_image_in_flight();
             if (nullptr != img_fences.at(img_index)) {
@@ -670,6 +685,21 @@ namespace dal {
             vkDeviceWaitIdle(this->m_logi_device.get());
         }
 
+        void recreate_swapchain() {
+            const auto spec = this->m_swapchain.make_spec();
+            this->wait_device_idle();
+
+
+        }
+
+        void on_screen_resize(const unsigned width, const unsigned height) {
+            this->m_screen_resize_notified = true;
+            this->m_new_extent.width = width;
+            this->m_new_extent.height = height;
+
+            dalInfo(fmt::format("Screen resized: {} x {}", width, height).c_str());
+        }
+
     };
 
 }
@@ -709,6 +739,10 @@ namespace dal {
 
     void VulkanState::wait_device_idle() const {
         this->m_pimpl->wait_device_idle();
+    }
+
+    void VulkanState::on_screen_resize(const unsigned width, const unsigned height) {
+        this->m_pimpl->on_screen_resize(width, height);
     }
 
 }

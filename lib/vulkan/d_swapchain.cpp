@@ -294,20 +294,28 @@ namespace dal {
         return result;
     }
 
-    uint32_t SwapchainManager::acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const {
-        uint32_t result = UINT32_MAX;
+    std::pair<ImgAcquireResult, uint32_t> SwapchainManager::acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const {
+        uint32_t img_index;
 
-        vkAcquireNextImageKHR(
+        const auto result = vkAcquireNextImageKHR(
             logi_device,
             this->m_swapChain,
             UINT64_MAX,
             this->m_sync_man.semaphore_img_available(cur_img_index).get(),  // Signaled when the presentation engine is finished using the image
             VK_NULL_HANDLE,
-            &result
+            &img_index
         );
 
-        dalAssert(UINT32_MAX != result);
-        return result;
+        switch (result) {
+            case VK_ERROR_OUT_OF_DATE_KHR:
+                return { ImgAcquireResult::out_of_date, UINT32_MAX };
+            case VK_SUBOPTIMAL_KHR:
+                return { ImgAcquireResult::suboptimal, img_index };
+            case VK_SUCCESS:
+                return { ImgAcquireResult::success, img_index };
+            default:
+                return { ImgAcquireResult::fail, UINT32_MAX };
+        }
     }
 
 }
