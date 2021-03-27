@@ -264,7 +264,7 @@ namespace dal {
     }
 
     uint32_t SwapchainManager::acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const {
-        uint32_t result;
+        uint32_t result = UINT32_MAX;
 
         vkAcquireNextImageKHR(
             logi_device,
@@ -275,6 +275,7 @@ namespace dal {
             &result
         );
 
+        dalAssert(UINT32_MAX != result);
         return result;
     }
 
