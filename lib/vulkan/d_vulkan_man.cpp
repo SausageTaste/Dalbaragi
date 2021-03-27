@@ -575,13 +575,17 @@ namespace dal {
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
+            dalInfo(fmt::format("Swapchain created: {} x {}", this->m_swapchain.width(), this->m_swapchain.height()).c_str());
+
             this->m_renderpasses.init({ this->m_swapchain.format() }, this->m_logi_device.get());
+
             this->m_fbuf_man.init(
                 this->m_swapchain.views(),
                 this->m_swapchain.extent(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
+
             this->m_pipelines.init(
                 asset_mgr,
                 this->m_swapchain.extent(),
@@ -589,11 +593,13 @@ namespace dal {
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
+
             this->m_cmd_man.init(
                 this->m_swapchain.size(),
                 this->m_logi_device.indices().graphics_family(),
                 this->m_logi_device.get()
             );
+
             this->m_cmd_man.record_all_simple(
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_swapchain.extent(),
@@ -709,13 +715,16 @@ namespace dal {
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
+
             this->m_renderpasses.init({ this->m_swapchain.format() }, this->m_logi_device.get());
+
             this->m_fbuf_man.init(
                 this->m_swapchain.views(),
                 this->m_swapchain.extent(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
+
             this->m_pipelines.init(
                 *this->m_asset_man,
                 this->m_swapchain.extent(),
@@ -723,11 +732,13 @@ namespace dal {
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
+
             this->m_cmd_man.init(
                 this->m_swapchain.size(),
                 this->m_logi_device.indices().graphics_family(),
                 this->m_logi_device.get()
             );
+
             this->m_cmd_man.record_all_simple(
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_swapchain.extent(),
@@ -735,6 +746,7 @@ namespace dal {
                 this->m_pipelines.get_simple().pipeline()
             );
 
+            dalInfo(fmt::format("Swapchain recreated: {} x {}", this->m_swapchain.width(), this->m_swapchain.height()).c_str());
             return false;
         }
 

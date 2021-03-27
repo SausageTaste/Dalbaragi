@@ -183,6 +183,14 @@ namespace dal {
             return this->m_extent;
         }
 
+        auto width() const {
+            return this->extent().width;
+        }
+
+        auto height() const {
+            return this->extent().height;
+        }
+
         auto& views() const {
             return this->m_views;
         }
