@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 3.4.1)
 
-project(LibDalbaragi_Vulkan
-    LANGUAGES CXX
-)
-
 
 add_library(libdal_vulkan STATIC
     d_vulkan_man.h       d_vulkan_man.cpp

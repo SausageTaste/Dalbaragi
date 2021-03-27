@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 3.4.1)
 
-project(Dalbaragi_Test_App_Linux
-    LANGUAGES CXX
-)
-
 
 add_executable(dalbaragi_linux
     main.cpp
