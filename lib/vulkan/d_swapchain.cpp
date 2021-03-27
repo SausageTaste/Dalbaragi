@@ -162,6 +162,31 @@ namespace dal {
 }
 
 
+// SwapchainSpec
+namespace dal {
+
+    bool SwapchainSpec::operator==(const SwapchainSpec& other) const {
+        if (this->m_extent.width != other.m_extent.width)
+            return false;
+        if (this->m_extent.height != other.m_extent.height)
+            return false;
+        if (this->m_image_format != other.m_image_format)
+            return false;
+        if (this->m_count != other.m_count)
+            return false;
+
+        return true;
+    }
+
+    void SwapchainSpec::set(const uint32_t count, const VkFormat format, const VkExtent2D extent) {
+        this->m_image_format = format;
+        this->m_extent = extent;
+        this->m_count = count;
+    }
+
+}
+
+
 // SwapchainManager
 namespace dal {
 
@@ -261,6 +286,12 @@ namespace dal {
     uint32_t SwapchainManager::size() const {
         dalAssert(this->views().size() == this->m_images.size());
         return this->views().size();
+    }
+
+    SwapchainSpec SwapchainManager::make_spec() const {
+        SwapchainSpec result;
+        result.set(this->size(), this->format(), this->extent());
+        return result;
     }
 
     uint32_t SwapchainManager::acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const {

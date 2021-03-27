@@ -106,6 +106,41 @@ namespace dal {
     };
 
 
+    struct SwapchainSpec {
+
+    private:
+        VkExtent2D m_extent{};
+        VkFormat m_image_format{};
+        uint32_t m_count = 0;
+
+    public:
+        bool operator==(const SwapchainSpec& other) const;
+
+        void set(const uint32_t count, const VkFormat format, const VkExtent2D extent);
+
+        auto count() const {
+            return this->m_count;
+        }
+
+        auto format() const {
+            return this->m_image_format;
+        }
+
+        auto extent() const {
+            return this->m_extent;
+        }
+
+        auto width() const {
+            return this->extent().width;
+        }
+
+        auto height() const {
+            return this->extent().height;
+        }
+
+    };
+
+
     class SwapchainManager {
 
     private:
@@ -152,6 +187,8 @@ namespace dal {
         auto& sync_man() const {
             return this->m_sync_man;
         }
+
+        SwapchainSpec make_spec() const;
 
         uint32_t acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const;
 
