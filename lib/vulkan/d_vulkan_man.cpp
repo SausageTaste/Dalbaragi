@@ -700,12 +700,10 @@ namespace dal {
         }
 
         bool recreate_swapchain() {
-            const auto spec = this->m_swapchain.make_spec();
-            this->wait_device_idle();
-
             if (0 == this->m_new_extent.width || 0 == this->m_new_extent.height) {
                 return true;
             }
+            this->wait_device_idle();
 
             this->m_swapchain.init(
                 this->m_new_extent.width,
