@@ -436,12 +436,6 @@ namespace {
         return result;
     }
 
-    void test_vk_validation(const VkPhysicalDevice phys_device) {
-        VkDeviceCreateInfo info{};
-        VkDevice tmp = VK_NULL_HANDLE;
-        vkCreateDevice(phys_device, &info, nullptr, &tmp);
-    }
-
 #endif
 
 
@@ -512,7 +506,7 @@ namespace dal {
         CmdPoolManager m_cmd_man;
 
         // Non-vulkan members
-        dal::filesystem::AssetManager* m_asset_man = nullptr;
+        dal::filesystem::AssetManager& m_asset_man;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
@@ -531,24 +525,20 @@ namespace dal {
         Pimpl& operator=(Pimpl&&) = delete;
 
     public:
-        ~Pimpl() {
-            this->destroy();
-        }
-
-        void init(
+        Pimpl(
             const char* const window_title,
             const unsigned init_width,
             const unsigned init_height,
             dal::filesystem::AssetManager& asset_mgr,
             const std::vector<const char*>& extensions,
             const std::function<void*(void*)> surface_create_func
-        ) {
+        )
+            : m_asset_man(asset_mgr)
+        {
 #ifdef __ANDROID__
             dalAssert(1 == InitVulkan());
 #endif
             this->destroy();
-
-            this->m_asset_man = &asset_mgr;
 
             this->m_instance = ::create_vulkan_instance(window_title, extensions);
             dalAssert(VK_NULL_HANDLE != this->m_instance);
@@ -562,9 +552,6 @@ namespace dal {
 #endif
 
             std::tie(this->m_phys_device, this->m_phys_info) = ::get_best_phys_device<true>(this->m_instance, this->m_surface);
-#ifdef DAL_VK_DEBUG
-            //::test_vk_validation(phys_devices[0].get());
-#endif
 
             this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
             this->m_swapchain.init(
@@ -606,6 +593,10 @@ namespace dal {
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_pipelines.get_simple().pipeline()
             );
+        }
+
+        ~Pimpl() {
+            this->destroy();
         }
 
         void destroy() {
@@ -724,7 +715,7 @@ namespace dal {
             );
 
             this->m_pipelines.init(
-                *this->m_asset_man,
+                this->m_asset_man,
                 this->m_swapchain.extent(),
                 nullptr, 0,
                 this->m_renderpasses.rp_rendering().get(),
@@ -776,9 +767,7 @@ namespace dal {
         std::function<void*(void*)> surface_create_func
     ) {
         this->destroy();
-        this->m_pimpl = new Pimpl;
-        this->m_pimpl->init(window_title, init_width, init_height, asset_mgr, extensions, surface_create_func);
-
+        this->m_pimpl = new Pimpl(window_title, init_width, init_height, asset_mgr, extensions, surface_create_func);
         dalInfo(fmt::format("Init surface size: {} x {}", init_width, init_height).c_str());
     }
 
