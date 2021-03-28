@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10.2)
 
+project(Dalbaragi-Android)
+
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 
 
