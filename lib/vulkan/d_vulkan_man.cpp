@@ -520,8 +520,6 @@ namespace dal {
         VkExtent2D m_new_extent;
 
     public:
-        Pimpl() = default;
-
         Pimpl(const Pimpl&) = delete;
         Pimpl& operator=(const Pimpl&) = delete;
         Pimpl(Pimpl&&) = delete;
