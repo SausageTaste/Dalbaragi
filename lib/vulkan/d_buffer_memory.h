@@ -40,13 +40,13 @@ namespace dal {
             return this->m_buffer;
         }
 
-        void copy_mem_from(
+        void copy_from_mem(
             const void* src,
             const size_t size,
             const VkDevice logi_device
         );
 
-        void copy_buf_from(
+        void copy_from_buf(
             const BufferMemory& other,
             const VkDeviceSize size,
             dal::CommandPool& cmd_pool,

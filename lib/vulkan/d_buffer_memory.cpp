@@ -125,7 +125,7 @@ namespace dal {
         return this->m_buffer != VK_NULL_HANDLE && this->m_memory != VK_NULL_HANDLE;
     }
 
-    void BufferMemory::copy_mem_from(
+    void BufferMemory::copy_from_mem(
         const void* src,
         const size_t size,
         const VkDevice logi_device
@@ -146,7 +146,7 @@ namespace dal {
         vkUnmapMemory(logi_device, this->m_memory);
     }
 
-    void BufferMemory::copy_buf_from(
+    void BufferMemory::copy_from_buf(
         const BufferMemory& src,
         const VkDeviceSize size,
         dal::CommandPool& cmd_pool,

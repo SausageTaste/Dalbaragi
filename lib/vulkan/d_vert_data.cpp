@@ -68,7 +68,7 @@ namespace dal {
                 logi_device
             );
             dalAssert(result_staging);
-            staging_buffer.copy_mem_from(vertices.data(), buffer_size, logi_device);
+            staging_buffer.copy_from_mem(vertices.data(), buffer_size, logi_device);
 
             const auto result_this = this->m_vertices.init(
                 buffer_size,
@@ -79,7 +79,7 @@ namespace dal {
             );
             dalAssert(result_this);
 
-            this->m_vertices.copy_buf_from(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
+            this->m_vertices.copy_from_buf(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
             staging_buffer.destroy(logi_device);
         }
 
@@ -97,7 +97,7 @@ namespace dal {
                 logi_device
             );
             dalAssert(result_staging);
-            staging_buffer.copy_mem_from(indices.data(), buffer_size, logi_device);
+            staging_buffer.copy_from_mem(indices.data(), buffer_size, logi_device);
 
             const auto result_this = this->m_indices.init(
                 buffer_size,
@@ -108,7 +108,7 @@ namespace dal {
             );
             dalAssert(result_this);
 
-            this->m_indices.copy_buf_from(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
+            this->m_indices.copy_from_buf(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
             staging_buffer.destroy(logi_device);
         }
     }
