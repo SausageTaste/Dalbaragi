@@ -17,6 +17,7 @@
 #include "d_framebuffer.h"
 #include "d_command.h"
 #include "d_vert_data.h"
+#include "d_uniform.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -505,6 +506,9 @@ namespace dal {
         RenderPassManager m_renderpasses;
         FbufManager m_fbuf_man;
         CmdPoolManager m_cmd_man;
+        DescSetLayoutManager m_desc_layout_man;
+        UniformBufferArray<U_PerFrame> m_ubufs_simple;
+        DescriptorManager m_desc_man;
 
         VertexBuffer m_vert_buf;
 
@@ -555,6 +559,9 @@ namespace dal {
             std::tie(this->m_phys_device, this->m_phys_info) = ::get_best_phys_device<true>(this->m_instance, this->m_surface);
 
             this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
+
+            this->m_desc_layout_man.init(this->m_logi_device.get());
+
             this->m_swapchain.init(
                 init_width,
                 init_height,
@@ -577,7 +584,7 @@ namespace dal {
             this->m_pipelines.init(
                 asset_mgr,
                 this->m_swapchain.extent(),
-                nullptr, 0,
+                this->m_desc_layout_man.layout_simple(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
@@ -607,14 +614,30 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
+            this->m_ubufs_simple.init(
+                this->m_swapchain.size(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_desc_man.init(this->m_swapchain.size(), this->m_logi_device.get());
+            this->m_desc_man.init_desc_sets_simple(
+                this->m_ubufs_simple,
+                this->m_swapchain.size(),
+                this->m_desc_layout_man.layout_simple(),
+                this->m_logi_device.get()
+            );
+
             this->m_cmd_man.record_all_simple(
                 this->m_fbuf_man.swapchain_fbuf(),
+                this->m_desc_man.desc_set_raw_simple(),
                 this->m_swapchain.extent(),
                 this->m_vert_buf.vertex_buffer(),
                 this->m_vert_buf.index_buffer(),
                 this->m_vert_buf.index_size(),
-                this->m_renderpasses.rp_rendering().get(),
-                this->m_pipelines.get_simple().pipeline()
+                this->m_pipelines.simple().layout(),
+                this->m_pipelines.simple().pipeline(),
+                this->m_renderpasses.rp_rendering().get()
             );
         }
 
@@ -623,12 +646,15 @@ namespace dal {
         }
 
         void destroy() {
+            this->m_desc_man.destroy(this->m_logi_device.get());
+            this->m_ubufs_simple.destroy(this->m_logi_device.get());
             this->m_vert_buf.destroy(this->m_logi_device.get());
             this->m_cmd_man.destroy(this->m_logi_device.get());
             this->m_pipelines.destroy(this->m_logi_device.get());
             this->m_fbuf_man.destroy(this->m_logi_device.get());
             this->m_renderpasses.destroy(this->m_logi_device.get());
             this->m_swapchain.destroy(this->m_logi_device.get());
+            this->m_desc_layout_man.destroy(this->m_logi_device.get());
             this->m_logi_device.destroy();
 
 #ifdef DAL_VK_DEBUG
@@ -674,6 +700,14 @@ namespace dal {
                 img_fences.at(img_index)->wait(this->m_logi_device.get());
             }
             img_fences.at(img_index) = &this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index);
+
+            //-----------------------------------------------------------------------------------------------------
+
+            U_PerFrame ubuf_data;
+            ubuf_data.m_model = glm::translate(glm::mat4{1}, glm::vec3{0.2, 0.2, 0});
+            this->m_ubufs_simple.at(img_index).copy_to_buffer(ubuf_data, this->m_logi_device.get());
+
+            //-----------------------------------------------------------------------------------------------------
 
             std::array<VkSemaphore, 1> waitSemaphores{ this->m_swapchain.sync_man().semaphore_img_available(this->m_cur_frame_index).get() };
             std::array<VkPipelineStageFlags, 1> waitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -741,7 +775,7 @@ namespace dal {
             this->m_pipelines.init(
                 this->m_asset_man,
                 this->m_swapchain.extent(),
-                nullptr, 0,
+                this->m_desc_layout_man.layout_simple(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
@@ -752,14 +786,30 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
+            this->m_ubufs_simple.init(
+                this->m_swapchain.size(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_desc_man.init(this->m_swapchain.size(), this->m_logi_device.get());
+            this->m_desc_man.init_desc_sets_simple(
+                this->m_ubufs_simple,
+                this->m_swapchain.size(),
+                this->m_desc_layout_man.layout_simple(),
+                this->m_logi_device.get()
+            );
+
             this->m_cmd_man.record_all_simple(
                 this->m_fbuf_man.swapchain_fbuf(),
+                this->m_desc_man.desc_set_raw_simple(),
                 this->m_swapchain.extent(),
                 this->m_vert_buf.vertex_buffer(),
                 this->m_vert_buf.index_buffer(),
                 this->m_vert_buf.index_size(),
-                this->m_renderpasses.rp_rendering().get(),
-                this->m_pipelines.get_simple().pipeline()
+                this->m_pipelines.simple().layout(),
+                this->m_pipelines.simple().pipeline(),
+                this->m_renderpasses.rp_rendering().get()
             );
 
             dalInfo(fmt::format("Swapchain recreated: {} x {}", this->m_swapchain.width(), this->m_swapchain.height()).c_str());

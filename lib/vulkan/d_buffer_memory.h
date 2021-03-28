@@ -14,7 +14,17 @@ namespace dal {
         VkDeviceSize m_size = 0;
 
     public:
+        BufferMemory() = default;
+
+        BufferMemory(const BufferMemory&) = delete;
+        BufferMemory& operator=(const BufferMemory&) = delete;
+
+    public:
         ~BufferMemory();
+
+        BufferMemory(BufferMemory&& other) noexcept;
+
+        BufferMemory& operator=(BufferMemory&& other) noexcept;
 
         [[nodiscard]]
         bool init(

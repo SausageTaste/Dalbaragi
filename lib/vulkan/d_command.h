@@ -60,12 +60,14 @@ namespace dal {
 
         void record_all_simple(
             const std::vector<VkFramebuffer>& swapchain_fbufs,
+            const std::vector<VkDescriptorSet>& desc_sets_simple,
             const VkExtent2D& swapchain_extent,
             const VkBuffer vertex_buffer,
             const VkBuffer index_buffer,
             const uint32_t index_size,
-            const VkRenderPass render_pass,
-            const VkPipeline graphics_pipeline
+            const VkPipelineLayout pipe_layout_simple,
+            const VkPipeline graphics_pipeline,
+            const VkRenderPass render_pass
         );
 
         auto& cmd_buffer_at(const size_t index) const {

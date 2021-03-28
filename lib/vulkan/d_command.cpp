@@ -110,12 +110,14 @@ namespace dal {
 
     void CmdPoolManager::record_all_simple(
         const std::vector<VkFramebuffer>& swapchain_fbufs,
+        const std::vector<VkDescriptorSet>& desc_sets_simple,
         const VkExtent2D& swapchain_extent,
         const VkBuffer vertex_buffer,
         const VkBuffer index_buffer,
         const uint32_t index_size,
-        const VkRenderPass render_pass,
-        const VkPipeline graphics_pipeline
+        const VkPipelineLayout pipe_layout_simple,
+        const VkPipeline graphics_pipeline,
+        const VkRenderPass render_pass
     ) {
         for (size_t i = 0; i < this->m_cmd_buffers.size(); ++i) {
             auto& cmd_buf = this->m_cmd_buffers[i];
@@ -150,8 +152,17 @@ namespace dal {
                 std::array<VkDeviceSize, 1> vert_offsets{ 0 };
                 vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
                 vkCmdBindIndexBuffer(cmd_buf, index_buffer, 0, VK_INDEX_TYPE_UINT32);
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipe_layout_simple,
+                    0,
+                    1, &desc_sets_simple.at(i),
+                    0, nullptr
+                );
+
                 vkCmdDrawIndexed(cmd_buf, index_size, 1, 0, 0, 0);
-                //vkCmdDraw(cmd_buf, index_size, 1, 0, 0);
             }
             vkCmdEndRenderPass(cmd_buf);
 

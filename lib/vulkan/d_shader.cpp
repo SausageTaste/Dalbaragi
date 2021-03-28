@@ -332,7 +332,7 @@ namespace {
     dal::ShaderPipeline make_pipeline_simple(
         dal::filesystem::AssetManager& asset_mgr,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout* const desc_set_layouts, const uint32_t desc_set_layout_count,
+        const VkDescriptorSetLayout desc_layout_simple,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
@@ -380,7 +380,7 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const auto pipeline_layout = ::create_pipeline_layout(desc_set_layouts, desc_set_layout_count, nullptr, 0, logi_device);
+        const auto pipeline_layout = ::create_pipeline_layout(&desc_layout_simple, 1, nullptr, 0, logi_device);
 
         // Pipeline, finally
         VkGraphicsPipelineCreateInfo pipeline_info{};
@@ -418,7 +418,7 @@ namespace dal {
     void PipelineManager::init(
         dal::filesystem::AssetManager& asset_mgr,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout* const desc_set_layouts, const uint32_t desc_set_layout_count,
+        const VkDescriptorSetLayout desc_layout_simple,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
@@ -427,7 +427,7 @@ namespace dal {
         this->m_simple = ::make_pipeline_simple(
             asset_mgr,
             swapchain_extent,
-            desc_set_layouts, desc_set_layout_count,
+            desc_layout_simple,
             renderpass,
             logi_device
         );

@@ -90,6 +90,20 @@ namespace dal {
         dalAssert(!this->is_ready());
     }
 
+    BufferMemory::BufferMemory(BufferMemory&& other) noexcept {
+        std::swap(this->m_buffer, other.m_buffer);
+        std::swap(this->m_memory, other.m_memory);
+        std::swap(this->m_size, other.m_size);
+    }
+
+    BufferMemory& BufferMemory::operator=(BufferMemory&& other) noexcept {
+        std::swap(this->m_buffer, other.m_buffer);
+        std::swap(this->m_memory, other.m_memory);
+        std::swap(this->m_size, other.m_size);
+
+        return *this;
+    }
+
     bool BufferMemory::init(
         const VkDeviceSize size,
         const VkBufferUsageFlags usage,
