@@ -16,6 +16,7 @@
 #include "d_render_pass.h"
 #include "d_framebuffer.h"
 #include "d_command.h"
+#include "d_vert_data.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -505,6 +506,8 @@ namespace dal {
         FbufManager m_fbuf_man;
         CmdPoolManager m_cmd_man;
 
+        VertexBuffer m_vert_buf;
+
         // Non-vulkan members
         dal::filesystem::AssetManager& m_asset_man;
 
@@ -587,9 +590,25 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
+            const std::vector<Vertex> vertices{
+                {glm::vec3{ 0.0f, -0.5f, 0}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec2{}},
+                {glm::vec3{-0.5f,  0.5f, 0}, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec2{}},
+                {glm::vec3{ 0.5f,  0.5f, 0}, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec2{}},
+            };
+
+            this->m_vert_buf.init(
+                vertices,
+                this->m_cmd_man.pool_single_time(),
+                this->m_logi_device.queue_graphics(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
             this->m_cmd_man.record_all_simple(
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_swapchain.extent(),
+                this->m_vert_buf.buffer(),
+                this->m_vert_buf.vert_size(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_pipelines.get_simple().pipeline()
             );
@@ -731,6 +750,8 @@ namespace dal {
             this->m_cmd_man.record_all_simple(
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_swapchain.extent(),
+                this->m_vert_buf.buffer(),
+                this->m_vert_buf.vert_size(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_pipelines.get_simple().pipeline()
             );
