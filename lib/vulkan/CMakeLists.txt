@@ -12,6 +12,7 @@ add_library(libdal_vulkan STATIC
     d_command.h          d_command.cpp
     d_sync_primitives.h  d_sync_primitives.cpp
     d_vert_data.h        d_vert_data.cpp
+    d_buffer_memory.h    d_buffer_memory.cpp
 )
 target_compile_features(libdal_vulkan PUBLIC cxx_std_17)
 target_include_directories(libdal_vulkan PUBLIC ./)
