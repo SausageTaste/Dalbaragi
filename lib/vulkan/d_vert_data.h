@@ -64,15 +64,19 @@ namespace dal {
     };
 
 
+    using index_data_t = uint32_t;
+
+
     class VertexBuffer {
 
     private:
-        BufferMemory m_buffer;
-        uint32_t m_vert_size = 0;
+        BufferMemory m_vertices, m_indices;
+        uint32_t m_index_size = 0;
 
     public:
         void init(
             const std::vector<Vertex>& vertices,
+            const std::vector<index_data_t>& indices,
             dal::CommandPool& cmd_pool,
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
@@ -81,15 +85,22 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        auto vert_size() const {
-            return this->m_vert_size;
+        auto index_size() const {
+            return this->m_index_size;
         }
 
-        auto buffer()  {
-            return this->m_buffer.buffer();
+        auto vertex_buffer()  {
+            return this->m_vertices.buffer();
         }
-        auto buffer() const {
-            return this->m_buffer.buffer();
+        auto vertex_buffer() const {
+            return this->m_vertices.buffer();
+        }
+
+        auto index_buffer()  {
+            return this->m_indices.buffer();
+        }
+        auto index_buffer() const {
+            return this->m_indices.buffer();
         }
 
     };

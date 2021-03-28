@@ -591,13 +591,18 @@ namespace dal {
             );
 
             const std::vector<Vertex> vertices{
-                {glm::vec3{ 0.0f, -0.5f, 0}, glm::vec3{1.0f, 1.0f, 1.0f}, glm::vec2{}},
-                {glm::vec3{-0.5f,  0.5f, 0}, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec2{}},
-                {glm::vec3{ 0.5f,  0.5f, 0}, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec2{}},
+                {glm::vec3{-0.5, -0.5, 0}, glm::vec3{1.0, 1.0, 1.0}, glm::vec2{0, 0}},
+                {glm::vec3{-0.5,  0.5, 0}, glm::vec3{1.0, 0.0, 0.0}, glm::vec2{0, 1}},
+                {glm::vec3{ 0.5,  0.5, 0}, glm::vec3{0.0, 1.0, 0.0}, glm::vec2{1, 1}},
+                {glm::vec3{ 0.5, -0.5, 0}, glm::vec3{0.0, 0.0, 1.0}, glm::vec2{1, 0}},
+            };
+            const std::vector<index_data_t> indices{
+                0, 1, 2,
+                0, 2, 3,
             };
 
             this->m_vert_buf.init(
-                vertices,
+                vertices, indices,
                 this->m_cmd_man.pool_single_time(),
                 this->m_logi_device.queue_graphics(),
                 this->m_phys_device.get(),
@@ -607,8 +612,9 @@ namespace dal {
             this->m_cmd_man.record_all_simple(
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_swapchain.extent(),
-                this->m_vert_buf.buffer(),
-                this->m_vert_buf.vert_size(),
+                this->m_vert_buf.vertex_buffer(),
+                this->m_vert_buf.index_buffer(),
+                this->m_vert_buf.index_size(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_pipelines.get_simple().pipeline()
             );
@@ -619,6 +625,7 @@ namespace dal {
         }
 
         void destroy() {
+            this->m_vert_buf.destroy(this->m_logi_device.get());
             this->m_cmd_man.destroy(this->m_logi_device.get());
             this->m_pipelines.destroy(this->m_logi_device.get());
             this->m_fbuf_man.destroy(this->m_logi_device.get());
@@ -750,8 +757,9 @@ namespace dal {
             this->m_cmd_man.record_all_simple(
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_swapchain.extent(),
-                this->m_vert_buf.buffer(),
-                this->m_vert_buf.vert_size(),
+                this->m_vert_buf.vertex_buffer(),
+                this->m_vert_buf.index_buffer(),
+                this->m_vert_buf.index_size(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_pipelines.get_simple().pipeline()
             );

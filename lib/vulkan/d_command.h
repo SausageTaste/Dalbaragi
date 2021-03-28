@@ -62,7 +62,8 @@ namespace dal {
             const std::vector<VkFramebuffer>& swapchain_fbufs,
             const VkExtent2D& swapchain_extent,
             const VkBuffer vertex_buffer,
-            const uint32_t vertex_size,
+            const VkBuffer index_buffer,
+            const uint32_t index_size,
             const VkRenderPass render_pass,
             const VkPipeline graphics_pipeline
         );

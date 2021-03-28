@@ -210,6 +210,7 @@ namespace dal {
 
     void VertexBuffer::init(
         const std::vector<Vertex>& vertices,
+        const std::vector<index_data_t>& indices,
         dal::CommandPool& cmd_pool,
         const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
@@ -217,36 +218,71 @@ namespace dal {
     ) {
         this->destroy(logi_device);
 
-        this->m_vert_size = vertices.size();
-        const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+        this->m_index_size = indices.size();
 
-        BufferMemory staging_buffer;
-        const auto result_staging = staging_buffer.init(
-            buffer_size,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            phys_device,
-            logi_device
-        );
-        dalAssert(result_staging);
-        staging_buffer.copy_mem_from(vertices.data(), buffer_size, logi_device);
+        // Build vertex buffer
+        // -----------------------------------------------------------------------------
+        {
+            const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
 
-        const auto result_this = this->m_buffer.init(
-            buffer_size,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            phys_device,
-            logi_device
-        );
-        dalAssert(result_this);
+            BufferMemory staging_buffer;
+            const auto result_staging = staging_buffer.init(
+                buffer_size,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                phys_device,
+                logi_device
+            );
+            dalAssert(result_staging);
+            staging_buffer.copy_mem_from(vertices.data(), buffer_size, logi_device);
 
-        this->m_buffer.copy_buf_from(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
-        staging_buffer.destroy(logi_device);
+            const auto result_this = this->m_vertices.init(
+                buffer_size,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                phys_device,
+                logi_device
+            );
+            dalAssert(result_this);
+
+            this->m_vertices.copy_buf_from(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
+            staging_buffer.destroy(logi_device);
+        }
+
+        // Build index buffer
+        // -----------------------------------------------------------------------------
+        {
+            const VkDeviceSize buffer_size = sizeof(indices[0]) * indices.size();
+
+            BufferMemory staging_buffer;
+            const auto result_staging = staging_buffer.init(
+                buffer_size,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                phys_device,
+                logi_device
+            );
+            dalAssert(result_staging);
+            staging_buffer.copy_mem_from(indices.data(), buffer_size, logi_device);
+
+            const auto result_this = this->m_indices.init(
+                buffer_size,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                phys_device,
+                logi_device
+            );
+            dalAssert(result_this);
+
+            this->m_indices.copy_buf_from(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
+            staging_buffer.destroy(logi_device);
+        }
     }
 
     void VertexBuffer::destroy(const VkDevice logi_device) {
-        this->m_buffer.destroy(logi_device);
-        this->m_vert_size = 0;
+        this->m_vertices.destroy(logi_device);
+        this->m_indices.destroy(logi_device);
+        this->m_index_size = 0;
     }
 
 }

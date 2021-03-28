@@ -101,6 +101,7 @@ namespace dal {
     }
 
     void CmdPoolManager::destroy(const VkDevice logi_device) {
+        this->m_pool_for_single_time.destroy(logi_device);
         for (auto& pool : this->m_pools) {
             pool.destroy(logi_device);
         }
@@ -111,7 +112,8 @@ namespace dal {
         const std::vector<VkFramebuffer>& swapchain_fbufs,
         const VkExtent2D& swapchain_extent,
         const VkBuffer vertex_buffer,
-        const uint32_t vertex_size,
+        const VkBuffer index_buffer,
+        const uint32_t index_size,
         const VkRenderPass render_pass,
         const VkPipeline graphics_pipeline
     ) {
@@ -144,10 +146,12 @@ namespace dal {
             {
                 vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
 
-                VkBuffer vertexBuffers[] = {vertex_buffer};
-                VkDeviceSize offsets[] = {0};
-                vkCmdBindVertexBuffers(cmd_buf, 0, 1, vertexBuffers, offsets);
-                vkCmdDraw(cmd_buf, vertex_size, 1, 0, 0);
+                std::array<VkBuffer, 1> vert_bufs{ vertex_buffer };
+                std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+                vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                vkCmdBindIndexBuffer(cmd_buf, index_buffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdDrawIndexed(cmd_buf, index_size, 1, 0, 0, 0);
+                //vkCmdDraw(cmd_buf, index_size, 1, 0, 0);
             }
             vkCmdEndRenderPass(cmd_buf);
 
