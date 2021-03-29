@@ -1,14 +1,4 @@
-cmake_minimum_required(VERSION 3.11.0)
-
-include(FetchContent)
-
-
-FetchContent_Declare(
-    fetch_fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt
-    GIT_TAG        7.1.3
-)
-FetchContent_MakeAvailable(fetch_fmt)
+cmake_minimum_required(VERSION 3.4.1)
 
 
 add_library(libdal_util STATIC
