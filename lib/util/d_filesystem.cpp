@@ -216,7 +216,7 @@ namespace android {
                 return false;
             }
             else {
-                assert(readBytes == sizeToRead);
+                dalAssert(readBytes == sizeToRead);
                 return true;
             }
         }

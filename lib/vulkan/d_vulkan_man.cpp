@@ -38,8 +38,8 @@ namespace {
     };
 
 
-    glm::mat4 make_perspective_proj_mat(const float width, const float height) {
-        auto mat = glm::perspective<float>(glm::radians<float>(45), width / height, 0.1, 10);
+    glm::mat4 make_perspective_proj_mat(const float ratio, const float fov) {
+        auto mat = glm::perspective<float>(glm::radians(fov), ratio, 0.1, 100.0);
         mat[1][1] *= -1;
         return mat;
     }
@@ -760,7 +760,7 @@ namespace dal {
             U_PerFrame ubuf_data;
             ubuf_data.m_model = glm::translate(glm::mat4{1}, glm::vec3{std::cos(cur_sec), 0, std::sin(cur_sec)}) * glm::rotate(glm::mat4{1}, glm::radians<float>(-90), glm::vec3{1, 0, 0});
             ubuf_data.m_view = ::make_view_mat(glm::vec3{0, 2, 3}, glm::vec2{glm::radians<float>(-30), 0});
-            ubuf_data.m_proj = ::make_perspective_proj_mat(this->m_swapchain.width(), this->m_swapchain.height());
+            ubuf_data.m_proj = this->m_swapchain.pre_ratation_mat() * ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 45);
             this->m_ubufs_simple.at(img_index).copy_to_buffer(ubuf_data, this->m_logi_device.get());
 
             //-----------------------------------------------------------------------------------------------------
@@ -871,7 +871,6 @@ namespace dal {
                 this->m_renderpasses.rp_rendering().get()
             );
 
-            dalInfo(fmt::format("Swapchain recreated: {} x {}", this->m_swapchain.width(), this->m_swapchain.height()).c_str());
             return false;
         }
 

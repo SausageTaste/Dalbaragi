@@ -105,13 +105,13 @@ namespace {
         }
     }
 
-    void on_config_changes(android_app* const state) {
+    void on_content_rect_changed(android_app* const state) {
         if (nullptr == state->userData)
             return;
 
         auto& engine = *reinterpret_cast<dal::VulkanState*>(state->userData);
-        const auto width = ANativeWindow_getWidth(state->window);
-        const auto height = ANativeWindow_getHeight(state->window);
+        const auto width  = state->contentRect.right  - state->contentRect.left;
+        const auto height = state->contentRect.bottom - state->contentRect.top;
 
         engine.on_screen_resize(width, height);
     }
@@ -127,12 +127,18 @@ extern "C" {
                 dalInfo("handle cmd: init window");
                 ::init(state);
                 break;
+            case APP_CMD_CONTENT_RECT_CHANGED:
+                dalInfo("handle cmd: content rect changed");
+                ::on_content_rect_changed(state);
+                break;
             case APP_CMD_CONFIG_CHANGED:
                 dalInfo("handle cmd: config changed");
-                ::on_config_changes(state);
                 break;
             case APP_CMD_WINDOW_RESIZED:
                 dalInfo("handle cmd: window resized");
+                break;
+            case APP_CMD_WINDOW_REDRAW_NEEDED:
+                dalInfo("handle cmd: window redraw needed");
                 break;
             case APP_CMD_DESTROY:
                 dalInfo("handle cmd: destroy");

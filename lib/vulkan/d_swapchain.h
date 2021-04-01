@@ -4,6 +4,10 @@
 #include <optional>
 #include <algorithm>
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+
 #include "d_image_obj.h"
 #include "d_sync_primitives.h"
 
@@ -153,7 +157,11 @@ namespace dal {
         VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
 
         VkFormat m_image_format;
-        VkExtent2D m_extent;
+        VkExtent2D m_identity_extent;
+        VkSurfaceTransformFlagBitsKHR m_transform;
+
+        glm::mat4 m_pre_rotate_mat;
+        float m_perspective_ratio;
 
     public:
         ~SwapchainManager();
@@ -180,7 +188,7 @@ namespace dal {
         }
 
         auto& extent() const {
-            return this->m_extent;
+            return this->m_identity_extent;
         }
 
         auto width() const {
@@ -189,6 +197,14 @@ namespace dal {
 
         auto height() const {
             return this->extent().height;
+        }
+
+        auto perspective_ratio() const {
+            return this->m_perspective_ratio;
+        }
+
+        auto& pre_ratation_mat() const {
+            return this->m_pre_rotate_mat;
         }
 
         auto& views() const {
@@ -204,6 +220,9 @@ namespace dal {
         SwapchainSpec make_spec() const;
 
         std::pair<ImgAcquireResult, uint32_t> acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const;
+
+    private:
+        void destroy_except_swapchain(const VkDevice logi_device);
 
     };
 
