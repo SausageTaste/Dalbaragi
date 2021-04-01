@@ -1,6 +1,8 @@
 #pragma once
 
 #include "d_vulkan_header.h"
+#include "d_image_parser.h"
+#include "d_command.h"
 
 
 namespace dal {
@@ -30,6 +32,7 @@ namespace dal {
 
         ImageView& operator=(ImageView&&) noexcept;
 
+        [[nodicard]]
         bool init(
             const VkImage image,
             const VkFormat format,
@@ -42,6 +45,57 @@ namespace dal {
 
         auto get() const {
             return this->m_view;
+        }
+
+    };
+
+
+    class TextureImage {
+
+    private:
+        VkImage m_image = VK_NULL_HANDLE;
+        VkDeviceMemory m_memory = VK_NULL_HANDLE;
+
+        VkFormat m_format;
+
+    public:
+        void init(
+            const ImageData& img,
+            dal::CommandPool& cmd_pool,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destory(const VkDevice logi_device);
+
+        auto image() const {
+            return this->m_image;
+        }
+
+        auto format() const {
+            return this->m_format;
+        }
+
+    };
+
+
+    class Sampler {
+
+    private:
+        VkSampler m_sampler = VK_NULL_HANDLE;
+
+    public:
+        void init_for_color_map(
+            const bool enable_anisotropy,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+        auto get() const {
+            return this->m_sampler;
         }
 
     };

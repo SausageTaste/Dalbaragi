@@ -18,6 +18,7 @@
 #include "d_command.h"
 #include "d_vert_data.h"
 #include "d_uniform.h"
+#include "d_image_parser.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -149,8 +150,6 @@ namespace {
 
 
     class PhysicalDevice {
-
-    private:
 
     private:
         VkPhysicalDevice m_handle = VK_NULL_HANDLE;
@@ -511,6 +510,9 @@ namespace dal {
         DescriptorManager m_desc_man;
 
         VertexBuffer m_vert_buf;
+        Sampler m_tex_sampler;
+        TextureImage m_sample_tex_image;
+        ImageView m_sample_tex_view;
 
         // Non-vulkan members
         dal::filesystem::AssetManager& m_asset_man;
@@ -639,6 +641,32 @@ namespace dal {
                 this->m_pipelines.simple().pipeline(),
                 this->m_renderpasses.rp_rendering().get()
             );
+
+            this->m_tex_sampler.init_for_color_map(
+                this->m_phys_info.does_support_anisotropic_sampling(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            auto file = this->m_asset_man.open("image/0021di.png");
+            const auto file_data = file->read_stl<std::vector<uint8_t>>();
+            const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
+
+            this->m_sample_tex_image.init(
+                image.value(),
+                this->m_cmd_man.pool_single_time(),
+                this->m_logi_device.queue_graphics(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_sample_tex_view.init(
+                this->m_sample_tex_image.image(),
+                this->m_sample_tex_image.format(),
+                1,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                this->m_logi_device.get()
+            );
         }
 
         ~Pimpl() {
@@ -646,6 +674,9 @@ namespace dal {
         }
 
         void destroy() {
+            this->m_sample_tex_view.destroy(this->m_logi_device.get());
+            this->m_sample_tex_image.destory(this->m_logi_device.get());
+            this->m_tex_sampler.destroy(this->m_logi_device.get());
             this->m_desc_man.destroy(this->m_logi_device.get());
             this->m_ubufs_simple.destroy(this->m_logi_device.get());
             this->m_vert_buf.destroy(this->m_logi_device.get());
