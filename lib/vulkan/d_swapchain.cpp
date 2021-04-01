@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include <fmt/format.h>
+
 #include "d_logger.h"
 
 
@@ -224,6 +226,12 @@ namespace dal {
             create_info_swapchain.imageArrayLayers = 1;
             create_info_swapchain.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
+            dalInfo(fmt::format(
+                "Surface format: {}, color space: {}",
+                static_cast<int>(surface_format.format),
+                static_cast<int>(surface_format.colorSpace)
+            ).c_str());
+
             const std::array<uint32_t, 2> queue_family_indices{ indices.graphics_family(), indices.present_family() };
             if (indices.graphics_family() != indices.present_family()) {
                 create_info_swapchain.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -288,6 +296,20 @@ namespace dal {
     uint32_t SwapchainManager::size() const {
         dalAssert(this->views().size() == this->m_images.size());
         return this->views().size();
+    }
+
+    bool SwapchainManager::is_format_srgb() const {
+        switch (this->format()) {
+            case VK_FORMAT_R8G8B8A8_UNORM:
+                return false;
+            case VK_FORMAT_B8G8R8A8_SRGB:
+                return true;
+            default:
+                dalAbort(fmt::format(
+                    "Cannot determin if a format is srgb: {}",
+                    static_cast<int>(this->format())
+                ).c_str());
+        }
     }
 
     SwapchainSpec SwapchainManager::make_spec() const {

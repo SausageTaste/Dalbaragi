@@ -199,6 +199,8 @@ namespace dal {
             return this->m_sync_man;
         }
 
+        bool is_format_srgb() const;
+
         SwapchainSpec make_spec() const;
 
         std::pair<ImgAcquireResult, uint32_t> acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const;

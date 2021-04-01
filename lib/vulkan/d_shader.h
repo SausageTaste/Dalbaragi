@@ -55,6 +55,7 @@ namespace dal {
     public:
         void init(
             dal::filesystem::AssetManager& asset_mgr,
+            const bool need_gamma_correction,
             const VkExtent2D& swapchain_extent,
             const VkDescriptorSetLayout desc_layout_simple,
             const VkRenderPass renderpass,

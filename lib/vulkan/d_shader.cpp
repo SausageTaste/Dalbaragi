@@ -331,6 +331,7 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_simple(
         dal::filesystem::AssetManager& asset_mgr,
+        const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
         const VkRenderPass renderpass,
@@ -340,7 +341,9 @@ namespace {
         if (!vert_src) {
             dalAbort("Vertex shader 'simple_v.spv' not found");
         }
-        const auto frag_src = asset_mgr.open("spv/simple_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = need_gamma_correction ?
+            asset_mgr.open("spv/simple_gamma_f.spv")->read_stl<std::vector<char>>() :
+            asset_mgr.open("spv/simple_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'simple_f.spv' not found");
         }
@@ -417,6 +420,7 @@ namespace dal {
 
     void PipelineManager::init(
         dal::filesystem::AssetManager& asset_mgr,
+        const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
         const VkRenderPass renderpass,
@@ -426,6 +430,7 @@ namespace dal {
 
         this->m_simple = ::make_pipeline_simple(
             asset_mgr,
+            need_gamma_correction,
             swapchain_extent,
             desc_layout_simple,
             renderpass,

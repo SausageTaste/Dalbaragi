@@ -585,6 +585,7 @@ namespace dal {
 
             this->m_pipelines.init(
                 asset_mgr,
+                !this->m_swapchain.is_format_srgb(),
                 this->m_swapchain.extent(),
                 this->m_desc_layout_man.layout_simple(),
                 this->m_renderpasses.rp_rendering().get(),
@@ -808,6 +809,7 @@ namespace dal {
 
             this->m_pipelines.init(
                 this->m_asset_man,
+                !this->m_swapchain.is_format_srgb(),
                 this->m_swapchain.extent(),
                 this->m_desc_layout_man.layout_simple(),
                 this->m_renderpasses.rp_rendering().get(),
