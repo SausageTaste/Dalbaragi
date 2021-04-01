@@ -6,6 +6,13 @@
 
 namespace dal {
 
+    uint32_t find_memory_type(
+        const uint32_t typeFilter,
+        const VkMemoryPropertyFlags props,
+        const VkPhysicalDevice phys_device
+    );
+
+
     class BufferMemory {
 
     private:

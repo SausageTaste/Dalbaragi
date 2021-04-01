@@ -7,23 +7,6 @@
 
 namespace {
 
-    uint32_t find_memory_type(
-        const uint32_t typeFilter,
-        const VkMemoryPropertyFlags props,
-        const VkPhysicalDevice phys_device
-    ) {
-        VkPhysicalDeviceMemoryProperties memProps;
-        vkGetPhysicalDeviceMemoryProperties(phys_device, &memProps);
-
-        for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i) {
-            if (typeFilter & (1 << i) && (memProps.memoryTypes[i].propertyFlags & props) == props) {
-                return i;
-            }
-        }
-
-        dalAbort("failed to find suitable memory type!");
-    }
-
     std::pair<VkBuffer, VkDeviceMemory> create_buffer(
         const VkDeviceSize size,
         const VkBufferUsageFlags usage,
@@ -50,7 +33,7 @@ namespace {
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = ::find_memory_type(
+        allocInfo.memoryTypeIndex = dal::find_memory_type(
             memRequirements.memoryTypeBits, properties, phys_device
         );
 
@@ -78,6 +61,28 @@ namespace {
         vkCmdCopyBuffer(commandBuffer, src_buffer, dst_buffer, 1, &copy_region);
 
         cmd_pool.end_single_time_cmd(commandBuffer, graphics_queue, logi_device);
+    }
+
+}
+
+
+namespace dal {
+
+    uint32_t find_memory_type(
+        const uint32_t typeFilter,
+        const VkMemoryPropertyFlags props,
+        const VkPhysicalDevice phys_device
+    ) {
+        VkPhysicalDeviceMemoryProperties memProps;
+        vkGetPhysicalDeviceMemoryProperties(phys_device, &memProps);
+
+        for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i) {
+            if (typeFilter & (1 << i) && (memProps.memoryTypes[i].propertyFlags & props) == props) {
+                return i;
+            }
+        }
+
+        dalAbort("failed to find suitable memory type!");
     }
 
 }
