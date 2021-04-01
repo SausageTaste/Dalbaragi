@@ -19,6 +19,7 @@
 #include "d_vert_data.h"
 #include "d_uniform.h"
 #include "d_image_parser.h"
+#include "d_timer.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -26,7 +27,6 @@
 #endif
 
 
-// Vulkan utils
 namespace {
 
     constexpr std::array<const char*, 1> VAL_LAYERS_TO_USE = {
@@ -36,6 +36,21 @@ namespace {
     constexpr std::array<const char*, 1> PHYS_DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
+
+
+    glm::mat4 make_perspective_proj_mat(const float width, const float height) {
+        auto mat = glm::perspective<float>(glm::radians<float>(45), width / height, 0.1, 10);
+        mat[1][1] *= -1;
+        return mat;
+    }
+
+    glm::mat4 make_view_mat(const glm::vec3& pos, const glm::vec2& rotations) {
+        const auto translate = glm::translate(glm::mat4{1}, -pos);
+        const auto rotation_x = glm::rotate(glm::mat4{1}, -rotations.x, glm::vec3{1, 0, 0});
+        const auto rotation_y = glm::rotate(glm::mat4{1}, -rotations.y, glm::vec3{0, 1, 0});
+
+        return rotation_x * rotation_y * translate;
+    }
 
 }
 
@@ -489,6 +504,8 @@ namespace {
 
 }
 
+
+// VulkanState::Pimpl
 namespace dal {
 
     class VulkanState::Pimpl {
@@ -738,8 +755,12 @@ namespace dal {
 
             //-----------------------------------------------------------------------------------------------------
 
+            const auto cur_sec = dal::get_cur_sec();
+
             U_PerFrame ubuf_data;
-            ubuf_data.m_model = glm::translate(glm::mat4{1}, glm::vec3{0.2, 0.2, 0});
+            ubuf_data.m_model = glm::translate(glm::mat4{1}, glm::vec3{std::cos(cur_sec), 0, std::sin(cur_sec)}) * glm::rotate(glm::mat4{1}, glm::radians<float>(-90), glm::vec3{1, 0, 0});
+            ubuf_data.m_view = ::make_view_mat(glm::vec3{0, 2, 3}, glm::vec2{glm::radians<float>(-30), 0});
+            ubuf_data.m_proj = ::make_perspective_proj_mat(this->m_swapchain.width(), this->m_swapchain.height());
             this->m_ubufs_simple.at(img_index).copy_to_buffer(ubuf_data, this->m_logi_device.get());
 
             //-----------------------------------------------------------------------------------------------------
@@ -867,6 +888,7 @@ namespace dal {
 }
 
 
+// VulkanState
 namespace dal {
 
     VulkanState::~VulkanState() {
