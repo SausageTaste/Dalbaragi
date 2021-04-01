@@ -16,6 +16,10 @@
 #include "d_render_pass.h"
 #include "d_framebuffer.h"
 #include "d_command.h"
+#include "d_vert_data.h"
+#include "d_uniform.h"
+#include "d_image_parser.h"
+#include "d_timer.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -23,7 +27,6 @@
 #endif
 
 
-// Vulkan utils
 namespace {
 
     constexpr std::array<const char*, 1> VAL_LAYERS_TO_USE = {
@@ -33,6 +36,21 @@ namespace {
     constexpr std::array<const char*, 1> PHYS_DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
+
+
+    glm::mat4 make_perspective_proj_mat(const float ratio, const float fov) {
+        auto mat = glm::perspective<float>(glm::radians(fov), ratio, 0.1, 100.0);
+        mat[1][1] *= -1;
+        return mat;
+    }
+
+    glm::mat4 make_view_mat(const glm::vec3& pos, const glm::vec2& rotations) {
+        const auto translate = glm::translate(glm::mat4{1}, -pos);
+        const auto rotation_x = glm::rotate(glm::mat4{1}, -rotations.x, glm::vec3{1, 0, 0});
+        const auto rotation_y = glm::rotate(glm::mat4{1}, -rotations.y, glm::vec3{0, 1, 0});
+
+        return rotation_x * rotation_y * translate;
+    }
 
 }
 
@@ -147,8 +165,6 @@ namespace {
 
 
     class PhysicalDevice {
-
-    private:
 
     private:
         VkPhysicalDevice m_handle = VK_NULL_HANDLE;
@@ -436,12 +452,6 @@ namespace {
         return result;
     }
 
-    void test_vk_validation(const VkPhysicalDevice phys_device) {
-        VkDeviceCreateInfo info{};
-        VkDevice tmp = VK_NULL_HANDLE;
-        vkCreateDevice(phys_device, &info, nullptr, &tmp);
-    }
-
 #endif
 
 
@@ -494,6 +504,8 @@ namespace {
 
 }
 
+
+// VulkanState::Pimpl
 namespace dal {
 
     class VulkanState::Pimpl {
@@ -510,34 +522,43 @@ namespace dal {
         RenderPassManager m_renderpasses;
         FbufManager m_fbuf_man;
         CmdPoolManager m_cmd_man;
+        DescSetLayoutManager m_desc_layout_man;
+        UniformBufferArray<U_PerFrame> m_ubufs_simple;
+        DescriptorManager m_desc_man;
+
+        VertexBuffer m_vert_buf;
+        Sampler m_tex_sampler;
+        TextureImage m_sample_tex_image;
+        ImageView m_sample_tex_view;
+
+        // Non-vulkan members
+        dal::filesystem::AssetManager& m_asset_man;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
 #endif
 
         size_t m_cur_frame_index = 0;
+        bool m_screen_resize_notified = false;
+        VkExtent2D m_new_extent;
 
     public:
-        Pimpl() = default;
-
         Pimpl(const Pimpl&) = delete;
         Pimpl& operator=(const Pimpl&) = delete;
         Pimpl(Pimpl&&) = delete;
         Pimpl& operator=(Pimpl&&) = delete;
 
     public:
-        ~Pimpl() {
-            this->destroy();
-        }
-
-        void init(
+        Pimpl(
             const char* const window_title,
             const unsigned init_width,
             const unsigned init_height,
             dal::filesystem::AssetManager& asset_mgr,
             const std::vector<const char*>& extensions,
             const std::function<void*(void*)> surface_create_func
-        ) {
+        )
+            : m_asset_man(asset_mgr)
+        {
 #ifdef __ANDROID__
             dalAssert(1 == InitVulkan());
 #endif
@@ -555,11 +576,11 @@ namespace dal {
 #endif
 
             std::tie(this->m_phys_device, this->m_phys_info) = ::get_best_phys_device<true>(this->m_instance, this->m_surface);
-#ifdef DAL_VK_DEBUG
-            //::test_vk_validation(phys_devices[0].get());
-#endif
 
             this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
+
+            this->m_desc_layout_man.init(this->m_logi_device.get());
+
             this->m_swapchain.init(
                 init_width,
                 init_height,
@@ -568,39 +589,124 @@ namespace dal {
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
+            dalInfo(fmt::format("Swapchain created: {} x {}", this->m_swapchain.width(), this->m_swapchain.height()).c_str());
+
             this->m_renderpasses.init({ this->m_swapchain.format() }, this->m_logi_device.get());
+
             this->m_fbuf_man.init(
                 this->m_swapchain.views(),
                 this->m_swapchain.extent(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
+
             this->m_pipelines.init(
                 asset_mgr,
+                !this->m_swapchain.is_format_srgb(),
                 this->m_swapchain.extent(),
-                nullptr, 0,
+                this->m_desc_layout_man.layout_simple(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
+
             this->m_cmd_man.init(
                 this->m_swapchain.size(),
                 this->m_logi_device.indices().graphics_family(),
                 this->m_logi_device.get()
             );
+
+            const std::vector<Vertex> vertices{
+                {glm::vec3{-0.5, -0.5, 0}, glm::vec3{1.0, 1.0, 1.0}, glm::vec2{0, 0}},
+                {glm::vec3{-0.5,  0.5, 0}, glm::vec3{1.0, 0.0, 0.0}, glm::vec2{0, 1}},
+                {glm::vec3{ 0.5,  0.5, 0}, glm::vec3{0.0, 1.0, 0.0}, glm::vec2{1, 1}},
+                {glm::vec3{ 0.5, -0.5, 0}, glm::vec3{0.0, 0.0, 1.0}, glm::vec2{1, 0}},
+            };
+            const std::vector<index_data_t> indices{
+                0, 1, 2,
+                0, 2, 3,
+            };
+
+            this->m_vert_buf.init(
+                vertices, indices,
+                this->m_cmd_man.pool_single_time(),
+                this->m_logi_device.queue_graphics(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_tex_sampler.init_for_color_map(
+                this->m_phys_info.does_support_anisotropic_sampling(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            auto file = this->m_asset_man.open("image/0021di.png");
+            const auto file_data = file->read_stl<std::vector<uint8_t>>();
+            const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
+
+            this->m_sample_tex_image.init(
+                image.value(),
+                this->m_cmd_man.pool_single_time(),
+                this->m_logi_device.queue_graphics(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_sample_tex_view.init(
+                this->m_sample_tex_image.image(),
+                this->m_sample_tex_image.format(),
+                1,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                this->m_logi_device.get()
+            );
+
+            this->m_ubufs_simple.init(
+                this->m_swapchain.size(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_desc_man.init(this->m_swapchain.size(), this->m_logi_device.get());
+            this->m_desc_man.init_desc_sets_simple(
+                this->m_ubufs_simple,
+                this->m_swapchain.size(),
+                this->m_sample_tex_view.get(),
+                this->m_tex_sampler.get(),
+                this->m_desc_layout_man.layout_simple(),
+                this->m_logi_device.get()
+            );
+
             this->m_cmd_man.record_all_simple(
                 this->m_fbuf_man.swapchain_fbuf(),
+                this->m_desc_man.desc_set_raw_simple(),
                 this->m_swapchain.extent(),
-                this->m_renderpasses.rp_rendering().get(),
-                this->m_pipelines.get_simple().pipeline()
+                this->m_vert_buf.vertex_buffer(),
+                this->m_vert_buf.index_buffer(),
+                this->m_vert_buf.index_size(),
+                this->m_pipelines.simple().layout(),
+                this->m_pipelines.simple().pipeline(),
+                this->m_renderpasses.rp_rendering().get()
             );
+
+        }
+
+        ~Pimpl() {
+            this->destroy();
         }
 
         void destroy() {
+            this->m_sample_tex_view.destroy(this->m_logi_device.get());
+            this->m_sample_tex_image.destory(this->m_logi_device.get());
+            this->m_tex_sampler.destroy(this->m_logi_device.get());
+            this->m_desc_man.destroy(this->m_logi_device.get());
+            this->m_ubufs_simple.destroy(this->m_logi_device.get());
+            this->m_vert_buf.destroy(this->m_logi_device.get());
             this->m_cmd_man.destroy(this->m_logi_device.get());
             this->m_pipelines.destroy(this->m_logi_device.get());
             this->m_fbuf_man.destroy(this->m_logi_device.get());
             this->m_renderpasses.destroy(this->m_logi_device.get());
             this->m_swapchain.destroy(this->m_logi_device.get());
+            this->m_desc_layout_man.destroy(this->m_logi_device.get());
             this->m_logi_device.destroy();
 
 #ifdef DAL_VK_DEBUG
@@ -622,14 +728,42 @@ namespace dal {
         }
 
         void update() {
+            if (this->m_screen_resize_notified) {
+                this->m_screen_resize_notified = this->recreate_swapchain();
+                return;
+            }
+
             this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).wait(this->m_logi_device.get());
-            const auto img_index = this->m_swapchain.acquire_next_img_index(this->m_cur_frame_index, this->m_logi_device.get());
+            const auto [acquire_result, img_index] = this->m_swapchain.acquire_next_img_index(this->m_cur_frame_index, this->m_logi_device.get());
+
+            if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
+                this->m_screen_resize_notified = this->recreate_swapchain();
+                return;
+            }
+            else if (ImgAcquireResult::success == acquire_result) {
+
+            }
+            else {
+                dalAbort("Failed to acquire swapchain image");
+            }
 
             auto img_fences = this->m_swapchain.sync_man().fences_image_in_flight();
             if (nullptr != img_fences.at(img_index)) {
                 img_fences.at(img_index)->wait(this->m_logi_device.get());
             }
             img_fences.at(img_index) = &this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index);
+
+            //-----------------------------------------------------------------------------------------------------
+
+            const auto cur_sec = dal::get_cur_sec();
+
+            U_PerFrame ubuf_data;
+            ubuf_data.m_model = glm::translate(glm::mat4{1}, glm::vec3{std::cos(cur_sec), 0, std::sin(cur_sec)}) * glm::rotate(glm::mat4{1}, glm::radians<float>(-90), glm::vec3{1, 0, 0});
+            ubuf_data.m_view = ::make_view_mat(glm::vec3{0, 2, 3}, glm::vec2{glm::radians<float>(-30), 0});
+            ubuf_data.m_proj = this->m_swapchain.pre_ratation_mat() * ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 45);
+            this->m_ubufs_simple.at(img_index).copy_to_buffer(ubuf_data, this->m_logi_device.get());
+
+            //-----------------------------------------------------------------------------------------------------
 
             std::array<VkSemaphore, 1> waitSemaphores{ this->m_swapchain.sync_man().semaphore_img_available(this->m_cur_frame_index).get() };
             std::array<VkPipelineStageFlags, 1> waitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -670,11 +804,90 @@ namespace dal {
             vkDeviceWaitIdle(this->m_logi_device.get());
         }
 
+        bool recreate_swapchain() {
+            if (0 == this->m_new_extent.width || 0 == this->m_new_extent.height) {
+                return true;
+            }
+            this->wait_device_idle();
+
+            this->m_swapchain.init(
+                this->m_new_extent.width,
+                this->m_new_extent.height,
+                this->m_logi_device.indices(),
+                this->m_surface,
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_renderpasses.init({ this->m_swapchain.format() }, this->m_logi_device.get());
+
+            this->m_fbuf_man.init(
+                this->m_swapchain.views(),
+                this->m_swapchain.extent(),
+                this->m_renderpasses.rp_rendering().get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_pipelines.init(
+                this->m_asset_man,
+                !this->m_swapchain.is_format_srgb(),
+                this->m_swapchain.extent(),
+                this->m_desc_layout_man.layout_simple(),
+                this->m_renderpasses.rp_rendering().get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_cmd_man.init(
+                this->m_swapchain.size(),
+                this->m_logi_device.indices().graphics_family(),
+                this->m_logi_device.get()
+            );
+
+            this->m_ubufs_simple.init(
+                this->m_swapchain.size(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_desc_man.init(this->m_swapchain.size(), this->m_logi_device.get());
+            this->m_desc_man.init_desc_sets_simple(
+                this->m_ubufs_simple,
+                this->m_swapchain.size(),
+                this->m_sample_tex_view.get(),
+                this->m_tex_sampler.get(),
+                this->m_desc_layout_man.layout_simple(),
+                this->m_logi_device.get()
+            );
+
+            this->m_cmd_man.record_all_simple(
+                this->m_fbuf_man.swapchain_fbuf(),
+                this->m_desc_man.desc_set_raw_simple(),
+                this->m_swapchain.extent(),
+                this->m_vert_buf.vertex_buffer(),
+                this->m_vert_buf.index_buffer(),
+                this->m_vert_buf.index_size(),
+                this->m_pipelines.simple().layout(),
+                this->m_pipelines.simple().pipeline(),
+                this->m_renderpasses.rp_rendering().get()
+            );
+
+            return false;
+        }
+
+        void on_screen_resize(const unsigned width, const unsigned height) {
+            this->m_screen_resize_notified = true;
+            this->m_new_extent.width = width;
+            this->m_new_extent.height = height;
+
+            dalInfo(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
+        }
+
     };
 
 }
 
 
+// VulkanState
 namespace dal {
 
     VulkanState::~VulkanState() {
@@ -690,9 +903,7 @@ namespace dal {
         std::function<void*(void*)> surface_create_func
     ) {
         this->destroy();
-        this->m_pimpl = new Pimpl;
-        this->m_pimpl->init(window_title, init_width, init_height, asset_mgr, extensions, surface_create_func);
-
+        this->m_pimpl = new Pimpl(window_title, init_width, init_height, asset_mgr, extensions, surface_create_func);
         dalInfo(fmt::format("Init surface size: {} x {}", init_width, init_height).c_str());
     }
 
@@ -709,6 +920,10 @@ namespace dal {
 
     void VulkanState::wait_device_idle() const {
         this->m_pimpl->wait_device_idle();
+    }
+
+    void VulkanState::on_screen_resize(const unsigned width, const unsigned height) {
+        this->m_pimpl->on_screen_resize(width, height);
     }
 
 }

@@ -3,6 +3,7 @@
 #include "d_glfw.h"
 #include "d_vulkan_man.h"
 #include "d_logger.h"
+#include "d_filesystem.h"
 
 
 int main(int argc, char** argv) {
@@ -22,6 +23,8 @@ int main(int argc, char** argv) {
         window.get_vulkan_extensions(),
         window.get_vk_surface_creator()
     );
+
+    window.set_callback_fbuf_resize([&state](int width, int height) { state.on_screen_resize(width, height); });
 
     dalInfo("Done init");
 

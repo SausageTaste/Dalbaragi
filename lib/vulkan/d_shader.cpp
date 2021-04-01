@@ -4,6 +4,7 @@
 
 #include "d_logger.h"
 #include "d_filesystem.h"
+#include "d_vert_data.h"
 
 
 // Shader module tools
@@ -330,8 +331,9 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_simple(
         dal::filesystem::AssetManager& asset_mgr,
+        const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout* const desc_set_layouts, const uint32_t desc_set_layout_count,
+        const VkDescriptorSetLayout desc_layout_simple,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
@@ -339,7 +341,9 @@ namespace {
         if (!vert_src) {
             dalAbort("Vertex shader 'simple_v.spv' not found");
         }
-        const auto frag_src = asset_mgr.open("spv/simple_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = need_gamma_correction ?
+            asset_mgr.open("spv/simple_gamma_f.spv")->read_stl<std::vector<char>>() :
+            asset_mgr.open("spv/simple_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'simple_f.spv' not found");
         }
@@ -350,7 +354,9 @@ namespace {
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
-        auto vertex_input_state = ::create_vertex_input_state(nullptr, 0, nullptr, 0);
+        const auto binding_desc = dal::make_vert_binding_desc();
+        const auto attrib_desc = dal::make_vert_attribute_descriptions();
+        auto vertex_input_state = ::create_vertex_input_state(&binding_desc, 1, attrib_desc.data(), attrib_desc.size());
 
         // Input assembly
         const VkPipelineInputAssemblyStateCreateInfo input_assembly = ::create_info_input_assembly();
@@ -360,7 +366,7 @@ namespace {
         const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
-        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_BACK_BIT, false, 0, 0);
+        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, false, 0, 0);
 
         // Multisampling
         const auto multisampling = ::create_info_multisampling();
@@ -377,7 +383,7 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const auto pipeline_layout = ::create_pipeline_layout(desc_set_layouts, desc_set_layout_count, nullptr, 0, logi_device);
+        const auto pipeline_layout = ::create_pipeline_layout(&desc_layout_simple, 1, nullptr, 0, logi_device);
 
         // Pipeline, finally
         VkGraphicsPipelineCreateInfo pipeline_info{};
@@ -414,8 +420,9 @@ namespace dal {
 
     void PipelineManager::init(
         dal::filesystem::AssetManager& asset_mgr,
+        const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout* const desc_set_layouts, const uint32_t desc_set_layout_count,
+        const VkDescriptorSetLayout desc_layout_simple,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
@@ -423,8 +430,9 @@ namespace dal {
 
         this->m_simple = ::make_pipeline_simple(
             asset_mgr,
+            need_gamma_correction,
             swapchain_extent,
-            desc_set_layouts, desc_set_layout_count,
+            desc_layout_simple,
             renderpass,
             logi_device
         );

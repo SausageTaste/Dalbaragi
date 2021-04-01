@@ -2,6 +2,9 @@
 
 #include <array>
 
+#include <fmt/format.h>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "d_logger.h"
 
 
@@ -55,6 +58,20 @@ namespace {
         }
 
         return image_count;
+    }
+
+    VkExtent2D get_identity_screen_resoultion(const VkSurfaceCapabilitiesKHR& capabilities) {
+        uint32_t width = capabilities.currentExtent.width;
+        uint32_t height = capabilities.currentExtent.height;
+        if (
+            capabilities.currentTransform & VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR ||
+            capabilities.currentTransform & VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR
+        ) {
+            return VkExtent2D{ height, width };
+        }
+        else {
+            return VkExtent2D{ width, height };
+        }
     }
 
 }
@@ -162,6 +179,31 @@ namespace dal {
 }
 
 
+// SwapchainSpec
+namespace dal {
+
+    bool SwapchainSpec::operator==(const SwapchainSpec& other) const {
+        if (this->m_extent.width != other.m_extent.width)
+            return false;
+        if (this->m_extent.height != other.m_extent.height)
+            return false;
+        if (this->m_image_format != other.m_image_format)
+            return false;
+        if (this->m_count != other.m_count)
+            return false;
+
+        return true;
+    }
+
+    void SwapchainSpec::set(const uint32_t count, const VkFormat format, const VkExtent2D extent) {
+        this->m_image_format = format;
+        this->m_extent = extent;
+        this->m_count = count;
+    }
+
+}
+
+
 // SwapchainManager
 namespace dal {
 
@@ -177,12 +219,17 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
+        this->destroy_except_swapchain(logi_device);
+
         const SwapChainSupportDetails swapchain_support{ surface, phys_device };
         const VkSurfaceFormatKHR surface_format = ::choose_surface_format(swapchain_support.m_formats);
         const VkPresentModeKHR present_mode = ::choose_present_mode(swapchain_support.m_present_modes);
 
         this->m_image_format = surface_format.format;
-        this->m_extent = ::choose_extent(swapchain_support.m_capabilities, desired_width, desired_height);
+        //this->m_extent = ::choose_extent(swapchain_support.m_capabilities, desired_width, desired_height);
+        this->m_identity_extent = ::get_identity_screen_resoultion(swapchain_support.m_capabilities);
+        this->m_transform = swapchain_support.m_capabilities.currentTransform;
+
         const auto needed_images_count = ::choose_image_count(swapchain_support);
 
         // Create swap chain
@@ -193,7 +240,7 @@ namespace dal {
             create_info_swapchain.minImageCount = needed_images_count;
             create_info_swapchain.imageFormat = surface_format.format;
             create_info_swapchain.imageColorSpace = surface_format.colorSpace;
-            create_info_swapchain.imageExtent = this->m_extent;
+            create_info_swapchain.imageExtent = this->m_identity_extent;
             create_info_swapchain.imageArrayLayers = 1;
             create_info_swapchain.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -211,7 +258,7 @@ namespace dal {
             create_info_swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
             create_info_swapchain.presentMode = present_mode;
             create_info_swapchain.clipped = VK_TRUE;
-            create_info_swapchain.oldSwapchain = VK_NULL_HANDLE;
+            create_info_swapchain.oldSwapchain = this->m_swapChain;
 
             const auto create_result_swapchain = vkCreateSwapchainKHR(logi_device, &create_info_swapchain, nullptr, &this->m_swapChain);
             dalAssert(VK_SUCCESS == create_result_swapchain);
@@ -240,17 +287,35 @@ namespace dal {
             }
         }
 
+        // Transform values
+        {
+            switch (this->m_transform) {
+                case VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR:
+                    this->m_pre_rotate_mat = glm::mat4{1};
+                    this->m_perspective_ratio = static_cast<float>(this->width()) / static_cast<float>(this->height());
+                    break;
+                case VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR:
+                    this->m_pre_rotate_mat = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{0, 0, 1});
+                    this->m_perspective_ratio = static_cast<float>(this->height()) / static_cast<float>(this->width());
+                    break;
+                case VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR:
+                    this->m_pre_rotate_mat = glm::rotate(glm::mat4{1}, glm::radians<float>(180), glm::vec3{0, 0, 1});
+                    this->m_perspective_ratio = static_cast<float>(this->width()) / static_cast<float>(this->height());
+                    break;
+                case VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR:
+                    this->m_pre_rotate_mat = glm::rotate(glm::mat4{1}, glm::radians<float>(270), glm::vec3{0, 0, 1});
+                    this->m_perspective_ratio = static_cast<float>(this->height()) / static_cast<float>(this->width());
+                    break;
+                default:
+                    dalAbort("Unkown swapchain transform");
+            }
+        }
+
         this->m_sync_man.init(this->size(), logi_device);
     }
 
     void SwapchainManager::destroy(const VkDevice logi_device) {
-        this->m_sync_man.destroy(logi_device);
-        this->m_images.clear();
-
-        for (auto& view : this->m_views) {
-            view.destroy(logi_device);
-        }
-        this->m_views.clear();
+        this->destroy_except_swapchain(logi_device);
 
         if (VK_NULL_HANDLE != this->m_swapChain) {
             vkDestroySwapchainKHR(logi_device, this->m_swapChain, nullptr);
@@ -263,19 +328,60 @@ namespace dal {
         return this->views().size();
     }
 
-    uint32_t SwapchainManager::acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const {
-        uint32_t result;
+    bool SwapchainManager::is_format_srgb() const {
+        switch (this->format()) {
+            case VK_FORMAT_R8G8B8A8_UNORM:
+                return false;
+            case VK_FORMAT_B8G8R8A8_SRGB:
+                return true;
+            default:
+                dalAbort(fmt::format(
+                    "Cannot determin if a format is srgb: {}",
+                    static_cast<int>(this->format())
+                ).c_str());
+        }
+    }
 
-        vkAcquireNextImageKHR(
+    SwapchainSpec SwapchainManager::make_spec() const {
+        SwapchainSpec result;
+        result.set(this->size(), this->format(), this->extent());
+        return result;
+    }
+
+    std::pair<ImgAcquireResult, uint32_t> SwapchainManager::acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const {
+        uint32_t img_index;
+
+        const auto result = vkAcquireNextImageKHR(
             logi_device,
             this->m_swapChain,
             UINT64_MAX,
             this->m_sync_man.semaphore_img_available(cur_img_index).get(),  // Signaled when the presentation engine is finished using the image
             VK_NULL_HANDLE,
-            &result
+            &img_index
         );
 
-        return result;
+        switch (result) {
+            case VK_ERROR_OUT_OF_DATE_KHR:
+                return { ImgAcquireResult::out_of_date, UINT32_MAX };
+            case VK_SUBOPTIMAL_KHR:
+                return { ImgAcquireResult::suboptimal, img_index };
+            case VK_SUCCESS:
+                return { ImgAcquireResult::success, img_index };
+            default:
+                return { ImgAcquireResult::fail, UINT32_MAX };
+        }
+    }
+
+    // Private
+
+    void SwapchainManager::destroy_except_swapchain(const VkDevice logi_device) {
+        this->m_sync_man.destroy(logi_device);
+        this->m_images.clear();
+
+        for (auto& view : this->m_views) {
+            view.destroy(logi_device);
+        }
+        this->m_views.clear();
     }
 
 }

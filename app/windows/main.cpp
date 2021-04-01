@@ -24,6 +24,8 @@ int main(int argc, char** argv) {
         window.get_vk_surface_creator()
     );
 
+    window.set_callback_fbuf_resize([&state](int width, int height) { state.on_screen_resize(width, height); });
+
     dalInfo("Done init");
 
     while (!window.should_close()) {

@@ -11,6 +11,9 @@
 
 namespace {
 
+    dal::filesystem::AssetManager g_asset_manager;
+
+
     class LogChannel_Logcat : public dal::ILogChannel {
 
     public:
@@ -51,8 +54,7 @@ namespace {
 
 
     void init(android_app* const state) {
-        dal::filesystem::AssetManager asset_manager;
-        asset_manager.set_android_asset_manager(state->activity->assetManager);
+        g_asset_manager.set_android_asset_manager(state->activity->assetManager);
 
         const std::vector<const char*> instanceExt{
             "VK_KHR_surface",
@@ -86,7 +88,7 @@ namespace {
                 "shit",
                 ANativeWindow_getWidth(state->window),
                 ANativeWindow_getHeight(state->window),
-                asset_manager,
+                g_asset_manager,
                 instanceExt,
                 surface_creator
             );
@@ -96,11 +98,22 @@ namespace {
                 "shit",
                 ANativeWindow_getWidth(state->window),
                 ANativeWindow_getHeight(state->window),
-                asset_manager,
+                g_asset_manager,
                 instanceExt,
                 surface_creator
             );
         }
+    }
+
+    void on_content_rect_changed(android_app* const state) {
+        if (nullptr == state->userData)
+            return;
+
+        auto& engine = *reinterpret_cast<dal::VulkanState*>(state->userData);
+        const auto width  = state->contentRect.right  - state->contentRect.left;
+        const auto height = state->contentRect.bottom - state->contentRect.top;
+
+        engine.on_screen_resize(width, height);
     }
 
 }
@@ -114,8 +127,18 @@ extern "C" {
                 dalInfo("handle cmd: init window");
                 ::init(state);
                 break;
+            case APP_CMD_CONTENT_RECT_CHANGED:
+                dalInfo("handle cmd: content rect changed");
+                ::on_content_rect_changed(state);
+                break;
+            case APP_CMD_CONFIG_CHANGED:
+                dalInfo("handle cmd: config changed");
+                break;
             case APP_CMD_WINDOW_RESIZED:
-                dalInfo("handle cmd: init window");
+                dalInfo("handle cmd: window resized");
+                break;
+            case APP_CMD_WINDOW_REDRAW_NEEDED:
+                dalInfo("handle cmd: window redraw needed");
                 break;
             case APP_CMD_DESTROY:
                 dalInfo("handle cmd: destroy");
