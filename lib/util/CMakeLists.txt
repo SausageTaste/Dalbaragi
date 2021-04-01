@@ -7,6 +7,7 @@ add_library(libdal_util STATIC
     d_filesystem.h          d_filesystem.cpp
     d_defines.h
     d_model_data.h          d_model_data.cpp
+    d_image_parser.h        d_image_parser.cpp
 )
 target_compile_features(libdal_util PUBLIC cxx_std_17)
 target_include_directories(libdal_util PUBLIC ./)
@@ -15,4 +16,8 @@ target_link_libraries(libdal_util
     PUBLIC
         fmt
         glm::glm
+)
+target_include_directories(libdal_util
+    PRIVATE
+        ${fetch_stb_SOURCE_DIR}
 )

@@ -23,9 +23,18 @@ FetchContent_Declare(
   GIT_TAG        0.9.9.8
 )
 
+FetchContent_Declare(
+    fetch_stb
+    GIT_REPOSITORY    https://github.com/nothings/stb
+    GIT_TAG           master
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""
+)
+
 
 FetchContent_MakeAvailable(fetch_fmt)
 FetchContent_MakeAvailable(fetch_glm)
+FetchContent_MakeAvailable(fetch_stb)
 
 if (WIN32)
     find_package(Vulkan REQUIRED)
