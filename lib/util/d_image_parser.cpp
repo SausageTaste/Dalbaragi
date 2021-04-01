@@ -39,7 +39,7 @@ namespace dal {
 
         const auto image_data_size = static_cast<size_t>(width * height * 4);
         this->m_data.resize(image_data_size);
-        std::memcpy(this->m_data.data(), data, image_data_size);
+        memcpy(this->m_data.data(), data, image_data_size);
     }
 
 }
