@@ -138,6 +138,8 @@ namespace dal {
 
         void record_simple(
             const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+            const VkImageView texture_view,
+            const VkSampler sampler,
             const VkDevice logi_device
         );
 
@@ -194,6 +196,8 @@ namespace dal {
         void init_desc_sets_simple(
             const dal::UniformBufferArray<U_PerFrame>& ubufs_simple,
             const uint32_t swapchain_count,
+            const VkImageView texture_view,
+            const VkSampler sampler,
             const VkDescriptorSetLayout desc_layout_simple,
             const VkDevice logi_device
         );

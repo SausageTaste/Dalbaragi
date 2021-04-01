@@ -616,32 +616,6 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
-            this->m_ubufs_simple.init(
-                this->m_swapchain.size(),
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_desc_man.init(this->m_swapchain.size(), this->m_logi_device.get());
-            this->m_desc_man.init_desc_sets_simple(
-                this->m_ubufs_simple,
-                this->m_swapchain.size(),
-                this->m_desc_layout_man.layout_simple(),
-                this->m_logi_device.get()
-            );
-
-            this->m_cmd_man.record_all_simple(
-                this->m_fbuf_man.swapchain_fbuf(),
-                this->m_desc_man.desc_set_raw_simple(),
-                this->m_swapchain.extent(),
-                this->m_vert_buf.vertex_buffer(),
-                this->m_vert_buf.index_buffer(),
-                this->m_vert_buf.index_size(),
-                this->m_pipelines.simple().layout(),
-                this->m_pipelines.simple().pipeline(),
-                this->m_renderpasses.rp_rendering().get()
-            );
-
             this->m_tex_sampler.init_for_color_map(
                 this->m_phys_info.does_support_anisotropic_sampling(),
                 this->m_phys_device.get(),
@@ -667,6 +641,35 @@ namespace dal {
                 VK_IMAGE_ASPECT_COLOR_BIT,
                 this->m_logi_device.get()
             );
+
+            this->m_ubufs_simple.init(
+                this->m_swapchain.size(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_desc_man.init(this->m_swapchain.size(), this->m_logi_device.get());
+            this->m_desc_man.init_desc_sets_simple(
+                this->m_ubufs_simple,
+                this->m_swapchain.size(),
+                this->m_sample_tex_view.get(),
+                this->m_tex_sampler.get(),
+                this->m_desc_layout_man.layout_simple(),
+                this->m_logi_device.get()
+            );
+
+            this->m_cmd_man.record_all_simple(
+                this->m_fbuf_man.swapchain_fbuf(),
+                this->m_desc_man.desc_set_raw_simple(),
+                this->m_swapchain.extent(),
+                this->m_vert_buf.vertex_buffer(),
+                this->m_vert_buf.index_buffer(),
+                this->m_vert_buf.index_size(),
+                this->m_pipelines.simple().layout(),
+                this->m_pipelines.simple().pipeline(),
+                this->m_renderpasses.rp_rendering().get()
+            );
+
         }
 
         ~Pimpl() {
@@ -827,6 +830,8 @@ namespace dal {
             this->m_desc_man.init_desc_sets_simple(
                 this->m_ubufs_simple,
                 this->m_swapchain.size(),
+                this->m_sample_tex_view.get(),
+                this->m_tex_sampler.get(),
                 this->m_desc_layout_man.layout_simple(),
                 this->m_logi_device.get()
             );

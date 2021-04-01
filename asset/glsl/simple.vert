@@ -6,6 +6,7 @@ layout(location = 1) in vec3 i_normal;
 layout(location = 2) in vec2 i_uv_coord;
 
 layout(location = 0) out vec3 v_frag_color;
+layout(location = 1) out vec2 v_uv_coord;
 
 
 layout(binding = 0) uniform U_PerFrame {
@@ -17,5 +18,6 @@ layout(binding = 0) uniform U_PerFrame {
 
 void main() {
     gl_Position = u_per_frame.m_proj * u_per_frame.m_view * u_per_frame.m_model * vec4(i_position, 1);
+    v_uv_coord = i_uv_coord;
     v_frag_color = i_normal;
 }
