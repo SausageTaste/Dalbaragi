@@ -617,6 +617,7 @@ namespace dal {
                 this->m_swapchain.extent(),
                 this->m_desc_layout_man.layout_simple(),
                 this->m_desc_layout_man.layout_per_material(),
+                this->m_desc_layout_man.layout_per_actor(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
@@ -734,11 +735,16 @@ namespace dal {
 
             const auto cur_sec = dal::get_cur_sec();
 
-            U_PerFrame ubuf_data;
-            ubuf_data.m_model = glm::translate(glm::mat4{1}, glm::vec3{std::cos(cur_sec), 0, std::sin(cur_sec)}) * glm::scale(glm::mat4{1}, glm::vec3{0.3});
-            ubuf_data.m_view = ::make_view_mat(glm::vec3{0, 2, 3}, glm::vec2{glm::radians<float>(-30), 0});
-            ubuf_data.m_proj = this->m_swapchain.pre_ratation_mat() * ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 45);
-            this->m_ubufs_simple.at(img_index).copy_to_buffer(ubuf_data, this->m_logi_device.get());
+            U_PerFrame ubuf_data_per_frame;
+            ubuf_data_per_frame.m_view = ::make_view_mat(glm::vec3{0, 2, 3}, glm::vec2{glm::radians<float>(-30), 0});
+            ubuf_data_per_frame.m_proj = this->m_swapchain.pre_ratation_mat() * ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 45);
+            this->m_ubufs_simple.at(img_index).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
+
+            U_PerActor ubuf_data_per_actor;
+            ubuf_data_per_actor.m_model = glm::translate(glm::mat4{1}, glm::vec3{std::cos(cur_sec), 0, std::sin(cur_sec)}) *
+                                            glm::rotate<float>(glm::mat4{1}, -cur_sec, glm::vec3{0, 1, 0}) *
+                                            glm::scale(glm::mat4{1}, glm::vec3{0.3});
+            this->m_models.at(0).ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
 
             //-----------------------------------------------------------------------------------------------------
 
@@ -837,6 +843,7 @@ namespace dal {
                 this->m_swapchain.extent(),
                 this->m_desc_layout_man.layout_simple(),
                 this->m_desc_layout_man.layout_per_material(),
+                this->m_desc_layout_man.layout_per_actor(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
@@ -887,6 +894,7 @@ namespace dal {
                     this->m_cmd_man.pool_single_time(),
                     this->m_tex_man,
                     this->m_desc_layout_man.layout_per_material(),
+                    this->m_desc_layout_man.layout_per_actor(),
                     this->m_logi_device.queue_graphics(),
                     this->m_phys_device.get(),
                     this->m_logi_device.get()
@@ -897,7 +905,7 @@ namespace dal {
             {
                 ModelStatic model_data;
                 auto& unit = model_data.m_units.emplace_back();
-                make_static_mesh_aabb(unit, glm::vec3{-10, -1, -10}, glm::vec3{10, 0, 10});
+                make_static_mesh_aabb(unit, glm::vec3{-5, -5, 0}, glm::vec3{5, 5, 1}, glm::vec2{10, 10});
                 unit.m_material.m_albedo_map = "0021di.png";
 
                 auto& model = this->m_models.emplace_back();
@@ -906,10 +914,15 @@ namespace dal {
                     this->m_cmd_man.pool_single_time(),
                     this->m_tex_man,
                     this->m_desc_layout_man.layout_per_material(),
+                    this->m_desc_layout_man.layout_per_actor(),
                     this->m_logi_device.queue_graphics(),
                     this->m_phys_device.get(),
                     this->m_logi_device.get()
                 );
+
+                U_PerActor ubuf_data_per_actor;
+                ubuf_data_per_actor.m_model = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{1, 0, 0});;
+                model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
             }
         }
 

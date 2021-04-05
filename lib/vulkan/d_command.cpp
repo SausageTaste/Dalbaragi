@@ -150,7 +150,14 @@ namespace dal {
                 std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
                 for (auto& model : models) {
-
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipe_layout_simple,
+                        2,
+                        1, &model.desc_set_per_actor().get(),
+                        0, nullptr
+                    );
 
                     for (auto& unit : model.render_units()) {
                         std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };

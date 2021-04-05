@@ -9,6 +9,7 @@ namespace dal {
         dal::CommandPool& cmd_pool,
         TextureManager& tex_man,
         const VkDescriptorSetLayout layout_per_material,
+        const VkDescriptorSetLayout layout_per_actor,
         const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
@@ -16,12 +17,17 @@ namespace dal {
         this->destroy(logi_device);
 
         this->m_desc_pool.init(
-            1 * model_data.m_units.size(),
-            1 * model_data.m_units.size(),
-            1,
-            1 * model_data.m_units.size(),
+            1 * model_data.m_units.size() + 5,
+            1 * model_data.m_units.size() + 5,
+            5,
+            1 * model_data.m_units.size() + 5,
             logi_device
         );
+
+        this->m_ubuf_per_actor.init(phys_device, logi_device);
+
+        this->m_desc_per_actor = this->m_desc_pool.allocate(layout_per_actor, logi_device);
+        this->m_desc_per_actor.record_per_actor(this->m_ubuf_per_actor, logi_device);
 
         for (auto& unit_data : model_data.m_units) {
             auto& unit = this->m_units.emplace_back();

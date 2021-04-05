@@ -5,18 +5,18 @@
 
 namespace dal {
 
-    bool make_static_mesh_aabb(RenderUnitStatic& result, const glm::vec3 min, const glm::vec3 max) {
+    bool make_static_mesh_aabb(RenderUnitStatic& result, const glm::vec3 min, const glm::vec3 max, const glm::vec2 uv_scale) {
         RenderUnitStatic intermediate_data;
 
         intermediate_data.m_vertices = {
-            { glm::vec3{min.x, min.y, min.z}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1} }, // 0
-            { glm::vec3{min.x, min.y, max.z}, glm::normalize(glm::vec3{-1, -1,  1}), {0, 1} }, // 1
-            { glm::vec3{max.x, min.y, max.z}, glm::normalize(glm::vec3{ 1, -1,  1}), {1, 1} }, // 2
-            { glm::vec3{max.x, min.y, min.z}, glm::normalize(glm::vec3{ 1, -1, -1}), {0, 1} }, // 3
-            { glm::vec3{min.x, max.y, min.z}, glm::normalize(glm::vec3{-1,  1, -1}), {1, 0} }, // 4
-            { glm::vec3{min.x, max.y, max.z}, glm::normalize(glm::vec3{-1,  1,  1}), {0, 0} }, // 5
-            { glm::vec3{max.x, max.y, max.z}, glm::normalize(glm::vec3{ 1,  1,  1}), {1, 0} }, // 6
-            { glm::vec3{max.x, max.y, min.z}, glm::normalize(glm::vec3{ 1,  1, -1}), {0, 0} }, // 7
+            { glm::vec3{min.x, min.y, min.z}, glm::normalize(glm::vec3{-1, -1, -1}), {uv_scale.x, uv_scale.y} }, // 0
+            { glm::vec3{min.x, min.y, max.z}, glm::normalize(glm::vec3{-1, -1,  1}), {         0, uv_scale.y} }, // 1
+            { glm::vec3{max.x, min.y, max.z}, glm::normalize(glm::vec3{ 1, -1,  1}), {uv_scale.x, uv_scale.y} }, // 2
+            { glm::vec3{max.x, min.y, min.z}, glm::normalize(glm::vec3{ 1, -1, -1}), {         0, uv_scale.y} }, // 3
+            { glm::vec3{min.x, max.y, min.z}, glm::normalize(glm::vec3{-1,  1, -1}), {uv_scale.x,          0} }, // 4
+            { glm::vec3{min.x, max.y, max.z}, glm::normalize(glm::vec3{-1,  1,  1}), {         0,          0} }, // 5
+            { glm::vec3{max.x, max.y, max.z}, glm::normalize(glm::vec3{ 1,  1,  1}), {uv_scale.x,          0} }, // 6
+            { glm::vec3{max.x, max.y, min.z}, glm::normalize(glm::vec3{ 1,  1, -1}), {         0,          0} }, // 7
         };
 
         intermediate_data.m_indices = {
@@ -60,9 +60,9 @@ namespace dal {
         return true;
     }
 
-    RenderUnitStatic make_static_mesh_aabb(const glm::vec3 min, const glm::vec3 max) {
+    RenderUnitStatic make_static_mesh_aabb(const glm::vec3 min, const glm::vec3 max, const glm::vec2 uv_scale) {
         RenderUnitStatic output;
-        make_static_mesh_aabb(output, min, max);
+        make_static_mesh_aabb(output, min, max, uv_scale);
         return output;
     }
 

@@ -20,12 +20,16 @@ namespace dal {
         std::vector<RenderUnit> m_units;
         DescPool m_desc_pool;
 
+        DescSet m_desc_per_actor;
+        dal::UniformBuffer<dal::U_PerActor> m_ubuf_per_actor;
+
     public:
         void init(
             const dal::ModelStatic& model_data,
             dal::CommandPool& cmd_pool,
             TextureManager& tex_man,
             const VkDescriptorSetLayout layout_per_material,
+            const VkDescriptorSetLayout layout_per_actor,
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
@@ -35,6 +39,14 @@ namespace dal {
 
         auto& render_units() const {
             return this->m_units;
+        }
+
+        auto& ubuf_per_actor() {
+            return this->m_ubuf_per_actor;
+        }
+
+        auto desc_set_per_actor() const {
+            return this->m_desc_per_actor;
         }
 
     };

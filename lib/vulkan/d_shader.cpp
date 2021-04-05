@@ -335,6 +335,7 @@ namespace {
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
         const VkDescriptorSetLayout desc_layout_per_material,
+        const VkDescriptorSetLayout desc_layout_per_actor,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
@@ -384,7 +385,7 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 2> desc_layouts{ desc_layout_simple, desc_layout_per_material };
+        const std::array<VkDescriptorSetLayout, 3> desc_layouts{ desc_layout_simple, desc_layout_per_material, desc_layout_per_actor };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
@@ -426,6 +427,7 @@ namespace dal {
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
         const VkDescriptorSetLayout desc_layout_per_material,
+        const VkDescriptorSetLayout desc_layout_per_actor,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
@@ -437,6 +439,7 @@ namespace dal {
             swapchain_extent,
             desc_layout_simple,
             desc_layout_per_material,
+            desc_layout_per_actor,
             renderpass,
             logi_device
         );

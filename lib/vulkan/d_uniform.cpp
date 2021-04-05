@@ -57,6 +57,28 @@ namespace {
         return output;
     }
 
+    VkDescriptorSetLayout create_layout_per_actor(const VkDevice logi_device) {
+        std::array<VkDescriptorSetLayoutBinding, 1> bindings{};
+
+        bindings[0].binding = 0;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings[0].descriptorCount = 1;
+        bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        bindings[0].pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutCreateInfo layout_info{};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.pBindings = bindings.data();
+        layout_info.bindingCount = bindings.size();
+
+        VkDescriptorSetLayout output = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &output)) {
+            dalAbort("failed to create descriptor set layout!");
+        }
+
+        return output;
+    }
+
 }
 
 
@@ -68,6 +90,7 @@ namespace dal {
 
         this->m_layout_simple = ::create_layout_simple(logiDevice);
         this->m_layout_per_material = ::create_layout_per_material(logiDevice);
+        this->m_layout_per_actor = ::create_layout_per_actor(logiDevice);
     }
 
     void DescSetLayoutManager::destroy(const VkDevice logiDevice) {
@@ -157,6 +180,34 @@ namespace dal {
         desc_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         desc_writes[1].descriptorCount = 1;
         desc_writes[1].pImageInfo = &image_info;
+
+        //--------------------------------------------------------------------
+
+        vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
+    }
+
+    void DescSet::record_per_actor(
+        const UniformBuffer<U_PerActor>& ubuf_per_actor,
+        const VkDevice logi_device
+    ) {
+        VkDescriptorBufferInfo buffer_info{};
+        buffer_info.buffer = ubuf_per_actor.buffer();
+        buffer_info.offset = 0;
+        buffer_info.range = ubuf_per_actor.data_size();
+
+        //--------------------------------------------------------------------
+
+        std::array<VkWriteDescriptorSet, 1> desc_writes{};
+
+        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        desc_writes[0].dstSet = this->m_handle;
+        desc_writes[0].dstBinding = 0;  // specified in shader code
+        desc_writes[0].dstArrayElement = 0;
+        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        desc_writes[0].descriptorCount = 1;
+        desc_writes[0].pBufferInfo = &buffer_info;
+        desc_writes[0].pImageInfo = nullptr;
+        desc_writes[0].pTexelBufferView = nullptr;
 
         //--------------------------------------------------------------------
 
