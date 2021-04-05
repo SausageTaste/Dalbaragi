@@ -641,7 +641,7 @@ namespace dal {
                 const auto file_data = file->read_stl<std::vector<uint8_t>>();
                 const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
 
-                this->m_sample_tex_image.init(
+                this->m_sample_tex_image.init_texture(
                     image.value(),
                     this->m_cmd_man.pool_single_time(),
                     this->m_logi_device.queue_graphics(),

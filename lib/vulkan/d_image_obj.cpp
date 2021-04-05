@@ -244,7 +244,7 @@ namespace dal {
 // TextureImage
 namespace dal {
 
-    void TextureImage::init(
+    void TextureImage::init_texture(
         const ImageData& img,
         dal::CommandPool& cmd_pool,
         const VkQueue graphics_queue,

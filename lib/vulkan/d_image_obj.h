@@ -59,7 +59,7 @@ namespace dal {
         VkFormat m_format;
 
     public:
-        void init(
+        void init_texture(
             const ImageData& img,
             dal::CommandPool& cmd_pool,
             const VkQueue graphics_queue,
