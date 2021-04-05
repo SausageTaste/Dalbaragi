@@ -5,8 +5,8 @@
 
 namespace dal {
 
-    RenderUnitStatic make_aabb(const glm::vec3 min, const glm::vec3 max) {
-        RenderUnitStatic intermediate_data, result;
+    bool make_static_mesh_aabb(RenderUnitStatic& result, const glm::vec3 min, const glm::vec3 max) {
+        RenderUnitStatic intermediate_data;
 
         intermediate_data.m_vertices = {
             { glm::vec3{min.x, min.y, min.z}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1} }, // 0
@@ -57,7 +57,13 @@ namespace dal {
         result.m_material.m_roughness = 0.2;
         result.m_material.m_metallic = 1;
 
-        return result;
+        return true;
+    }
+
+    RenderUnitStatic make_static_mesh_aabb(const glm::vec3 min, const glm::vec3 max) {
+        RenderUnitStatic output;
+        make_static_mesh_aabb(output, min, max);
+        return output;
     }
 
 }

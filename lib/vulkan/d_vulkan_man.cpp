@@ -650,26 +650,7 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
-            {
-                auto file = this->m_asset_man.open("model/honoka_basic_3.dmd");
-                const auto model_content = file->read_stl<std::vector<uint8_t>>();
-                const auto model_data = parse_model_dmd(model_content->data(), model_content->size());
-
-                auto& model = this->m_models.emplace_back();
-                model.init(
-                    model_data.value(),
-                    this->m_cmd_man.pool_single_time(),
-                    this->m_tex_man,
-                    this->m_desc_layout_man.layout_per_material(),
-                    this->m_logi_device.queue_graphics(),
-                    this->m_phys_device.get(),
-                    this->m_logi_device.get()
-                );
-            }
-
-            {
-
-            }
+            this->populate_models();
 
             this->m_cmd_man.record_all_simple(
                 this->m_models,
@@ -891,6 +872,45 @@ namespace dal {
             );
 
             return false;
+        }
+
+        void populate_models() {
+            // Honoka
+            {
+                auto file = this->m_asset_man.open("model/honoka_basic_3.dmd");
+                const auto model_content = file->read_stl<std::vector<uint8_t>>();
+                const auto model_data = parse_model_dmd(model_content->data(), model_content->size());
+
+                auto& model = this->m_models.emplace_back();
+                model.init(
+                    model_data.value(),
+                    this->m_cmd_man.pool_single_time(),
+                    this->m_tex_man,
+                    this->m_desc_layout_man.layout_per_material(),
+                    this->m_logi_device.queue_graphics(),
+                    this->m_phys_device.get(),
+                    this->m_logi_device.get()
+                );
+            }
+
+            // Floor
+            {
+                ModelStatic model_data;
+                auto& unit = model_data.m_units.emplace_back();
+                make_static_mesh_aabb(unit, glm::vec3{-10, -1, -10}, glm::vec3{10, 0, 10});
+                unit.m_material.m_albedo_map = "0021di.png";
+
+                auto& model = this->m_models.emplace_back();
+                model.init(
+                    model_data,
+                    this->m_cmd_man.pool_single_time(),
+                    this->m_tex_man,
+                    this->m_desc_layout_man.layout_per_material(),
+                    this->m_logi_device.queue_graphics(),
+                    this->m_phys_device.get(),
+                    this->m_logi_device.get()
+                );
+            }
         }
 
     };

@@ -34,6 +34,8 @@ namespace dal {
     };
 
 
-    RenderUnitStatic make_aabb(const glm::vec3 min, const glm::vec3 max);
+    bool make_static_mesh_aabb(RenderUnitStatic& output, const glm::vec3 min, const glm::vec3 max);
+
+    RenderUnitStatic make_static_mesh_aabb(const glm::vec3 min, const glm::vec3 max);
 
 }
