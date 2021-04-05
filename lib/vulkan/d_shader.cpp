@@ -376,7 +376,7 @@ namespace {
         const auto color_blending = ::create_info_color_blend(color_blend_attachments.data(), color_blend_attachments.size(), false);
 
         // Depth, stencil
-        //const auto depth_stencil = ::create_info_depth_stencil(true);
+        const auto depth_stencil = ::create_info_depth_stencil(true);
 
         // Dynamic state
         //constexpr std::array<VkDynamicState, 0> dynamic_states{};
@@ -395,7 +395,7 @@ namespace {
         pipeline_info.pViewportState = &viewport_state;
         pipeline_info.pRasterizationState = &rasterizer;
         pipeline_info.pMultisampleState = &multisampling;
-        pipeline_info.pDepthStencilState = nullptr;
+        pipeline_info.pDepthStencilState = &depth_stencil;
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = nullptr;
         pipeline_info.layout = pipeline_layout;

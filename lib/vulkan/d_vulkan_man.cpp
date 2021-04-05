@@ -520,6 +520,7 @@ namespace dal {
 
         SwapchainManager m_swapchain;
         PipelineManager m_pipelines;
+        AttachmentManager m_attach_man;
         RenderPassManager m_renderpasses;
         FbufManager m_fbuf_man;
         CmdPoolManager m_cmd_man;
@@ -591,10 +592,21 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
-            this->m_renderpasses.init({ this->m_swapchain.format() }, this->m_logi_device.get());
+            this->m_attach_man.init(
+                this->m_swapchain.extent(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            this->m_renderpasses.init(
+                this->m_swapchain.format(),
+                this->m_attach_man.depth_format(),
+                this->m_logi_device.get()
+            );
 
             this->m_fbuf_man.init(
                 this->m_swapchain.views(),
+                this->m_attach_man.depth_view(),
                 this->m_swapchain.extent(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
@@ -705,6 +717,7 @@ namespace dal {
             this->m_pipelines.destroy(this->m_logi_device.get());
             this->m_fbuf_man.destroy(this->m_logi_device.get());
             this->m_renderpasses.destroy(this->m_logi_device.get());
+            this->m_attach_man.destroy(this->m_logi_device.get());
             this->m_swapchain.destroy(this->m_logi_device.get());
             this->m_desc_layout_man.destroy(this->m_logi_device.get());
             this->m_logi_device.destroy();
@@ -810,6 +823,8 @@ namespace dal {
             }
             this->wait_device_idle();
 
+            const auto spec_before = this->m_swapchain.make_spec();
+
             this->m_swapchain.init(
                 this->m_new_extent.width,
                 this->m_new_extent.height,
@@ -819,10 +834,28 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
-            this->m_renderpasses.init({ this->m_swapchain.format() }, this->m_logi_device.get());
+            const auto spec_after = this->m_swapchain.make_spec();
+
+            if (spec_before.extent() != spec_after.extent()) {
+                this->m_attach_man.init(
+                    this->m_swapchain.extent(),
+                    this->m_phys_device.get(),
+                    this->m_logi_device.get()
+                );
+            }
+            else {
+                dalInfo("No need to recreate attachments");
+            }
+
+            this->m_renderpasses.init(
+                this->m_swapchain.format(),
+                this->m_attach_man.depth_format(),
+                this->m_logi_device.get()
+            );
 
             this->m_fbuf_man.init(
                 this->m_swapchain.views(),
+                this->m_attach_man.depth_view(),
                 this->m_swapchain.extent(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()

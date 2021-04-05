@@ -67,6 +67,13 @@ namespace dal {
             const VkDevice logi_device
         );
 
+        void init_depth(
+            const uint32_t width,
+            const uint32_t height,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
         void destory(const VkDevice logi_device);
 
         auto image() const {

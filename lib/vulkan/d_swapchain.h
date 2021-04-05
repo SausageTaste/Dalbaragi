@@ -113,7 +113,7 @@ namespace dal {
     struct SwapchainSpec {
 
     private:
-        VkExtent2D m_extent{};
+        glm::vec2 m_extent{};
         VkFormat m_image_format{};
         uint32_t m_count = 0;
 
@@ -135,11 +135,11 @@ namespace dal {
         }
 
         auto width() const {
-            return this->extent().width;
+            return this->extent().x;
         }
 
         auto height() const {
-            return this->extent().height;
+            return this->extent().y;
         }
 
     };

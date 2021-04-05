@@ -23,6 +23,39 @@ namespace {
         return mem_requirements;
     }
 
+    VkFormat find_supported_format(
+        const std::vector<VkFormat>& candidates,
+        const VkImageTiling tiling,
+        const VkFormatFeatureFlags features,
+        const VkPhysicalDevice phys_device
+    ) {
+        for (VkFormat format : candidates) {
+            VkFormatProperties props;
+            vkGetPhysicalDeviceFormatProperties(phys_device, format, &props);
+
+            if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+                return format;
+            } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+                return format;
+            }
+        }
+
+        dalAbort("failed to find supported format!");
+    }
+
+    VkFormat find_depth_format(const VkPhysicalDevice phys_device) {
+        return ::find_supported_format(
+            { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            phys_device
+        );
+    }
+
+    bool has_stencil_component(VkFormat depth_format) {
+        return depth_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_format == VK_FORMAT_D24_UNORM_S8_UINT;
+    }
+
     auto create_image(
         const uint32_t width,
         const uint32_t height,
@@ -304,6 +337,24 @@ namespace dal {
             cmd_pool,
             graphics_queue,
             logi_device
+        );
+    }
+
+    void TextureImage::init_depth(
+        const uint32_t width,
+        const uint32_t height,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->m_format = ::find_depth_format(phys_device);
+
+        std::tie(this->m_image, this->m_memory) = ::create_image(
+            width, height,
+            this->m_format,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            phys_device, logi_device
         );
     }
 

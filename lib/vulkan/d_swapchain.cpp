@@ -187,9 +187,7 @@ namespace dal {
 namespace dal {
 
     bool SwapchainSpec::operator==(const SwapchainSpec& other) const {
-        if (this->m_extent.width != other.m_extent.width)
-            return false;
-        if (this->m_extent.height != other.m_extent.height)
+        if (this->m_extent != other.m_extent)
             return false;
         if (this->m_image_format != other.m_image_format)
             return false;
@@ -201,8 +199,10 @@ namespace dal {
 
     void SwapchainSpec::set(const uint32_t count, const VkFormat format, const VkExtent2D extent) {
         this->m_image_format = format;
-        this->m_extent = extent;
         this->m_count = count;
+
+        this->m_extent.x = extent.width;
+        this->m_extent.y = extent.height;
     }
 
 }
