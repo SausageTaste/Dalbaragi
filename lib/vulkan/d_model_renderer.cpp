@@ -7,8 +7,7 @@ namespace dal {
     void ModelRenderer::init(
         const dal::ModelStatic& model_data,
         dal::CommandPool& cmd_pool,
-        const VkImageView albedo_map_view,
-        const VkSampler sampler,
+        TextureManager& tex_man,
         const VkDescriptorSetLayout layout_per_material,
         const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
@@ -45,8 +44,8 @@ namespace dal {
             unit.m_desc_set = this->m_desc_pool.allocate(layout_per_material, logi_device);
             unit.m_desc_set.record_material(
                 unit.m_ubuf,
-                albedo_map_view,
-                sampler,
+                tex_man.request_asset_tex(unit_data.m_material.m_albedo_map.c_str()).m_view.get(),
+                tex_man.sampler_tex().get(),
                 logi_device
             );
         }

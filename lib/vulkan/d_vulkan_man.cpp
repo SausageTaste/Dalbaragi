@@ -528,11 +528,9 @@ namespace dal {
         DescSetLayoutManager m_desc_layout_man;
         UniformBufferArray<U_PerFrame> m_ubufs_simple;
         DescriptorManager m_desc_man;
+        TextureManager m_tex_man;
 
         std::vector<ModelRenderer> m_models;
-        Sampler m_tex_sampler;
-        TextureImage m_sample_tex_image;
-        ImageView m_sample_tex_view;
 
         // Non-vulkan members
         dal::filesystem::AssetManager& m_asset_man;
@@ -629,31 +627,12 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
-            this->m_tex_sampler.init_for_color_map(
+            this->m_tex_man.init(
+                this->m_asset_man,
+                this->m_cmd_man.pool_single_time(),
                 this->m_phys_info.does_support_anisotropic_sampling(),
+                this->m_logi_device.queue_graphics(),
                 this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            {
-                auto file = this->m_asset_man.open("image/0021di.png");
-                const auto file_data = file->read_stl<std::vector<uint8_t>>();
-                const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
-
-                this->m_sample_tex_image.init_texture(
-                    image.value(),
-                    this->m_cmd_man.pool_single_time(),
-                    this->m_logi_device.queue_graphics(),
-                    this->m_phys_device.get(),
-                    this->m_logi_device.get()
-                );
-            }
-
-            this->m_sample_tex_view.init(
-                this->m_sample_tex_image.image(),
-                this->m_sample_tex_image.format(),
-                1,
-                VK_IMAGE_ASPECT_COLOR_BIT,
                 this->m_logi_device.get()
             );
 
@@ -680,8 +659,7 @@ namespace dal {
                 model.init(
                     model_data.value(),
                     this->m_cmd_man.pool_single_time(),
-                    this->m_sample_tex_view.get(),
-                    this->m_tex_sampler.get(),
+                    this->m_tex_man,
                     this->m_desc_layout_man.layout_per_material(),
                     this->m_logi_device.queue_graphics(),
                     this->m_phys_device.get(),
@@ -711,9 +689,7 @@ namespace dal {
             }
             this->m_models.clear();
 
-            this->m_sample_tex_view.destroy(this->m_logi_device.get());
-            this->m_sample_tex_image.destory(this->m_logi_device.get());
-            this->m_tex_sampler.destroy(this->m_logi_device.get());
+            this->m_tex_man.destroy(this->m_logi_device.get());
             this->m_desc_man.destroy(this->m_logi_device.get());
             this->m_ubufs_simple.destroy(this->m_logi_device.get());
             this->m_cmd_man.destroy(this->m_logi_device.get());

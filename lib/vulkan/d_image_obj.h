@@ -1,8 +1,11 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "d_vulkan_header.h"
 #include "d_image_parser.h"
 #include "d_command.h"
+#include "d_filesystem.h"
 
 
 namespace dal {
@@ -103,6 +106,45 @@ namespace dal {
 
         auto get() const {
             return this->m_sampler;
+        }
+
+    };
+
+
+    class TextureManager {
+
+    public:
+        struct TextureUnit {
+            TextureImage m_image;
+            ImageView m_view;
+        };
+
+    private:
+        std::unordered_map<std::string, TextureUnit> m_textures;
+        Sampler m_tex_sampler;
+
+        filesystem::AssetManager* m_asset_man = nullptr;
+        CommandPool* m_cmd_pool = nullptr;
+        VkQueue m_graphics_queue = VK_NULL_HANDLE;
+        VkPhysicalDevice m_phys_device = VK_NULL_HANDLE;
+        VkDevice m_logi_device = VK_NULL_HANDLE;
+
+    public:
+        void init(
+            dal::filesystem::AssetManager& asset_man,
+            CommandPool& cmd_pool,
+            const bool enable_anisotropy,
+            const VkQueue m_graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+        const TextureUnit& request_asset_tex(const char* const path);
+
+        auto& sampler_tex() const {
+            return this->m_tex_sampler;
         }
 
     };

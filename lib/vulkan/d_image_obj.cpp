@@ -1,9 +1,13 @@
 #include "d_image_obj.h"
 
+#include <vector>
+#include <cstdint>
+
 #include <fmt/format.h>
 
 #include "d_logger.h"
 #include "d_buffer_memory.h"
+#include "d_image_parser.h"
 
 
 namespace {
@@ -415,5 +419,74 @@ namespace dal {
             this->m_sampler = VK_NULL_HANDLE;
         }
     }
+
+}
+
+
+// TextureManager
+namespace dal {
+
+    void TextureManager::init(
+        dal::filesystem::AssetManager& asset_man,
+        CommandPool& cmd_pool,
+        const bool enable_anisotropy,
+        const VkQueue m_graphics_queue,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->m_asset_man = &asset_man;
+        this->m_cmd_pool = &cmd_pool,
+        this->m_graphics_queue = m_graphics_queue;
+        this->m_phys_device = phys_device;
+        this->m_logi_device = logi_device;
+
+        this->m_tex_sampler.init_for_color_map(enable_anisotropy, this->m_phys_device, this->m_logi_device);
+    }
+
+    void TextureManager::destroy(const VkDevice logi_device) {
+        for (auto& x : this->m_textures) {
+            x.second.m_image.destory(logi_device);
+            x.second.m_view.destroy(logi_device);
+        }
+        this->m_textures.clear();
+
+        this->m_tex_sampler.destroy(logi_device);
+    }
+
+    const TextureManager::TextureUnit& TextureManager::request_asset_tex(const char* const path) {
+        const auto result = this->m_textures.find(path);
+        if (this->m_textures.end() != result) {
+            return result->second;
+        }
+        else {
+            auto file = this->m_asset_man->open(fmt::format("image/{}", path).c_str());
+            if (!file->is_ready()) {
+                dalAbort(fmt::format("Failed to find texture file: {}", path).c_str());
+            }
+            const auto file_data = file->read_stl<std::vector<uint8_t>>();
+            const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
+
+            this->m_textures[path] = TextureUnit{};
+            auto iter = this->m_textures.find(path);
+
+            iter->second.m_image.init_texture(
+                image.value(),
+                *this->m_cmd_pool,
+                this->m_graphics_queue,
+                this->m_phys_device,
+                this->m_logi_device
+            );
+
+            iter->second.m_view.init(
+                iter->second.m_image.image(),
+                iter->second.m_image.format(),
+                1,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                m_logi_device
+            );
+
+            return iter->second;
+        }
+    };
 
 }

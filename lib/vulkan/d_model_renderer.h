@@ -2,12 +2,14 @@
 
 #include "d_vert_data.h"
 #include "d_uniform.h"
+#include "d_image_obj.h"
 
 
 namespace dal {
 
     class ModelRenderer {
 
+    public:
         struct RenderUnit {
             dal::VertexBuffer m_vert_buffer;
             dal::UniformBuffer<dal::U_PerMaterial> m_ubuf;
@@ -22,8 +24,7 @@ namespace dal {
         void init(
             const dal::ModelStatic& model_data,
             dal::CommandPool& cmd_pool,
-            const VkImageView albedo_map_view,
-            const VkSampler sampler,
+            TextureManager& tex_man,
             const VkDescriptorSetLayout layout_per_material,
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
