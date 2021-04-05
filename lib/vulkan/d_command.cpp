@@ -3,6 +3,7 @@
 #include <array>
 
 #include "d_logger.h"
+#include "d_vert_data.h"
 
 
 // CommandPool
@@ -109,12 +110,10 @@ namespace dal {
     }
 
     void CmdPoolManager::record_all_simple(
+        const std::vector<VertexBuffer>& vert_buffers,
         const std::vector<VkFramebuffer>& swapchain_fbufs,
         const std::vector<VkDescriptorSet>& desc_sets_simple,
         const VkExtent2D& swapchain_extent,
-        const VkBuffer vertex_buffer,
-        const VkBuffer index_buffer,
-        const uint32_t index_size,
         const VkPipelineLayout pipe_layout_simple,
         const VkPipeline graphics_pipeline,
         const VkRenderPass render_pass
@@ -148,21 +147,24 @@ namespace dal {
             {
                 vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
 
-                std::array<VkBuffer, 1> vert_bufs{ vertex_buffer };
                 std::array<VkDeviceSize, 1> vert_offsets{ 0 };
-                vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
-                vkCmdBindIndexBuffer(cmd_buf, index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
-                vkCmdBindDescriptorSets(
-                    cmd_buf,
-                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    pipe_layout_simple,
-                    0,
-                    1, &desc_sets_simple.at(i),
-                    0, nullptr
-                );
+                for (auto& mesh : vert_buffers) {
+                    std::array<VkBuffer, 1> vert_bufs{ mesh.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, mesh.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
 
-                vkCmdDrawIndexed(cmd_buf, index_size, 1, 0, 0, 0);
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipe_layout_simple,
+                        0,
+                        1, &desc_sets_simple.at(i),
+                        0, nullptr
+                    );
+
+                    vkCmdDrawIndexed(cmd_buf, mesh.index_size(), 1, 0, 0, 0);
+                }
             }
             vkCmdEndRenderPass(cmd_buf);
 

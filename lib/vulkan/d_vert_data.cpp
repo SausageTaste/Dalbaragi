@@ -9,7 +9,7 @@ namespace dal {
         VkVertexInputBindingDescription result{};
 
         result.binding = 0;
-        result.stride = sizeof(dal::Vertex);
+        result.stride = sizeof(dal::VertexStatic);
         result.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         return result;
@@ -21,17 +21,17 @@ namespace dal {
         result[0].binding = 0;
         result[0].location = 0;
         result[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        result[0].offset = offsetof(Vertex, m_pos);
+        result[0].offset = offsetof(dal::VertexStatic, m_pos);
 
         result[1].binding = 0;
         result[1].location = 1;
         result[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        result[1].offset = offsetof(Vertex, m_normal);
+        result[1].offset = offsetof(dal::VertexStatic, m_normal);
 
         result[2].binding = 0;
         result[2].location = 2;
         result[2].format = VK_FORMAT_R32G32_SFLOAT;
-        result[2].offset = offsetof(Vertex, m_uv_coord);
+        result[2].offset = offsetof(dal::VertexStatic, m_uv_coord);
 
         return result;
     }
@@ -43,7 +43,7 @@ namespace dal {
 namespace dal {
 
     void VertexBuffer::init(
-        const std::vector<Vertex>& vertices,
+        const std::vector<VertexStatic>& vertices,
         const std::vector<index_data_t>& indices,
         dal::CommandPool& cmd_pool,
         const VkQueue graphics_queue,

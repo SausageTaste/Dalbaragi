@@ -31,10 +31,17 @@ FetchContent_Declare(
     BUILD_COMMAND     ""
 )
 
+FetchContent_Declare(
+  fetch_dal_blender
+  GIT_REPOSITORY https://github.com/SausageTaste/io_scene_dalbaragi
+  GIT_TAG        master
+)
+
 
 FetchContent_MakeAvailable(fetch_fmt)
 FetchContent_MakeAvailable(fetch_glm)
 FetchContent_MakeAvailable(fetch_stb)
+FetchContent_MakeAvailable(fetch_dal_blender)
 
 if (WIN32)
     find_package(Vulkan REQUIRED)

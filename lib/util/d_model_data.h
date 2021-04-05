@@ -11,7 +11,7 @@
 
 namespace dal {
 
-    struct Vertex {
+    struct VertexStatic {
         glm::vec3 m_pos;
         glm::vec3 m_normal;
         glm::vec2 m_uv_coord;
@@ -23,13 +23,17 @@ namespace dal {
         float m_metallic;
     };
 
-    struct RenderUnit {
-        std::vector<Vertex> m_vertices;
+    struct RenderUnitStatic {
+        std::vector<VertexStatic> m_vertices;
         std::vector<uint32_t> m_indices;
         Material m_material;
     };
 
+    struct ModelStatic {
+        std::vector<RenderUnitStatic> m_units;
+    };
 
-    RenderUnit make_aabb(const glm::vec3 min, const glm::vec3 max);
+
+    RenderUnitStatic make_aabb(const glm::vec3 min, const glm::vec3 max);
 
 }

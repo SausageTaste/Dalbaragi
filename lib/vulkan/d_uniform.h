@@ -24,10 +24,10 @@ namespace dal {
         BufferMemory m_buffer;
 
     public:
-        void init(const VkPhysicalDevice phys_device, const VkDevice logi_device) {
+        bool init(const VkPhysicalDevice phys_device, const VkDevice logi_device) {
             this->destroy(logi_device);
 
-            this->m_buffer.init(
+            return this->m_buffer.init(
                 this->data_size(),
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,

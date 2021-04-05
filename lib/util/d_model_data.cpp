@@ -5,8 +5,8 @@
 
 namespace dal {
 
-    RenderUnit make_aabb(const glm::vec3 min, const glm::vec3 max) {
-        RenderUnit intermediate_data, result;
+    RenderUnitStatic make_aabb(const glm::vec3 min, const glm::vec3 max) {
+        RenderUnitStatic intermediate_data, result;
 
         intermediate_data.m_vertices = {
             { glm::vec3{min.x, min.y, min.z}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1} }, // 0
