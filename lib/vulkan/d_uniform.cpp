@@ -8,12 +8,34 @@
 namespace {
 
     VkDescriptorSetLayout create_layout_simple(const VkDevice logiDevice) {
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 1> bindings{};
 
         bindings[0].binding = 0;
         bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         bindings[0].descriptorCount = 1;
         bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        bindings[0].pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutCreateInfo layout_info{};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.pBindings = bindings.data();
+        layout_info.bindingCount = bindings.size();
+
+        VkDescriptorSetLayout output = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layout_info, nullptr, &output)) {
+            dalAbort("failed to create descriptor set layout!");
+        }
+
+        return output;
+    }
+
+    VkDescriptorSetLayout create_layout_per_material(const VkDevice logi_device) {
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings{};
+
+        bindings[0].binding = 0;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings[0].descriptorCount = 1;
+        bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings[0].pImmutableSamplers = nullptr;
 
         bindings.at(1).binding = 1;
@@ -28,7 +50,7 @@ namespace {
         layout_info.bindingCount = bindings.size();
 
         VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layout_info, nullptr, &output)) {
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &output)) {
             dalAbort("failed to create descriptor set layout!");
         }
 
@@ -45,12 +67,18 @@ namespace dal {
         this->destroy(logiDevice);
 
         this->m_layout_simple = ::create_layout_simple(logiDevice);
+        this->m_layout_per_material = ::create_layout_per_material(logiDevice);
     }
 
     void DescSetLayoutManager::destroy(const VkDevice logiDevice) {
         if (VK_NULL_HANDLE != this->m_layout_simple) {
             vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_simple, nullptr);
             this->m_layout_simple = VK_NULL_HANDLE;
+        }
+
+        if (VK_NULL_HANDLE != this->m_layout_per_material) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_material, nullptr);
+            this->m_layout_per_material = VK_NULL_HANDLE;
         }
     }
 
@@ -66,14 +94,42 @@ namespace dal {
 
     void DescSet::record_simple(
         const UniformBuffer<U_PerFrame>& ubuf_per_frame,
-        const VkImageView texture_view,
-        const VkSampler sampler,
         const VkDevice logi_device
     ) {
         VkDescriptorBufferInfo buffer_info{};
         buffer_info.buffer = ubuf_per_frame.buffer();
         buffer_info.offset = 0;
         buffer_info.range = ubuf_per_frame.data_size();
+
+        //--------------------------------------------------------------------
+
+        std::array<VkWriteDescriptorSet, 1> desc_writes{};
+
+        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        desc_writes[0].dstSet = this->m_handle;
+        desc_writes[0].dstBinding = 0;  // specified in shader code
+        desc_writes[0].dstArrayElement = 0;
+        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        desc_writes[0].descriptorCount = 1;
+        desc_writes[0].pBufferInfo = &buffer_info;
+        desc_writes[0].pImageInfo = nullptr;
+        desc_writes[0].pTexelBufferView = nullptr;
+
+        //--------------------------------------------------------------------
+
+        vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
+    }
+
+    void DescSet::record_material(
+        const UniformBuffer<U_PerMaterial>& ubuf_per_material,
+        const VkImageView texture_view,
+        const VkSampler sampler,
+        const VkDevice logi_device
+    ) {
+        VkDescriptorBufferInfo buffer_info{};
+        buffer_info.buffer = ubuf_per_material.buffer();
+        buffer_info.offset = 0;
+        buffer_info.range = ubuf_per_material.data_size();
 
         VkDescriptorImageInfo image_info{};
         image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -208,8 +264,6 @@ namespace dal {
     void DescriptorManager::init_desc_sets_simple(
         const dal::UniformBufferArray<U_PerFrame>& ubufs_simple,
         const uint32_t swapchain_count,
-        const VkImageView texture_view,
-        const VkSampler sampler,
         const VkDescriptorSetLayout desc_layout_simple,
         const VkDevice logi_device
     ) {
@@ -217,7 +271,7 @@ namespace dal {
 
         for (size_t i = 0; i < this->m_descset_simple.size(); ++i) {
             auto& desc_set = this->m_descset_simple.at(i);
-            desc_set.record_simple(ubufs_simple.at(i), texture_view, sampler, logi_device);
+            desc_set.record_simple(ubufs_simple.at(i), logi_device);
         }
     }
 

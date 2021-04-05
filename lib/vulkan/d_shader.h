@@ -58,6 +58,7 @@ namespace dal {
             const bool need_gamma_correction,
             const VkExtent2D& swapchain_extent,
             const VkDescriptorSetLayout desc_layout_simple,
+            const VkDescriptorSetLayout desc_layout_per_material,
             const VkRenderPass renderpass,
             const VkDevice logi_device
         );

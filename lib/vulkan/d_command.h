@@ -7,7 +7,7 @@
 
 namespace dal {
 
-    class VertexBuffer;
+    class ModelRenderer;
 
 
     class CommandPool {
@@ -62,7 +62,7 @@ namespace dal {
         void destroy(const VkDevice logi_device);
 
         void record_all_simple(
-            const std::vector<VertexBuffer>& vert_buffers,
+            const std::vector<ModelRenderer>& models,
             const std::vector<VkFramebuffer>& swapchain_fbufs,
             const std::vector<VkDescriptorSet>& desc_sets_simple,
             const VkExtent2D& swapchain_extent,

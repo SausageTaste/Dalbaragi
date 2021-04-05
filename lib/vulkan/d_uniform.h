@@ -16,6 +16,11 @@ namespace dal {
         glm::mat4 m_model{1}, m_view{1}, m_proj{1};
     };
 
+    struct U_PerMaterial {
+        float m_roughness = 0.5;
+        float m_metallic = 0;
+    };
+
 
     template <typename _DataStruct>
     class UniformBuffer {
@@ -107,6 +112,7 @@ namespace dal {
 
     private:
         VkDescriptorSetLayout m_layout_simple = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_per_material = VK_NULL_HANDLE;
 
     public:
         void init(const VkDevice logiDevice);
@@ -115,6 +121,10 @@ namespace dal {
 
         auto& layout_simple() const {
             return this->m_layout_simple;
+        }
+
+        auto layout_per_material() const {
+            return this->m_layout_per_material;
         }
 
     };
@@ -138,6 +148,11 @@ namespace dal {
 
         void record_simple(
             const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+            const VkDevice logi_device
+        );
+
+        void record_material(
+            const UniformBuffer<U_PerMaterial>& ubuf_per_material,
             const VkImageView texture_view,
             const VkSampler sampler,
             const VkDevice logi_device
@@ -196,8 +211,6 @@ namespace dal {
         void init_desc_sets_simple(
             const dal::UniformBufferArray<U_PerFrame>& ubufs_simple,
             const uint32_t swapchain_count,
-            const VkImageView texture_view,
-            const VkSampler sampler,
             const VkDescriptorSetLayout desc_layout_simple,
             const VkDevice logi_device
         );

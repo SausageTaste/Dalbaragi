@@ -21,6 +21,7 @@
 #include "d_image_parser.h"
 #include "d_timer.h"
 #include "d_model_parser.h"
+#include "d_model_renderer.h"
 
 
 #if !defined(NDEBUG) && !defined(__ANDROID__)
@@ -528,7 +529,7 @@ namespace dal {
         UniformBufferArray<U_PerFrame> m_ubufs_simple;
         DescriptorManager m_desc_man;
 
-        std::vector<VertexBuffer> m_vert_buf;
+        std::vector<ModelRenderer> m_models;
         Sampler m_tex_sampler;
         TextureImage m_sample_tex_image;
         ImageView m_sample_tex_view;
@@ -617,6 +618,7 @@ namespace dal {
                 !this->m_swapchain.is_format_srgb(),
                 this->m_swapchain.extent(),
                 this->m_desc_layout_man.layout_simple(),
+                this->m_desc_layout_man.layout_per_material(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
@@ -626,21 +628,6 @@ namespace dal {
                 this->m_logi_device.indices().graphics_family(),
                 this->m_logi_device.get()
             );
-
-            {
-                auto file = this->m_asset_man.open("model/honoka_basic_3.dmd");
-                const auto model_content = file->read_stl<std::vector<uint8_t>>();
-                const auto model_data = parse_model_dmd(model_content->data(), model_content->size());
-                for (auto& unit : model_data->m_units) {
-                    this->m_vert_buf.emplace_back().init(
-                        unit.m_vertices, unit.m_indices,
-                        this->m_cmd_man.pool_single_time(),
-                        this->m_logi_device.queue_graphics(),
-                        this->m_phys_device.get(),
-                        this->m_logi_device.get()
-                    );
-                }
-            }
 
             this->m_tex_sampler.init_for_color_map(
                 this->m_phys_info.does_support_anisotropic_sampling(),
@@ -680,14 +667,31 @@ namespace dal {
             this->m_desc_man.init_desc_sets_simple(
                 this->m_ubufs_simple,
                 this->m_swapchain.size(),
-                this->m_sample_tex_view.get(),
-                this->m_tex_sampler.get(),
                 this->m_desc_layout_man.layout_simple(),
                 this->m_logi_device.get()
             );
 
+            {
+                auto file = this->m_asset_man.open("model/honoka_basic_3.dmd");
+                const auto model_content = file->read_stl<std::vector<uint8_t>>();
+                const auto model_data = parse_model_dmd(model_content->data(), model_content->size());
+
+                auto& model = this->m_models.emplace_back();
+                model.init(
+                    model_data.value(),
+                    this->m_cmd_man.pool_single_time(),
+                    this->m_desc_man.pool(),
+                    this->m_sample_tex_view.get(),
+                    this->m_tex_sampler.get(),
+                    this->m_desc_layout_man.layout_per_material(),
+                    this->m_logi_device.queue_graphics(),
+                    this->m_phys_device.get(),
+                    this->m_logi_device.get()
+                );
+            }
+
             this->m_cmd_man.record_all_simple(
-                this->m_vert_buf,
+                this->m_models,
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_desc_man.desc_set_raw_simple(),
                 this->m_swapchain.extent(),
@@ -703,10 +707,10 @@ namespace dal {
         }
 
         void destroy() {
-            for (auto& unit : this->m_vert_buf) {
-                unit.destroy(this->m_logi_device.get());
+            for (auto& model : this->m_models) {
+                model.destroy(this->m_logi_device.get());
             }
-            this->m_vert_buf.clear();
+            this->m_models.clear();
 
             this->m_sample_tex_view.destroy(this->m_logi_device.get());
             this->m_sample_tex_image.destory(this->m_logi_device.get());
@@ -866,6 +870,7 @@ namespace dal {
                 !this->m_swapchain.is_format_srgb(),
                 this->m_swapchain.extent(),
                 this->m_desc_layout_man.layout_simple(),
+                this->m_desc_layout_man.layout_per_material(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
             );
@@ -886,14 +891,12 @@ namespace dal {
             this->m_desc_man.init_desc_sets_simple(
                 this->m_ubufs_simple,
                 this->m_swapchain.size(),
-                this->m_sample_tex_view.get(),
-                this->m_tex_sampler.get(),
                 this->m_desc_layout_man.layout_simple(),
                 this->m_logi_device.get()
             );
 
             this->m_cmd_man.record_all_simple(
-                this->m_vert_buf,
+                this->m_models,
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_desc_man.desc_set_raw_simple(),
                 this->m_swapchain.extent(),
