@@ -667,6 +667,10 @@ namespace dal {
                 );
             }
 
+            {
+
+            }
+
             this->m_cmd_man.record_all_simple(
                 this->m_models,
                 this->m_fbuf_man.swapchain_fbuf(),
@@ -796,6 +800,15 @@ namespace dal {
             vkDeviceWaitIdle(this->m_logi_device.get());
         }
 
+        void on_screen_resize(const unsigned width, const unsigned height) {
+            this->m_screen_resize_notified = true;
+            this->m_new_extent.width = width;
+            this->m_new_extent.height = height;
+
+            dalVerbose(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
+        }
+
+    private:
         bool recreate_swapchain() {
             if (0 == this->m_new_extent.width || 0 == this->m_new_extent.height) {
                 return true;
@@ -878,14 +891,6 @@ namespace dal {
             );
 
             return false;
-        }
-
-        void on_screen_resize(const unsigned width, const unsigned height) {
-            this->m_screen_resize_notified = true;
-            this->m_new_extent.width = width;
-            this->m_new_extent.height = height;
-
-            dalVerbose(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
         }
 
     };
