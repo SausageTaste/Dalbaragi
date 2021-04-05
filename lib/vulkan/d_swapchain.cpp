@@ -26,11 +26,15 @@ namespace {
         return available_formats[0];
     }
 
-    VkPresentModeKHR choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes) {
+    enum class PresentMode { fifo, mailbox };
+
+    VkPresentModeKHR choose_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes, const PresentMode preferred_mode) {
         for ( const auto& present_mode : available_present_modes ) {
-            if ( VK_PRESENT_MODE_MAILBOX_KHR == present_mode ) {
-                return present_mode;
-            }
+            if (::PresentMode::fifo == preferred_mode && VK_PRESENT_MODE_FIFO_KHR == present_mode)
+                return VK_PRESENT_MODE_FIFO_KHR;
+
+            if (::PresentMode::mailbox == preferred_mode && VK_PRESENT_MODE_MAILBOX_KHR == present_mode)
+                return VK_PRESENT_MODE_MAILBOX_KHR;
         }
 
         return VK_PRESENT_MODE_FIFO_KHR;
@@ -222,8 +226,8 @@ namespace dal {
         this->destroy_except_swapchain(logi_device);
 
         const SwapChainSupportDetails swapchain_support{ surface, phys_device };
-        const VkSurfaceFormatKHR surface_format = ::choose_surface_format(swapchain_support.m_formats);
-        const VkPresentModeKHR present_mode = ::choose_present_mode(swapchain_support.m_present_modes);
+        const auto surface_format = ::choose_surface_format(swapchain_support.m_formats);
+        const auto present_mode = ::choose_present_mode(swapchain_support.m_present_modes, ::PresentMode::fifo);
 
         this->m_image_format = surface_format.format;
         //this->m_extent = ::choose_extent(swapchain_support.m_capabilities, desired_width, desired_height);
@@ -249,6 +253,7 @@ namespace dal {
                 create_info_swapchain.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
                 create_info_swapchain.queueFamilyIndexCount = queue_family_indices.size();
                 create_info_swapchain.pQueueFamilyIndices = queue_family_indices.data();
+                dalWarn("Graphics queue and present qeueu is not same");
             }
             else {
                 create_info_swapchain.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -312,6 +317,42 @@ namespace dal {
         }
 
         this->m_sync_man.init(this->size(), logi_device);
+
+        // Report result
+        {
+            auto msg = fmt::format("Swapchain created{{ res: {}x{}", this->extent().width, this->extent().height);
+
+            switch (this->m_image_format) {
+                case VK_FORMAT_B8G8R8A8_SRGB:
+                    msg += ", format: rgba8 srgb";
+                    break;
+                case VK_FORMAT_R8G8B8A8_UNORM:
+                    msg += ", format: rgba8 unorm";
+                    break;
+                default:
+                    msg += fmt::format(", format: unknown({})", static_cast<int>(this->m_image_format));
+                    break;
+            }
+
+            switch (present_mode) {
+                case VK_PRESENT_MODE_FIFO_KHR:
+                    msg += ", present_mode: fifo";
+                    break;
+                case VK_PRESENT_MODE_MAILBOX_KHR:
+                    msg += ", present_mode: mailbox";
+                    break;
+                case VK_PRESENT_MODE_IMMEDIATE_KHR:
+                    msg += ", present_mode: immediate";
+                    break;
+                default:
+                    msg += fmt::format(", mode: unknown({})", static_cast<int>(present_mode));
+                    break;
+            }
+
+            msg += " }";
+
+            dalInfo(msg.c_str());
+        }
     }
 
     void SwapchainManager::destroy(const VkDevice logi_device) {

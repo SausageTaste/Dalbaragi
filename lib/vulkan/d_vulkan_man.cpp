@@ -589,7 +589,6 @@ namespace dal {
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
-            dalInfo(fmt::format("Swapchain created: {} x {}", this->m_swapchain.width(), this->m_swapchain.height()).c_str());
 
             this->m_renderpasses.init({ this->m_swapchain.format() }, this->m_logi_device.get());
 
@@ -879,7 +878,7 @@ namespace dal {
             this->m_new_extent.width = width;
             this->m_new_extent.height = height;
 
-            dalInfo(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
+            dalVerbose(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
         }
 
     };
