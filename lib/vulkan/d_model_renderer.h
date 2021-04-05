@@ -16,12 +16,12 @@ namespace dal {
 
     private:
         std::vector<RenderUnit> m_units;
+        DescPool m_desc_pool;
 
     public:
         void init(
             const dal::ModelStatic& model_data,
             dal::CommandPool& cmd_pool,
-            dal::DescPool& desc_pool,
             const VkImageView albedo_map_view,
             const VkSampler sampler,
             const VkDescriptorSetLayout layout_per_material,

@@ -7,7 +7,6 @@ namespace dal {
     void ModelRenderer::init(
         const dal::ModelStatic& model_data,
         dal::CommandPool& cmd_pool,
-        dal::DescPool& desc_pool,
         const VkImageView albedo_map_view,
         const VkSampler sampler,
         const VkDescriptorSetLayout layout_per_material,
@@ -15,6 +14,16 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
+        this->destroy(logi_device);
+
+        this->m_desc_pool.init(
+            1 * model_data.m_units.size(),
+            1 * model_data.m_units.size(),
+            1,
+            1 * model_data.m_units.size(),
+            logi_device
+        );
+
         for (auto& unit_data : model_data.m_units) {
             auto& unit = this->m_units.emplace_back();
 
@@ -33,7 +42,7 @@ namespace dal {
             ubuf_data.m_metallic = unit_data.m_material.m_metallic;
             unit.m_ubuf.copy_to_buffer(ubuf_data, logi_device);
 
-            unit.m_desc_set = desc_pool.allocate(layout_per_material, logi_device);
+            unit.m_desc_set = this->m_desc_pool.allocate(layout_per_material, logi_device);
             unit.m_desc_set.record_material(
                 unit.m_ubuf,
                 albedo_map_view,
@@ -49,6 +58,7 @@ namespace dal {
             x.m_ubuf.destroy(logi_device);
         }
         this->m_units.clear();
+        this->m_desc_pool.destroy(logi_device);
     }
 
 }

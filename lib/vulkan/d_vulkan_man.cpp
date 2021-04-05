@@ -680,7 +680,6 @@ namespace dal {
                 model.init(
                     model_data.value(),
                     this->m_cmd_man.pool_single_time(),
-                    this->m_desc_man.pool(),
                     this->m_sample_tex_view.get(),
                     this->m_tex_sampler.get(),
                     this->m_desc_layout_man.layout_per_material(),
@@ -846,9 +845,6 @@ namespace dal {
                     this->m_phys_device.get(),
                     this->m_logi_device.get()
                 );
-            }
-            else {
-                dalInfo("No need to recreate attachments");
             }
 
             this->m_renderpasses.init(
