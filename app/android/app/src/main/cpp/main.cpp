@@ -4,9 +4,8 @@
 #include <android_native_app_glue.h>
 
 #include <d_logger.h>
-#include <d_vulkan_man.h>
 #include <d_vulkan_header.h>
-#include <d_filesystem.h>
+#include <d_engine.h>
 
 
 namespace {
@@ -80,28 +79,20 @@ namespace {
             return reinterpret_cast<void*>(surface);
         };
 
-        if (nullptr != state->userData) {
-            auto& engine = *reinterpret_cast<dal::VulkanState*>(state->userData);
+        dal::EngineCreateInfo engine_info;
+        engine_info.m_window_title = "Dalbrargi Android";
+        engine_info.m_init_width = ANativeWindow_getWidth(state->window);
+        engine_info.m_init_height = ANativeWindow_getHeight(state->window);
+        engine_info.m_asset_mgr = &g_asset_manager;
+        engine_info.m_extensions = instanceExt;
+        engine_info.m_surface_create_func = surface_creator;
 
-            engine.destroy();
-            engine.init(
-                "shit",
-                ANativeWindow_getWidth(state->window),
-                ANativeWindow_getHeight(state->window),
-                g_asset_manager,
-                instanceExt,
-                surface_creator
-            );
+        if (nullptr != state->userData) {
+            auto& engine = *reinterpret_cast<dal::Engine*>(state->userData);
+            engine.init(engine_info);
         }
         else {
-            state->userData = new dal::VulkanState(
-                "shit",
-                ANativeWindow_getWidth(state->window),
-                ANativeWindow_getHeight(state->window),
-                g_asset_manager,
-                instanceExt,
-                surface_creator
-            );
+            state->userData = new dal::Engine(engine_info);
         }
     }
 
@@ -109,7 +100,7 @@ namespace {
         if (nullptr == state->userData)
             return;
 
-        auto& engine = *reinterpret_cast<dal::VulkanState*>(state->userData);
+        auto& engine = *reinterpret_cast<dal::Engine*>(state->userData);
         const auto width  = state->contentRect.right  - state->contentRect.left;
         const auto height = state->contentRect.bottom - state->contentRect.top;
 
@@ -190,13 +181,13 @@ extern "C" {
             }
 
             if (nullptr != pApp->userData) {
-                auto &engine = *reinterpret_cast<dal::VulkanState *>(pApp->userData);
+                auto &engine = *reinterpret_cast<dal::Engine*>(pApp->userData);
                 engine.update();
             }
         } while (!pApp->destroyRequested);
 
         if (nullptr != pApp->userData) {
-            auto &engine = *reinterpret_cast<dal::VulkanState *>(pApp->userData);
+            auto &engine = *reinterpret_cast<dal::Engine*>(pApp->userData);
             engine.wait_device_idle();
         }
     }
