@@ -6,6 +6,7 @@
 #include <d_logger.h>
 #include <d_vulkan_header.h>
 #include <d_engine.h>
+#include <d_timer.h>
 
 
 namespace {
@@ -110,7 +111,84 @@ namespace {
 }
 
 
+namespace {
+
+    auto parse_pointer_index(AInputEvent* const event) {
+        return (AMotionEvent_getAction(event) & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+    }
+
+    auto determine_motion_action_type(AInputEvent* const event) {
+        const auto type = AMotionEvent_getAction(event) & AMOTION_EVENT_ACTION_MASK;
+
+        switch (type) {
+            case AMOTION_EVENT_ACTION_CANCEL:
+                return dal::TouchActionType::cancel;
+
+            case AMOTION_EVENT_ACTION_DOWN:
+            case AMOTION_EVENT_ACTION_POINTER_DOWN:
+                return dal::TouchActionType::down;
+            case AMOTION_EVENT_ACTION_UP:
+            case AMOTION_EVENT_ACTION_POINTER_UP:
+                return dal::TouchActionType::up;
+            case AMOTION_EVENT_ACTION_MOVE:
+                return dal::TouchActionType::move;
+
+            case AMOTION_EVENT_ACTION_HOVER_ENTER:
+                return dal::TouchActionType::hover_enter;
+            case AMOTION_EVENT_ACTION_HOVER_MOVE:
+                return dal::TouchActionType::hover_move;
+            case AMOTION_EVENT_ACTION_HOVER_EXIT:
+                return dal::TouchActionType::hover_exit;
+
+            default:
+                dalWarn(fmt::format("Unknown AMOTION_EVENT_ACTION: {}", type).c_str());
+                return dal::TouchActionType::cancel;
+        }
+    }
+
+    void handle_motion_event(AInputEvent* const event, dal::TouchInputManager& tm) {
+        const auto num_pointers = AMotionEvent_getPointerCount(event);
+        const auto pointer_index = ::parse_pointer_index(event);
+        const auto pointer_id = AMotionEvent_getPointerId(event, pointer_index);
+        const auto raw_x = AMotionEvent_getRawX(event, pointer_index);
+        const auto raw_y = AMotionEvent_getRawY(event, pointer_index);
+        const auto action_type = ::determine_motion_action_type(event);
+
+        dal::TouchEvent te;
+        te.m_id = pointer_id;
+        te.m_action_type = action_type;
+        te.m_time_sec = dal::get_cur_sec();
+        te.m_pos = glm::vec2{ raw_x, raw_y };
+
+        tm.push_back(te);
+    }
+
+}
+
+
 extern "C" {
+
+    int32_t handle_input(struct android_app* const state, AInputEvent* const event) {
+        if (nullptr == state->userData)
+            return 0;
+
+        auto &engine = *reinterpret_cast<dal::Engine*>(state->userData);
+        const auto event_type = AInputEvent_getType(event);
+
+        if (AINPUT_EVENT_TYPE_MOTION == event_type) {
+            ::handle_motion_event(event, engine.input_manager().touch_manager());
+        }
+        else if (AINPUT_EVENT_TYPE_KEY == event_type) {
+            dalInfo(fmt::format(
+                "Key event: action={}, key code={}, meta state={}",
+                AKeyEvent_getAction(event),
+                AKeyEvent_getKeyCode(event),
+                AKeyEvent_getMetaState(event)
+            ).c_str());
+        }
+
+        return 0;
+    }
 
     void handle_cmd(android_app* const state, const int32_t cmd) {
         switch (cmd) {
@@ -169,6 +247,7 @@ extern "C" {
 
     void android_main(struct android_app *pApp) {
         pApp->onAppCmd = handle_cmd;
+        pApp->onInputEvent = handle_input;
         dal::LoggerSingleton::inst().emplace_channel<LogChannel_Logcat>();
 
         int events;

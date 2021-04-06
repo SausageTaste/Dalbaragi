@@ -25,6 +25,9 @@ int main(int argc, char** argv) {
 
     dal::Engine engine{ engine_info };
     window.set_callback_fbuf_resize([&engine](int width, int height) { engine.on_screen_resize(width, height); });
+    window.set_callback_mouse_event([&engine](const dal::MouseEvent& e) {
+        engine.input_manager().touch_manager().push_back(static_cast<dal::TouchEvent>(e));
+    });
 
     dalInfo("Done init");
 

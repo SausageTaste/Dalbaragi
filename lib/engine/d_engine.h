@@ -1,6 +1,7 @@
 #pragma once
 
 #include "d_vulkan_man.h"
+#include "d_inputs.h"
 
 
 namespace dal {
@@ -21,6 +22,7 @@ namespace dal {
 
     private:
         dal::VulkanState m_vulkan_man;
+        InputManager m_input_man;
 
     public:
         Engine() = default;
@@ -40,6 +42,10 @@ namespace dal {
         void wait_device_idle() const;
 
         void on_screen_resize(const unsigned width, const unsigned height);
+
+        auto& input_manager() {
+            return this->m_input_man;
+        }
 
     };
 

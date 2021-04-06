@@ -49,6 +49,8 @@ namespace dal {
     }
 
     void Engine::update() {
+        this->input_manager().touch_manager().clear();
+
         this->m_vulkan_man.update();
     }
 

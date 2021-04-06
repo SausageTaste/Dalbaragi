@@ -5,6 +5,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include "d_timer.h"
+
 
 namespace {
 
@@ -35,12 +37,63 @@ namespace {
         return surface;
     }
 
+}
+
+
+namespace {
 
     std::function<void(int, int)> g_callback_func_buf_resize;
 
     static void callback_fbuf_resize(GLFWwindow* window, int width, int height) {
         if (g_callback_func_buf_resize)
             g_callback_func_buf_resize(width, height);
+    }
+
+
+    std::function<void(const dal::MouseEvent&)> g_callback_func_mouse_event;
+
+    void callback_cursor_pos(GLFWwindow* window, double xpos, double ypos) {
+        if (!g_callback_func_mouse_event)
+            return;
+
+        dal::MouseEvent e;
+        e.m_action_type = dal::MouseActionType::move;
+        e.m_time_sec = dal::get_cur_sec();
+        e.m_pos = glm::vec2{ xpos, ypos };
+
+        g_callback_func_mouse_event(e);
+    }
+
+    void callback_mouse_button(GLFWwindow* window, int button, int action, int mods) {
+        if (!g_callback_func_mouse_event)
+            return;
+
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+
+        dal::MouseEvent e;
+        e.m_time_sec = dal::get_cur_sec();
+        e.m_pos = glm::vec2{ xpos, ypos };
+
+        switch (button) {
+            case GLFW_MOUSE_BUTTON_LEFT:
+                e.m_button = dal::MouseButton::left;
+                break;
+            case GLFW_MOUSE_BUTTON_RIGHT:
+                e.m_button = dal::MouseButton::right;
+                break;
+        }
+
+        switch (action) {
+            case GLFW_PRESS:
+                e.m_action_type = dal::MouseActionType::down;
+                break;
+            case GLFW_RELEASE:
+                e.m_action_type = dal::MouseActionType::up;
+                break;
+        }
+
+        g_callback_func_mouse_event(e);
     }
 
 }
@@ -58,6 +111,8 @@ namespace dal {
         this->m_window = window;
 
         glfwSetFramebufferSizeCallback(window, ::callback_fbuf_resize);
+        glfwSetCursorPosCallback(window, ::callback_cursor_pos);
+        glfwSetMouseButtonCallback(window, ::callback_mouse_button);
     }
 
     WindowGLFW::~WindowGLFW() {
@@ -94,6 +149,10 @@ namespace dal {
 
     void WindowGLFW::set_callback_fbuf_resize(std::function<void(int, int)> func) {
         g_callback_func_buf_resize = func;
+    }
+
+    void WindowGLFW::set_callback_mouse_event(std::function<void(const dal::MouseEvent&)> func) {
+        g_callback_func_mouse_event = func;
     }
 
     uint32_t WindowGLFW::width() const {

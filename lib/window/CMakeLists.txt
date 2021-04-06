@@ -13,5 +13,5 @@ target_link_libraries(libdal_window
         Vulkan::Vulkan
 
     PUBLIC
-        libdal_vulkan
+        libdal_engine
 )
