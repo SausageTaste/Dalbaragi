@@ -58,6 +58,7 @@ endif()
 
 add_subdirectory(./util)
 add_subdirectory(./vulkan)
+add_subdirectory(./engine)
 
 
 if (WIN32)
