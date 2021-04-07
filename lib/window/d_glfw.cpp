@@ -161,6 +161,18 @@ namespace {
         e.m_time_sec = dal::get_cur_sec();
         e.m_key = ::map_glfw_key_id(key);
 
+        e.reset_modifier_states();
+        if (GLFW_MOD_SHIFT & mods)
+            e.set_modifier_state(dal::KeyModifier::shift, true);
+        if (GLFW_MOD_CONTROL & mods)
+            e.set_modifier_state(dal::KeyModifier::ctrl, true);
+        if (GLFW_MOD_ALT & mods)
+            e.set_modifier_state(dal::KeyModifier::alt, true);
+        if (GLFW_MOD_CAPS_LOCK & mods)
+            e.set_modifier_state(dal::KeyModifier::caps_lock, true);
+        if (GLFW_MOD_NUM_LOCK & mods)
+            e.set_modifier_state(dal::KeyModifier::num_lock, true);
+
         switch (action) {
             case GLFW_PRESS:
                 e.m_action_type = dal::KeyActionType::down;

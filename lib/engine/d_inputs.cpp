@@ -74,6 +74,38 @@ namespace dal {
 }
 
 
+// KeyEvent
+namespace dal {
+
+    const KeyEvent::bitset_modifier_t& KeyEvent::modifier_states() const {
+        return this->m_modifier;
+    }
+
+    bool KeyEvent::modifier_state(const KeyModifier modifier_code) const {
+        if (KeyModifier::none == modifier_code)
+            return this->are_no_mods_pressed();
+        else
+            return true == this->m_modifier[static_cast<int>(modifier_code) - 1];
+    }
+
+    void KeyEvent::set_modifier_state(const KeyModifier modifier_code, const bool pressed_state) {
+        if (KeyModifier::none == modifier_code)
+            return;
+        else
+            this->m_modifier[static_cast<int>(modifier_code) - 1] = pressed_state;
+    }
+
+    void KeyEvent::reset_modifier_states() {
+        this->m_modifier.reset();
+    }
+
+    bool KeyEvent::are_no_mods_pressed() const {
+        return 0 == this->m_modifier.count();
+    }
+
+}
+
+
 namespace dal {
 
     bool TouchInputManager::push_back(const TouchEvent& e) {
@@ -104,14 +136,15 @@ namespace dal {
             key_str = "unkown";
         }
         else {
-            const auto c = encode_key_to_ascii(e.m_key, false);
+            const auto c = encode_key_to_ascii(e.m_key, e.modifier_state(KeyModifier::shift));
             key_str = ('\0' == c) ? std::to_string(static_cast<int>(e.m_key)) : fmt::format("\"{}\"", c);
         }
 
         dalInfo(fmt::format(
-            "Touch Event{{ type={}, key={}, time={} }}",
+            "Touch Event{{ type={}, key={}, modifier={}, time={} }}",
             static_cast<int>(e.m_action_type),
             key_str,
+            e.modifier_states().to_string(),
             e.m_time_sec
         ).c_str());
 

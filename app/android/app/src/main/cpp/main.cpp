@@ -222,13 +222,25 @@ namespace {
         const auto key_code = AKeyEvent_getKeyCode(event);
         const auto meta_state = AKeyEvent_getMetaState(event);
 
-        dal::KeyEvent e{};
+        dal::KeyEvent e;
         e.m_time_sec = dal::get_cur_sec();
         e.m_key = ::map_android_key_code(key_code);
 
         if (dal::KeyCode::unknown == e.m_key) {
             dalWarn(fmt::format("Unknown android key code: {}", key_code).c_str())
         }
+
+        e.reset_modifier_states();
+        if (AMETA_SHIFT_ON & meta_state)
+            e.set_modifier_state(dal::KeyModifier::shift, true);
+        if (AMETA_CTRL_ON & meta_state)
+            e.set_modifier_state(dal::KeyModifier::ctrl, true);
+        if (AMETA_ALT_ON & meta_state)
+            e.set_modifier_state(dal::KeyModifier::alt, true);
+        if (AMETA_CAPS_LOCK_ON & meta_state)
+            e.set_modifier_state(dal::KeyModifier::caps_lock, true);
+        if (AMETA_NUM_LOCK_ON & meta_state)
+            e.set_modifier_state(dal::KeyModifier::num_lock, true);
 
         switch (action) {
             case AKEY_EVENT_ACTION_DOWN:
