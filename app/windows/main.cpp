@@ -28,6 +28,9 @@ int main(int argc, char** argv) {
     window.set_callback_mouse_event([&engine](const dal::MouseEvent& e) {
         engine.input_manager().touch_manager().push_back(static_cast<dal::TouchEvent>(e));
     });
+    window.set_callback_key_event([&engine](const dal::KeyEvent& e) {
+        engine.input_manager().key_manager().push_back(e);
+    });
 
     dalInfo("Done init");
 

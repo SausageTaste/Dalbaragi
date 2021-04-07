@@ -26,6 +26,7 @@ namespace dal {
 
         void set_callback_fbuf_resize(std::function<void(int, int)> func);
         void set_callback_mouse_event(std::function<void(const dal::MouseEvent&)> func);
+        void set_callback_key_event(std::function<void(const dal::KeyEvent&)> func);
 
         auto& title() const {
             return this->m_title;

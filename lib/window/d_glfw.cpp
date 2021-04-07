@@ -4,8 +4,10 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <fmt/format.h>
 
 #include "d_timer.h"
+#include "d_logger.h"
 
 
 namespace {
@@ -96,6 +98,86 @@ namespace {
         g_callback_func_mouse_event(e);
     }
 
+
+    std::function<void(const dal::KeyEvent&)> g_callback_func_key_event;
+
+    dal::KeyCode map_glfw_key_id(const int glfw_key) {
+        if (GLFW_KEY_A <= glfw_key && glfw_key <= GLFW_KEY_Z) {
+            auto index = glfw_key - GLFW_KEY_A + static_cast<int>(dal::KeyCode::a);
+            return static_cast<dal::KeyCode>(index);
+        }
+        else if (GLFW_KEY_0 <= glfw_key && glfw_key <= GLFW_KEY_9) {
+            auto index = glfw_key - GLFW_KEY_0 + static_cast<int>(dal::KeyCode::n0);
+            return static_cast<dal::KeyCode>(index);
+        }
+        else {
+            static const std::unordered_map<int, dal::KeyCode> map{
+                {GLFW_KEY_GRAVE_ACCENT,  dal::KeyCode::backquote},
+                {GLFW_KEY_MINUS,         dal::KeyCode::minus},
+                {GLFW_KEY_EQUAL,         dal::KeyCode::equal},
+                {GLFW_KEY_LEFT_BRACKET,  dal::KeyCode::lbracket},
+                {GLFW_KEY_RIGHT_BRACKET, dal::KeyCode::rbracket},
+                {GLFW_KEY_BACKSLASH,     dal::KeyCode::backslash},
+                {GLFW_KEY_SEMICOLON,     dal::KeyCode::semicolon},
+                {GLFW_KEY_APOSTROPHE,    dal::KeyCode::quote},
+                {GLFW_KEY_COMMA,         dal::KeyCode::comma},
+                {GLFW_KEY_PERIOD,        dal::KeyCode::period},
+                {GLFW_KEY_SLASH,         dal::KeyCode::slash},
+
+                {GLFW_KEY_SPACE,         dal::KeyCode::space},
+                {GLFW_KEY_ENTER,         dal::KeyCode::enter},
+                {GLFW_KEY_BACKSPACE,     dal::KeyCode::backspace},
+                {GLFW_KEY_TAB,           dal::KeyCode::tab},
+
+                {GLFW_KEY_ESCAPE,        dal::KeyCode::escape},
+                {GLFW_KEY_LEFT_SHIFT,    dal::KeyCode::lshfit},
+                {GLFW_KEY_RIGHT_SHIFT,   dal::KeyCode::rshfit},
+                {GLFW_KEY_LEFT_CONTROL,  dal::KeyCode::lctrl},
+                {GLFW_KEY_RIGHT_CONTROL, dal::KeyCode::rctrl},
+                {GLFW_KEY_LEFT_ALT,      dal::KeyCode::lalt},
+                {GLFW_KEY_RIGHT_ALT,     dal::KeyCode::ralt},
+                {GLFW_KEY_UP,            dal::KeyCode::up},
+                {GLFW_KEY_DOWN,          dal::KeyCode::down},
+                {GLFW_KEY_LEFT,          dal::KeyCode::left},
+                {GLFW_KEY_RIGHT,         dal::KeyCode::right},
+            };
+
+            const auto res = map.find(glfw_key);
+            if (res == map.end()) {
+                return dal::KeyCode::unknown;
+            }
+            else {
+                return res->second;
+            }
+        }
+    }
+
+    void callback_key_event(GLFWwindow* window, int key, int scancode, int action, int mods) {
+        if (!g_callback_func_key_event)
+            return;
+
+        dal::KeyEvent e;
+
+        e.m_time_sec = dal::get_cur_sec();
+        e.m_key = ::map_glfw_key_id(key);
+
+        switch (action) {
+            case GLFW_PRESS:
+                e.m_action_type = dal::KeyActionType::down;
+                break;
+            case GLFW_REPEAT:
+                e.m_action_type = dal::KeyActionType::down;
+                break;
+            case GLFW_RELEASE:
+                e.m_action_type = dal::KeyActionType::up;
+                break;
+            default:
+                dalWarn(fmt::format("Unknown key action type: {}", action).c_str());
+        }
+
+        g_callback_func_key_event(e);
+    }
+
 }
 
 
@@ -113,6 +195,7 @@ namespace dal {
         glfwSetFramebufferSizeCallback(window, ::callback_fbuf_resize);
         glfwSetCursorPosCallback(window, ::callback_cursor_pos);
         glfwSetMouseButtonCallback(window, ::callback_mouse_button);
+        glfwSetKeyCallback(window, ::callback_key_event);
     }
 
     WindowGLFW::~WindowGLFW() {
@@ -153,6 +236,10 @@ namespace dal {
 
     void WindowGLFW::set_callback_mouse_event(std::function<void(const dal::MouseEvent&)> func) {
         g_callback_func_mouse_event = func;
+    }
+
+    void WindowGLFW::set_callback_key_event(std::function<void(const dal::KeyEvent&)> func) {
+        g_callback_func_key_event = func;
     }
 
     uint32_t WindowGLFW::width() const {

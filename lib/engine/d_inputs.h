@@ -92,6 +92,26 @@ namespace dal {
         operator TouchEvent() const;
     };
 
+
+    enum class KeyActionType { down, up };
+
+    enum class KeyCode {
+        a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z,
+        n0, n1, n2, n3, n4, n5, n6, n7, n8, n9,  // Horizontal numbers
+        backquote, minus, equal, lbracket, rbracket, backslash, semicolon, quote, comma, period, slash,
+        space, enter, backspace, tab,
+        escape, lshfit, rshfit, lctrl, rctrl, lalt, ralt, up, down, left, right,
+        unknown,
+    };
+
+    char encode_key_to_ascii(const dal::KeyCode key, const bool shift_pressed);
+
+    struct KeyEvent {
+        KeyCode m_key;
+        KeyActionType m_action_type;
+        double m_time_sec;
+    };
+
 }
 
 
@@ -110,14 +130,32 @@ namespace dal {
     };
 
 
+    class KeyInputManager {
+
+    private:
+        ResetQueue<KeyEvent, 128> m_queue;
+
+    public:
+        bool push_back(const KeyEvent& e);
+
+        void clear();
+
+    };
+
+
     class InputManager {
 
     private:
         TouchInputManager m_touch_man;
+        KeyInputManager m_key_man;
 
     public:
         auto& touch_manager() {
             return this->m_touch_man;
+        }
+
+        auto& key_manager() {
+            return this->m_key_man;
         }
 
     };
