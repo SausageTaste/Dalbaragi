@@ -737,14 +737,8 @@ namespace dal {
 
             U_PerFrame ubuf_data_per_frame;
             ubuf_data_per_frame.m_view = camera.make_view_mat();
-            ubuf_data_per_frame.m_proj = this->m_swapchain.pre_ratation_mat() * ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 45);
+            ubuf_data_per_frame.m_proj = this->m_swapchain.pre_ratation_mat() * ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
             this->m_ubufs_simple.at(img_index).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
-
-            U_PerActor ubuf_data_per_actor;
-            ubuf_data_per_actor.m_model = glm::translate(glm::mat4{1}, glm::vec3{std::cos(cur_sec), 0, std::sin(cur_sec)}) *
-                                            glm::rotate<float>(glm::mat4{1}, -cur_sec, glm::vec3{0, 1, 0}) *
-                                            glm::scale(glm::mat4{1}, glm::vec3{0.3});
-            this->m_models.at(0).ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
 
             //-----------------------------------------------------------------------------------------------------
 
@@ -899,18 +893,22 @@ namespace dal {
                     this->m_phys_device.get(),
                     this->m_logi_device.get()
                 );
+
+                U_PerActor ubuf_data_per_actor;
+                ubuf_data_per_actor.m_model = glm::scale(glm::mat4{1}, glm::vec3{0.3});
+                this->m_models.at(0).ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
+
             }
 
-            // Floor
+            // Sponza
             {
-                ModelStatic model_data;
-                auto& unit = model_data.m_units.emplace_back();
-                make_static_mesh_aabb(unit, glm::vec3{-5, -5, 0}, glm::vec3{5, 5, 1}, glm::vec2{10, 10});
-                unit.m_material.m_albedo_map = "0021di.png";
+                auto file = this->m_asset_man.open("model/sponza.dmd");
+                const auto model_content = file->read_stl<std::vector<uint8_t>>();
+                const auto model_data = parse_model_dmd(model_content->data(), model_content->size());
 
                 auto& model = this->m_models.emplace_back();
                 model.init(
-                    model_data,
+                    model_data.value(),
                     this->m_cmd_man.pool_single_time(),
                     this->m_tex_man,
                     this->m_desc_layout_man.layout_per_material(),
@@ -921,9 +919,10 @@ namespace dal {
                 );
 
                 U_PerActor ubuf_data_per_actor;
-                ubuf_data_per_actor.m_model = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{1, 0, 0});;
+                ubuf_data_per_actor.m_model = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{1, 0, 0}) * glm::scale(glm::mat4{1}, glm::vec3{0.01});;
                 model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
             }
+
         }
 
     };

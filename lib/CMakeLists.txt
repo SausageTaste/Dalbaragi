@@ -12,15 +12,15 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-  fetch_glfw
-  GIT_REPOSITORY https://github.com/glfw/glfw
-  GIT_TAG        3.3.2
+    fetch_glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw
+    GIT_TAG        3.3.2
 )
 
 FetchContent_Declare(
-  fetch_glm
-  GIT_REPOSITORY https://github.com/g-truc/glm
-  GIT_TAG        0.9.9.8
+    fetch_glm
+    GIT_REPOSITORY https://github.com/g-truc/glm
+    GIT_TAG        0.9.9.8
 )
 
 FetchContent_Declare(
@@ -32,9 +32,9 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-  fetch_dal_blender
-  GIT_REPOSITORY https://github.com/SausageTaste/io_scene_dalbaragi
-  GIT_TAG        master
+    fetch_dal_blender
+    GIT_REPOSITORY https://github.com/SausageTaste/io_scene_dalbaragi
+    GIT_TAG        master
 )
 
 

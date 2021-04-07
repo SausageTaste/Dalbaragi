@@ -11,11 +11,12 @@ namespace dal {
 
     bool parse_model_dmd(ModelStatic& output, const uint8_t* const data, const size_t data_size) {
         const auto model_data = parser::parse_model_straight(data, data_size);
-        if (!model_data) {
+        if (!model_data)
             return false;
-        }
 
-        for (const auto& x : model_data->m_render_units) {
+        const auto model_merged = parser::merge_by_material(model_data.value());
+
+        for (const auto& x : model_merged.m_render_units) {
             assert(x.m_mesh.m_vertices.size() % 9 == 0);
 
             const auto indexed_mesh = parser::convert_to_indexed(x.m_mesh);
