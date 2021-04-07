@@ -105,6 +105,7 @@ namespace dal {
         backquote, minus, equal, lbracket, rbracket, backslash, semicolon, quote, comma, period, slash,
         space, enter, backspace, tab,
         escape, lshfit, rshfit, lctrl, rctrl, lalt, ralt, up, down, left, right,
+        eoe
     };
 
     char encode_key_to_ascii(const dal::KeyCode key, const bool shift_pressed);
@@ -147,20 +148,41 @@ namespace dal {
     public:
         bool push_back(const TouchEvent& e);
 
-        void clear();
+        auto& queue() {
+            return this->m_queue;
+        }
+        auto& queue() const {
+            return this->m_queue;
+        }
 
     };
 
 
     class KeyInputManager {
 
+    public:
+        struct KeyState {
+            double m_last_updated_sec = 0;
+            bool m_pressed = false;
+        };
+
     private:
         ResetQueue<KeyEvent, 128> m_queue;
+        std::array<KeyState, static_cast<size_t>(KeyCode::eoe)> m_key_states;
 
     public:
         bool push_back(const KeyEvent& e);
 
-        void clear();
+        auto& queue() {
+            return this->m_queue;
+        }
+        auto& queue() const {
+            return this->m_queue;
+        }
+
+        auto& key_state_of(const KeyCode key_code) const {
+            return this->m_key_states[static_cast<size_t>(key_code)];
+        }
 
     };
 

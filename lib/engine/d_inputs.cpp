@@ -122,37 +122,44 @@ namespace dal {
         return this->m_queue.push_back(e);
     }
 
-    void TouchInputManager::clear() {
-        this->m_queue.clear();
-    }
-
 }
 
 namespace dal {
 
     bool KeyInputManager::push_back(const KeyEvent& e) {
-        std::string key_str;
-        if (KeyCode::unknown == e.m_key) {
-            key_str = "unkown";
-        }
-        else {
-            const auto c = encode_key_to_ascii(e.m_key, e.modifier_state(KeyModifier::shift));
-            key_str = ('\0' == c) ? std::to_string(static_cast<int>(e.m_key)) : fmt::format("\"{}\"", c);
+        // Print
+        {
+            std::string key_str;
+            if (KeyCode::unknown == e.m_key) {
+                key_str = "unkown";
+            }
+            else {
+                const auto c = encode_key_to_ascii(e.m_key, e.modifier_state(KeyModifier::shift));
+                key_str = ('\0' == c) ? std::to_string(static_cast<int>(e.m_key)) : fmt::format("\"{}\"", c);
+            }
+
+            dalInfo(fmt::format(
+                "Touch Event{{ type={}, key={}, modifier={}, time={} }}",
+                static_cast<int>(e.m_action_type),
+                key_str,
+                e.modifier_states().to_string(),
+                e.m_time_sec
+            ).c_str());
         }
 
-        dalInfo(fmt::format(
-            "Touch Event{{ type={}, key={}, modifier={}, time={} }}",
-            static_cast<int>(e.m_action_type),
-            key_str,
-            e.modifier_states().to_string(),
-            e.m_time_sec
-        ).c_str());
+        auto& state = this->m_key_states[static_cast<size_t>(e.m_key)];
+        state.m_last_updated_sec = e.m_time_sec;
+
+        switch (e.m_action_type) {
+            case KeyActionType::down:
+                state.m_pressed = true;
+                break;
+            case KeyActionType::up:
+                state.m_pressed = false;
+                break;
+        }
 
         return this->m_queue.push_back(e);
-    }
-
-    void KeyInputManager::clear() {
-        this->m_queue.clear();
     }
 
 }

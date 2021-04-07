@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "d_filesystem.h"
+#include "d_actor.h"
 
 
 namespace dal {
@@ -30,7 +31,7 @@ namespace dal {
 
         void destroy();
 
-        void update();
+        void update(const EulerCamera& camera);
 
         void wait_device_idle() const;
 

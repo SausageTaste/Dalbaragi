@@ -2,6 +2,8 @@
 
 #include "d_vulkan_man.h"
 #include "d_inputs.h"
+#include "d_actor.h"
+#include "d_timer.h"
 
 
 namespace dal {
@@ -23,6 +25,9 @@ namespace dal {
     private:
         dal::VulkanState m_vulkan_man;
         InputManager m_input_man;
+
+        EulerCamera m_camera;
+        Timer m_timer;
 
     public:
         Engine() = default;

@@ -3,6 +3,57 @@
 #include "d_logger.h"
 
 
+namespace {
+
+    auto make_move_direc(const dal::KeyInputManager& im) {
+        glm::vec3 result{ 0, 0, 0 };
+
+        if (im.key_state_of(dal::KeyCode::a).m_pressed) {
+            result.x -= 1;
+        }
+        if (im.key_state_of(dal::KeyCode::d).m_pressed) {
+            result.x += 1;
+        }
+        if (im.key_state_of(dal::KeyCode::w).m_pressed) {
+            result.z -= 1;
+        }
+        if (im.key_state_of(dal::KeyCode::s).m_pressed) {
+            result.z += 1;
+        }
+
+        if (im.key_state_of(dal::KeyCode::space).m_pressed) {
+            result.y += 1;
+        }
+        if (im.key_state_of(dal::KeyCode::lctrl).m_pressed) {
+            result.y -= 1;
+        }
+
+        return result;
+    }
+
+    auto make_rotation_angles(const dal::KeyInputManager& im) {
+        glm::vec2 result{ 0, 0 };
+
+        if (im.key_state_of(dal::KeyCode::left).m_pressed) {
+            result.y += 1;
+        }
+        if (im.key_state_of(dal::KeyCode::right).m_pressed) {
+            result.y -= 1;
+        }
+
+        if (im.key_state_of(dal::KeyCode::up).m_pressed) {
+            result.x += 1;
+        }
+        if (im.key_state_of(dal::KeyCode::down).m_pressed) {
+            result.x -= 1;
+        }
+
+        return result;
+    }
+
+}
+
+
 namespace dal {
 
     bool EngineCreateInfo::check_validity() const {
@@ -42,6 +93,11 @@ namespace dal {
             create_info.m_extensions,
             create_info.m_surface_create_func
         );
+
+        this->m_camera.m_pos = {0, 2, 3};
+        this->m_camera.m_rotations = {glm::radians<float>(-30), 0, 0};
+
+        this->m_timer.check();
     }
 
     void Engine::destroy() {
@@ -49,9 +105,26 @@ namespace dal {
     }
 
     void Engine::update() {
-        this->input_manager().touch_manager().clear();
+        const auto delta_time = this->m_timer.check_get_elapsed();
 
-        this->m_vulkan_man.update();
+        // Process inputs
+        {
+            constexpr float MOVE_SPEED = 2;
+
+            const auto move_vec = ::make_move_direc(this->input_manager().key_manager());
+            this->m_camera.move_horizontal(MOVE_SPEED * move_vec.x * delta_time, MOVE_SPEED * move_vec.z * delta_time);
+            this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time;
+
+            const auto rotation_angles = ::make_rotation_angles(this->input_manager().key_manager());
+            this->m_camera.m_rotations.x += rotation_angles.x * delta_time;
+            this->m_camera.m_rotations.y += rotation_angles.y * delta_time;
+
+            this->input_manager().touch_manager().queue().clear();
+            this->input_manager().key_manager().queue().clear();
+        }
+
+
+        this->m_vulkan_man.update(this->m_camera);
     }
 
     void Engine::wait_device_idle() const {
