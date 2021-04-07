@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include <jni.h>
 #include <fmt/format.h>
 #include <android/log.h>
@@ -163,6 +165,86 @@ namespace {
         tm.push_back(te);
     }
 
+
+    dal::KeyCode map_android_key_code(const int key_code) {
+        if (AKEYCODE_A <= key_code && key_code <= AKEYCODE_Z) {
+            auto index = key_code - AKEYCODE_A + static_cast<int>(dal::KeyCode::a);
+            return static_cast<dal::KeyCode>(index);
+        }
+        else if (AKEYCODE_0 <= key_code && key_code <= AKEYCODE_9) {
+            auto index = key_code - AKEYCODE_0 + static_cast<int>(dal::KeyCode::n0);
+            return static_cast<dal::KeyCode>(index);
+        }
+        else {
+            static const std::unordered_map<int, dal::KeyCode> map{
+                {AKEYCODE_GRAVE,  dal::KeyCode::backquote},
+                {AKEYCODE_MINUS,         dal::KeyCode::minus},
+                {AKEYCODE_EQUALS,         dal::KeyCode::equal},
+                {AKEYCODE_LEFT_BRACKET,  dal::KeyCode::lbracket},
+                {AKEYCODE_RIGHT_BRACKET, dal::KeyCode::rbracket},
+                {AKEYCODE_BACKSLASH,     dal::KeyCode::backslash},
+                {AKEYCODE_SEMICOLON,     dal::KeyCode::semicolon},
+                {AKEYCODE_APOSTROPHE,    dal::KeyCode::quote},
+                {AKEYCODE_COMMA,         dal::KeyCode::comma},
+                {AKEYCODE_PERIOD,        dal::KeyCode::period},
+                {AKEYCODE_SLASH,         dal::KeyCode::slash},
+
+                {AKEYCODE_SPACE,         dal::KeyCode::space},
+                {AKEYCODE_ENTER,         dal::KeyCode::enter},
+                {AKEYCODE_DEL,     dal::KeyCode::backspace},
+                {AKEYCODE_TAB,           dal::KeyCode::tab},
+
+                {AKEYCODE_ESCAPE,        dal::KeyCode::escape},
+                {AKEYCODE_SHIFT_LEFT,    dal::KeyCode::lshfit},
+                {AKEYCODE_SHIFT_RIGHT,   dal::KeyCode::rshfit},
+                {AKEYCODE_CTRL_LEFT,  dal::KeyCode::lctrl},
+                {AKEYCODE_CTRL_RIGHT, dal::KeyCode::rctrl},
+                {AKEYCODE_ALT_LEFT,      dal::KeyCode::lalt},
+                {AKEYCODE_ALT_RIGHT,     dal::KeyCode::ralt},
+                {AKEYCODE_DPAD_UP,            dal::KeyCode::up},
+                {AKEYCODE_DPAD_DOWN,          dal::KeyCode::down},
+                {AKEYCODE_DPAD_LEFT,          dal::KeyCode::left},
+                {AKEYCODE_DPAD_RIGHT,         dal::KeyCode::right},
+            };
+
+            const auto res = map.find(key_code);
+            if (res == map.end()) {
+                return dal::KeyCode::unknown;
+            }
+            else {
+                return res->second;
+            }
+        }
+    }
+
+    void handle_key_event(AInputEvent* const event, dal::KeyInputManager& km) {
+        const auto action = AKeyEvent_getAction(event);
+        const auto key_code = AKeyEvent_getKeyCode(event);
+        const auto meta_state = AKeyEvent_getMetaState(event);
+
+        dal::KeyEvent e{};
+        e.m_time_sec = dal::get_cur_sec();
+        e.m_key = ::map_android_key_code(key_code);
+
+        if (dal::KeyCode::unknown == e.m_key) {
+            dalWarn(fmt::format("Unknown android key code: {}", key_code).c_str())
+        }
+
+        switch (action) {
+            case AKEY_EVENT_ACTION_DOWN:
+                e.m_action_type = dal::KeyActionType::down;
+                break;
+            case AKEY_EVENT_ACTION_UP:
+                e.m_action_type = dal::KeyActionType::up;
+                break;
+            default:
+                dalWarn(fmt::format("Unknown android key action: {}", action).c_str());
+                break;
+        }
+
+        km.push_back(e);
+    }
+
 }
 
 
@@ -179,12 +261,7 @@ extern "C" {
             ::handle_motion_event(event, engine.input_manager().touch_manager());
         }
         else if (AINPUT_EVENT_TYPE_KEY == event_type) {
-            dalInfo(fmt::format(
-                "Key event: action={}, key code={}, meta state={}",
-                AKeyEvent_getAction(event),
-                AKeyEvent_getKeyCode(event),
-                AKeyEvent_getMetaState(event)
-            ).c_str());
+            ::handle_key_event(event, engine.input_manager().key_manager());
         }
 
         return 0;
