@@ -25,6 +25,10 @@ namespace {
 
 namespace dal {
 
+    void critical_exit() {
+        std::exit(EXIT_FAILURE);
+    }
+
     std::shared_ptr<ILogChannel> get_log_channel_cout() {
         return std::shared_ptr<ILogChannel>{ new LogChannel_COUT };
     }
