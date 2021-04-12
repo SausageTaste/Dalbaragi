@@ -1,9 +1,10 @@
 #include "d_task_thread.h"
 
-
 #include "d_timer.h"
 #include "d_logger.h"
 
+
+#ifdef DAL_MULTITHREADING
 
 //TaskManager :: TaskQueue
 namespace dal {
@@ -76,6 +77,7 @@ namespace dal {
 }
 
 
+
 namespace dal {
 
     class TaskManager::Worker {
@@ -144,10 +146,14 @@ namespace dal {
 
 }
 
+#endif
+
 
 namespace dal {
 
      TaskManager::TaskManager(const size_t thread_count) {
+
+#ifdef DAL_MULTITHREADING
         this->m_workers.reserve(thread_count);
         this->m_threads.reserve(thread_count);
 
@@ -158,9 +164,13 @@ namespace dal {
         for (auto& worker : this->m_workers) {
             this->m_threads.emplace_back(std::ref(worker));
         }
+#endif
+
     }
 
     TaskManager::~TaskManager(void) {
+
+#ifdef DAL_MULTITHREADING
         for (auto& worker : this->m_workers) {
             worker.order_to_get_terminated();
         }
@@ -168,9 +178,13 @@ namespace dal {
         for (auto& thread : this->m_threads) {
             thread.join();
         }
+#endif
+
     }
 
     void TaskManager::update(void) {
+
+#ifdef DAL_MULTITHREADING
         auto task = this->m_done_queue.pop();
         if (nullptr == task) {
             return;
@@ -181,11 +195,22 @@ namespace dal {
             listener->notify_task_done(std::move(task));
             return;
         }
+#endif
+
     }
 
     void TaskManager::order_task(std::unique_ptr<ITask> task, ITaskListener* const client) {
+
+#ifdef DAL_MULTITHREADING
         this->m_registry.registerTask(task.get(), client);
         this->m_wait_queue.push(std::move(task));
+#else
+        task->run();
+        if (nullptr != client) {
+            client->notify_task_done(std::move(task));
+        }
+#endif
+
     }
 
 }

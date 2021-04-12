@@ -9,6 +9,9 @@
 #include <unordered_set>
 
 
+#define DAL_MULTITHREADING
+
+
 namespace dal {
 
     class ITask {
@@ -33,6 +36,7 @@ namespace dal {
 
     class TaskManager {
 
+#ifdef DAL_MULTITHREADING
     private:
         class Worker;
 
@@ -74,6 +78,7 @@ namespace dal {
 
         TaskQueue m_wait_queue, m_done_queue;
         TaskRegistry m_registry;
+#endif
 
     public:
         TaskManager(const TaskManager&) = delete;

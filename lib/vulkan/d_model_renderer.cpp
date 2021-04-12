@@ -161,13 +161,7 @@ namespace dal {
 
             std::unique_ptr<dal::ITask> task{ new ::Task_LoadModel(respath, *this->m_filesys) };
             this->m_sent_task[task.get()] = &model;
-
-//*
             this->m_task_man->order_task(std::move(task), this);
-/*/
-            reinterpret_cast<::Task_LoadModel*>(task.get())->run();
-            this->notify_task_done(std::move(task));
-//*/
 
             return model;
         }
