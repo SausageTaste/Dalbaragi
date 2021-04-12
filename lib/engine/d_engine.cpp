@@ -102,6 +102,7 @@ namespace dal {
     }
 
     void Engine::destroy() {
+        this->m_task_man.terminate_join();
         this->m_vulkan_man.destroy();
     }
 

@@ -169,17 +169,7 @@ namespace dal {
     }
 
     TaskManager::~TaskManager(void) {
-
-#ifdef DAL_MULTITHREADING
-        for (auto& worker : this->m_workers) {
-            worker.order_to_get_terminated();
-        }
-
-        for (auto& thread : this->m_threads) {
-            thread.join();
-        }
-#endif
-
+        this->terminate_join();
     }
 
     void TaskManager::update(void) {
@@ -194,6 +184,21 @@ namespace dal {
         if (nullptr != listener) {
             listener->notify_task_done(std::move(task));
             return;
+        }
+#endif
+
+    }
+
+    void TaskManager::terminate_join() {
+
+#ifdef DAL_MULTITHREADING
+        for (auto& worker : this->m_workers) {
+            worker.order_to_get_terminated();
+        }
+
+        for (auto& thread : this->m_threads) {
+            if (thread.joinable())
+                thread.join();
         }
 #endif
 

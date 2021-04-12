@@ -93,6 +93,8 @@ namespace dal {
 
         void update();
 
+        void terminate_join();
+
         // If client is null, there will be no notification and ITask object will be deleted.
         void order_task(std::unique_ptr<ITask> task, ITaskListener* const client);
 
