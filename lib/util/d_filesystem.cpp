@@ -3,10 +3,6 @@
 #include <array>
 #include <fstream>
 
-#include <fmt/format.h>
-
-#include "d_logger.h"
-
 #if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
     #include <filesystem>
 
@@ -252,7 +248,7 @@ namespace desktop {
             cur_dir /= "..";
         }
 
-        dalAbort("Failed to find resource asset");
+        return {};
     }
 
     std::filesystem::path get_asset_dir() {
