@@ -334,9 +334,6 @@ namespace android {
             }
 
             this->m_fileSize = static_cast<size_t>(AAsset_getLength64(this->m_asset));
-            if ( this->m_fileSize <= 0 ) {
-                dalWarn(("File contents' length is 0 for: "s + path).c_str());
-            }
 
             return true;
         }
@@ -358,15 +355,12 @@ namespace android {
 
             const auto readBytes = AAsset_read(this->m_asset, dst, sizeToRead);
             if ( readBytes < 0 ) {
-                dalError("Failed to read asset.");
                 return false;
             }
             else if ( 0 == readBytes ) {
-                dalError("Tried to read after end of asset.");
                 return false;
             }
             else {
-                dalAssert(readBytes == sizeToRead);
                 return true;
             }
         }
@@ -658,10 +652,10 @@ namespace {
             return std::nullopt;
 
         for (auto& folder0 : g_asset_folders.list_folder(domain_dir.c_str())) {
-            const auto entry0 = fmt::format("{}/{}", domain_dir, folder0);
+            const auto entry0 = ::join_path({ domain_dir, folder0 }, '/');
             for (auto& folder1 : g_asset_folders.list_folder(entry0.c_str())) {
                 if (folder1 == entry_to_find) {
-                    return fmt::format("{}/{}", entry0, folder1);
+                    return ::join_path({ entry0, folder1 }, '/');
                 }
             }
         }
@@ -736,7 +730,6 @@ namespace dal::filesystem {
         ::desktop::listfile_asset((*asset_dir / asset_path).string().c_str(), result);
 
 #elif defined(DAL_OS_ANDROID)
-        dalAssert(nullptr != this->m_ptr_asset_manager);
         ::android::listfile_asset(asset_path.c_str(), result, this->m_ptr_asset_manager);
 
 #endif
