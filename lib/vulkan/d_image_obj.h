@@ -123,7 +123,7 @@ namespace dal {
         std::unordered_map<std::string, TextureUnit> m_textures;
         Sampler m_tex_sampler;
 
-        filesystem::AssetManager* m_asset_man = nullptr;
+        Filesystem* m_filesys = nullptr;
         CommandPool* m_cmd_pool = nullptr;
         VkQueue m_graphics_queue = VK_NULL_HANDLE;
         VkPhysicalDevice m_phys_device = VK_NULL_HANDLE;
@@ -131,7 +131,7 @@ namespace dal {
 
     public:
         void init(
-            dal::filesystem::AssetManager& asset_man,
+            dal::Filesystem& filesys,
             CommandPool& cmd_pool,
             const bool enable_anisotropy,
             const VkQueue m_graphics_queue,
@@ -141,7 +141,9 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        const TextureUnit& request_asset_tex(const dal::filesystem::ResPath& path);
+        const TextureUnit& request_asset_tex(const dal::ResPath& path);
+
+        const TextureUnit& get_missing_tex();
 
         auto& sampler_tex() const {
             return this->m_tex_sampler;

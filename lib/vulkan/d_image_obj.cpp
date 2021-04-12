@@ -12,6 +12,13 @@
 
 namespace {
 
+    constexpr char* const MISSING_TEX_PATH = "_asset/image/missing_tex.png";
+
+}
+
+
+namespace {
+
     VkFormat map_to_vk_format(const dal::ImageFormat format) {
         switch (format) {
             case dal::ImageFormat::r8g8b8a8_srgb:
@@ -427,14 +434,14 @@ namespace dal {
 namespace dal {
 
     void TextureManager::init(
-        dal::filesystem::AssetManager& asset_man,
+        dal::Filesystem& filesys,
         CommandPool& cmd_pool,
         const bool enable_anisotropy,
         const VkQueue m_graphics_queue,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->m_asset_man = &asset_man;
+        this->m_filesys = &filesys;
         this->m_cmd_pool = &cmd_pool,
         this->m_graphics_queue = m_graphics_queue;
         this->m_phys_device = phys_device;
@@ -453,8 +460,12 @@ namespace dal {
         this->m_tex_sampler.destroy(logi_device);
     }
 
-    const TextureManager::TextureUnit& TextureManager::request_asset_tex(const dal::filesystem::ResPath& respath) {
-        const auto resolved_respath = dal::filesystem::resolve_respath(respath);
+    const TextureManager::TextureUnit& TextureManager::request_asset_tex(const dal::ResPath& respath) {
+        const auto resolved_respath = this->m_filesys->resolve_respath(respath);
+        if (!resolved_respath.has_value()) {
+            return this->get_missing_tex();
+        }
+
         const auto path_str = resolved_respath->make_str();
 
         const auto result = this->m_textures.find(path_str);
@@ -462,7 +473,7 @@ namespace dal {
             return result->second;
         }
         else {
-            auto file = this->m_asset_man->open(resolved_respath.value());
+            auto file = this->m_filesys->open(resolved_respath.value());
             if (!file->is_ready()) {
                 dalAbort(fmt::format("Failed to find texture file: {}", path_str).c_str());
             }
@@ -491,5 +502,41 @@ namespace dal {
             return iter->second;
         }
     };
+
+    const TextureManager::TextureUnit& TextureManager::get_missing_tex() {
+        const auto find_result = this->m_textures.find(::MISSING_TEX_PATH);
+
+        if (this->m_textures.end() != find_result) {
+            return find_result->second;
+        }
+        else {
+            const dal::ResPath respath{ ::MISSING_TEX_PATH };
+            auto file = this->m_filesys->open(respath);
+            dalAssert(file->is_ready());
+            const auto file_data = file->read_stl<std::vector<uint8_t>>();
+            const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
+
+            this->m_textures[::MISSING_TEX_PATH] = TextureUnit{};
+            auto iter = this->m_textures.find(::MISSING_TEX_PATH);
+
+            iter->second.m_image.init_texture(
+                image.value(),
+                *this->m_cmd_pool,
+                this->m_graphics_queue,
+                this->m_phys_device,
+                this->m_logi_device
+            );
+
+            iter->second.m_view.init(
+                iter->second.m_image.image(),
+                iter->second.m_image.format(),
+                1,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                m_logi_device
+            );
+
+            return iter->second;
+        }
+    }
 
 }

@@ -89,7 +89,7 @@ namespace dal {
             create_info.m_window_title,
             create_info.m_init_width,
             create_info.m_init_height,
-            create_info.m_filesystem->asset_mgr(),
+            *create_info.m_filesystem,
             create_info.m_extensions,
             create_info.m_surface_create_func
         );

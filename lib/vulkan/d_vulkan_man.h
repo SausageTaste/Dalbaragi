@@ -24,7 +24,7 @@ namespace dal {
             const char* const window_title,
             const unsigned init_width,
             const unsigned init_height,
-            dal::filesystem::AssetManager& asset_mgr,
+            dal::Filesystem& filesys,
             const std::vector<const char*>& extensions,
             std::function<void*(void*)> surface_create_func
         );

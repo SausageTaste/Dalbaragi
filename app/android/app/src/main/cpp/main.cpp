@@ -13,7 +13,7 @@
 
 namespace {
 
-    dal::filesystem::AssetManager g_asset_manager;
+    dal::Filesystem g_filesys;
 
 
     class LogChannel_Logcat : public dal::ILogChannel {
@@ -56,7 +56,7 @@ namespace {
 
 
     void init(android_app* const state) {
-        g_asset_manager.set_android_asset_manager(state->activity->assetManager);
+        g_filesys.asset_mgr().set_android_asset_manager(state->activity->assetManager);
 
         const std::vector<const char*> instanceExt{
             "VK_KHR_surface",
@@ -86,7 +86,7 @@ namespace {
         engine_info.m_window_title = "Dalbrargi Android";
         engine_info.m_init_width = ANativeWindow_getWidth(state->window);
         engine_info.m_init_height = ANativeWindow_getHeight(state->window);
-        engine_info.m_asset_mgr = &g_asset_manager;
+        engine_info.m_filesystem = &g_filesys;
         engine_info.m_extensions = instanceExt;
         engine_info.m_surface_create_func = surface_creator;
 

@@ -8,7 +8,7 @@
 #include "d_defines.h"
 
 
-namespace dal::filesystem {
+namespace dal {
 
     class ResPath {
 
@@ -40,9 +40,10 @@ namespace dal::filesystem {
 
     };
 
-    [[nodiscard]]
-    std::optional<ResPath> resolve_respath(const ResPath& respath);
+}
 
+
+namespace dal::filesystem {
 
     class FileReadOnly {
 
@@ -92,12 +93,16 @@ namespace dal::filesystem {
         void set_android_asset_manager(void* const ptr_asset_manager) {
             this->m_ptr_asset_manager = ptr_asset_manager;
         }
+
+        void* get_android_asset_manager() const {
+            return this->m_ptr_asset_manager;
+        }
 #endif
 
     public:
-        std::vector<std::string> listfile(const ResPath& path);
+        std::vector<std::string> listfile(const dal::ResPath& path);
 
-        std::unique_ptr<FileReadOnly> open(const ResPath& path);
+        std::unique_ptr<FileReadOnly> open(const dal::ResPath& path);
 
     };
 
@@ -115,6 +120,11 @@ namespace dal {
         auto& asset_mgr() {
             return this->m_asset_man;
         }
+
+        [[nodiscard]]
+        std::optional<dal::ResPath> resolve_respath(const dal::ResPath& respath);
+
+        std::unique_ptr<dal::filesystem::FileReadOnly> open(const dal::ResPath& path);
 
     };
 

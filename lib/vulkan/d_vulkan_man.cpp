@@ -533,7 +533,7 @@ namespace dal {
         std::vector<ModelRenderer> m_models;
 
         // Non-vulkan members
-        dal::filesystem::AssetManager& m_asset_man;
+        dal::Filesystem& m_filesys;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
@@ -554,11 +554,11 @@ namespace dal {
             const char* const window_title,
             const unsigned init_width,
             const unsigned init_height,
-            dal::filesystem::AssetManager& asset_mgr,
+            dal::Filesystem& filesys,
             const std::vector<const char*>& extensions,
             const std::function<void*(void*)> surface_create_func
         )
-            : m_asset_man(asset_mgr)
+            : m_filesys(filesys)
         {
 #ifdef __ANDROID__
             dalAssert(1 == InitVulkan());
@@ -612,7 +612,7 @@ namespace dal {
             );
 
             this->m_pipelines.init(
-                asset_mgr,
+                this->m_filesys.asset_mgr(),
                 !this->m_swapchain.is_format_srgb(),
                 this->m_swapchain.extent(),
                 this->m_desc_layout_man.layout_simple(),
@@ -629,7 +629,7 @@ namespace dal {
             );
 
             this->m_tex_man.init(
-                this->m_asset_man,
+                this->m_filesys,
                 this->m_cmd_man.pool_single_time(),
                 this->m_phys_info.does_support_anisotropic_sampling(),
                 this->m_logi_device.queue_graphics(),
@@ -832,7 +832,7 @@ namespace dal {
             );
 
             this->m_pipelines.init(
-                this->m_asset_man,
+                this->m_filesys.asset_mgr(),
                 !this->m_swapchain.is_format_srgb(),
                 this->m_swapchain.extent(),
                 this->m_desc_layout_man.layout_simple(),
@@ -878,7 +878,7 @@ namespace dal {
         void populate_models() {
             // Honoka
             {
-                auto file = this->m_asset_man.open("_asset/model/honoka_basic_3.dmd");
+                auto file = this->m_filesys.open("_asset/model/honoka_basic_3.dmd");
                 const auto model_content = file->read_stl<std::vector<uint8_t>>();
                 const auto model_data = parse_model_dmd(model_content->data(), model_content->size());
 
@@ -902,7 +902,7 @@ namespace dal {
             }
 
             // Sponza
-            {
+            /*{
                 auto file = this->m_asset_man.open("_asset/model/sponza.dmd");
                 const auto model_content = file->read_stl<std::vector<uint8_t>>();
                 const auto model_data = parse_model_dmd(model_content->data(), model_content->size());
@@ -923,7 +923,7 @@ namespace dal {
                 U_PerActor ubuf_data_per_actor;
                 ubuf_data_per_actor.m_model = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{1, 0, 0}) * glm::scale(glm::mat4{1}, glm::vec3{0.01});;
                 model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
-            }
+            }*/
 
         }
 
@@ -943,12 +943,12 @@ namespace dal {
         const char* const window_title,
         const unsigned init_width,
         const unsigned init_height,
-        dal::filesystem::AssetManager& asset_mgr,
+        dal::Filesystem& filesys,
         const std::vector<const char*>& extensions,
         std::function<void*(void*)> surface_create_func
     ) {
         this->destroy();
-        this->m_pimpl = new Pimpl(window_title, init_width, init_height, asset_mgr, extensions, surface_create_func);
+        this->m_pimpl = new Pimpl(window_title, init_width, init_height, filesys, extensions, surface_create_func);
         dalInfo(fmt::format("Init surface size: {} x {}", init_width, init_height).c_str());
     }
 

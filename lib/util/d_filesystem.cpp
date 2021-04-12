@@ -96,6 +96,12 @@ namespace {
         }
     }
 
+    std::vector<std::string> split_path(const char* const path) {
+        std::vector<std::string> output;
+        split_path(path, output);
+        return output;
+    }
+
     std::string join_path(const std::string* const dir_list_begin, const std::string* const dir_list_end, const char seperator) {
         if (dir_list_begin == dir_list_end)
             return std::string{};
@@ -281,6 +287,17 @@ namespace android {
         return dirs.size();
     }
 
+    bool is_file_asset(const char* const path, void* asset_mgr) {
+        auto opened = AAssetManager_open(reinterpret_cast<AAssetManager*>(asset_mgr), path, AASSET_MODE_UNKNOWN);
+        if (nullptr != opened) {
+            AAsset_close(opened);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
 
     class FileReadOnly_AndroidAsset : public dal::filesystem::FileReadOnly {
 
@@ -369,7 +386,7 @@ namespace android {
 
 
 // ResPath
-namespace dal::filesystem {
+namespace dal {
 
     ResPath::ResPath(const char* const path)
         : m_src_str(path)
@@ -393,7 +410,6 @@ namespace dal::filesystem {
 
         return true;
     }
-
 
 }
 
@@ -432,7 +448,7 @@ namespace {
         return std::nullopt;
     }
 
-    std::optional<dal::filesystem::ResPath> resolve_asset_path(const dal::filesystem::ResPath& respath) {
+    std::optional<dal::ResPath> resolve_asset_path(const dal::ResPath& respath) {
         if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
             return std::nullopt;
 
@@ -469,33 +485,194 @@ namespace {
         if (!std::filesystem::is_regular_file(cur_path))
             return std::nullopt;
 
-        return dal::filesystem::ResPath{ ::SPECIAL_NAMESPACE_ASSET + cur_path.substr(asset_dir.size()) };
+        return dal::ResPath{ ::SPECIAL_NAMESPACE_ASSET + cur_path.substr(asset_dir.size()) };
     }
 
-#endif
+#elif defined(DAL_OS_ANDROID)
 
-}
-namespace dal::filesystem {
+    class {
 
-    std::optional<ResPath> resolve_respath(const ResPath& respath) {
-        if (!respath.is_valid())
+    private:
+        class AssetFolderDef {
+
+        public:
+            struct PathNamePair {
+                std::string m_path, m_name;
+            };
+
+        public:
+            std::string m_name;
+            std::vector<AssetFolderDef> m_sub_fol;
+
+        public:
+            const AssetFolderDef* get_sub_folder(const char* const folder_name) const {
+                for (const auto& x : this->m_sub_fol) {
+                    if (x.m_name == folder_name)
+                        return &x;
+                }
+
+                return nullptr;
+            }
+
+            bool has_sub_folder(const char* const folder_name) const {
+                return this->get_sub_folder(folder_name) != nullptr;
+            }
+
+            [[nodiscard]]
+            std::vector<std::string> make_fol_list() const {
+                std::vector<std::string> output;
+                output.reserve(this->m_sub_fol.size());
+
+                for (const auto& x : this->m_sub_fol) {
+                    output.push_back(x.m_name);
+                }
+
+                return output;
+            }
+
+            void put_all_sub_folders(std::vector<PathNamePair>& output, const char* const prefix) const {
+                const auto this_path = fmt::format("{}/{}", prefix, this->m_name);
+
+                output.push_back(PathNamePair{ this_path, this->m_name });
+                for (const auto& x : this->m_sub_fol) {
+                    x.put_all_sub_folders(output, this_path.c_str());
+                }
+            }
+
+        };
+
+        const AssetFolderDef ASSET_DIRECTORY {"root", {
+            {"glsl", {}},
+            {"image", {
+                {"honoka", {}},
+                {"sponza", {}},
+            }},
+            {"model", {}},
+            {"spv", {}},
+        }};
+
+    public:
+        const AssetFolderDef* get_folder_info(const char* const path) const {
+            const auto path_split = ::split_path(path);
+            const AssetFolderDef* cur_dir = &this->ASSET_DIRECTORY;
+
+            for (const auto& x : path_split) {
+                auto next_dir = cur_dir->get_sub_folder(x.c_str());
+                if (nullptr == next_dir) {
+                    return nullptr;
+                }
+                else {
+                    cur_dir = next_dir;
+                }
+            }
+
+            return cur_dir;
+        }
+
+        bool is_folder(const char* const path) const {
+            return this->get_folder_info(path) != nullptr;
+        }
+
+        // Output strings are only folder names
+        std::vector<std::string> list_folder(const char* const path) {
+            auto next_dir = this->ASSET_DIRECTORY.get_sub_folder(path);
+            if (nullptr != next_dir) {
+                return next_dir->make_fol_list();
+            }
+            else {
+                return {};
+            }
+        }
+
+        std::vector<AssetFolderDef::PathNamePair> walk_all_folders(const char* const path) {
+            std::vector<AssetFolderDef::PathNamePair> output;
+            const auto dir_info = this->get_folder_info(path);
+            if (nullptr == dir_info)
+                return output;
+
+            dir_info->put_all_sub_folders(output, path);
+            return output;
+        }
+
+    } g_asset_folders;
+
+
+    std::optional<std::string> resolve_question_asset_path(const std::string& domain_dir, const std::string& entry_to_find) {
+        if ( !g_asset_folders.is_folder(domain_dir.c_str()) )
             return std::nullopt;
 
-        if (respath.dir_list().front() == ::SPECIAL_NAMESPACE_ASSET) {
-            return ::resolve_asset_path(respath);
-        }
-        else if (respath.dir_list().front() == "?") {
-            const auto result_asset = ::resolve_asset_path(respath);
-            if (result_asset.has_value())
-                return result_asset;
+        for (const auto& e : g_asset_folders.walk_all_folders(domain_dir.c_str())) {
+            if (e.m_name == entry_to_find) {
+                return e.m_path;
+            }
         }
 
         return std::nullopt;
     }
 
+    std::optional<std::string> resolve_asterisk_asset_path(const std::string& domain_dir, const std::string& entry_to_find) {
+        if ( !g_asset_folders.is_folder(domain_dir.c_str()) )
+            return std::nullopt;
+
+        for (auto& folder0 : g_asset_folders.list_folder(domain_dir.c_str())) {
+            const auto entry0 = fmt::format("{}/{}", domain_dir, folder0);
+            for (auto& folder1 : g_asset_folders.list_folder(entry0.c_str())) {
+                if (folder1 == entry_to_find) {
+                    return fmt::format("{}/{}", entry0, folder1);
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+
+    std::optional<dal::ResPath> resolve_asset_path(const dal::ResPath& respath, void* const asset_mgr) {
+        if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
+            return std::nullopt;
+
+        std::string cur_path;
+
+        for (size_t i = 1; i < respath.dir_list().size(); ++i) {
+            const auto dir_element = respath.dir_list().at(i);
+
+            if (dir_element == "?") {
+                const auto resolve_result = ::resolve_question_asset_path(cur_path, respath.dir_list().at(i + 1));
+                if (!resolve_result.has_value()) {
+                    return std::nullopt;
+                }
+                else {
+                    cur_path = resolve_result.value();
+                    ++i;
+                }
+            }
+            else if (dir_element == "*") {
+                const auto resolve_result = ::resolve_asterisk_asset_path(cur_path, respath.dir_list().at(i + 1));
+                if (!resolve_result.has_value()) {
+                    return std::nullopt;
+                }
+                else {
+                    cur_path = resolve_result.value();
+                    ++i;
+                }
+            }
+            else {
+                cur_path = ::join_path({ cur_path, dir_element }, '/');
+            }
+        }
+
+        if (!android::is_file_asset(cur_path.c_str(), asset_mgr))
+            return std::nullopt;
+
+        return dal::ResPath{ ::SPECIAL_NAMESPACE_ASSET + cur_path };
+    }
+
+#endif
+
 }
 
 
+// AssetManager
 namespace dal::filesystem {
 
     std::vector<std::string> AssetManager::listfile(const ResPath& respath) {
@@ -543,6 +720,46 @@ namespace dal::filesystem {
             return std::unique_ptr<FileReadOnly>{ new FileReadOnly_Null };
         else
             return file;
+    }
+
+}
+
+
+namespace dal {
+
+    std::optional<dal::ResPath> Filesystem::resolve_respath(const dal::ResPath& respath) {
+        if (!respath.is_valid())
+            return std::nullopt;
+
+        if (respath.dir_list().front() == ::SPECIAL_NAMESPACE_ASSET) {
+#ifdef DAL_OS_ANDROID
+            return ::resolve_asset_path(respath, this->asset_mgr().get_android_asset_manager());
+#else
+            return ::resolve_asset_path(respath);
+#endif
+        }
+        else if (respath.dir_list().front() == "?") {
+#ifdef DAL_OS_ANDROID
+            auto result_asset = ::resolve_asset_path(respath, this->asset_mgr().get_android_asset_manager());
+#else
+            auto result_asset = ::resolve_asset_path(respath);
+#endif
+            if (result_asset.has_value())
+                return result_asset;
+        }
+
+        return std::nullopt;
+    }
+
+    std::unique_ptr<dal::filesystem::FileReadOnly> Filesystem::open(const dal::ResPath& respath) {
+        if (!respath.is_valid())
+            return std::unique_ptr<dal::filesystem::FileReadOnly>{ new FileReadOnly_Null };
+
+        if (respath.dir_list().front() == ::SPECIAL_NAMESPACE_ASSET) {
+            return this->asset_mgr().open(respath);
+        }
+
+        return std::unique_ptr<dal::filesystem::FileReadOnly>{ new FileReadOnly_Null };
     }
 
 }
