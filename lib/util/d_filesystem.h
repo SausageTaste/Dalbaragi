@@ -10,6 +10,40 @@
 
 namespace dal::filesystem {
 
+    class ResPath {
+
+    private:
+        static constexpr char SEPERATOR = '/';
+
+    private:
+        std::vector<std::string> m_dir_list;
+        std::string m_src_str;
+
+    public:
+        ResPath() = default;
+
+        ResPath(const char* const path);
+
+        ResPath(const std::string& path)
+            : ResPath(path.c_str())
+        {
+
+        }
+
+        std::string make_str() const;
+
+        bool is_valid() const;
+
+        auto& dir_list() const {
+            return this->m_dir_list;
+        }
+
+    };
+
+    [[nodicard]]
+    std::optional<ResPath> resolve_respath(const ResPath& respath);
+
+
     class FileReadOnly {
 
     public:
@@ -47,10 +81,6 @@ namespace dal::filesystem {
 
     };
 
-}
-
-
-namespace dal::filesystem {
 
     class AssetManager {
 
@@ -65,9 +95,9 @@ namespace dal::filesystem {
 #endif
 
     public:
-        std::vector<std::string> listfile(const char* const path);
+        std::vector<std::string> listfile(const ResPath& path);
 
-        std::unique_ptr<FileReadOnly> open(const char* const path);
+        std::unique_ptr<FileReadOnly> open(const ResPath& path);
 
     };
 

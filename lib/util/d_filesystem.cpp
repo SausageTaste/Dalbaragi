@@ -1,11 +1,16 @@
 #include "d_filesystem.h"
 
+#include <array>
 #include <fstream>
+
+#include <fmt/format.h>
 
 #include "d_logger.h"
 
 #if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
     #include <filesystem>
+
+    #define DAL_STD_FILESYSTEM
 
 #elif defined(DAL_OS_ANDROID)
     #include <android/asset_manager.h>
@@ -19,11 +24,119 @@ namespace {
 
     const char* FOLDER_NAME_ASSET = "asset";
 
+    const char* SPECIAL_NAMESPACE_ASSET = "_asset";
+    const char* SPECIAL_NAMESPACE_LOG = "_log";
+
 }
 
 
 // Common functions
 namespace {
+
+    bool is_char_seperator(const char c) {
+        return '\\' == c || '/' == c;
+    }
+
+    bool is_char_wildcard(const char c) {
+        if ('?' == c)
+            return true;
+        else if ('*' == c)
+            return true;
+        else
+            return false;
+    }
+
+    bool is_str_wildcard(const char* const str) {
+        if ('\0' != str[1])
+            return false;
+        else
+            return ::is_char_wildcard(str[0]);
+    }
+
+    bool is_valid_folder_name(const std::string& name) {
+        const std::array<char, 11> INVALID_CHAR{
+            ':',
+            '/',
+            '<',
+            '>',
+            '"',
+            '/',
+            '\\',
+            '|',
+            '?',
+            '*',
+            '\0',
+        };
+
+        for (const auto c : INVALID_CHAR) {
+            if (std::string::npos != name.find(c)) {
+                return false;
+            }
+        }
+
+        if (name.empty())
+            return false;
+
+        return true;
+    }
+
+    void split_path(const char* const path, std::vector<std::string>& output) {
+        output.clear();
+        output.emplace_back();
+
+        for (auto ptr = path; *ptr != '\0'; ++ptr) {
+            const auto c = *ptr;
+
+            if (::is_char_seperator(c)) {
+                output.emplace_back();
+            }
+            else {
+                output.back().push_back(c);
+            }
+        }
+    }
+
+    std::string join_path(const std::string* const dir_list_begin, const std::string* const dir_list_end, const char seperator) {
+        if (dir_list_begin == dir_list_end)
+            return std::string{};
+
+        std::string output{ *dir_list_begin };
+
+        for (auto ptr = dir_list_begin + 1; ptr < dir_list_end; ++ptr) {
+            output += seperator;
+            output += *ptr;
+        }
+
+        return output;
+    }
+
+    std::string join_path(const std::vector<std::string>& dir_list, const char seperator) {
+        return ::join_path(&dir_list.front(), &dir_list.back() + 1, seperator);
+    }
+
+    std::vector<std::string> remove_duplicate_question_marks(const std::vector<std::string>& list) {
+        std::vector<std::string> output;
+        output.reserve(list.size());
+        output.push_back(list.front());
+
+        for (size_t i = 1; i < list.size(); ++i) {
+            if (list[i] == "?" && output.back() == "?") {
+                continue;
+            }
+            else if (list[i] == "*" && output.back() == "?") {
+                continue;
+            }
+            else if (list[i] == "?" && output.back() == "*") {
+                output.back() = "?";
+            }
+            else {
+                output.push_back(list[i]);
+            }
+        }
+
+        return output;
+    }
+
 
     class FileReadOnly_Null : public dal::filesystem::FileReadOnly {
 
@@ -50,6 +163,22 @@ namespace {
 
     };
 
+}
+
+
+// STD Filesystem functions
+namespace {
+#ifdef DAL_STD_FILESYSTEM
+namespace stdfs {
+
+    void listfile(const std::filesystem::path& path, std::vector<std::string>& result) {
+        for (const auto & entry : std::filesystem::directory_iterator(path)) {
+            result.push_back(entry.path().filename().string());
+        }
+    }
+
+}
+#endif
 }
 
 
@@ -119,10 +248,8 @@ namespace desktop {
         return path;
     }
 
-    void listfile(const char* const path, std::vector<std::string>& result) {
-        for (const auto & entry : std::filesystem::directory_iterator(::desktop::get_asset_dir() / path)) {
-            result.push_back(entry.path().filename().string());
-        }
+    void listfile_asset(const char* const path, std::vector<std::string>& result) {
+        ::stdfs::listfile(::desktop::get_asset_dir() / path, result);
     }
 
 }
@@ -241,42 +368,181 @@ namespace android {
 }
 
 
+// ResPath
 namespace dal::filesystem {
 
-    std::vector<std::string> AssetManager::listfile(const char* const path) {
-        std::vector<std::string> result;
+    ResPath::ResPath(const char* const path)
+        : m_src_str(path)
+    {
+        ::split_path(path, this->m_dir_list);
+        this->m_dir_list = ::remove_duplicate_question_marks(this->m_dir_list);
+    }
+
+    std::string ResPath::make_str() const {
+        return ::join_path(this->dir_list(), this->SEPERATOR);
+    }
+
+    bool ResPath::is_valid() const {
+        for (auto x : this->m_dir_list) {
+            if (!::is_valid_folder_name(x) && !::is_str_wildcard(x.c_str()))
+                return false;
+        }
+
+        if ( ::is_str_wildcard(this->m_dir_list.back().c_str()) )
+            return false;
+
+        return true;
+    }
+
+
+}
+
+
+// Resolve resource path
+namespace {
 
 #if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
-        ::desktop::listfile(path, result);
+
+    std::optional<std::string> resolve_question_path(const std::string& domain_dir, const std::string& entry_to_find) {
+        if ( !std::filesystem::is_directory(domain_dir) )
+            return std::nullopt;
+
+        for (auto& e : std::filesystem::recursive_directory_iterator(domain_dir)) {
+            if (e.path().filename().string() == entry_to_find) {
+                return e.path().string();
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<std::string> resolve_asterisk_path(const std::string& domain_dir, const std::string& entry_to_find) {
+        if ( !std::filesystem::is_directory(domain_dir) )
+            return std::nullopt;
+
+        for (auto& e0 : std::filesystem::directory_iterator(domain_dir)) {
+            for (auto& e1 : std::filesystem::directory_iterator(e0.path())) {
+                const auto& entry_name = e1.path().filename().string();
+                if (entry_name == entry_to_find) {
+                    return e1.path().string();
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<dal::filesystem::ResPath> resolve_asset_path(const dal::filesystem::ResPath& respath) {
+        if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
+            return std::nullopt;
+
+        const auto asset_dir = ::desktop::get_asset_dir().string();
+        std::string cur_path{ asset_dir };
+
+        for (size_t i = 1; i < respath.dir_list().size(); ++i) {
+            const auto dir_element = respath.dir_list().at(i);
+            if (dir_element == "?") {
+                const auto resolve_result = ::resolve_question_path(cur_path, respath.dir_list().at(i + 1));
+                if (!resolve_result.has_value()) {
+                    return std::nullopt;
+                }
+                else {
+                    cur_path = resolve_result.value();
+                    ++i;
+                }
+            }
+            else if (dir_element == "*") {
+                const auto resolve_result = ::resolve_asterisk_path(cur_path, respath.dir_list().at(i + 1));
+                if (!resolve_result.has_value()) {
+                    return std::nullopt;
+                }
+                else {
+                    cur_path = resolve_result.value();
+                    ++i;
+                }
+            }
+            else {
+                cur_path = ::join_path({ cur_path, dir_element }, '/');
+            }
+        }
+
+        if (!std::filesystem::is_regular_file(cur_path))
+            return std::nullopt;
+
+        return dal::filesystem::ResPath{ ::SPECIAL_NAMESPACE_ASSET + cur_path.substr(asset_dir.size()) };
+    }
+
+#endif
+
+}
+namespace dal::filesystem {
+
+    std::optional<ResPath> resolve_respath(const ResPath& respath) {
+        if (!respath.is_valid())
+            return std::nullopt;
+
+        if (respath.dir_list().front() == ::SPECIAL_NAMESPACE_ASSET) {
+            return ::resolve_asset_path(respath);
+        }
+        else if (respath.dir_list().front() == "?") {
+            const auto result_asset = ::resolve_asset_path(respath);
+            if (result_asset.has_value())
+                return result_asset;
+        }
+
+        return std::nullopt;
+    }
+
+}
+
+
+namespace dal::filesystem {
+
+    std::vector<std::string> AssetManager::listfile(const ResPath& respath) {
+        std::vector<std::string> result;
+
+        if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
+            return result;
+        if (respath.dir_list().size() < 2)
+            return result;
+
+        const auto asset_path = ::join_path(&respath.dir_list().front() + 1, &respath.dir_list().back() + 1, '/');
+
+#if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
+        ::desktop::listfile_asset((::desktop::get_asset_dir() / asset_path).string().c_str(), result);
 
 #elif defined(DAL_OS_ANDROID)
         dalAssert(nullptr != this->m_ptr_asset_manager);
-        ::android::listfile_asset(path, result, this->m_ptr_asset_manager);
+        ::android::listfile_asset(asset_path.c_str(), result, this->m_ptr_asset_manager);
 
 #endif
 
         return result;
     }
 
-    std::unique_ptr<FileReadOnly> AssetManager::open(const char* const path) {
+    std::unique_ptr<FileReadOnly> AssetManager::open(const ResPath& respath) {
+        if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
+            return std::unique_ptr<FileReadOnly>{ new FileReadOnly_Null };
+        if (respath.dir_list().size() < 2)
+            return std::unique_ptr<FileReadOnly>{ new FileReadOnly_Null };
+
+        const auto asset_path = ::join_path(&respath.dir_list().front() + 1, &respath.dir_list().back() + 1, '/');
 
 #if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
-        const auto file_path = ::desktop::get_asset_dir() / path;
+        const auto file_path = ::desktop::get_asset_dir() / asset_path;
         std::unique_ptr<dal::filesystem::FileReadOnly> file{ new ::desktop::FileReadOnly_STL };
         file->open(file_path.string().c_str());
 
 #elif defined(DAL_OS_ANDROID)
         std::unique_ptr<FileReadOnly> file{ new ::android::FileReadOnly_AndroidAsset(this->m_ptr_asset_manager) };
-        file->open(path);
+        file->open(asset_path.c_str());
 
 #endif
 
-        if ( !file->is_ready() ) {
+        if ( !file->is_ready() )
             return std::unique_ptr<FileReadOnly>{ new FileReadOnly_Null };
-        }
-        else {
+        else
             return file;
-        }
     }
 
 }

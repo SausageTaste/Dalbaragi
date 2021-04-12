@@ -141,7 +141,7 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        const TextureUnit& request_asset_tex(const char* const path);
+        const TextureUnit& request_asset_tex(const dal::filesystem::ResPath& path);
 
         auto& sampler_tex() const {
             return this->m_tex_sampler;

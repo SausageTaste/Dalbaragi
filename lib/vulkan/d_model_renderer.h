@@ -3,6 +3,7 @@
 #include "d_vert_data.h"
 #include "d_uniform.h"
 #include "d_image_obj.h"
+#include "d_task_thread.h"
 
 
 namespace dal {
@@ -28,6 +29,7 @@ namespace dal {
             const dal::ModelStatic& model_data,
             dal::CommandPool& cmd_pool,
             TextureManager& tex_man,
+            const char* const fallback_file_namespace,
             const VkDescriptorSetLayout layout_per_material,
             const VkDescriptorSetLayout layout_per_actor,
             const VkQueue graphics_queue,
@@ -48,6 +50,14 @@ namespace dal {
         auto desc_set_per_actor() const {
             return this->m_desc_per_actor;
         }
+
+    };
+
+
+    class ModelManager : public ITaskListener {
+
+    private:
+        std::unordered_map<std::string, ModelRenderer> m_models;
 
     };
 

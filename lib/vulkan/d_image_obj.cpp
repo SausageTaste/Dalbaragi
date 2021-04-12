@@ -453,21 +453,24 @@ namespace dal {
         this->m_tex_sampler.destroy(logi_device);
     }
 
-    const TextureManager::TextureUnit& TextureManager::request_asset_tex(const char* const path) {
-        const auto result = this->m_textures.find(path);
+    const TextureManager::TextureUnit& TextureManager::request_asset_tex(const dal::filesystem::ResPath& respath) {
+        const auto resolved_respath = dal::filesystem::resolve_respath(respath);
+        const auto path_str = resolved_respath->make_str();
+
+        const auto result = this->m_textures.find(path_str);
         if (this->m_textures.end() != result) {
             return result->second;
         }
         else {
-            auto file = this->m_asset_man->open(fmt::format("image/{}", path).c_str());
+            auto file = this->m_asset_man->open(resolved_respath.value());
             if (!file->is_ready()) {
-                dalAbort(fmt::format("Failed to find texture file: {}", path).c_str());
+                dalAbort(fmt::format("Failed to find texture file: {}", path_str).c_str());
             }
             const auto file_data = file->read_stl<std::vector<uint8_t>>();
             const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
 
-            this->m_textures[path] = TextureUnit{};
-            auto iter = this->m_textures.find(path);
+            this->m_textures[path_str] = TextureUnit{};
+            auto iter = this->m_textures.find(path_str);
 
             iter->second.m_image.init_texture(
                 image.value(),

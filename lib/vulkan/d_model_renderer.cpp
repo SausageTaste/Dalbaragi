@@ -1,5 +1,7 @@
 #include "d_model_renderer.h"
 
+#include <fmt/format.h>
+
 
 // ModelRenderer
 namespace dal {
@@ -8,6 +10,7 @@ namespace dal {
         const dal::ModelStatic& model_data,
         dal::CommandPool& cmd_pool,
         TextureManager& tex_man,
+        const char* const fallback_file_namespace,
         const VkDescriptorSetLayout layout_per_material,
         const VkDescriptorSetLayout layout_per_actor,
         const VkQueue graphics_queue,
@@ -47,10 +50,12 @@ namespace dal {
             ubuf_data.m_metallic = unit_data.m_material.m_metallic;
             unit.m_ubuf.copy_to_buffer(ubuf_data, logi_device);
 
+            const auto albedo_map_path = fmt::format("{}/?/{}", fallback_file_namespace, unit_data.m_material.m_albedo_map);
+
             unit.m_desc_set = this->m_desc_pool.allocate(layout_per_material, logi_device);
             unit.m_desc_set.record_material(
                 unit.m_ubuf,
-                tex_man.request_asset_tex(unit_data.m_material.m_albedo_map.c_str()).m_view.get(),
+                tex_man.request_asset_tex(albedo_map_path).m_view.get(),
                 tex_man.sampler_tex().get(),
                 logi_device
             );

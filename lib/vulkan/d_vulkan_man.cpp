@@ -878,7 +878,7 @@ namespace dal {
         void populate_models() {
             // Honoka
             {
-                auto file = this->m_asset_man.open("model/honoka_basic_3.dmd");
+                auto file = this->m_asset_man.open("_asset/model/honoka_basic_3.dmd");
                 const auto model_content = file->read_stl<std::vector<uint8_t>>();
                 const auto model_data = parse_model_dmd(model_content->data(), model_content->size());
 
@@ -887,6 +887,7 @@ namespace dal {
                     model_data.value(),
                     this->m_cmd_man.pool_single_time(),
                     this->m_tex_man,
+                    "_asset",
                     this->m_desc_layout_man.layout_per_material(),
                     this->m_desc_layout_man.layout_per_actor(),
                     this->m_logi_device.queue_graphics(),
@@ -902,7 +903,7 @@ namespace dal {
 
             // Sponza
             {
-                auto file = this->m_asset_man.open("model/sponza.dmd");
+                auto file = this->m_asset_man.open("_asset/model/sponza.dmd");
                 const auto model_content = file->read_stl<std::vector<uint8_t>>();
                 const auto model_data = parse_model_dmd(model_content->data(), model_content->size());
 
@@ -911,6 +912,7 @@ namespace dal {
                     model_data.value(),
                     this->m_cmd_man.pool_single_time(),
                     this->m_tex_man,
+                    "_asset",
                     this->m_desc_layout_man.layout_per_material(),
                     this->m_desc_layout_man.layout_per_actor(),
                     this->m_logi_device.queue_graphics(),

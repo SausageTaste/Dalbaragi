@@ -339,13 +339,13 @@ namespace {
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("spv/simple_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = asset_mgr.open("_asset/spv/simple_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'simple_v.spv' not found");
         }
         const auto frag_src = need_gamma_correction ?
-            asset_mgr.open("spv/simple_gamma_f.spv")->read_stl<std::vector<char>>() :
-            asset_mgr.open("spv/simple_f.spv")->read_stl<std::vector<char>>();
+            asset_mgr.open("_asset/spv/simple_gamma_f.spv")->read_stl<std::vector<char>>() :
+            asset_mgr.open("_asset/spv/simple_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'simple_f.spv' not found");
         }
