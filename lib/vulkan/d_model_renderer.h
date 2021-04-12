@@ -4,6 +4,7 @@
 #include "d_uniform.h"
 #include "d_image_obj.h"
 #include "d_task_thread.h"
+#include "d_filesystem.h"
 
 
 namespace dal {
@@ -39,6 +40,8 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
+        bool is_ready() const;
+
         auto& render_units() const {
             return this->m_units;
         }
@@ -58,6 +61,43 @@ namespace dal {
 
     private:
         std::unordered_map<std::string, ModelRenderer> m_models;
+        std::unordered_map<void*, ModelRenderer*> m_sent_task;
+
+        dal::TaskManager* m_task_man;
+        dal::Filesystem* m_filesys;
+        dal::TextureManager* m_tex_man;
+        dal::CmdPoolManager* m_cmd_man;
+        dal::DescSetLayoutManager* m_desc_layout_man;
+        VkQueue m_graphics_queue;
+        VkPhysicalDevice m_phys_device;
+        VkDevice m_logi_device;
+
+    public:
+        void init(
+            dal::TaskManager& task_man,
+            dal::Filesystem& filesys,
+            dal::TextureManager& tex_man,
+            dal::CmdPoolManager& cmd_man,
+            dal::DescSetLayoutManager& desc_layout_man,
+            VkQueue graphics_queue,
+            VkPhysicalDevice phys_device,
+            VkDevice logi_device
+        ) {
+            m_task_man = &task_man;
+            m_filesys = &filesys;
+            m_tex_man = &tex_man;
+            m_cmd_man = &cmd_man;
+            m_desc_layout_man = &desc_layout_man;
+            m_graphics_queue = graphics_queue;
+            m_phys_device = phys_device;
+            m_logi_device = logi_device;
+        }
+
+        void destroy(const VkDevice logi_device);
+
+        void notify_task_done(std::unique_ptr<ITask> task) override;
+
+        ModelRenderer& request_model(const dal::ResPath& respath);
 
     };
 

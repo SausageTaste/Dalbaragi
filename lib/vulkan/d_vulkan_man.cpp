@@ -528,9 +528,11 @@ namespace dal {
         DescSetLayoutManager m_desc_layout_man;
         UniformBufferArray<U_PerFrame> m_ubufs_simple;
         DescriptorManager m_desc_man;
-        TextureManager m_tex_man;
 
-        std::vector<ModelRenderer> m_models;
+        TextureManager m_tex_man;
+        ModelManager m_model_man;
+
+        std::vector<ModelRenderer*> m_models;
 
         // Non-vulkan members
         dal::Filesystem& m_filesys;
@@ -555,6 +557,7 @@ namespace dal {
             const unsigned init_width,
             const unsigned init_height,
             dal::Filesystem& filesys,
+            dal::TaskManager& task_man,
             const std::vector<const char*>& extensions,
             const std::function<void*(void*)> surface_create_func
         )
@@ -651,6 +654,17 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
+            this->m_model_man.init(
+                task_man,
+                this->m_filesys,
+                this->m_tex_man,
+                this->m_cmd_man,
+                this->m_desc_layout_man,
+                this->m_logi_device.queue_graphics(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
             this->populate_models();
 
             this->m_cmd_man.record_all_simple(
@@ -662,7 +676,6 @@ namespace dal {
                 this->m_pipelines.simple().pipeline(),
                 this->m_renderpasses.rp_rendering().get()
             );
-
         }
 
         ~Pimpl() {
@@ -670,11 +683,9 @@ namespace dal {
         }
 
         void destroy() {
-            for (auto& model : this->m_models) {
-                model.destroy(this->m_logi_device.get());
-            }
             this->m_models.clear();
 
+            this->m_model_man.destroy(this->m_logi_device.get());
             this->m_tex_man.destroy(this->m_logi_device.get());
             this->m_desc_man.destroy(this->m_logi_device.get());
             this->m_ubufs_simple.destroy(this->m_logi_device.get());
@@ -876,29 +887,13 @@ namespace dal {
         }
 
         void populate_models() {
-            // Honoka
             {
-                auto file = this->m_filesys.open("_asset/model/honoka_basic_3.dmd");
-                const auto model_content = file->read_stl<std::vector<uint8_t>>();
-                const auto model_data = parse_model_dmd(model_content->data(), model_content->size());
-
-                auto& model = this->m_models.emplace_back();
-                model.init(
-                    model_data.value(),
-                    this->m_cmd_man.pool_single_time(),
-                    this->m_tex_man,
-                    "_asset",
-                    this->m_desc_layout_man.layout_per_material(),
-                    this->m_desc_layout_man.layout_per_actor(),
-                    this->m_logi_device.queue_graphics(),
-                    this->m_phys_device.get(),
-                    this->m_logi_device.get()
-                );
+                auto& model = this->m_model_man.request_model("_asset/model/honoka_basic_3.dmd");
+                this->m_models.push_back(&model);
 
                 U_PerActor ubuf_data_per_actor;
                 ubuf_data_per_actor.m_model = glm::scale(glm::mat4{1}, glm::vec3{0.3});
-                this->m_models.at(0).ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
-
+                model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
             }
 
             // Sponza
@@ -924,7 +919,6 @@ namespace dal {
                 ubuf_data_per_actor.m_model = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{1, 0, 0}) * glm::scale(glm::mat4{1}, glm::vec3{0.01});;
                 model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
             }*/
-
         }
 
     };
@@ -944,11 +938,12 @@ namespace dal {
         const unsigned init_width,
         const unsigned init_height,
         dal::Filesystem& filesys,
+        dal::TaskManager& task_man,
         const std::vector<const char*>& extensions,
         std::function<void*(void*)> surface_create_func
     ) {
         this->destroy();
-        this->m_pimpl = new Pimpl(window_title, init_width, init_height, filesys, extensions, surface_create_func);
+        this->m_pimpl = new Pimpl(window_title, init_width, init_height, filesys, task_man, extensions, surface_create_func);
         dalInfo(fmt::format("Init surface size: {} x {}", init_width, init_height).c_str());
     }
 

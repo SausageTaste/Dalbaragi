@@ -5,6 +5,7 @@
 
 #include "d_filesystem.h"
 #include "d_actor.h"
+#include "d_task_thread.h"
 
 
 namespace dal {
@@ -25,6 +26,7 @@ namespace dal {
             const unsigned init_width,
             const unsigned init_height,
             dal::Filesystem& filesys,
+            dal::TaskManager& task_man,
             const std::vector<const char*>& extensions,
             std::function<void*(void*)> surface_create_func
         );

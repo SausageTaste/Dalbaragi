@@ -90,6 +90,7 @@ namespace dal {
             create_info.m_init_width,
             create_info.m_init_height,
             *create_info.m_filesystem,
+            this->m_task_man,
             create_info.m_extensions,
             create_info.m_surface_create_func
         );

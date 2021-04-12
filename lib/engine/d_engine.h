@@ -23,6 +23,7 @@ namespace dal {
     class Engine {
 
     private:
+        dal::TaskManager m_task_man;
         dal::VulkanState m_vulkan_man;
         InputManager m_input_man;
 
@@ -30,9 +31,15 @@ namespace dal {
         Timer m_timer;
 
     public:
-        Engine() = default;
+        Engine()
+            : m_task_man(2)
+        {
 
-        Engine(const EngineCreateInfo& create_info) {
+        }
+
+        Engine(const EngineCreateInfo& create_info)
+            : m_task_man(2)
+        {
             this->init(create_info);
         }
 

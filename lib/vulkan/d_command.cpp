@@ -110,7 +110,7 @@ namespace dal {
     }
 
     void CmdPoolManager::record_all_simple(
-        const std::vector<ModelRenderer>& models,
+        const std::vector<ModelRenderer*>& models,
         const std::vector<VkFramebuffer>& swapchain_fbufs,
         const std::vector<VkDescriptorSet>& desc_sets_simple,
         const VkExtent2D& swapchain_extent,
@@ -150,16 +150,19 @@ namespace dal {
                 std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
                 for (auto& model : models) {
+                    if (!model->is_ready())
+                        continue;
+
                     vkCmdBindDescriptorSets(
                         cmd_buf,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         pipe_layout_simple,
                         2,
-                        1, &model.desc_set_per_actor().get(),
+                        1, &model->desc_set_per_actor().get(),
                         0, nullptr
                     );
 
-                    for (auto& unit : model.render_units()) {
+                    for (auto& unit : model->render_units()) {
                         std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
                         vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
                         vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);

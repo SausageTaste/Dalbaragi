@@ -103,6 +103,11 @@ namespace dal {
             vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_material, nullptr);
             this->m_layout_per_material = VK_NULL_HANDLE;
         }
+
+        if (VK_NULL_HANDLE != this->m_layout_per_actor) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_actor, nullptr);
+            this->m_layout_per_actor = VK_NULL_HANDLE;
+        }
     }
 
 }
