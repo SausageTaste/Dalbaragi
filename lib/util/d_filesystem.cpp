@@ -106,12 +106,18 @@ namespace {
         if (dir_list_begin == dir_list_end)
             return std::string{};
 
-        std::string output{ *dir_list_begin };
+        std::string output;
 
-        for (auto ptr = dir_list_begin + 1; ptr < dir_list_end; ++ptr) {
-            output += seperator;
+        for (auto ptr = dir_list_begin; ptr < dir_list_end; ++ptr) {
+            if (ptr->empty())
+                continue;
+
             output += *ptr;
+            output += seperator;
         }
+
+        if (!output.empty())
+            output.pop_back();
 
         return output;
     }
@@ -285,6 +291,12 @@ namespace android {
         AAssetDir_close(assetDir);
 
         return dirs.size();
+    }
+
+    std::vector<std::string> listfile_asset(const std::string& path, void* const asset_mgr) {
+        std::vector<std::string> output;
+        listfile_asset(path, output, asset_mgr);
+        return output;
     }
 
     bool is_file_asset(const char* const path, void* asset_mgr) {
@@ -531,17 +543,33 @@ namespace {
             }
 
             void put_all_sub_folders(std::vector<PathNamePair>& output, const char* const prefix) const {
-                const auto this_path = fmt::format("{}/{}", prefix, this->m_name);
+                const std::string this_path = ::join_path({prefix, this->m_name}, '/');
+                output.push_back(PathNamePair{this_path, this->m_name});
 
-                output.push_back(PathNamePair{ this_path, this->m_name });
                 for (const auto& x : this->m_sub_fol) {
                     x.put_all_sub_folders(output, this_path.c_str());
                 }
             }
 
+            void put_all_sub_folders_files(std::vector<PathNamePair>& output, const char* const prefix, void* const asset_mgr) const {
+                const std::string this_path = ::join_path({prefix, this->m_name}, '/');
+                output.push_back(PathNamePair{this_path, this->m_name});
+
+                for (const auto& file_name : ::android::listfile_asset(this_path, asset_mgr)) {
+                    output.push_back(PathNamePair{
+                        ::join_path({ this_path, file_name }, '/'),
+                        file_name
+                    });
+                }
+
+                for (const auto& x : this->m_sub_fol) {
+                    x.put_all_sub_folders_files(output, this_path.c_str(), asset_mgr);
+                }
+            }
+
         };
 
-        const AssetFolderDef ASSET_DIRECTORY {"root", {
+        const AssetFolderDef ASSET_DIRECTORY {"", {
             {"glsl", {}},
             {"image", {
                 {"honoka", {}},
@@ -553,6 +581,10 @@ namespace {
 
     public:
         const AssetFolderDef* get_folder_info(const char* const path) const {
+            if (0 == std::strlen(path)) {
+                return &this->ASSET_DIRECTORY;
+            }
+
             const auto path_split = ::split_path(path);
             const AssetFolderDef* cur_dir = &this->ASSET_DIRECTORY;
 
@@ -594,14 +626,28 @@ namespace {
             return output;
         }
 
+        std::vector<AssetFolderDef::PathNamePair> walk_all_folders_files(const char* const path, void* const asset_mgr) {
+            std::vector<AssetFolderDef::PathNamePair> output;
+            const auto dir_info = this->get_folder_info(path);
+            if (nullptr == dir_info)
+                return output;
+
+            dir_info->put_all_sub_folders_files(output, path, asset_mgr);
+            return output;
+        }
+
     } g_asset_folders;
 
 
-    std::optional<std::string> resolve_question_asset_path(const std::string& domain_dir, const std::string& entry_to_find) {
+    std::optional<std::string> resolve_question_asset_path(
+        const std::string& domain_dir,
+        const std::string& entry_to_find,
+        void* asset_mgr
+    ) {
         if ( !g_asset_folders.is_folder(domain_dir.c_str()) )
             return std::nullopt;
 
-        for (const auto& e : g_asset_folders.walk_all_folders(domain_dir.c_str())) {
+        for (const auto& e : g_asset_folders.walk_all_folders_files(domain_dir.c_str(), asset_mgr)) {
             if (e.m_name == entry_to_find) {
                 return e.m_path;
             }
@@ -637,7 +683,7 @@ namespace {
             const auto dir_element = respath.dir_list().at(i);
 
             if (dir_element == "?") {
-                const auto resolve_result = ::resolve_question_asset_path(cur_path, respath.dir_list().at(i + 1));
+                const auto resolve_result = ::resolve_question_asset_path(cur_path, respath.dir_list().at(i + 1), asset_mgr);
                 if (!resolve_result.has_value()) {
                     return std::nullopt;
                 }
@@ -664,7 +710,7 @@ namespace {
         if (!android::is_file_asset(cur_path.c_str(), asset_mgr))
             return std::nullopt;
 
-        return dal::ResPath{ ::SPECIAL_NAMESPACE_ASSET + cur_path };
+        return dal::ResPath{ ::join_path({::SPECIAL_NAMESPACE_ASSET, cur_path}, '/') };
     }
 
 #endif
