@@ -124,6 +124,7 @@ namespace dal {
             this->input_manager().key_manager().queue().clear();
         }
 
+        this->m_task_man.update();
 
         this->m_vulkan_man.update(this->m_camera);
     }

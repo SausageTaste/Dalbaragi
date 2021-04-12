@@ -27,12 +27,17 @@ namespace dal {
 
     public:
         void init(
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void upload_meshes(
             const dal::ModelStatic& model_data,
             dal::CommandPool& cmd_pool,
             TextureManager& tex_man,
             const char* const fallback_file_namespace,
-            const VkDescriptorSetLayout layout_per_material,
             const VkDescriptorSetLayout layout_per_actor,
+            const VkDescriptorSetLayout layout_per_material,
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device

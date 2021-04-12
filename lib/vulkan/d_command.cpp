@@ -15,7 +15,7 @@ namespace dal {
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.queueFamilyIndex = queue_family_index;
-        poolInfo.flags = 0;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
         if (vkCreateCommandPool(logi_device, &poolInfo, nullptr, &this->m_handle) != VK_SUCCESS) {
             dalAbort("failed to create command pool!");
@@ -109,7 +109,8 @@ namespace dal {
         this->m_pools.clear();
     }
 
-    void CmdPoolManager::record_all_simple(
+    void CmdPoolManager::record_simple(
+        const size_t index,
         const std::vector<ModelRenderer*>& models,
         const std::vector<VkFramebuffer>& swapchain_fbufs,
         const std::vector<VkDescriptorSet>& desc_sets_simple,
@@ -118,83 +119,82 @@ namespace dal {
         const VkPipeline graphics_pipeline,
         const VkRenderPass render_pass
     ) {
-        for (size_t i = 0; i < this->m_cmd_buffers.size(); ++i) {
-            auto& cmd_buf = this->m_cmd_buffers[i];
+        auto& cmd_buf = this->m_cmd_buffers[index];
 
-            VkCommandBufferBeginInfo begin_info{};
-            begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            begin_info.flags = 0;
-            begin_info.pInheritanceInfo = nullptr;
+        VkCommandBufferBeginInfo begin_info{};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags = 0;
+        begin_info.pInheritanceInfo = nullptr;
 
-            if (vkBeginCommandBuffer(cmd_buf, &begin_info) != VK_SUCCESS) {
-                dalAbort("failed to begin recording command buffer!");
-            }
+        if (vkBeginCommandBuffer(cmd_buf, &begin_info) != VK_SUCCESS) {
+            dalAbort("failed to begin recording command buffer!");
+        }
 
-            std::array<VkClearValue, 2> clear_colors{};
-            clear_colors[0].color = { 0, 0, 0, 1 };
-            clear_colors[1].depthStencil = { 1, 0 };
+        std::array<VkClearValue, 2> clear_colors{};
+        clear_colors[0].color = { 0, 0, 0, 1 };
+        clear_colors[1].depthStencil = { 1, 0 };
 
-            VkRenderPassBeginInfo render_pass_info{};
-            render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            render_pass_info.renderPass = render_pass;
-            render_pass_info.framebuffer = swapchain_fbufs[i];
-            render_pass_info.renderArea.offset = {0, 0};
-            render_pass_info.renderArea.extent = swapchain_extent;
-            render_pass_info.clearValueCount = clear_colors.size();
-            render_pass_info.pClearValues = clear_colors.data();
+        VkRenderPassBeginInfo render_pass_info{};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_info.renderPass = render_pass;
+        render_pass_info.framebuffer = swapchain_fbufs[index];
+        render_pass_info.renderArea.offset = {0, 0};
+        render_pass_info.renderArea.extent = swapchain_extent;
+        render_pass_info.clearValueCount = clear_colors.size();
+        render_pass_info.pClearValues = clear_colors.data();
 
-            vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-            {
-                vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
+        vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+        {
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
 
-                std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
-                for (auto& model : models) {
-                    if (!model->is_ready())
-                        continue;
+            for (auto& model : models) {
+                if (!model->is_ready())
+                    continue;
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipe_layout_simple,
+                    2,
+                    1, &model->desc_set_per_actor().get(),
+                    0, nullptr
+                );
+
+                for (auto& unit : model->render_units()) {
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
 
                     vkCmdBindDescriptorSets(
                         cmd_buf,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         pipe_layout_simple,
-                        2,
-                        1, &model->desc_set_per_actor().get(),
+                        0,
+                        1, &desc_sets_simple.at(index),
                         0, nullptr
                     );
 
-                    for (auto& unit : model->render_units()) {
-                        std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
-                        vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
-                        vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipe_layout_simple,
+                        1,
+                        1, &unit.m_desc_set.get(),
+                        0, nullptr
+                    );
 
-                        vkCmdBindDescriptorSets(
-                            cmd_buf,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipe_layout_simple,
-                            0,
-                            1, &desc_sets_simple.at(i),
-                            0, nullptr
-                        );
-
-                        vkCmdBindDescriptorSets(
-                            cmd_buf,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipe_layout_simple,
-                            1,
-                            1, &unit.m_desc_set.get(),
-                            0, nullptr
-                        );
-
-                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
-                    }
+                    vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
                 }
             }
-            vkCmdEndRenderPass(cmd_buf);
-
-            if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS) {
-                dalAbort("failed to record command buffer!");
-            }
         }
+        vkCmdEndRenderPass(cmd_buf);
+
+        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS) {
+            dalAbort("failed to record command buffer!");
+        }
+
     }
 
 }

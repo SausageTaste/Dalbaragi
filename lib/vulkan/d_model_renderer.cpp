@@ -38,18 +38,25 @@ namespace {
 namespace dal {
 
     void ModelRenderer::init(
-        const dal::ModelStatic& model_data,
-        dal::CommandPool& cmd_pool,
-        TextureManager& tex_man,
-        const char* const fallback_file_namespace,
-        const VkDescriptorSetLayout layout_per_material,
-        const VkDescriptorSetLayout layout_per_actor,
-        const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
 
+        this->m_ubuf_per_actor.init(phys_device, logi_device);
+    }
+
+    void ModelRenderer::upload_meshes(
+        const dal::ModelStatic& model_data,
+        dal::CommandPool& cmd_pool,
+        TextureManager& tex_man,
+        const char* const fallback_file_namespace,
+        const VkDescriptorSetLayout layout_per_actor,
+        const VkDescriptorSetLayout layout_per_material,
+        const VkQueue graphics_queue,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
         this->m_desc_pool.init(
             1 * model_data.m_units.size() + 5,
             1 * model_data.m_units.size() + 5,
@@ -57,8 +64,6 @@ namespace dal {
             1 * model_data.m_units.size() + 5,
             logi_device
         );
-
-        this->m_ubuf_per_actor.init(phys_device, logi_device);
 
         this->m_desc_per_actor = this->m_desc_pool.allocate(layout_per_actor, logi_device);
         this->m_desc_per_actor.record_per_actor(this->m_ubuf_per_actor, logi_device);
@@ -124,17 +129,19 @@ namespace dal {
         if (this->m_sent_task.end() != iter) {
             auto task_load = reinterpret_cast<::Task_LoadModel*>(task.get());
 
-            iter->second->init(
+            iter->second->upload_meshes(
                 task_load->out_model_data.value(),
                 this->m_cmd_man->pool_single_time(),
                 *this->m_tex_man,
                 task_load->m_respath.dir_list().front().c_str(),
-                this->m_desc_layout_man->layout_per_material(),
                 this->m_desc_layout_man->layout_per_actor(),
+                this->m_desc_layout_man->layout_per_material(),
                 this->m_graphics_queue,
                 this->m_phys_device,
                 this->m_logi_device
             );
+
+            this->m_sent_task.erase(iter);
         }
     }
 
@@ -147,10 +154,15 @@ namespace dal {
             this->m_models[respath_str] = ModelRenderer{};
             auto& model = this->m_models[respath_str];
 
+            model.init(
+                this->m_phys_device,
+                this->m_logi_device
+            );
+
             std::unique_ptr<dal::ITask> task{ new ::Task_LoadModel(respath, *this->m_filesys) };
             this->m_sent_task[task.get()] = &model;
 
-/*
+//*
             this->m_task_man->order_task(std::move(task), this);
 /*/
             reinterpret_cast<::Task_LoadModel*>(task.get())->run();
