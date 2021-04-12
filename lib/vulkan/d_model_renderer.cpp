@@ -16,7 +16,7 @@ namespace {
         std::optional<dal::ModelStatic> out_model_data;
 
     public:
-        Task_LoadModel(const dal::ResPath& respath, dal::Filesystem filesys)
+        Task_LoadModel(const dal::ResPath& respath, dal::Filesystem& filesys)
             : m_filesys(filesys)
             , m_respath(respath)
         {

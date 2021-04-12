@@ -100,6 +100,11 @@ namespace dal::filesystem {
 #endif
 
     public:
+        AssetManager() = default;
+        AssetManager(const AssetManager&) = delete;
+        AssetManager& operator=(const AssetManager&) = delete;
+
+    public:
         std::vector<std::string> listfile(const dal::ResPath& path);
 
         std::unique_ptr<FileReadOnly> open(const dal::ResPath& path);
