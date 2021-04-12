@@ -105,6 +105,7 @@ namespace dal {
         }
         this->m_units.clear();
         this->m_desc_pool.destroy(logi_device);
+        this->m_ubuf_per_actor.destroy(logi_device);
     }
 
     bool ModelRenderer::is_ready() const {
@@ -118,6 +119,8 @@ namespace dal {
 namespace dal {
 
     void ModelManager::destroy(const VkDevice logi_device) {
+        this->m_sent_task.clear();
+
         for (auto& x : this->m_models) {
             x.second.destroy(logi_device);
         }
