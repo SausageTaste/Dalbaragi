@@ -235,7 +235,7 @@ namespace desktop {
     };
 
 
-    std::filesystem::path find_asset_dir() {
+    std::optional<std::filesystem::path> find_asset_dir() {
         std::filesystem::path cur_dir = ".";
 
         for (int i = 0; i < 16; ++i) {
@@ -248,16 +248,14 @@ namespace desktop {
             cur_dir /= "..";
         }
 
-        return {};
-    }
-
-    std::filesystem::path get_asset_dir() {
-        static const auto path = ::desktop::find_asset_dir();
-        return path;
+        return std::nullopt;
     }
 
     void listfile_asset(const char* const path, std::vector<std::string>& result) {
-        ::stdfs::listfile(::desktop::get_asset_dir() / path, result);
+        const auto asset_dir = ::desktop::find_asset_dir();
+        if (asset_dir.has_value()) {
+            ::stdfs::listfile(*asset_dir / path, result);
+        }
     }
 
 }
@@ -460,8 +458,11 @@ namespace {
         if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
             return std::nullopt;
 
-        const auto asset_dir = ::desktop::get_asset_dir().string();
-        std::string cur_path{ asset_dir };
+        const auto asset_dir = ::desktop::find_asset_dir();
+        if (!asset_dir.has_value())
+            return std::nullopt;
+
+        std::string cur_path{ asset_dir->string() };
 
         for (size_t i = 1; i < respath.dir_list().size(); ++i) {
             const auto dir_element = respath.dir_list().at(i);
@@ -493,7 +494,7 @@ namespace {
         if (!std::filesystem::is_regular_file(cur_path))
             return std::nullopt;
 
-        return dal::ResPath{ ::SPECIAL_NAMESPACE_ASSET + cur_path.substr(asset_dir.size()) };
+        return dal::ResPath{ ::SPECIAL_NAMESPACE_ASSET + cur_path.substr(asset_dir->string().size()) };
     }
 
 #elif defined(DAL_OS_ANDROID)
@@ -728,7 +729,11 @@ namespace dal::filesystem {
         const auto asset_path = ::join_path(&respath.dir_list().front() + 1, &respath.dir_list().back() + 1, '/');
 
 #if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
-        ::desktop::listfile_asset((::desktop::get_asset_dir() / asset_path).string().c_str(), result);
+        const auto asset_dir = ::desktop::find_asset_dir();
+        if (!asset_dir.has_value())
+            return result;
+
+        ::desktop::listfile_asset((*asset_dir / asset_path).string().c_str(), result);
 
 #elif defined(DAL_OS_ANDROID)
         dalAssert(nullptr != this->m_ptr_asset_manager);
@@ -748,7 +753,11 @@ namespace dal::filesystem {
         const auto asset_path = ::join_path(&respath.dir_list().front() + 1, &respath.dir_list().back() + 1, '/');
 
 #if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
-        const auto file_path = ::desktop::get_asset_dir() / asset_path;
+        const auto asset_dir = ::desktop::find_asset_dir();
+        if (!asset_dir.has_value())
+            return std::unique_ptr<FileReadOnly>{ new FileReadOnly_Null };
+
+        const auto file_path = *asset_dir / asset_path;
         std::unique_ptr<dal::filesystem::FileReadOnly> file{ new ::desktop::FileReadOnly_STL };
         file->open(file_path.string().c_str());
 
