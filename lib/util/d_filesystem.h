@@ -40,7 +40,7 @@ namespace dal::filesystem {
 
     };
 
-    [[nodicard]]
+    [[nodiscard]]
     std::optional<ResPath> resolve_respath(const ResPath& respath);
 
 
@@ -98,6 +98,23 @@ namespace dal::filesystem {
         std::vector<std::string> listfile(const ResPath& path);
 
         std::unique_ptr<FileReadOnly> open(const ResPath& path);
+
+    };
+
+}
+
+
+namespace dal {
+
+    class Filesystem {
+
+    private:
+        filesystem::AssetManager m_asset_man;
+
+    public:
+        auto& asset_mgr() {
+            return this->m_asset_man;
+        }
 
     };
 

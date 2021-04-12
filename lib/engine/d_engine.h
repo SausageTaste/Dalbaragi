@@ -12,7 +12,7 @@ namespace dal {
         const char*                     m_window_title = nullptr;
         unsigned                        m_init_width = 0;
         unsigned                        m_init_height = 0;
-        dal::filesystem::AssetManager*  m_asset_mgr = nullptr;
+        dal::Filesystem*                m_filesystem = nullptr;
         std::vector<const char*>        m_extensions;
         std::function<void*(void*)>     m_surface_create_func;
 

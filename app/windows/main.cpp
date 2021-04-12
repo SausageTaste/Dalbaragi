@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
     }
 
     dal::LoggerSingleton::inst().add_channel(dal::get_log_channel_cout());
-    dal::filesystem::AssetManager asset_mgr;
+    dal::Filesystem filesys;
 
     dal::WindowGLFW window("Dalbrargi Windows");
 
@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     engine_info.m_window_title = "Dalbrargi Windows";
     engine_info.m_init_width = window.width();
     engine_info.m_init_height = window.height();
-    engine_info.m_asset_mgr = &asset_mgr;
+    engine_info.m_filesystem = &filesys;
     engine_info.m_extensions = window.get_vulkan_extensions();
     engine_info.m_surface_create_func = window.get_vk_surface_creator();
 

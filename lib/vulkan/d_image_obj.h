@@ -35,7 +35,7 @@ namespace dal {
 
         ImageView& operator=(ImageView&&) noexcept;
 
-        [[nodicard]]
+        [[nodiscard]]
         bool init(
             const VkImage image,
             const VkFormat format,

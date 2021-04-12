@@ -63,7 +63,7 @@ namespace dal {
             return false;
         if (0 == this->m_init_height)
             return false;
-        if (nullptr == this->m_asset_mgr)
+        if (nullptr == this->m_filesystem)
             return false;
         if (!this->m_surface_create_func)
             return false;
@@ -89,7 +89,7 @@ namespace dal {
             create_info.m_window_title,
             create_info.m_init_width,
             create_info.m_init_height,
-            *create_info.m_asset_mgr,
+            create_info.m_filesystem->asset_mgr(),
             create_info.m_extensions,
             create_info.m_surface_create_func
         );
