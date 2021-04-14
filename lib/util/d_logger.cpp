@@ -1,5 +1,6 @@
 #include "d_logger.h"
 
+#include <mutex>
 #include <iostream>
 
 
@@ -7,11 +8,16 @@ namespace {
 
     class LogChannel_COUT : public dal::ILogChannel {
 
+    private:
+        std::mutex m_mut;
+
     public:
-        virtual void put(
+        void put(
             const dal::LogLevel level, const char* const str,
             const int line, const char* const func, const char* const file
         ) override {
+            std::unique_lock lck{ this->m_mut };
+
             if (static_cast<int>(level) >= static_cast<int>(dal::LogLevel::warning))
                 std::cerr << "[" << dal::get_log_level_str(level) << "] " << str << std::endl;
             else
