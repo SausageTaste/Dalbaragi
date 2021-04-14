@@ -76,7 +76,17 @@ namespace dal {
 
 namespace dal {
 
+    Engine::Engine() {
+        this->m_task_man.init(2);
+    }
+
+    Engine::Engine(const EngineCreateInfo& create_info) {
+        this->m_task_man.init(2);
+        this->init(create_info);
+    }
+
     Engine::~Engine() {
+        this->m_task_man.destroy();
         this->destroy();
     }
 
@@ -84,8 +94,6 @@ namespace dal {
         dalAssert(create_info.check_validity());
 
         this->destroy();
-
-        this->m_task_man.init(2);
 
         this->m_vulkan_man.init(
             create_info.m_window_title,
@@ -104,7 +112,6 @@ namespace dal {
     }
 
     void Engine::destroy() {
-        this->m_task_man.destroy();
         this->m_vulkan_man.destroy();
     }
 

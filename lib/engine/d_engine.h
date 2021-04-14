@@ -31,11 +31,9 @@ namespace dal {
         Timer m_timer;
 
     public:
-        Engine() = default;
+        Engine();
 
-        Engine(const EngineCreateInfo& create_info) {
-            this->init(create_info);
-        }
+        Engine(const EngineCreateInfo& create_info);
 
         ~Engine();
 
