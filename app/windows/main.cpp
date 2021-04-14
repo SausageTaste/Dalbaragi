@@ -13,10 +13,10 @@ int main(int argc, char** argv) {
     dal::LoggerSingleton::inst().add_channel(dal::get_log_channel_cout());
     dal::Filesystem filesys;
 
-    dal::WindowGLFW window("Dalbrargi Windows");
+    dal::WindowGLFW window("Dalbrargi");
 
     dal::EngineCreateInfo engine_info;
-    engine_info.m_window_title = "Dalbrargi Windows";
+    engine_info.m_window_title = "Dalbrargi";
     engine_info.m_init_width = window.width();
     engine_info.m_init_height = window.height();
     engine_info.m_filesystem = &filesys;
