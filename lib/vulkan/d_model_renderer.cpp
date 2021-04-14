@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+#include "d_logger.h"
+#include "d_timer.h"
 #include "d_model_parser.h"
 
 
@@ -24,9 +26,14 @@ namespace {
         }
 
         void run() override {
+            dal::Timer timer;
+
             auto file = this->m_filesys.open(this->m_respath);
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
+            dalInfo(fmt::format("Model res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
+
             this->out_model_data = dal::parse_model_dmd(model_content->data(), model_content->size());
+            dalInfo(fmt::format("Model res parsed ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
         }
 
     };
