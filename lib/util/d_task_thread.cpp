@@ -1,5 +1,7 @@
 #include "d_task_thread.h"
 
+#include <atomic>
+
 #include "d_timer.h"
 
 
