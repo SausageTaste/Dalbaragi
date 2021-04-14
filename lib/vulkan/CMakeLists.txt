@@ -14,6 +14,7 @@ add_library(libdal_vulkan STATIC
     d_vert_data.h        d_vert_data.cpp
     d_buffer_memory.h    d_buffer_memory.cpp
     d_uniform.h          d_uniform.cpp
+    d_model_renderer.h   d_model_renderer.cpp
 )
 target_compile_features(libdal_vulkan PUBLIC cxx_std_17)
 target_include_directories(libdal_vulkan PUBLIC ./)

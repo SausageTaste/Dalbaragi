@@ -9,6 +9,8 @@
 
 namespace dal {
 
+    void critical_exit();
+
     std::shared_ptr<ILogChannel> get_log_channel_cout();
 
 
@@ -100,7 +102,7 @@ namespace dal {
 #define dalAbort(str) {                                                             \
     dal::LoggerSingleton::inst().put_fatal((str),   __LINE__, __func__, __FILE__);  \
     dal::LoggerSingleton::inst().flush();                                           \
-    std::exit(EXIT_FAILURE);                                                        \
+    dal::critical_exit();                                                           \
 }
 
 

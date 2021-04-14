@@ -25,7 +25,7 @@ namespace dal {
 
     public:
         void init(
-            const std::vector<Vertex>& vertices,
+            const std::vector<VertexStatic>& vertices,
             const std::vector<index_data_t>& indices,
             dal::CommandPool& cmd_pool,
             const VkQueue graphics_queue,

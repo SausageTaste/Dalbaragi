@@ -54,7 +54,11 @@ namespace dal {
         RenderPass m_rp_rendering;
 
     public:
-        void init(const std::array<VkFormat, 1>& attachment_formats, const VkDevice logi_device);
+        void init(
+            const VkFormat format_color,
+            const VkFormat format_depth,
+            const VkDevice logi_device
+        );
 
         void destroy(VkDevice logi_device);
 

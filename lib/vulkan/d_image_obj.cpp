@@ -1,9 +1,20 @@
 #include "d_image_obj.h"
 
+#include <vector>
+#include <cstdint>
+
 #include <fmt/format.h>
 
 #include "d_logger.h"
 #include "d_buffer_memory.h"
+#include "d_image_parser.h"
+
+
+namespace {
+
+    constexpr char* const MISSING_TEX_PATH = "_asset/image/missing_tex.png";
+
+}
 
 
 namespace {
@@ -21,6 +32,39 @@ namespace {
         VkMemoryRequirements mem_requirements;
         vkGetImageMemoryRequirements(logi_device, image, &mem_requirements);
         return mem_requirements;
+    }
+
+    VkFormat find_supported_format(
+        const std::vector<VkFormat>& candidates,
+        const VkImageTiling tiling,
+        const VkFormatFeatureFlags features,
+        const VkPhysicalDevice phys_device
+    ) {
+        for (VkFormat format : candidates) {
+            VkFormatProperties props;
+            vkGetPhysicalDeviceFormatProperties(phys_device, format, &props);
+
+            if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+                return format;
+            } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+                return format;
+            }
+        }
+
+        dalAbort("failed to find supported format!");
+    }
+
+    VkFormat find_depth_format(const VkPhysicalDevice phys_device) {
+        return ::find_supported_format(
+            { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            phys_device
+        );
+    }
+
+    bool has_stencil_component(VkFormat depth_format) {
+        return depth_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
     auto create_image(
@@ -244,7 +288,7 @@ namespace dal {
 // TextureImage
 namespace dal {
 
-    void TextureImage::init(
+    void TextureImage::init_texture(
         const ImageData& img,
         dal::CommandPool& cmd_pool,
         const VkQueue graphics_queue,
@@ -307,6 +351,24 @@ namespace dal {
         );
     }
 
+    void TextureImage::init_depth(
+        const uint32_t width,
+        const uint32_t height,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->m_format = ::find_depth_format(phys_device);
+
+        std::tie(this->m_image, this->m_memory) = ::create_image(
+            width, height,
+            this->m_format,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            phys_device, logi_device
+        );
+    }
+
     void TextureImage::destory(const VkDevice logi_device) {
         if (VK_NULL_HANDLE != this->m_image) {
             vkDestroyImage(logi_device, this->m_image, nullptr);
@@ -362,6 +424,118 @@ namespace dal {
         if (VK_NULL_HANDLE != this->m_sampler) {
             vkDestroySampler(logi_device, this->m_sampler, nullptr);
             this->m_sampler = VK_NULL_HANDLE;
+        }
+    }
+
+}
+
+
+// TextureManager
+namespace dal {
+
+    void TextureManager::init(
+        dal::Filesystem& filesys,
+        CommandPool& cmd_pool,
+        const bool enable_anisotropy,
+        const VkQueue m_graphics_queue,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->m_filesys = &filesys;
+        this->m_cmd_pool = &cmd_pool,
+        this->m_graphics_queue = m_graphics_queue;
+        this->m_phys_device = phys_device;
+        this->m_logi_device = logi_device;
+
+        this->m_tex_sampler.init_for_color_map(enable_anisotropy, this->m_phys_device, this->m_logi_device);
+    }
+
+    void TextureManager::destroy(const VkDevice logi_device) {
+        for (auto& x : this->m_textures) {
+            x.second.m_image.destory(logi_device);
+            x.second.m_view.destroy(logi_device);
+        }
+        this->m_textures.clear();
+
+        this->m_tex_sampler.destroy(logi_device);
+    }
+
+    const TextureManager::TextureUnit& TextureManager::request_asset_tex(const dal::ResPath& respath) {
+        const auto resolved_respath = this->m_filesys->resolve_respath(respath);
+        if (!resolved_respath.has_value()) {
+            return this->get_missing_tex();
+        }
+
+        const auto path_str = resolved_respath->make_str();
+
+        const auto result = this->m_textures.find(path_str);
+        if (this->m_textures.end() != result) {
+            return result->second;
+        }
+        else {
+            auto file = this->m_filesys->open(resolved_respath.value());
+            if (!file->is_ready()) {
+                dalAbort(fmt::format("Failed to find texture file: {}", path_str).c_str());
+            }
+            const auto file_data = file->read_stl<std::vector<uint8_t>>();
+            const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
+
+            this->m_textures[path_str] = TextureUnit{};
+            auto iter = this->m_textures.find(path_str);
+
+            iter->second.m_image.init_texture(
+                image.value(),
+                *this->m_cmd_pool,
+                this->m_graphics_queue,
+                this->m_phys_device,
+                this->m_logi_device
+            );
+
+            iter->second.m_view.init(
+                iter->second.m_image.image(),
+                iter->second.m_image.format(),
+                1,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                m_logi_device
+            );
+
+            return iter->second;
+        }
+    };
+
+    const TextureManager::TextureUnit& TextureManager::get_missing_tex() {
+        const auto find_result = this->m_textures.find(::MISSING_TEX_PATH);
+
+        if (this->m_textures.end() != find_result) {
+            return find_result->second;
+        }
+        else {
+            const dal::ResPath respath{ ::MISSING_TEX_PATH };
+            auto file = this->m_filesys->open(respath);
+            dalAssert(file->is_ready());
+            const auto file_data = file->read_stl<std::vector<uint8_t>>();
+            const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
+
+            this->m_textures[::MISSING_TEX_PATH] = TextureUnit{};
+            auto iter = this->m_textures.find(::MISSING_TEX_PATH);
+
+            iter->second.m_image.init_texture(
+                image.value(),
+                *this->m_cmd_pool,
+                this->m_graphics_queue,
+                this->m_phys_device,
+                this->m_logi_device
+            );
+
+            iter->second.m_view.init(
+                iter->second.m_image.image(),
+                iter->second.m_image.format(),
+                1,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                m_logi_device
+            );
+
+            return iter->second;
         }
     }
 

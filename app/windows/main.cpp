@@ -1,9 +1,8 @@
 #include <iostream>
 
 #include "d_glfw.h"
-#include "d_vulkan_man.h"
 #include "d_logger.h"
-#include "d_filesystem.h"
+#include "d_engine.h"
 
 
 int main(int argc, char** argv) {
@@ -12,27 +11,34 @@ int main(int argc, char** argv) {
     }
 
     dal::LoggerSingleton::inst().add_channel(dal::get_log_channel_cout());
-    dal::filesystem::AssetManager asset_mgr;
+    dal::Filesystem filesys;
 
-    dal::WindowGLFW window("Dalbrargi Windows");
-    dal::VulkanState state(
-        "Dalbrargi Windows",
-        window.width(),
-        window.height(),
-        asset_mgr,
-        window.get_vulkan_extensions(),
-        window.get_vk_surface_creator()
-    );
+    dal::WindowGLFW window("Dalbrargi");
 
-    window.set_callback_fbuf_resize([&state](int width, int height) { state.on_screen_resize(width, height); });
+    dal::EngineCreateInfo engine_info;
+    engine_info.m_window_title = "Dalbrargi";
+    engine_info.m_init_width = window.width();
+    engine_info.m_init_height = window.height();
+    engine_info.m_filesystem = &filesys;
+    engine_info.m_extensions = window.get_vulkan_extensions();
+    engine_info.m_surface_create_func = window.get_vk_surface_creator();
+
+    dal::Engine engine{ engine_info };
+    window.set_callback_fbuf_resize([&engine](int width, int height) { engine.on_screen_resize(width, height); });
+    window.set_callback_mouse_event([&engine](const dal::MouseEvent& e) {
+        engine.input_manager().touch_manager().push_back(static_cast<dal::TouchEvent>(e));
+    });
+    window.set_callback_key_event([&engine](const dal::KeyEvent& e) {
+        engine.input_manager().key_manager().push_back(e);
+    });
 
     dalInfo("Done init");
 
     while (!window.should_close()) {
         window.do_frame();
-        state.update();
+        engine.update();
     }
 
-    state.wait_device_idle();
+    engine.wait_device_idle();
     return 0;
 }

@@ -4,6 +4,8 @@
 #include <vector>
 #include <functional>
 
+#include "d_inputs.h"
+
 
 namespace dal {
 
@@ -23,6 +25,8 @@ namespace dal {
         std::function<void*(void*)> get_vk_surface_creator() const;
 
         void set_callback_fbuf_resize(std::function<void(int, int)> func);
+        void set_callback_mouse_event(std::function<void(const dal::MouseEvent&)> func);
+        void set_callback_key_event(std::function<void(const dal::KeyEvent&)> func);
 
         auto& title() const {
             return this->m_title;

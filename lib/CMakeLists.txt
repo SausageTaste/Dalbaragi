@@ -12,15 +12,15 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-  fetch_glfw
-  GIT_REPOSITORY https://github.com/glfw/glfw
-  GIT_TAG        3.3.2
+    fetch_glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw
+    GIT_TAG        3.3.2
 )
 
 FetchContent_Declare(
-  fetch_glm
-  GIT_REPOSITORY https://github.com/g-truc/glm
-  GIT_TAG        0.9.9.8
+    fetch_glm
+    GIT_REPOSITORY https://github.com/g-truc/glm
+    GIT_TAG        0.9.9.8
 )
 
 FetchContent_Declare(
@@ -31,10 +31,17 @@ FetchContent_Declare(
     BUILD_COMMAND     ""
 )
 
+FetchContent_Declare(
+    fetch_dal_blender
+    GIT_REPOSITORY https://github.com/SausageTaste/io_scene_dalbaragi
+    GIT_TAG        master
+)
+
 
 FetchContent_MakeAvailable(fetch_fmt)
 FetchContent_MakeAvailable(fetch_glm)
 FetchContent_MakeAvailable(fetch_stb)
+FetchContent_MakeAvailable(fetch_dal_blender)
 
 if (WIN32)
     find_package(Vulkan REQUIRED)
@@ -51,6 +58,7 @@ endif()
 
 add_subdirectory(./util)
 add_subdirectory(./vulkan)
+add_subdirectory(./engine)
 
 
 if (WIN32)

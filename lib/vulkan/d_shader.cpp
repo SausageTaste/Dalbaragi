@@ -334,16 +334,18 @@ namespace {
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
+        const VkDescriptorSetLayout desc_layout_per_material,
+        const VkDescriptorSetLayout desc_layout_per_actor,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("spv/simple_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = asset_mgr.open("_asset/spv/simple_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'simple_v.spv' not found");
         }
         const auto frag_src = need_gamma_correction ?
-            asset_mgr.open("spv/simple_gamma_f.spv")->read_stl<std::vector<char>>() :
-            asset_mgr.open("spv/simple_f.spv")->read_stl<std::vector<char>>();
+            asset_mgr.open("_asset/spv/simple_gamma_f.spv")->read_stl<std::vector<char>>() :
+            asset_mgr.open("_asset/spv/simple_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'simple_f.spv' not found");
         }
@@ -366,7 +368,7 @@ namespace {
         const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
-        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, false, 0, 0);
+        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_BACK_BIT, false, 0, 0);
 
         // Multisampling
         const auto multisampling = ::create_info_multisampling();
@@ -376,14 +378,15 @@ namespace {
         const auto color_blending = ::create_info_color_blend(color_blend_attachments.data(), color_blend_attachments.size(), false);
 
         // Depth, stencil
-        //const auto depth_stencil = ::create_info_depth_stencil(true);
+        const auto depth_stencil = ::create_info_depth_stencil(true);
 
         // Dynamic state
         //constexpr std::array<VkDynamicState, 0> dynamic_states{};
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const auto pipeline_layout = ::create_pipeline_layout(&desc_layout_simple, 1, nullptr, 0, logi_device);
+        const std::array<VkDescriptorSetLayout, 3> desc_layouts{ desc_layout_simple, desc_layout_per_material, desc_layout_per_actor };
+        const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
         VkGraphicsPipelineCreateInfo pipeline_info{};
@@ -395,7 +398,7 @@ namespace {
         pipeline_info.pViewportState = &viewport_state;
         pipeline_info.pRasterizationState = &rasterizer;
         pipeline_info.pMultisampleState = &multisampling;
-        pipeline_info.pDepthStencilState = nullptr;
+        pipeline_info.pDepthStencilState = &depth_stencil;
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = nullptr;
         pipeline_info.layout = pipeline_layout;
@@ -423,6 +426,8 @@ namespace dal {
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
+        const VkDescriptorSetLayout desc_layout_per_material,
+        const VkDescriptorSetLayout desc_layout_per_actor,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
@@ -433,6 +438,8 @@ namespace dal {
             need_gamma_correction,
             swapchain_extent,
             desc_layout_simple,
+            desc_layout_per_material,
+            desc_layout_per_actor,
             renderpass,
             logi_device
         );

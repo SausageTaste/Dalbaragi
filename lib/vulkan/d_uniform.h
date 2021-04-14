@@ -13,7 +13,16 @@
 namespace dal {
 
     struct U_PerFrame {
-        glm::mat4 m_model{1}, m_view{1}, m_proj{1};
+        glm::mat4 m_view{1}, m_proj{1};
+    };
+
+    struct U_PerMaterial {
+        float m_roughness = 0.5;
+        float m_metallic = 0;
+    };
+
+    struct U_PerActor {
+        glm::mat4 m_model{1};
     };
 
 
@@ -24,10 +33,10 @@ namespace dal {
         BufferMemory m_buffer;
 
     public:
-        void init(const VkPhysicalDevice phys_device, const VkDevice logi_device) {
+        bool init(const VkPhysicalDevice phys_device, const VkDevice logi_device) {
             this->destroy(logi_device);
 
-            this->m_buffer.init(
+            return this->m_buffer.init(
                 this->data_size(),
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -107,6 +116,8 @@ namespace dal {
 
     private:
         VkDescriptorSetLayout m_layout_simple = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_per_material = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_per_actor = VK_NULL_HANDLE;
 
     public:
         void init(const VkDevice logiDevice);
@@ -115,6 +126,14 @@ namespace dal {
 
         auto& layout_simple() const {
             return this->m_layout_simple;
+        }
+
+        auto layout_per_material() const {
+            return this->m_layout_per_material;
+        }
+
+        auto layout_per_actor() const {
+            return this->m_layout_per_actor;
         }
 
     };
@@ -138,8 +157,18 @@ namespace dal {
 
         void record_simple(
             const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+            const VkDevice logi_device
+        );
+
+        void record_material(
+            const UniformBuffer<U_PerMaterial>& ubuf_per_material,
             const VkImageView texture_view,
             const VkSampler sampler,
+            const VkDevice logi_device
+        );
+
+        void record_per_actor(
+            const UniformBuffer<U_PerActor>& ubuf_per_actor,
             const VkDevice logi_device
         );
 
@@ -196,8 +225,6 @@ namespace dal {
         void init_desc_sets_simple(
             const dal::UniformBufferArray<U_PerFrame>& ubufs_simple,
             const uint32_t swapchain_count,
-            const VkImageView texture_view,
-            const VkSampler sampler,
             const VkDescriptorSetLayout desc_layout_simple,
             const VkDevice logi_device
         );
