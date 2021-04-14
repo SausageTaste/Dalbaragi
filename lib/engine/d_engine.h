@@ -31,15 +31,9 @@ namespace dal {
         Timer m_timer;
 
     public:
-        Engine()
-            : m_task_man(2)
-        {
+        Engine() = default;
 
-        }
-
-        Engine(const EngineCreateInfo& create_info)
-            : m_task_man(2)
-        {
+        Engine(const EngineCreateInfo& create_info) {
             this->init(create_info);
         }
 

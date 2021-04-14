@@ -1,7 +1,6 @@
 #include "d_task_thread.h"
 
 #include "d_timer.h"
-#include "d_logger.h"
 
 
 #ifdef DAL_MULTITHREADING
@@ -70,8 +69,6 @@ namespace dal {
                 return nullptr;
             }
         }
-
-        dalAbort("A task returned to TaskGod but it doesn't recognize it.");
     }
 
 }
@@ -83,6 +80,7 @@ namespace dal {
     class TaskManager::Worker {
 
     private:
+        size_t m_id;
         TaskQueue* m_wait_queue = nullptr;
         TaskQueue* m_done_queue = nullptr;
         std::atomic_bool m_flag_exit;
@@ -92,8 +90,9 @@ namespace dal {
         Worker& operator=(const Worker&) = delete;
 
     public:
-        Worker(TaskQueue& inQ, TaskQueue& outQ)
-            : m_wait_queue(&inQ)
+        Worker(const size_t id, TaskQueue& inQ, TaskQueue& outQ)
+            : m_id(id)
+            , m_wait_queue(&inQ)
             , m_done_queue(&outQ)
             , m_flag_exit(ATOMIC_VAR_INIT(false))
         {
@@ -101,6 +100,7 @@ namespace dal {
         }
 
         Worker(Worker&& other) noexcept {
+            this->m_id = other.m_id;
             this->m_wait_queue = other.m_wait_queue;
             this->m_done_queue = other.m_done_queue;
             this->m_flag_exit.store(other.m_flag_exit.load());
@@ -110,6 +110,7 @@ namespace dal {
         }
 
         Worker& operator=(Worker&& other) noexcept {
+            this->m_id = other.m_id;
             this->m_wait_queue = other.m_wait_queue;
             this->m_done_queue = other.m_done_queue;
             this->m_flag_exit.store(other.m_flag_exit.load());
@@ -120,10 +121,11 @@ namespace dal {
             return *this;
         }
 
-        void operator()(void) {
+        void operator()() {
             while (true) {
-                if (this->m_flag_exit)
+                if (this->m_flag_exit) {
                     return;
+                }
 
                 auto task = this->m_wait_queue->pop();
                 if (nullptr == task) {
@@ -151,14 +153,21 @@ namespace dal {
 
 namespace dal {
 
-     TaskManager::TaskManager(const size_t thread_count) {
+    TaskManager::TaskManager() = default;
+
+    TaskManager::~TaskManager(void) {
+        this->destroy();
+    }
+
+    void TaskManager::init(const size_t thread_count) {
+        this->destroy();
 
 #ifdef DAL_MULTITHREADING
         this->m_workers.reserve(thread_count);
         this->m_threads.reserve(thread_count);
 
         for (size_t i = 0; i < thread_count; ++i) {
-            this->m_workers.emplace_back(this->m_wait_queue, this->m_done_queue);
+            this->m_workers.push_back(Worker{ i, this->m_wait_queue, this->m_done_queue });
         }
 
         for (auto& worker : this->m_workers) {
@@ -166,10 +175,6 @@ namespace dal {
         }
 #endif
 
-    }
-
-    TaskManager::~TaskManager(void) {
-        this->terminate_join();
     }
 
     void TaskManager::update(void) {
@@ -189,7 +194,7 @@ namespace dal {
 
     }
 
-    void TaskManager::terminate_join() {
+    void TaskManager::destroy() {
 
 #ifdef DAL_MULTITHREADING
         for (auto& worker : this->m_workers) {

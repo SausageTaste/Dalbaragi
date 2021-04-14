@@ -85,6 +85,8 @@ namespace dal {
 
         this->destroy();
 
+        this->m_task_man.init(2);
+
         this->m_vulkan_man.init(
             create_info.m_window_title,
             create_info.m_init_width,
@@ -102,7 +104,7 @@ namespace dal {
     }
 
     void Engine::destroy() {
-        this->m_task_man.terminate_join();
+        this->m_task_man.destroy();
         this->m_vulkan_man.destroy();
     }
 

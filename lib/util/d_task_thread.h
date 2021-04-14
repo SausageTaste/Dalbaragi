@@ -87,13 +87,15 @@ namespace dal {
         TaskManager& operator=(TaskManager&&) = delete;
 
     public:
-        TaskManager(const size_t thread_count);
+        TaskManager();
 
         ~TaskManager();
 
-        void update();
+        void init(const size_t thread_count);
 
-        void terminate_join();
+        void destroy();
+
+        void update();
 
         // If client is null, there will be no notification and ITask object will be deleted.
         void order_task(std::unique_ptr<ITask> task, ITaskListener* const client);
