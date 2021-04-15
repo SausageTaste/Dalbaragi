@@ -98,13 +98,11 @@ namespace {
         return output;
     }
 
-    std::string join_path(const std::string* const dir_list_begin, const std::string* const dir_list_end, const char seperator) {
-        if (dir_list_begin == dir_list_end)
-            return std::string{};
-
+    template <typename _Iter>
+    std::string join_path(const _Iter dir_list_begin, const _Iter dir_list_end, const char seperator) {
         std::string output;
 
-        for (auto ptr = dir_list_begin; ptr < dir_list_end; ++ptr) {
+        for (auto ptr = dir_list_begin; ptr != dir_list_end; ++ptr) {
             if (ptr->empty())
                 continue;
 
@@ -118,8 +116,8 @@ namespace {
         return output;
     }
 
-    std::string join_path(const std::vector<std::string>& dir_list, const char seperator) {
-        return ::join_path(&dir_list.front(), &dir_list.back() + 1, seperator);
+    std::string join_path(const std::initializer_list<std::string>& dir_list, const char seperator) {
+        return ::join_path(dir_list.begin(), dir_list.end(), seperator);
     }
 
     std::vector<std::string> remove_duplicate_question_marks(const std::vector<std::string>& list) {
@@ -396,7 +394,7 @@ namespace dal {
     }
 
     std::string ResPath::make_str() const {
-        return ::join_path(this->dir_list(), this->SEPERATOR);
+        return ::join_path(this->dir_list().begin(), this->dir_list().end(), this->SEPERATOR);
     }
 
     bool ResPath::is_valid() const {
