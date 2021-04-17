@@ -43,8 +43,12 @@ namespace dal {
             const RenderPass_Final& renderpass
         );
 
-        auto& cmd_buffer_at(const size_t index) const {
+        auto& cmd_simple_at(const size_t index) const {
             return this->m_cmd_simple.at(index);
+        }
+
+        auto& cmd_final_at(const size_t index) const {
+            return this->m_cmd_final.at(index);
         }
 
         auto& pool_single_time() {

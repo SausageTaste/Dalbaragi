@@ -772,35 +772,55 @@ namespace dal {
             std::array<VkPipelineStageFlags, 1> waitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
             std::array<VkSemaphore, 1> signalSemaphores{ this->m_swapchain.sync_man().semaphore_render_finished(this->m_cur_frame_index).get() };
 
-            VkSubmitInfo submitInfo{};
-            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submitInfo.waitSemaphoreCount = waitSemaphores.size();
-            submitInfo.pWaitSemaphores = waitSemaphores.data();
-            submitInfo.pWaitDstStageMask = waitStages.data();
-            submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &this->m_cmd_man.cmd_buffer_at(img_index);
-            submitInfo.signalSemaphoreCount = signalSemaphores.size();
-            submitInfo.pSignalSemaphores = signalSemaphores.data();
+            std::array<VkSubmitInfo, 2> submit_info{};
+
+            submit_info[0].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info[0].waitSemaphoreCount = 0;
+            submit_info[0].pWaitSemaphores = nullptr;
+            submit_info[0].pWaitDstStageMask = nullptr;
+            submit_info[0].commandBufferCount = 1;
+            submit_info[0].pCommandBuffers = &this->m_cmd_man.cmd_simple_at(img_index);
+            submit_info[0].signalSemaphoreCount = 0;
+            submit_info[0].pSignalSemaphores = nullptr;
+
+            submit_info[1].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info[1].waitSemaphoreCount = waitSemaphores.size();
+            submit_info[1].pWaitSemaphores = waitSemaphores.data();
+            submit_info[1].pWaitDstStageMask = waitStages.data();
+            submit_info[1].commandBufferCount = 1;
+            submit_info[1].pCommandBuffers = &this->m_cmd_man.cmd_final_at(img_index);
+            submit_info[1].signalSemaphoreCount = signalSemaphores.size();
+            submit_info[1].pSignalSemaphores = signalSemaphores.data();
 
             this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).reset(this->m_logi_device.get());
-            if (vkQueueSubmit(this->m_logi_device.queue_graphics(), 1, &submitInfo, this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).get()) != VK_SUCCESS) {
+
+            const auto submit_result = vkQueueSubmit(
+                this->m_logi_device.queue_graphics(),
+                submit_info.size(),
+                submit_info.data(),
+                this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).get()
+            );
+
+            if (VK_SUCCESS != submit_result) {
                 dalAbort("failed to submit draw command buffer!");
             }
+
+            std::array<VkSwapchainKHR, 1> swapchains{ this->m_swapchain.swapchain() };
 
             VkPresentInfoKHR presentInfo{};
             presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
             presentInfo.waitSemaphoreCount = signalSemaphores.size();
-            presentInfo.pWaitSemaphores = signalSemaphores.data();
-
-            VkSwapchainKHR swapChains[] = {this->m_swapchain.swapchain()};
-            presentInfo.swapchainCount = 1;
-            presentInfo.pSwapchains = swapChains;
-            presentInfo.pImageIndices = &img_index;
-            presentInfo.pResults = nullptr;
+            presentInfo.pWaitSemaphores    = signalSemaphores.data();
+            presentInfo.swapchainCount     = swapchains.size();
+            presentInfo.pSwapchains        = swapchains.data();
+            presentInfo.pImageIndices      = &img_index;
+            presentInfo.pResults           = nullptr;
 
             vkQueuePresentKHR(this->m_logi_device.queue_present(), &presentInfo);
 
             this->m_cur_frame_index = (this->m_cur_frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
+
+            this->wait_device_idle();
         }
 
         void wait_device_idle() const {
