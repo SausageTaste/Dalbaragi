@@ -126,13 +126,13 @@ namespace dal {
 namespace dal {
 
     void AttachmentManager::init(
-        const VkExtent2D& swapchain_extent,
+        const VkExtent2D& extent,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
 
-        this->m_extent = swapchain_extent;
+        this->m_extent = extent;
 
         this->m_color.init(
             this->m_extent.width,

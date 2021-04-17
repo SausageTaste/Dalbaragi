@@ -64,10 +64,19 @@ namespace dal {
 
     public:
         void init(
-            const VkExtent2D& swapchain_extent,
+            const VkExtent2D& extent,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
+
+        void init(
+            const uint32_t width,
+            const uint32_t height,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        ) {
+            this->init(VkExtent2D{ width, height }, phys_device, logi_device);
+        }
 
         void destroy(const VkDevice logi_device);
 

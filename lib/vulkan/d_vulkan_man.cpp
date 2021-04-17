@@ -68,6 +68,7 @@ namespace {
             const std::vector<dal::ImageView>& swapchain_views,
             const dal::AttachmentManager& attach_man,
             const VkExtent2D& swapchain_extent,
+            const VkExtent2D& gbuf_extent,
             const dal::RenderPass_Gbuf& rp_gbuf,
             const dal::RenderPass_Final& rp_final,
             const VkDevice logi_device
@@ -77,7 +78,7 @@ namespace {
             for (uint32_t i = 0; i < swapchain_views.size(); ++i) {
                 this->m_fbuf_simple.emplace_back().init(
                     rp_gbuf,
-                    swapchain_extent,
+                    gbuf_extent,
                     attach_man.color().view().get(),
                     attach_man.depth().view().get(),
                     logi_device
@@ -751,7 +752,7 @@ namespace dal {
                 this->m_models,
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_desc_man.desc_set_raw_simple(),
-                this->m_swapchain.extent(),
+                this->m_attach_man.color().extent(),
                 this->m_pipelines.simple().layout(),
                 this->m_pipelines.simple().pipeline(),
                 this->m_renderpasses.rp_gbuf()
@@ -867,7 +868,7 @@ namespace dal {
             );
 
             this->m_attach_man.init(
-                this->m_swapchain.extent(),
+                this->calc_smaller_extent(this->m_new_extent),
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
@@ -883,6 +884,7 @@ namespace dal {
                 this->m_swapchain.views(),
                 this->m_attach_man,
                 this->m_swapchain.extent(),
+                this->m_attach_man.color().extent(),
                 this->m_renderpasses.rp_gbuf(),
                 this->m_renderpasses.rp_final(),
                 this->m_logi_device.get()
@@ -892,6 +894,7 @@ namespace dal {
                 this->m_filesys.asset_mgr(),
                 !this->m_swapchain.is_format_srgb(),
                 this->m_swapchain.extent(),
+                this->m_attach_man.color().extent(),
                 this->m_desc_layout_man.layout_final(),
                 this->m_desc_layout_man.layout_simple(),
                 this->m_desc_layout_man.layout_per_material(),
@@ -943,6 +946,13 @@ namespace dal {
                 ubuf_data_per_actor.m_model = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{1, 0, 0}) * glm::scale(glm::mat4{1}, glm::vec3{0.01});;
                 model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
             }*/
+        }
+
+        static VkExtent2D calc_smaller_extent(const VkExtent2D& extent) {
+            return VkExtent2D{
+                static_cast<uint32_t>(static_cast<double>(extent.width) * 0.8),
+                static_cast<uint32_t>(static_cast<double>(extent.height) * 0.8)
+            };
         }
 
     };

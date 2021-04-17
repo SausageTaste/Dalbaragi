@@ -58,6 +58,7 @@ namespace dal {
             dal::filesystem::AssetManager& asset_mgr,
             const bool need_gamma_correction,
             const VkExtent2D& swapchain_extent,
+            const VkExtent2D& gbuf_extent,
             const VkDescriptorSetLayout desc_layout_final,
             const VkDescriptorSetLayout desc_layout_simple,
             const VkDescriptorSetLayout desc_layout_per_material,
