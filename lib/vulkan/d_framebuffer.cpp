@@ -201,7 +201,7 @@ namespace dal {
 namespace dal {
 
     void Fbuf_Simple::init(
-        const dal::RenderPass_Gbuf& rp_gbuf,
+        const dal::RenderPass_Gbuf& renderpass,
         const VkExtent2D& swapchain_extent,
         const VkImageView swapchain_view,
         const VkImageView depth_view,
@@ -217,7 +217,28 @@ namespace dal {
             attachments.size(),
             swapchain_extent.width,
             swapchain_extent.height,
-            rp_gbuf.get(),
+            renderpass.get(),
+            logi_device
+        );
+        dalAssert(result);
+    }
+
+    void Fbuf_Final::init(
+        const dal::RenderPass_Final& renderpass,
+        const VkExtent2D& swapchain_extent,
+        const VkImageView swapchain_view,
+        const VkDevice logi_device
+    ) {
+        const std::array<VkImageView, 1> attachments{
+            swapchain_view,
+        };
+
+        const auto result = this->create(
+            attachments.data(),
+            attachments.size(),
+            swapchain_extent.width,
+            swapchain_extent.height,
+            renderpass.get(),
             logi_device
         );
         dalAssert(result);

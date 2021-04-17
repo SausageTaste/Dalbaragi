@@ -64,6 +64,7 @@ namespace {
 
     private:
         std::vector<dal::Fbuf_Simple> m_fbuf_simple;
+        std::vector<dal::Fbuf_Final> m_fbuf_final;
 
     public:
         void init(
@@ -71,6 +72,7 @@ namespace {
             const dal::ImageView& depth_view,
             const VkExtent2D& swapchain_extent,
             const dal::RenderPass_Gbuf& rp_gbuf,
+            const dal::RenderPass_Final& rp_final,
             const VkDevice logi_device
         ) {
             this->destroy(logi_device);
@@ -83,14 +85,24 @@ namespace {
                     depth_view.get(),
                     logi_device
                 );
+
+                this->m_fbuf_final.emplace_back().init(
+                    rp_final,
+                    swapchain_extent,
+                    swapchain_views.at(i).get(),
+                    logi_device
+                );
             }
         }
 
         void destroy(const VkDevice logi_device) {
-            for (auto& fbuf : this->m_fbuf_simple) {
+            for (auto& fbuf : this->m_fbuf_simple)
                 fbuf.destroy(logi_device);
-            }
             this->m_fbuf_simple.clear();
+
+            for (auto& fbuf : this->m_fbuf_final)
+                fbuf.destroy(logi_device);
+            this->m_fbuf_final.clear();
         }
 
         std::vector<VkFramebuffer> swapchain_fbuf() const {
@@ -662,6 +674,7 @@ namespace dal {
                 this->m_attach_man.depth_view(),
                 this->m_swapchain.extent(),
                 this->m_renderpasses.rp_gbuf(),
+                this->m_renderpasses.rp_final(),
                 this->m_logi_device.get()
             );
 
@@ -859,8 +872,6 @@ namespace dal {
             }
             this->wait_device_idle();
 
-            const auto spec_before = this->m_swapchain.make_spec();
-
             this->m_swapchain.init(
                 this->m_new_extent.width,
                 this->m_new_extent.height,
@@ -870,15 +881,11 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
-            const auto spec_after = this->m_swapchain.make_spec();
-
-            if (spec_before.extent() != spec_after.extent()) {
-                this->m_attach_man.init(
-                    this->m_swapchain.extent(),
-                    this->m_phys_device.get(),
-                    this->m_logi_device.get()
-                );
-            }
+            this->m_attach_man.init(
+                this->m_swapchain.extent(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
 
             this->m_renderpasses.init(
                 this->m_swapchain.format(),
@@ -891,6 +898,7 @@ namespace dal {
                 this->m_attach_man.depth_view(),
                 this->m_swapchain.extent(),
                 this->m_renderpasses.rp_gbuf(),
+                this->m_renderpasses.rp_final(),
                 this->m_logi_device.get()
             );
 

@@ -125,10 +125,22 @@ namespace dal {
 
     public:
         void init(
-            const dal::RenderPass_Gbuf& rp_gbuf,
+            const dal::RenderPass_Gbuf& renderpass,
             const VkExtent2D& swapchain_extent,
             const VkImageView swapchain_view,
             const VkImageView depth_view,
+            const VkDevice logi_device
+        );
+
+    };
+
+    class Fbuf_Final : public Framebuffer {
+
+    public:
+        void init(
+            const dal::RenderPass_Final& renderpass,
+            const VkExtent2D& swapchain_extent,
+            const VkImageView swapchain_view,
             const VkDevice logi_device
         );
 
