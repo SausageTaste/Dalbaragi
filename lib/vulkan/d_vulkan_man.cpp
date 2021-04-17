@@ -24,7 +24,7 @@
 #include "d_model_renderer.h"
 
 
-#if !defined(NDEBUG) && !defined(__ANDROID__)
+#ifndef DAL_OS_ANDROID
     #define DAL_VK_DEBUG
 #endif
 
@@ -57,6 +57,7 @@ namespace {
 }
 
 
+// FbufManager
 namespace {
 
     class FbufManager {
