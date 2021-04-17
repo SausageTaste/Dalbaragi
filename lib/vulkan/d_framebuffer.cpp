@@ -134,6 +134,15 @@ namespace dal {
 
         this->m_extent = swapchain_extent;
 
+        this->m_color.init(
+            this->m_extent.width,
+            this->m_extent.height,
+            dal::FbufAttachment::Usage::color_attachment,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            phys_device,
+            logi_device
+        );
+
         this->m_depth.init(
             this->m_extent.width,
             this->m_extent.height,
@@ -145,6 +154,7 @@ namespace dal {
     }
 
     void AttachmentManager::destroy(const VkDevice logi_device) {
+        this->m_color.destroy(logi_device);
         this->m_depth.destroy(logi_device);
     }
 
@@ -203,12 +213,12 @@ namespace dal {
     void Fbuf_Simple::init(
         const dal::RenderPass_Gbuf& renderpass,
         const VkExtent2D& swapchain_extent,
-        const VkImageView swapchain_view,
+        const VkImageView color_view,
         const VkImageView depth_view,
         const VkDevice logi_device
     ) {
         const std::array<VkImageView, 2> attachments{
-            swapchain_view,
+            color_view,
             depth_view,
         };
 

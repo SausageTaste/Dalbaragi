@@ -72,6 +72,7 @@ namespace dal {
 
     public:
         void init(
+            const VkFormat format_swapchain,
             const VkFormat format_color,
             const VkFormat format_depth,
             const VkDevice logi_device

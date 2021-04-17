@@ -206,12 +206,13 @@ namespace dal {
 namespace dal {
 
     void RenderPassManager::init(
+        const VkFormat format_swapchain,
         const VkFormat format_color,
         const VkFormat format_depth,
         const VkDevice logi_device
     ) {
         this->m_rp_gbuf.init(format_color, format_depth, logi_device);
-        this->m_rp_final.init(format_color, logi_device);
+        this->m_rp_final.init(format_swapchain, logi_device);
     }
 
     void RenderPassManager::destroy(const VkDevice logi_device) {

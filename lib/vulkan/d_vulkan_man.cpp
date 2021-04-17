@@ -66,7 +66,7 @@ namespace {
     public:
         void init(
             const std::vector<dal::ImageView>& swapchain_views,
-            const dal::ImageView& depth_view,
+            const dal::AttachmentManager& attach_man,
             const VkExtent2D& swapchain_extent,
             const dal::RenderPass_Gbuf& rp_gbuf,
             const dal::RenderPass_Final& rp_final,
@@ -78,8 +78,8 @@ namespace {
                 this->m_fbuf_simple.emplace_back().init(
                     rp_gbuf,
                     swapchain_extent,
-                    swapchain_views.at(i).get(),
-                    depth_view.get(),
+                    attach_man.color().view().get(),
+                    attach_man.depth().view().get(),
                     logi_device
                 );
 
@@ -865,13 +865,14 @@ namespace dal {
 
             this->m_renderpasses.init(
                 this->m_swapchain.format(),
-                this->m_attach_man.depth_format(),
+                this->m_attach_man.color().format(),
+                this->m_attach_man.depth().format(),
                 this->m_logi_device.get()
             );
 
             this->m_fbuf_man.init(
                 this->m_swapchain.views(),
-                this->m_attach_man.depth_view(),
+                this->m_attach_man,
                 this->m_swapchain.extent(),
                 this->m_renderpasses.rp_gbuf(),
                 this->m_renderpasses.rp_final(),
