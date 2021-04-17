@@ -11,7 +11,7 @@ namespace dal {
     class FbufAttachment {
 
     public:
-        enum class Usage{ color_attachment, depth_stencil_attachment, depth_map };
+        enum class Usage{ color_attachment, depth_attachment, depth_stencil_attachment, depth_map };
 
     private:
         TextureImage m_image;

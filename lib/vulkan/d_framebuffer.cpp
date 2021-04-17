@@ -60,6 +60,15 @@ namespace {
                 image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 flag = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
                 break;
+
+            case dal::FbufAttachment::Usage::depth_attachment:
+                aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                image_layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                flag = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                break;
+
+            default:
+                dalAbort("WTF");
         }
 
         return std::make_tuple(flag, aspect_mask, image_layout);
@@ -128,7 +137,7 @@ namespace dal {
         this->m_depth.init(
             this->m_extent.width,
             this->m_extent.height,
-            dal::FbufAttachment::Usage::depth_stencil_attachment,
+            dal::FbufAttachment::Usage::depth_attachment,
             ::find_depth_format(phys_device),
             phys_device,
             logi_device
