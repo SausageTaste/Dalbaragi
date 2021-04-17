@@ -63,7 +63,7 @@ namespace {
     class FbufManager {
 
     private:
-        std::vector<VkFramebuffer> m_swapchain_fbuf;
+        std::vector<dal::Framebuffer> m_swapchain_fbuf;
 
     public:
         void init(
@@ -75,38 +75,39 @@ namespace {
         ) {
             this->destroy(logi_device);
 
-            this->m_swapchain_fbuf.resize(swapchain_views.size());
             for (uint32_t i = 0; i < swapchain_views.size(); ++i) {
                 const std::array<VkImageView, 2> attachments{
                     swapchain_views.at(i).get(),
                     depth_view.get(),
                 };
 
-                VkFramebufferCreateInfo fbuf_info{};
-                fbuf_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-                fbuf_info.renderPass = rp_gbuf.get();
-                fbuf_info.attachmentCount = attachments.size();
-                fbuf_info.pAttachments = attachments.data();
-                fbuf_info.width = swapchain_extent.width;
-                fbuf_info.height = swapchain_extent.height;
-                fbuf_info.layers = 1;
-
-                if (VK_SUCCESS != vkCreateFramebuffer( logi_device, &fbuf_info, nullptr, &this->m_swapchain_fbuf.at(i) )) {
-                    dalAbort("failed to create framebuffer!");
-                }
+                const auto result = this->m_swapchain_fbuf.emplace_back().create(
+                    attachments.data(),
+                    attachments.size(),
+                    swapchain_extent.width,
+                    swapchain_extent.height,
+                    rp_gbuf.get(),
+                    logi_device
+                );
+                dalAssert(result);
             }
         }
 
         void destroy(const VkDevice logi_device) {
-            for (auto fbuf : this->m_swapchain_fbuf) {
-                vkDestroyFramebuffer(logi_device, fbuf, nullptr);
+            for (auto& fbuf : this->m_swapchain_fbuf) {
+                fbuf.destroy(logi_device);
             }
             this->m_swapchain_fbuf.clear();
-
         }
 
-        auto& swapchain_fbuf() const {
-            return this->m_swapchain_fbuf;
+        std::vector<VkFramebuffer> swapchain_fbuf() const {
+            std::vector<VkFramebuffer> output;
+
+            for (auto& x : this->m_swapchain_fbuf) {
+                output.push_back(x.get());
+            }
+
+            return output;
         }
 
     };

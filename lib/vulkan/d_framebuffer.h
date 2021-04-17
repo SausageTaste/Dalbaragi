@@ -80,4 +80,44 @@ namespace dal {
 
     };
 
+
+    class Framebuffer {
+
+    private:
+        VkFramebuffer m_handle = VK_NULL_HANDLE;
+
+    public:
+        Framebuffer() = default;
+        Framebuffer(const Framebuffer&) = delete;
+        Framebuffer& operator=(const Framebuffer&) = delete;
+
+    public:
+        Framebuffer(Framebuffer&&) noexcept;
+
+        Framebuffer& operator=(Framebuffer&&) noexcept;
+
+        ~Framebuffer();
+
+        [[nodiscard]]
+        bool create(
+            const VkImageView* const attachments,
+            const uint32_t attachment_count,
+            const uint32_t width,
+            const uint32_t height,
+            const VkRenderPass renderpass,
+            const VkDevice logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+        bool is_ready() const {
+            return VK_NULL_HANDLE != this->m_handle;
+        }
+
+        VkFramebuffer get() const {
+            return this->m_handle;
+        }
+
+    };
+
 }

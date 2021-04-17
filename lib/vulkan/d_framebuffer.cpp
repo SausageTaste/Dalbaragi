@@ -151,7 +151,46 @@ namespace dal {
 }
 
 
-// FbufManager
+// Framebuffer
 namespace dal {
+
+    Framebuffer::Framebuffer(Framebuffer&& other) noexcept {
+        std::swap(this->m_handle, other.m_handle);
+    }
+
+    Framebuffer& Framebuffer::operator=(Framebuffer&& other) noexcept {
+        std::swap(this->m_handle, other.m_handle);
+        return *this;
+    }
+
+    Framebuffer::~Framebuffer() {
+        dalAssert(!this->is_ready());
+    }
+
+    bool Framebuffer::create(
+        const VkImageView* const attachments,
+        const uint32_t attachment_count,
+        const uint32_t width,
+        const uint32_t height,
+        const VkRenderPass renderpass,
+        const VkDevice logi_device
+    ) {
+        VkFramebufferCreateInfo fbuf_info{};
+        fbuf_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        fbuf_info.renderPass = renderpass;
+        fbuf_info.pAttachments = attachments;
+        fbuf_info.attachmentCount = attachment_count;
+        fbuf_info.width = width;
+        fbuf_info.height = height;
+        fbuf_info.layers = 1;
+
+        return VK_SUCCESS == vkCreateFramebuffer(logi_device, &fbuf_info, nullptr, &this->m_handle);
+    }
+
+    void Framebuffer::destroy(const VkDevice logi_device) {
+        if (VK_NULL_HANDLE != this->m_handle) {
+            vkDestroyFramebuffer(logi_device, this->m_handle, nullptr);
+        }
+    }
 
 }
