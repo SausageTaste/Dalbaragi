@@ -602,13 +602,13 @@ namespace dal {
 
             this->m_renderpasses.init(
                 this->m_swapchain.format(),
-                this->m_attach_man.depth().format(),
+                this->m_attach_man.depth_format(),
                 this->m_logi_device.get()
             );
 
             this->m_fbuf_man.init(
                 this->m_swapchain.views(),
-                this->m_attach_man,
+                this->m_attach_man.depth_view(),
                 this->m_swapchain.extent(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()
@@ -831,13 +831,13 @@ namespace dal {
 
             this->m_renderpasses.init(
                 this->m_swapchain.format(),
-                this->m_attach_man.depth().format(),
+                this->m_attach_man.depth_format(),
                 this->m_logi_device.get()
             );
 
             this->m_fbuf_man.init(
                 this->m_swapchain.views(),
-                this->m_attach_man,
+                this->m_attach_man.depth_view(),
                 this->m_swapchain.extent(),
                 this->m_renderpasses.rp_rendering().get(),
                 this->m_logi_device.get()

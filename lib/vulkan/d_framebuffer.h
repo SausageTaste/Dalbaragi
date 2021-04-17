@@ -57,7 +57,7 @@ namespace dal {
     class AttachmentManager {
 
     private:
-        FbufAttachment m_color, m_depth;
+        FbufAttachment m_depth;
 
         VkExtent2D m_extent{ 0, 0 };
 
@@ -70,12 +70,12 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        auto& color() const {
-            return this->m_color;
+        auto depth_format() const {
+            return this->m_depth.format();
         }
 
-        auto& depth() const {
-            return this->m_depth;
+        auto& depth_view() const {
+            return this->m_depth.view();
         }
 
     };
@@ -86,12 +86,10 @@ namespace dal {
     private:
         std::vector<VkFramebuffer> m_swapchain_fbuf;
 
-        VkFramebuffer m_color_fbuf = VK_NULL_HANDLE;
-
     public:
         void init(
             const std::vector<ImageView>& swapchain_views,
-            const AttachmentManager& attachment_man,
+            const ImageView& depth_view,
             const VkExtent2D& swapchain_extent,
             const VkRenderPass renderpass,
             const VkDevice logi_device

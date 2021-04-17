@@ -133,19 +133,9 @@ namespace dal {
             phys_device,
             logi_device
         );
-
-        this->m_color.init(
-            this->m_extent.width,
-            this->m_extent.height,
-            dal::FbufAttachment::Usage::color_attachment,
-            VK_FORMAT_R8G8B8A8_UNORM,
-            phys_device,
-            logi_device
-        );
     }
 
     void AttachmentManager::destroy(const VkDevice logi_device) {
-        this->m_color.destroy(logi_device);
         this->m_depth.destroy(logi_device);
     }
 
@@ -157,7 +147,7 @@ namespace dal {
 
     void FbufManager::init(
         const std::vector<ImageView>& swapchain_views,
-        const AttachmentManager& attachment_man,
+        const ImageView& depth_view,
         const VkExtent2D& swapchain_extent,
         const VkRenderPass renderpass,
         const VkDevice logi_device
@@ -167,8 +157,8 @@ namespace dal {
         this->m_swapchain_fbuf.resize(swapchain_views.size());
         for (uint32_t i = 0; i < swapchain_views.size(); ++i) {
             const std::array<VkImageView, 2> attachments{
-                attachment_man.color().view().get(),
-                attachment_man.depth().view().get(),
+                swapchain_views.at(i).get(),
+                depth_view.get(),
             };
 
             VkFramebufferCreateInfo fbuf_info{};
@@ -184,26 +174,6 @@ namespace dal {
                 dalAbort("failed to create framebuffer!");
             }
         }
-
-        {
-            const std::array<VkImageView, 2> attachments{
-                attachment_man.color().view().get(),
-                attachment_man.depth().view().get(),
-            };
-
-            VkFramebufferCreateInfo fbuf_info{};
-            fbuf_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            fbuf_info.renderPass = renderpass;
-            fbuf_info.attachmentCount = attachments.size();
-            fbuf_info.pAttachments = attachments.data();
-            fbuf_info.width = swapchain_extent.width;
-            fbuf_info.height = swapchain_extent.height;
-            fbuf_info.layers = 1;
-
-            if (VK_SUCCESS != vkCreateFramebuffer( logi_device, &fbuf_info, nullptr, &this->m_color_fbuf)) {
-                dalAbort("failed to create framebuffer!");
-            }
-        }
     }
 
     void FbufManager::destroy(const VkDevice logi_device) {
@@ -212,10 +182,6 @@ namespace dal {
         }
         this->m_swapchain_fbuf.clear();
 
-        if (VK_NULL_HANDLE != this->m_color_fbuf) {
-            vkDestroyFramebuffer(logi_device, this->m_color_fbuf, nullptr);
-            this->m_color_fbuf = VK_NULL_HANDLE;
-        }
     }
 
 }
