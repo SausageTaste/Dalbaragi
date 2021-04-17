@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "d_vulkan_header.h"
+#include "d_render_pass.h"
 #include "d_image_obj.h"
 
 
@@ -117,6 +117,20 @@ namespace dal {
         VkFramebuffer get() const {
             return this->m_handle;
         }
+
+    };
+
+
+    class Fbuf_Simple : public Framebuffer {
+
+    public:
+        void init(
+            const dal::RenderPass_Gbuf& rp_gbuf,
+            const VkExtent2D& swapchain_extent,
+            const VkImageView swapchain_view,
+            const VkImageView depth_view,
+            const VkDevice logi_device
+        );
 
     };
 

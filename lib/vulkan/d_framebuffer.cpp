@@ -190,7 +190,37 @@ namespace dal {
     void Framebuffer::destroy(const VkDevice logi_device) {
         if (VK_NULL_HANDLE != this->m_handle) {
             vkDestroyFramebuffer(logi_device, this->m_handle, nullptr);
+            this->m_handle = VK_NULL_HANDLE;
         }
+    }
+
+}
+
+
+// Framebuffer implementaions
+namespace dal {
+
+    void Fbuf_Simple::init(
+        const dal::RenderPass_Gbuf& rp_gbuf,
+        const VkExtent2D& swapchain_extent,
+        const VkImageView swapchain_view,
+        const VkImageView depth_view,
+        const VkDevice logi_device
+    ) {
+        const std::array<VkImageView, 2> attachments{
+            swapchain_view,
+            depth_view,
+        };
+
+        const auto result = this->create(
+            attachments.data(),
+            attachments.size(),
+            swapchain_extent.width,
+            swapchain_extent.height,
+            rp_gbuf.get(),
+            logi_device
+        );
+        dalAssert(result);
     }
 
 }

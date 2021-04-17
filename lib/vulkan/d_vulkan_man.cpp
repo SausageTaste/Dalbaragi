@@ -63,7 +63,7 @@ namespace {
     class FbufManager {
 
     private:
-        std::vector<dal::Framebuffer> m_swapchain_fbuf;
+        std::vector<dal::Fbuf_Simple> m_fbuf_simple;
 
     public:
         void init(
@@ -76,34 +76,27 @@ namespace {
             this->destroy(logi_device);
 
             for (uint32_t i = 0; i < swapchain_views.size(); ++i) {
-                const std::array<VkImageView, 2> attachments{
+                this->m_fbuf_simple.emplace_back().init(
+                    rp_gbuf,
+                    swapchain_extent,
                     swapchain_views.at(i).get(),
                     depth_view.get(),
-                };
-
-                const auto result = this->m_swapchain_fbuf.emplace_back().create(
-                    attachments.data(),
-                    attachments.size(),
-                    swapchain_extent.width,
-                    swapchain_extent.height,
-                    rp_gbuf.get(),
                     logi_device
                 );
-                dalAssert(result);
             }
         }
 
         void destroy(const VkDevice logi_device) {
-            for (auto& fbuf : this->m_swapchain_fbuf) {
+            for (auto& fbuf : this->m_fbuf_simple) {
                 fbuf.destroy(logi_device);
             }
-            this->m_swapchain_fbuf.clear();
+            this->m_fbuf_simple.clear();
         }
 
         std::vector<VkFramebuffer> swapchain_fbuf() const {
             std::vector<VkFramebuffer> output;
 
-            for (auto& x : this->m_swapchain_fbuf) {
+            for (auto& x : this->m_fbuf_simple) {
                 output.push_back(x.get());
             }
 
