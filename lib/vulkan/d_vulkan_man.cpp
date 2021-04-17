@@ -625,8 +625,9 @@ namespace dal {
             const std::function<void*(void*)> surface_create_func
         )
             : m_filesys(filesys)
+            , m_new_extent(VkExtent2D{ init_width, init_height })
         {
-#ifdef __ANDROID__
+#ifdef DAL_OS_ANDROID
             dalAssert(1 == InitVulkan());
 #endif
             this->destroy();
@@ -643,57 +644,10 @@ namespace dal {
 #endif
 
             std::tie(this->m_phys_device, this->m_phys_info) = ::get_best_phys_device<true>(this->m_instance, this->m_surface);
-
             this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
-
             this->m_desc_layout_man.init(this->m_logi_device.get());
 
-            this->m_swapchain.init(
-                init_width,
-                init_height,
-                this->m_logi_device.indices(),
-                this->m_surface,
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_attach_man.init(
-                this->m_swapchain.extent(),
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_renderpasses.init(
-                this->m_swapchain.format(),
-                this->m_attach_man.depth_format(),
-                this->m_logi_device.get()
-            );
-
-            this->m_fbuf_man.init(
-                this->m_swapchain.views(),
-                this->m_attach_man.depth_view(),
-                this->m_swapchain.extent(),
-                this->m_renderpasses.rp_gbuf(),
-                this->m_renderpasses.rp_final(),
-                this->m_logi_device.get()
-            );
-
-            this->m_pipelines.init(
-                this->m_filesys.asset_mgr(),
-                !this->m_swapchain.is_format_srgb(),
-                this->m_swapchain.extent(),
-                this->m_desc_layout_man.layout_simple(),
-                this->m_desc_layout_man.layout_per_material(),
-                this->m_desc_layout_man.layout_per_actor(),
-                this->m_renderpasses.rp_gbuf(),
-                this->m_logi_device.get()
-            );
-
-            this->m_cmd_man.init(
-                this->m_swapchain.size(),
-                this->m_logi_device.indices().graphics_family(),
-                this->m_logi_device.get()
-            );
+            this->init_swapchain_and_dependers();
 
             this->m_tex_man.init(
                 this->m_filesys,
@@ -701,20 +655,6 @@ namespace dal {
                 this->m_phys_info.does_support_anisotropic_sampling(),
                 this->m_logi_device.queue_graphics(),
                 this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_ubufs_simple.init(
-                this->m_swapchain.size(),
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_desc_man.init(this->m_swapchain.size(), this->m_logi_device.get());
-            this->m_desc_man.init_desc_sets_simple(
-                this->m_ubufs_simple,
-                this->m_swapchain.size(),
-                this->m_desc_layout_man.layout_simple(),
                 this->m_logi_device.get()
             );
 
@@ -772,7 +712,7 @@ namespace dal {
 
         void update(const EulerCamera& camera) {
             if (this->m_screen_resize_notified) {
-                this->m_screen_resize_notified = this->recreate_swapchain();
+                this->m_screen_resize_notified = this->on_recreate_swapchain();
                 return;
             }
 
@@ -780,7 +720,7 @@ namespace dal {
             const auto [acquire_result, img_index] = this->m_swapchain.acquire_next_img_index(this->m_cur_frame_index, this->m_logi_device.get());
 
             if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
-                this->m_screen_resize_notified = this->recreate_swapchain();
+                this->m_screen_resize_notified = this->on_recreate_swapchain();
                 return;
             }
             else if (ImgAcquireResult::success == acquire_result) {
@@ -866,12 +806,18 @@ namespace dal {
         }
 
     private:
-        bool recreate_swapchain() {
+        bool on_recreate_swapchain() {
             if (0 == this->m_new_extent.width || 0 == this->m_new_extent.height) {
                 return true;
             }
             this->wait_device_idle();
 
+            this->init_swapchain_and_dependers();
+
+            return false;
+        }
+
+        void init_swapchain_and_dependers() {
             this->m_swapchain.init(
                 this->m_new_extent.width,
                 this->m_new_extent.height,
@@ -932,8 +878,6 @@ namespace dal {
                 this->m_desc_layout_man.layout_simple(),
                 this->m_logi_device.get()
             );
-
-            return false;
         }
 
         void populate_models() {
