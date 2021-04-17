@@ -8,6 +8,35 @@
 
 namespace {
 
+    VkFormat find_supported_format(
+        const std::initializer_list<VkFormat>& candidates,
+        const VkImageTiling tiling,
+        const VkFormatFeatureFlags features,
+        const VkPhysicalDevice phys_device
+    ) {
+        for (const VkFormat format : candidates) {
+            VkFormatProperties props;
+            vkGetPhysicalDeviceFormatProperties(phys_device, format, &props);
+
+            if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+                return format;
+            } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+                return format;
+            }
+        }
+
+        dalAbort("failed to find supported format!");
+    }
+
+    VkFormat find_depth_format(const VkPhysicalDevice phys_device) {
+        return ::find_supported_format(
+            { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            phys_device
+        );
+    }
+
     auto interpret_usage(const dal::FbufAttachment::Usage usage) {
         VkImageAspectFlags aspect_mask;
         VkImageLayout image_layout;
@@ -96,25 +125,18 @@ namespace dal {
 
         this->m_extent = swapchain_extent;
 
-        this->m_depth_image.init_depth(
-            swapchain_extent.width,
-            swapchain_extent.height,
+        this->m_depth.init(
+            this->m_extent.width,
+            this->m_extent.height,
+            dal::FbufAttachment::Usage::depth_stencil_attachment,
+            ::find_depth_format(phys_device),
             phys_device,
-            logi_device
-        );
-
-        this->m_depth_view.init(
-            this->m_depth_image.image(),
-            this->m_depth_image.format(),
-            1,
-            VK_IMAGE_ASPECT_DEPTH_BIT,
             logi_device
         );
     }
 
     void AttachmentManager::destroy(const VkDevice logi_device) {
-        this->m_depth_view.destroy(logi_device);
-        this->m_depth_image.destory(logi_device);
+        this->m_depth.destroy(logi_device);
     }
 
 }

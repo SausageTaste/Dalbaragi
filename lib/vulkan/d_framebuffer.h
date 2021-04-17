@@ -31,8 +31,8 @@ namespace dal {
 
         void destroy(const VkDevice logiDevice);
 
-        auto view() const {
-            return this->m_view.get();
+        auto& view() const {
+            return this->m_view;
         }
 
         auto format() const {
@@ -57,8 +57,7 @@ namespace dal {
     class AttachmentManager {
 
     private:
-        TextureImage m_depth_image;
-        ImageView m_depth_view;
+        FbufAttachment m_depth;
 
         VkExtent2D m_extent{ 0, 0 };
 
@@ -72,11 +71,11 @@ namespace dal {
         void destroy(const VkDevice logi_device);
 
         auto depth_format() const {
-            return this->m_depth_image.format();
+            return this->m_depth.format();
         }
 
         auto& depth_view() const {
-            return this->m_depth_view;
+            return this->m_depth.view();
         }
 
     };
