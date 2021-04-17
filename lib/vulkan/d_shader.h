@@ -2,8 +2,8 @@
 
 #include <utility>
 
-#include "d_vulkan_header.h"
 #include "d_filesystem.h"
+#include "d_render_pass.h"
 
 
 namespace dal {
@@ -50,7 +50,8 @@ namespace dal {
     class PipelineManager {
 
     private:
-        ShaderPipeline m_simple;
+        ShaderPipeline m_gbuf;
+        ShaderPipeline m_final;
 
     public:
         void init(
@@ -60,14 +61,18 @@ namespace dal {
             const VkDescriptorSetLayout desc_layout_simple,
             const VkDescriptorSetLayout desc_layout_per_material,
             const VkDescriptorSetLayout desc_layout_per_actor,
-            const VkRenderPass renderpass,
+            const RenderPass_Gbuf& rp_gbuf,
             const VkDevice logi_device
         );
 
         void destroy(const VkDevice logi_device);
 
         auto& simple() const {
-            return this->m_simple;
+            return this->m_gbuf;
+        }
+
+        auto& final() const {
+            return this->m_final;
         }
 
     };

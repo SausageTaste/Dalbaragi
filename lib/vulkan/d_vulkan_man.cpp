@@ -57,6 +57,62 @@ namespace {
 }
 
 
+namespace {
+
+    class FbufManager {
+
+    private:
+        std::vector<VkFramebuffer> m_swapchain_fbuf;
+
+    public:
+        void init(
+            const std::vector<dal::ImageView>& swapchain_views,
+            const dal::ImageView& depth_view,
+            const VkExtent2D& swapchain_extent,
+            const dal::RenderPass_Gbuf& rp_gbuf,
+            const VkDevice logi_device
+        ) {
+            this->destroy(logi_device);
+
+            this->m_swapchain_fbuf.resize(swapchain_views.size());
+            for (uint32_t i = 0; i < swapchain_views.size(); ++i) {
+                const std::array<VkImageView, 2> attachments{
+                    swapchain_views.at(i).get(),
+                    depth_view.get(),
+                };
+
+                VkFramebufferCreateInfo fbuf_info{};
+                fbuf_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+                fbuf_info.renderPass = rp_gbuf.get();
+                fbuf_info.attachmentCount = attachments.size();
+                fbuf_info.pAttachments = attachments.data();
+                fbuf_info.width = swapchain_extent.width;
+                fbuf_info.height = swapchain_extent.height;
+                fbuf_info.layers = 1;
+
+                if (VK_SUCCESS != vkCreateFramebuffer( logi_device, &fbuf_info, nullptr, &this->m_swapchain_fbuf.at(i) )) {
+                    dalAbort("failed to create framebuffer!");
+                }
+            }
+        }
+
+        void destroy(const VkDevice logi_device) {
+            for (auto fbuf : this->m_swapchain_fbuf) {
+                vkDestroyFramebuffer(logi_device, fbuf, nullptr);
+            }
+            this->m_swapchain_fbuf.clear();
+
+        }
+
+        auto& swapchain_fbuf() const {
+            return this->m_swapchain_fbuf;
+        }
+
+    };
+
+}
+
+
 // Physical device
 namespace {
 
@@ -610,7 +666,7 @@ namespace dal {
                 this->m_swapchain.views(),
                 this->m_attach_man.depth_view(),
                 this->m_swapchain.extent(),
-                this->m_renderpasses.rp_rendering().get(),
+                this->m_renderpasses.rp_gbuf(),
                 this->m_logi_device.get()
             );
 
@@ -621,7 +677,7 @@ namespace dal {
                 this->m_desc_layout_man.layout_simple(),
                 this->m_desc_layout_man.layout_per_material(),
                 this->m_desc_layout_man.layout_per_actor(),
-                this->m_renderpasses.rp_rendering().get(),
+                this->m_renderpasses.rp_gbuf(),
                 this->m_logi_device.get()
             );
 
@@ -749,7 +805,7 @@ namespace dal {
                 this->m_swapchain.extent(),
                 this->m_pipelines.simple().layout(),
                 this->m_pipelines.simple().pipeline(),
-                this->m_renderpasses.rp_rendering().get()
+                this->m_renderpasses.rp_gbuf()
             );
 
             //-----------------------------------------------------------------------------------------------------
@@ -839,7 +895,7 @@ namespace dal {
                 this->m_swapchain.views(),
                 this->m_attach_man.depth_view(),
                 this->m_swapchain.extent(),
-                this->m_renderpasses.rp_rendering().get(),
+                this->m_renderpasses.rp_gbuf(),
                 this->m_logi_device.get()
             );
 
@@ -850,7 +906,7 @@ namespace dal {
                 this->m_desc_layout_man.layout_simple(),
                 this->m_desc_layout_man.layout_per_material(),
                 this->m_desc_layout_man.layout_per_actor(),
-                this->m_renderpasses.rp_rendering().get(),
+                this->m_renderpasses.rp_gbuf(),
                 this->m_logi_device.get()
             );
 

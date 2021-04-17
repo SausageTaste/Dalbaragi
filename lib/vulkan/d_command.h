@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "d_vulkan_header.h"
+#include "d_render_pass.h"
 
 
 namespace dal {
@@ -69,7 +69,7 @@ namespace dal {
             const VkExtent2D& swapchain_extent,
             const VkPipelineLayout pipe_layout_simple,
             const VkPipeline graphics_pipeline,
-            const VkRenderPass render_pass
+            const RenderPass_Gbuf& render_pass
         );
 
         auto& cmd_buffer_at(const size_t index) const {

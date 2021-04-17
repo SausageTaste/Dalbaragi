@@ -117,7 +117,7 @@ namespace dal {
         const VkExtent2D& swapchain_extent,
         const VkPipelineLayout pipe_layout_simple,
         const VkPipeline graphics_pipeline,
-        const VkRenderPass render_pass
+        const RenderPass_Gbuf& render_pass
     ) {
         auto& cmd_buf = this->m_cmd_buffers[index];
 
@@ -136,7 +136,7 @@ namespace dal {
 
         VkRenderPassBeginInfo render_pass_info{};
         render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        render_pass_info.renderPass = render_pass;
+        render_pass_info.renderPass = render_pass.get();
         render_pass_info.framebuffer = swapchain_fbufs[index];
         render_pass_info.renderArea.offset = {0, 0};
         render_pass_info.renderArea.extent = swapchain_extent;
