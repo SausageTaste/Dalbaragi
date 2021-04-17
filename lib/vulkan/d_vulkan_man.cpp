@@ -10,18 +10,15 @@
 
 #include "d_logger.h"
 
-#include "d_vulkan_header.h"
 #include "d_swapchain.h"
 #include "d_shader.h"
-#include "d_render_pass.h"
-#include "d_framebuffer.h"
 #include "d_command.h"
 #include "d_vert_data.h"
 #include "d_uniform.h"
 #include "d_image_parser.h"
 #include "d_timer.h"
 #include "d_model_parser.h"
-#include "d_model_renderer.h"
+#include "d_vk_managers.h"
 
 
 #ifndef DAL_OS_ANDROID
@@ -113,6 +110,10 @@ namespace {
             }
 
             return output;
+        }
+
+        auto& fbuf_final_at(const size_t index) const {
+            return this->m_fbuf_final.at(index);
         }
 
     };
@@ -662,7 +663,7 @@ namespace dal {
                 task_man,
                 this->m_filesys,
                 this->m_tex_man,
-                this->m_cmd_man,
+                this->m_cmd_man.pool_single_time(),
                 this->m_desc_layout_man,
                 this->m_logi_device.queue_graphics(),
                 this->m_phys_device.get(),
@@ -754,6 +755,15 @@ namespace dal {
                 this->m_pipelines.simple().layout(),
                 this->m_pipelines.simple().pipeline(),
                 this->m_renderpasses.rp_gbuf()
+            );
+
+            this->m_cmd_man.record_final(
+                img_index,
+                this->m_fbuf_man.fbuf_final_at(img_index),
+                this->m_swapchain.extent(),
+                this->m_pipelines.final().layout(),
+                this->m_pipelines.final().pipeline(),
+                this->m_renderpasses.rp_final()
             );
 
             //-----------------------------------------------------------------------------------------------------
@@ -856,6 +866,7 @@ namespace dal {
                 this->m_desc_layout_man.layout_per_material(),
                 this->m_desc_layout_man.layout_per_actor(),
                 this->m_renderpasses.rp_gbuf(),
+                this->m_renderpasses.rp_final(),
                 this->m_logi_device.get()
             );
 

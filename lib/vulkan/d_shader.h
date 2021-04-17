@@ -62,6 +62,7 @@ namespace dal {
             const VkDescriptorSetLayout desc_layout_per_material,
             const VkDescriptorSetLayout desc_layout_per_actor,
             const RenderPass_Gbuf& rp_gbuf,
+            const RenderPass_Final& rp_final,
             const VkDevice logi_device
         );
 

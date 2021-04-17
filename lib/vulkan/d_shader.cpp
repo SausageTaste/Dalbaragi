@@ -503,6 +503,7 @@ namespace dal {
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
         const RenderPass_Gbuf& rp_gbuf,
+        const RenderPass_Final& rp_final,
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
@@ -522,7 +523,7 @@ namespace dal {
             asset_mgr,
             need_gamma_correction,
             swapchain_extent,
-            rp_gbuf.get(),  // This is invalid
+            rp_final.get(),
             logi_device
         );
     }

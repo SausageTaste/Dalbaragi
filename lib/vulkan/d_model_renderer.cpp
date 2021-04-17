@@ -141,7 +141,7 @@ namespace dal {
 
             iter->second->upload_meshes(
                 task_load->out_model_data.value(),
-                this->m_cmd_man->pool_single_time(),
+                *this->m_single_time_pool,
                 *this->m_tex_man,
                 task_load->m_respath.dir_list().front().c_str(),
                 this->m_desc_layout_man->layout_per_actor(),
