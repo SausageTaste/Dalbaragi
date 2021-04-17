@@ -51,7 +51,7 @@ namespace {
 
             case dal::FbufAttachment::Usage::depth_map:
                 aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT;
-                image_layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 flag =  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
                 break;
 
@@ -63,7 +63,7 @@ namespace {
 
             case dal::FbufAttachment::Usage::depth_attachment:
                 aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT;
-                image_layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 flag = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
                 break;
 
