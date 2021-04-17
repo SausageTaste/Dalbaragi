@@ -46,6 +46,10 @@ def main():
 
     _work_for_one("simple_gamma_f.spv", "simple.frag", ["DAL_GAMMA_CORRECT"])
 
+    _work_for_one("fill_screen_v.spv", "fill_screen.vert", [])
+
+    _work_for_one("fill_screen_f.spv", "fill_screen.frag", [])
+
 
 if "__main__" == __name__:
     main()
