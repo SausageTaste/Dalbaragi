@@ -7,6 +7,28 @@
 
 namespace {
 
+    VkDescriptorSetLayout create_layout_final(const VkDevice logi_device) {
+        std::array<VkDescriptorSetLayoutBinding, 1> bindings{};
+
+        bindings.at(0).binding = 0;
+        bindings.at(0).descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings.at(0).descriptorCount = 1;
+        bindings.at(0).stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings.at(0).pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutCreateInfo layout_info{};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.pBindings = bindings.data();
+        layout_info.bindingCount = bindings.size();
+
+        VkDescriptorSetLayout output = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &output)) {
+            dalAbort("failed to create descriptor set layout!");
+        }
+
+        return output;
+    }
+
     VkDescriptorSetLayout create_layout_simple(const VkDevice logiDevice) {
         std::array<VkDescriptorSetLayoutBinding, 1> bindings{};
 
@@ -88,12 +110,19 @@ namespace dal {
     void DescSetLayoutManager::init(const VkDevice logiDevice) {
         this->destroy(logiDevice);
 
+        this->m_layout_final = ::create_layout_final(logiDevice);
+
         this->m_layout_simple = ::create_layout_simple(logiDevice);
         this->m_layout_per_material = ::create_layout_per_material(logiDevice);
         this->m_layout_per_actor = ::create_layout_per_actor(logiDevice);
     }
 
     void DescSetLayoutManager::destroy(const VkDevice logiDevice) {
+        if (VK_NULL_HANDLE != this->m_layout_final) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_final, nullptr);
+            this->m_layout_final = VK_NULL_HANDLE;
+        }
+
         if (VK_NULL_HANDLE != this->m_layout_simple) {
             vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_simple, nullptr);
             this->m_layout_simple = VK_NULL_HANDLE;
@@ -118,6 +147,33 @@ namespace dal {
 
     bool DescSet::is_ready() const {
         return VK_NULL_HANDLE != this->m_handle;
+    }
+
+    void DescSet::record_final(
+        const VkImageView color_view,
+        const VkSampler sampler,
+        const VkDevice logi_device
+    ) {
+        VkDescriptorImageInfo image_info{};
+        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        image_info.imageView = color_view;
+        image_info.sampler = sampler;
+
+        //--------------------------------------------------------------------
+
+        std::array<VkWriteDescriptorSet, 1> desc_writes{};
+
+        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        desc_writes[0].dstSet = this->m_handle;
+        desc_writes[0].dstBinding = 0;
+        desc_writes[0].dstArrayElement = 0;
+        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        desc_writes[0].descriptorCount = 1;
+        desc_writes[0].pImageInfo = &image_info;
+
+        //--------------------------------------------------------------------
+
+        vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
 
     void DescSet::record_simple(
@@ -310,10 +366,19 @@ namespace dal {
             swapchain_count * POOL_SIZE_MULTIPLIER,
             logi_device
         );
+
+        this->m_pool_final.init(
+            swapchain_count * POOL_SIZE_MULTIPLIER,
+            swapchain_count * POOL_SIZE_MULTIPLIER,
+            swapchain_count * POOL_SIZE_MULTIPLIER,
+            swapchain_count * POOL_SIZE_MULTIPLIER,
+            logi_device
+        );
     }
 
     void DescriptorManager::destroy(VkDevice logiDevice) {
         this->m_pool.destroy(logiDevice);
+        this->m_pool_final.destroy(logiDevice);
         this->m_descset_simple.clear();
     }
 
@@ -328,6 +393,23 @@ namespace dal {
         for (size_t i = 0; i < this->m_descset_simple.size(); ++i) {
             auto& desc_set = this->m_descset_simple.at(i);
             desc_set.record_simple(ubufs_simple.at(i), logi_device);
+        }
+    }
+
+    void DescriptorManager::init_desc_sets_final(
+        const std::vector<VkImageView>& color_views,
+        const uint32_t swapchain_count,
+        const VkSampler sampler,
+        const VkDescriptorSetLayout desc_layout_final,
+        const VkDevice logi_device
+    ) {
+        this->m_pool_final.reset(logi_device);
+        this->m_descset_final.clear();
+
+        this->m_descset_final = this->m_pool_final.allocate(swapchain_count, desc_layout_final, logi_device);
+
+        for (size_t i = 0; i < this->m_descset_final.size(); ++i) {
+            this->m_descset_final.at(i).record_final(color_views.at(i), sampler, logi_device);
         }
     }
 

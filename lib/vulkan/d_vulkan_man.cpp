@@ -757,10 +757,19 @@ namespace dal {
                 this->m_renderpasses.rp_gbuf()
             );
 
+            this->m_desc_man.init_desc_sets_final(
+                std::vector<VkImageView>(this->m_swapchain.size(), this->m_attach_man.color().view().get()),
+                this->m_swapchain.size(),
+                this->m_tex_man.sampler_tex().get(),
+                this->m_desc_layout_man.layout_final(),
+                this->m_logi_device.get()
+            );
+
             this->m_cmd_man.record_final(
                 img_index,
                 this->m_fbuf_man.fbuf_final_at(img_index),
                 this->m_swapchain.extent(),
+                this->m_desc_man.desc_set_final_at(img_index),
                 this->m_pipelines.final().layout(),
                 this->m_pipelines.final().pipeline(),
                 this->m_renderpasses.rp_final()
@@ -883,6 +892,7 @@ namespace dal {
                 this->m_filesys.asset_mgr(),
                 !this->m_swapchain.is_format_srgb(),
                 this->m_swapchain.extent(),
+                this->m_desc_layout_man.layout_final(),
                 this->m_desc_layout_man.layout_simple(),
                 this->m_desc_layout_man.layout_per_material(),
                 this->m_desc_layout_man.layout_per_actor(),
@@ -904,6 +914,7 @@ namespace dal {
             );
 
             this->m_desc_man.init(this->m_swapchain.size(), this->m_logi_device.get());
+
             this->m_desc_man.init_desc_sets_simple(
                 this->m_ubufs_simple,
                 this->m_swapchain.size(),

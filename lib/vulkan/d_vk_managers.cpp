@@ -123,6 +123,7 @@ namespace dal {
         const size_t index,
         const dal::Fbuf_Final& fbuf,
         const VkExtent2D& extent,
+        const VkDescriptorSet desc_set_final,
         const VkPipelineLayout pipe_layout_final,
         const VkPipeline pipeline_final,
         const RenderPass_Final& renderpass
@@ -153,6 +154,16 @@ namespace dal {
         vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
         {
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_final);
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipe_layout_final,
+                0,
+                1, &desc_set_final,
+                0, nullptr
+            );
+
             vkCmdDraw(cmd_buf, 6, 1, 0, 0);
         }
         vkCmdEndRenderPass(cmd_buf);

@@ -38,6 +38,7 @@ namespace dal {
             const size_t index,
             const dal::Fbuf_Final& fbuf,
             const VkExtent2D& extent,
+            const VkDescriptorSet desc_set_final,
             const VkPipelineLayout pipe_layout_final,
             const VkPipeline pipeline_final,
             const RenderPass_Final& renderpass

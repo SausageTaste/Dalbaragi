@@ -115,6 +115,8 @@ namespace dal {
     class DescSetLayoutManager {
 
     private:
+        VkDescriptorSetLayout m_layout_final = VK_NULL_HANDLE;
+
         VkDescriptorSetLayout m_layout_simple = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_material = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_actor = VK_NULL_HANDLE;
@@ -123,6 +125,10 @@ namespace dal {
         void init(const VkDevice logiDevice);
 
         void destroy(const VkDevice logiDevice);
+
+        auto& layout_final() const {
+            return this->m_layout_final;
+        }
 
         auto& layout_simple() const {
             return this->m_layout_simple;
@@ -154,6 +160,12 @@ namespace dal {
         auto& get() const {
             return this->m_handle;
         }
+
+        void DescSet::record_final(
+            const VkImageView color_view,
+            const VkSampler sampler,
+            const VkDevice logi_device
+        );
 
         void record_simple(
             const UniformBuffer<U_PerFrame>& ubuf_per_frame,
@@ -210,8 +222,9 @@ namespace dal {
     class DescriptorManager {
 
     private:
-        DescPool m_pool;
+        DescPool m_pool, m_pool_final;
         std::vector<DescSet> m_descset_simple;
+        std::vector<DescSet> m_descset_final;
 
     public:
         void init(const uint32_t swapchain_count, const VkDevice logi_device);
@@ -229,11 +242,23 @@ namespace dal {
             const VkDevice logi_device
         );
 
+        void init_desc_sets_final(
+            const std::vector<VkImageView>& color_views,
+            const uint32_t swapchain_count,
+            const VkSampler sampler,
+            const VkDescriptorSetLayout desc_layout_final,
+            const VkDevice logi_device
+        );
+
         auto& desc_set_simple() {
             return this->m_descset_simple;
         }
 
         std::vector<VkDescriptorSet> desc_set_raw_simple() const;
+
+        auto& desc_set_final_at(const size_t index) const {
+            return this->m_descset_final.at(index).get();
+        }
 
     };
 

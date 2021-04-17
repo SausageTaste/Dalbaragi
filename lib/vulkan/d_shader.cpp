@@ -419,6 +419,7 @@ namespace {
         dal::filesystem::AssetManager& asset_mgr,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
+        const VkDescriptorSetLayout desc_layout_final,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
@@ -460,7 +461,8 @@ namespace {
         const auto depth_stencil = ::create_info_depth_stencil(false);
 
         // Pipeline layout
-        const auto pipeline_layout = ::create_pipeline_layout(nullptr, 0, nullptr, 0, logi_device);
+        const std::array<VkDescriptorSetLayout, 1> desc_layouts{ desc_layout_final };
+        const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
         VkGraphicsPipelineCreateInfo pipeline_info{};
@@ -499,6 +501,7 @@ namespace dal {
         dal::filesystem::AssetManager& asset_mgr,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
+        const VkDescriptorSetLayout desc_layout_final,
         const VkDescriptorSetLayout desc_layout_simple,
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
@@ -523,6 +526,7 @@ namespace dal {
             asset_mgr,
             need_gamma_correction,
             swapchain_extent,
+            desc_layout_final,
             rp_final.get(),
             logi_device
         );

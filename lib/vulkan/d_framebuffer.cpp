@@ -46,7 +46,7 @@ namespace {
             case dal::FbufAttachment::Usage::color_attachment:
                 aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
                 image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                flag = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                flag = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
                 break;
 
             case dal::FbufAttachment::Usage::depth_map:
