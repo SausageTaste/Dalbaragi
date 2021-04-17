@@ -27,7 +27,13 @@ namespace dal {
     class ITaskListener {
 
     public:
+        ITaskListener() = default;
         virtual ~ITaskListener() = default;
+
+        ITaskListener(const ITaskListener&) = delete;
+        ITaskListener(ITaskListener&&) = delete;
+        ITaskListener& operator=(const ITaskListener&) = delete;
+        ITaskListener& operator=(ITaskListener&&) = delete;
 
         virtual void notify_task_done(std::unique_ptr<ITask> task) = 0;
 
