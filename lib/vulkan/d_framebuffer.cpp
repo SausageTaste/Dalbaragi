@@ -6,6 +6,84 @@
 #include "d_logger.h"
 
 
+namespace {
+
+    auto interpret_usage(const dal::FbufAttachment::Usage usage) {
+        VkImageAspectFlags aspect_mask;
+        VkImageLayout image_layout;
+        VkImageUsageFlags flag;
+
+        switch (usage) {
+            case dal::FbufAttachment::Usage::color_attachment:
+                aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
+                image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                flag = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                break;
+
+            case dal::FbufAttachment::Usage::depth_map:
+                aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                image_layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                flag =  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                break;
+
+            case dal::FbufAttachment::Usage::depth_stencil_attachment:
+                aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+                image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                flag = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                break;
+        }
+
+        return std::make_tuple(flag, aspect_mask, image_layout);
+    }
+
+}
+
+
+// ColorAttachment
+namespace dal {
+
+    void FbufAttachment::init(
+        const uint32_t width,
+        const uint32_t height,
+        const FbufAttachment::Usage usage,
+        const VkFormat format,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->destroy(logi_device);
+
+        this->m_format = format;
+        this->m_width = width;
+        this->m_height = height;
+        const auto [usage_flag, aspect_mask, image_layout] = ::interpret_usage(usage);
+
+        this->m_image.init_attachment(
+            this->width(),
+            this->height(),
+            this->format(),
+            usage_flag,
+            phys_device,
+            logi_device
+        );
+
+        const auto view_init_result = this->m_view.init(
+            this->m_image.image(),
+            this->format(),
+            1,
+            aspect_mask,
+            logi_device
+        );
+        dalAssert(view_init_result);
+    }
+
+    void FbufAttachment::destroy(const VkDevice logiDevice) {
+        this->m_image.destory(logiDevice);
+        this->m_view.destroy(logiDevice);
+    }
+
+}
+
+
 // AttachmentManager
 namespace dal {
 
