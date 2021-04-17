@@ -161,7 +161,7 @@ namespace dal {
             return this->m_handle;
         }
 
-        void DescSet::record_final(
+        void record_final(
             const VkImageView color_view,
             const VkSampler sampler,
             const VkDevice logi_device
