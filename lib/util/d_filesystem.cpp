@@ -262,6 +262,72 @@ namespace {
 #ifdef DAL_OS_ANDROID
 namespace android {
 
+    class AssetFile {
+
+    private:
+        AAsset* m_asset = nullptr;
+        size_t m_file_size = 0;
+
+    public:
+        AssetFile() = default;
+
+        AssetFile(const char* const path, void* const asset_mgr) noexcept {
+            this->open(path, asset_mgr);
+        }
+
+        ~AssetFile() {
+            this->close();
+        }
+
+        bool open(const char* const path, void* const asset_mgr) noexcept {
+            this->close();
+
+            this->m_asset = AAssetManager_open(static_cast<AAssetManager*>(asset_mgr), path, AASSET_MODE_UNKNOWN);
+            if (!this->is_ready())
+                return false;
+
+            this->m_file_size = static_cast<size_t>(AAsset_getLength64(this->m_asset));
+            return true;
+        }
+
+        void close() {
+            if (nullptr != this->m_asset)
+                AAsset_close(this->m_asset);
+
+            this->m_asset = nullptr;
+            this->m_file_size = 0;
+        }
+
+        [[nodiscard]]
+        bool is_ready() const noexcept {
+            return nullptr != this->m_asset;
+        }
+
+        [[nodiscard]]
+        size_t tell() const {
+            const auto cur_pos = AAsset_getRemainingLength(this->m_asset);
+            return this->m_file_size - static_cast<size_t>(cur_pos);
+        }
+
+        [[nodiscard]]
+        size_t size() const {
+            return this->m_file_size;
+        }
+
+        bool read(void* const dst, const size_t dst_size) {
+            // Android asset manager implicitly read beyond file range WTF!!!
+            const auto remaining = this->m_file_size - this->tell();
+            const auto size_to_read = dst_size < remaining ? dst_size : remaining;
+            if (size_to_read <= 0)
+                return false;
+
+            const auto read_bytes = AAsset_read(this->m_asset, dst, size_to_read);
+            return read_bytes > 0;
+        }
+
+    };
+
+
     class AssetFileIterator {
 
     private:
@@ -323,15 +389,6 @@ namespace android {
             }
         }
 
-        AssetFileIterator(void* const asset_mgr, std::string&& path)
-                : m_asset_mgr(reinterpret_cast<AAssetManager*>(asset_mgr))
-                , m_path(std::move(path))
-        {
-            if (!this->m_path.empty() && this->m_path.back() == '/') {
-                this->m_path.pop_back();
-            }
-        }
-
         [[nodiscard]]
         Iterator begin() const {
             return Iterator{ AAssetManager_openDir(this->m_asset_mgr, this->m_path.c_str()) };
@@ -344,15 +401,10 @@ namespace android {
 
     };
 
+
     bool is_file_asset(const char* const path, void* asset_mgr) {
-        auto opened = AAssetManager_open(reinterpret_cast<AAssetManager*>(asset_mgr), path, AASSET_MODE_UNKNOWN);
-        if (nullptr != opened) {
-            AAsset_close(opened);
-            return true;
-        }
-        else {
-            return false;
-        }
+        ::android::AssetFile file{ path, asset_mgr };
+        return file.is_ready();
     }
 
 
@@ -360,8 +412,7 @@ namespace android {
 
     private:
         AAssetManager* m_ptr_asset_manager = nullptr;
-        AAsset* m_asset = nullptr;
-        size_t m_fileSize = 0;
+        ::android::AssetFile m_file;
 
     public:
         explicit
@@ -372,62 +423,32 @@ namespace android {
         }
 
         ~FileReadOnly_AndroidAsset() override {
-            this->close();
+            this->m_file.close();
+            this->m_ptr_asset_manager = nullptr;
         }
 
         bool open(const char* const path) override {
-            using namespace std::literals;
-
-            this->close();
-
-            this->m_asset = AAssetManager_open(this->m_ptr_asset_manager, path, AASSET_MODE_UNKNOWN);
-            if ( nullptr == this->m_asset ) {
-                return false;
-            }
-
-            this->m_fileSize = static_cast<size_t>(AAsset_getLength64(this->m_asset));
-
-            return true;
+            return this->m_file.open(path, this->m_ptr_asset_manager);
         }
 
         void close() override {
-            if (this->is_ready())
-                AAsset_close(this->m_asset);
-
-            this->m_asset = nullptr;
-            this->m_fileSize = 0;
+            this->m_file.close();
         }
 
         bool read(void* const dst, const size_t dst_size) override {
-            // Android asset manager implicitly read beyond file range WTF!!!
-            const auto remaining = this->m_fileSize - this->tell();
-            auto sizeToRead = dst_size < remaining ? dst_size : remaining;
-            if (sizeToRead <= 0)
-                return false;
-
-            const auto readBytes = AAsset_read(this->m_asset, dst, sizeToRead);
-            if ( readBytes < 0 ) {
-                return false;
-            }
-            else if ( 0 == readBytes ) {
-                return false;
-            }
-            else {
-                return true;
-            }
+            return this->m_file.read(dst, dst_size);
         }
 
         size_t size() override {
-            return this->m_fileSize;
+            return this->m_file.size();
         }
 
         bool is_ready() override {
-            return nullptr != this->m_asset;
+            return this->m_file.is_ready();
         }
 
-        size_t tell(void) {
-            const auto curPos = AAsset_getRemainingLength(this->m_asset);
-            return this->m_fileSize - static_cast<size_t>(curPos);
+        size_t tell() {
+            return this->m_file.tell();
         }
 
     };
