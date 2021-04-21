@@ -29,7 +29,7 @@ namespace {
 // Common functions
 namespace {
 
-    bool is_char_seperator(const char c) {
+    bool is_char_separator(const char c) {
         return '\\' == c || '/' == c;
     }
 
@@ -83,7 +83,7 @@ namespace {
         for (auto ptr = path; *ptr != '\0'; ++ptr) {
             const auto c = *ptr;
 
-            if (::is_char_seperator(c)) {
+            if (::is_char_separator(c)) {
                 output.emplace_back();
             }
             else {
@@ -98,8 +98,8 @@ namespace {
         return output;
     }
 
-    template <typename _Iter>
-    std::string join_path(const _Iter dir_list_begin, const _Iter dir_list_end, const char seperator) {
+    template <typename _Iterator>
+    std::string join_path(const _Iterator dir_list_begin, const _Iterator dir_list_end, const char separator) {
         std::string output;
 
         for (auto ptr = dir_list_begin; ptr != dir_list_end; ++ptr) {
@@ -107,7 +107,7 @@ namespace {
                 continue;
 
             output += *ptr;
-            output += seperator;
+            output += separator;
         }
 
         if (!output.empty())
@@ -266,30 +266,87 @@ namespace {
 #ifdef DAL_OS_ANDROID
 namespace android {
 
-    size_t listfile_asset(std::string path, std::vector<std::string>& dirs, void* asset_mgr) {
-        dirs.clear();
-        if ( !path.empty() && path.back() == '/' ) {
-            path.pop_back();
-        }
+    class AssetFileIterator {
 
-        AAssetDir* assetDir = AAssetManager_openDir(reinterpret_cast<AAssetManager*>(asset_mgr), path.c_str());
-        while ( true ) {
-            auto filename = AAssetDir_getNextFileName(assetDir);
-            if ( filename == nullptr ) {
-                break;
+    private:
+        class Iterator {
+
+        private:
+            AAssetDir* m_dir = nullptr;
+            const char* m_filename = nullptr;
+
+        public:
+            Iterator() = default;
+
+            Iterator(const Iterator&) = delete;
+            Iterator& operator=(const Iterator&) = delete;
+
+        public:
+            explicit
+            Iterator(AAssetDir* const dir)
+                : m_dir(dir)
+                , m_filename(AAssetDir_getNextFileName(this->m_dir))
+            {
+
             }
-            dirs.emplace_back(filename);
+
+            ~Iterator() {
+                if (nullptr != this->m_dir) {
+                    AAssetDir_close(this->m_dir);
+                    this->m_dir = nullptr;
+                }
+            }
+
+            const char* operator*() const noexcept {
+                return this->m_filename;
+            }
+
+            void operator++() {
+                this->m_filename = AAssetDir_getNextFileName(this->m_dir);
+            }
+
+            bool operator!=(const Iterator& other) const noexcept {
+                return nullptr != this->m_filename;
+            }
+
+        };
+
+    private:
+        AAssetManager* m_asset_mgr = nullptr;
+        std::string m_path;
+
+    public:
+        AssetFileIterator() = delete;
+
+        AssetFileIterator(void* const asset_mgr, const std::string& path)
+            : m_asset_mgr(reinterpret_cast<AAssetManager*>(asset_mgr))
+            , m_path(path)
+        {
+            if (!this->m_path.empty() && this->m_path.back() == '/') {
+                this->m_path.pop_back();
+            }
         }
-        AAssetDir_close(assetDir);
 
-        return dirs.size();
-    }
+        AssetFileIterator(void* const asset_mgr, std::string&& path)
+                : m_asset_mgr(reinterpret_cast<AAssetManager*>(asset_mgr))
+                , m_path(std::move(path))
+        {
+            if (!this->m_path.empty() && this->m_path.back() == '/') {
+                this->m_path.pop_back();
+            }
+        }
 
-    std::vector<std::string> listfile_asset(const std::string& path, void* const asset_mgr) {
-        std::vector<std::string> output;
-        listfile_asset(path, output, asset_mgr);
-        return output;
-    }
+        [[nodiscard]]
+        Iterator begin() const {
+            return Iterator{ AAssetManager_openDir(this->m_asset_mgr, this->m_path.c_str()) };
+        }
+
+        [[nodiscard]]
+        Iterator end() const {
+            return Iterator{};
+        }
+
+    };
 
     bool is_file_asset(const char* const path, void* asset_mgr) {
         auto opened = AAssetManager_open(reinterpret_cast<AAssetManager*>(asset_mgr), path, AASSET_MODE_UNKNOWN);
@@ -311,6 +368,7 @@ namespace android {
         size_t m_fileSize = 0;
 
     public:
+        explicit
         FileReadOnly_AndroidAsset(void* const ptr_asset_manager)
             : m_ptr_asset_manager(reinterpret_cast<AAssetManager*>(ptr_asset_manager))
         {
@@ -398,15 +456,13 @@ namespace dal {
     }
 
     bool ResPath::is_valid() const {
-        for (auto x : this->m_dir_list) {
+        for (const auto& x : this->m_dir_list) {
             if (!::is_valid_folder_name(x) && !::is_str_wildcard(x.c_str()))
                 return false;
         }
 
-        if ( ::is_str_wildcard(this->m_dir_list.back().c_str()) )
-            return false;
+        return !::is_str_wildcard(this->m_dir_list.back().c_str());
 
-        return true;
     }
 
 }
@@ -544,7 +600,7 @@ namespace {
                 const std::string this_path = ::join_path({prefix, this->m_name}, '/');
                 output.push_back(PathNamePair{this_path, this->m_name});
 
-                for (const auto& file_name : ::android::listfile_asset(this_path, asset_mgr)) {
+                for (const auto file_name : ::android::AssetFileIterator(asset_mgr, this_path)) {
                     output.push_back(PathNamePair{
                         ::join_path({ this_path, file_name }, '/'),
                         file_name
@@ -595,7 +651,7 @@ namespace {
         }
 
         // Output strings are only folder names
-        std::vector<std::string> list_folder(const char* const path) {
+        std::vector<std::string> list_folder(const char* const path) const {
             auto next_dir = this->ASSET_DIRECTORY.get_sub_folder(path);
             if (nullptr != next_dir) {
                 return next_dir->make_fol_list();
@@ -605,7 +661,7 @@ namespace {
             }
         }
 
-        std::vector<AssetFolderDef::PathNamePair> walk_all_folders(const char* const path) {
+        std::vector<AssetFolderDef::PathNamePair> walk_all_folders(const char* const path) const {
             std::vector<AssetFolderDef::PathNamePair> output;
             const auto dir_info = this->get_folder_info(path);
             if (nullptr == dir_info)
@@ -615,7 +671,7 @@ namespace {
             return output;
         }
 
-        std::vector<AssetFolderDef::PathNamePair> walk_all_folders_files(const char* const path, void* const asset_mgr) {
+        std::vector<AssetFolderDef::PathNamePair> walk_all_folders_files(const char* const path, void* const asset_mgr) const {
             std::vector<AssetFolderDef::PathNamePair> output;
             const auto dir_info = this->get_folder_info(path);
             if (nullptr == dir_info)
@@ -728,7 +784,9 @@ namespace dal::filesystem {
         ::desktop::listfile_asset((*asset_dir / asset_path).string().c_str(), result);
 
 #elif defined(DAL_OS_ANDROID)
-        ::android::listfile_asset(asset_path.c_str(), result, this->m_ptr_asset_manager);
+        for (const auto x : ::android::AssetFileIterator{ this->get_android_asset_manager(), asset_path }) {
+            result.push_back(std::string{ x });
+        }
 
 #endif
 
