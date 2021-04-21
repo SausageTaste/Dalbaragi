@@ -177,12 +177,6 @@ namespace {
 #ifdef DAL_STD_FILESYSTEM
 namespace stdfs {
 
-    void listfile(const std::filesystem::path& path, std::vector<std::string>& result) {
-        for (const auto & entry : std::filesystem::directory_iterator(path)) {
-            result.push_back(entry.path().filename().string());
-        }
-    }
-
 }
 #endif
 }
@@ -252,7 +246,9 @@ namespace desktop {
     void listfile_asset(const char* const path, std::vector<std::string>& result) {
         const auto asset_dir = ::desktop::find_asset_dir();
         if (asset_dir.has_value()) {
-            ::stdfs::listfile(*asset_dir / path, result);
+            for (const auto& x : std::filesystem::directory_iterator(*asset_dir / path)) {
+                result.push_back(x.path().string());
+            }
         }
     }
 
