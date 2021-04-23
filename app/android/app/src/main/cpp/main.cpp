@@ -11,6 +11,9 @@
 #include <d_timer.h>
 
 
+#define BIT_EQUAL(x, y) !((x) ^ (y))
+
+
 namespace {
 
     dal::Filesystem g_filesys;
@@ -257,6 +260,51 @@ namespace {
         km.push_back(e);
     }
 
+
+    enum class InputSource {
+        unknown,
+        touch_screen,
+        keyboard,
+        joystick,
+        game_pad_btn,
+        touch_pad_mouse,
+        touch_pen,
+    };
+
+    struct EventInterpretation {
+        InputSource m_source = InputSource::unknown;
+    };
+
+    auto interpret_event(AInputEvent* const event) {
+        ::EventInterpretation output;
+
+        const auto input_src_bits = static_cast<unsigned>(AInputEvent_getSource(event));
+
+        if (BIT_EQUAL(AINPUT_SOURCE_KEYBOARD, input_src_bits)) {
+            output.m_source = ::InputSource::keyboard;
+        }
+        else if (BIT_EQUAL(AINPUT_SOURCE_TOUCHSCREEN, input_src_bits)) {
+            output.m_source = ::InputSource::touch_screen;
+        }
+        else if (BIT_EQUAL(AINPUT_SOURCE_JOYSTICK, input_src_bits)) {
+            output.m_source = ::InputSource::joystick;
+        }
+        else if (BIT_EQUAL(AINPUT_SOURCE_KEYBOARD | AINPUT_SOURCE_GAMEPAD, input_src_bits)) {
+            output.m_source = ::InputSource::game_pad_btn;
+        }
+        else if (BIT_EQUAL(AINPUT_SOURCE_TOUCHSCREEN | AINPUT_SOURCE_MOUSE, input_src_bits)) {
+            output.m_source = ::InputSource::touch_pad_mouse;
+        }
+        else if (BIT_EQUAL(AINPUT_SOURCE_TOUCHSCREEN | AINPUT_SOURCE_STYLUS, input_src_bits)) {
+            output.m_source = ::InputSource::touch_pen;
+        }
+        else {
+            dalInfo(fmt::format("unknown source {:x}", input_src_bits).c_str());
+        }
+
+        return output;
+    }
+
 }
 
 
@@ -268,6 +316,8 @@ extern "C" {
 
         auto &engine = *reinterpret_cast<dal::Engine*>(state->userData);
         const auto event_type = AInputEvent_getType(event);
+
+        const auto event_info = ::interpret_event(event);
 
         if (AINPUT_EVENT_TYPE_MOTION == event_type) {
             ::handle_motion_event(event, engine.input_manager().touch_manager());
