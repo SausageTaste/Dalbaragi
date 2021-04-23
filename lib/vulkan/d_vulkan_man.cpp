@@ -745,10 +745,10 @@ namespace dal {
             U_PerFrame ubuf_data_per_frame;
             ubuf_data_per_frame.m_view = camera.make_view_mat();
             ubuf_data_per_frame.m_proj = this->m_swapchain.pre_ratation_mat() * ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
-            this->m_ubufs_simple.at(*swapchain_index).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
+            this->m_ubufs_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
             this->m_cmd_man.record_simple(
-                *swapchain_index,
+                this->m_flight_frame_index.get(),
                 this->m_models,
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_desc_man.desc_set_raw_simple(),
@@ -759,7 +759,7 @@ namespace dal {
             );
 
             this->m_desc_man.init_desc_sets_final(
-                *swapchain_index,
+                this->m_flight_frame_index.get(),
                 this->m_attach_man.color().view().get(),
                 this->m_tex_man.sampler_tex().get(),
                 this->m_desc_layout_man.layout_final(),
@@ -767,10 +767,10 @@ namespace dal {
             );
 
             this->m_cmd_man.record_final(
-                *swapchain_index,
+                this->m_flight_frame_index.get(),
                 this->m_fbuf_man.fbuf_final_at(*swapchain_index),
                 this->m_swapchain.extent(),
-                this->m_desc_man.desc_set_final_at(*swapchain_index),
+                this->m_desc_man.desc_set_final_at(this->m_flight_frame_index.get()),
                 this->m_pipelines.final().layout(),
                 this->m_pipelines.final().pipeline(),
                 this->m_renderpasses.rp_final()
@@ -789,7 +789,7 @@ namespace dal {
             submit_info[0].pWaitSemaphores = nullptr;
             submit_info[0].pWaitDstStageMask = nullptr;
             submit_info[0].commandBufferCount = 1;
-            submit_info[0].pCommandBuffers = &this->m_cmd_man.cmd_simple_at(*swapchain_index);
+            submit_info[0].pCommandBuffers = &this->m_cmd_man.cmd_simple_at(this->m_flight_frame_index.get());
             submit_info[0].signalSemaphoreCount = 0;
             submit_info[0].pSignalSemaphores = nullptr;
 
@@ -798,7 +798,7 @@ namespace dal {
             submit_info[1].pWaitSemaphores = waitSemaphores.data();
             submit_info[1].pWaitDstStageMask = waitStages.data();
             submit_info[1].commandBufferCount = 1;
-            submit_info[1].pCommandBuffers = &this->m_cmd_man.cmd_final_at(*swapchain_index);
+            submit_info[1].pCommandBuffers = &this->m_cmd_man.cmd_final_at(this->m_flight_frame_index.get());
             submit_info[1].signalSemaphoreCount = signalSemaphores.size();
             submit_info[1].pSignalSemaphores = signalSemaphores.data();
 
@@ -903,22 +903,22 @@ namespace dal {
             );
 
             this->m_cmd_man.init(
-                this->m_swapchain.size(),
+                MAX_FRAMES_IN_FLIGHT,
                 this->m_logi_device.indices().graphics_family(),
                 this->m_logi_device.get()
             );
 
             this->m_ubufs_simple.init(
-                this->m_swapchain.size(),
+                MAX_FRAMES_IN_FLIGHT,
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
 
-            this->m_desc_man.init(this->m_swapchain.size(), this->m_logi_device.get());
+            this->m_desc_man.init(MAX_FRAMES_IN_FLIGHT, this->m_logi_device.get());
 
             this->m_desc_man.init_desc_sets_simple(
                 this->m_ubufs_simple,
-                this->m_swapchain.size(),
+                MAX_FRAMES_IN_FLIGHT,
                 this->m_desc_layout_man.layout_simple(),
                 this->m_logi_device.get()
             );

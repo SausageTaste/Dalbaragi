@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <vector>
 #include <optional>
 #include <algorithm>
@@ -89,6 +90,7 @@ namespace dal {
 
         IIndex& operator=(const T v) {
             this->set(v);
+            return *this;
         }
 
         T& operator*() noexcept {
@@ -107,8 +109,8 @@ namespace dal {
             this->m_value = v;
         }
 
-        void set_max_value() {
-            this->set(std::numeric_limits<T>::max());
+        void set_max_value() noexcept {
+            this->m_value = (std::numeric_limits<T>::max)();
         }
 
     };
@@ -121,7 +123,7 @@ namespace dal {
         using IIndex::operator=;
 
         void increase() noexcept {
-            *this = (this->get() + 1) % MAX_FRAMES_IN_FLIGHT;
+            this->set( (this->get() + 1) % MAX_FRAMES_IN_FLIGHT );
         }
 
     };
