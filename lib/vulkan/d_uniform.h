@@ -12,6 +12,10 @@
 
 namespace dal {
 
+    struct U_PerFrame_InFinal {
+        glm::mat4 m_rotation;
+    };
+
     struct U_PerFrame {
         glm::mat4 m_view{1}, m_proj{1};
     };
@@ -164,6 +168,7 @@ namespace dal {
         void record_final(
             const VkImageView color_view,
             const VkSampler sampler,
+            const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
             const VkDevice logi_device
         );
 
@@ -245,6 +250,7 @@ namespace dal {
 
         void init_desc_sets_final(
             const uint32_t index,
+            const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
             const VkImageView color_view,
             const VkSampler sampler,
             const VkDescriptorSetLayout desc_layout_final,

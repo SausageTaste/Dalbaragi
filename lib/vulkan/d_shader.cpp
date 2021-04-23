@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include <fmt/format.h>
+
 #include "d_logger.h"
 #include "d_filesystem.h"
 #include "d_vert_data.h"
@@ -159,6 +161,7 @@ namespace {
         VkRect2D scissor{};
         scissor.offset = { 0, 0 };
         scissor.extent = extent;
+        dalInfo(fmt::format("{}x{}", scissor.extent.width, scissor.extent.height).c_str());
 
         return std::make_pair(viewport, scissor);
     }
