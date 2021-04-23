@@ -181,11 +181,15 @@ namespace dal {
     }
 
     GamepadInputManager::GamepadState& GamepadInputManager::get_gamepad_state(const int id) {
-        auto iter = this->m_gamepads.find(id);
-        if (this->m_gamepads.end() == iter)
-            dalAbort("Failed to find gamepad state");
-
-        return iter->second;
+        auto found = this->m_gamepads.find(id);
+        if (this->m_gamepads.end() == found) {
+            auto [iter, success] = this->m_gamepads.emplace(id, GamepadState{});
+            dalAssert(success);
+            return iter->second;
+        }
+        else {
+            return found->second;
+        }
     }
 
     void GamepadInputManager::remove_gamepad(const int id) {

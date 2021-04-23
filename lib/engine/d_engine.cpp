@@ -31,6 +31,17 @@ namespace {
         return result;
     }
 
+    auto make_move_direc(const dal::GamepadInputManager& gm) {
+        glm::vec3 result{ 0, 0, 0 };
+
+        for (const auto& [id, state] : gm) {
+            result.x += state.m_axis_left.x;
+            result.z -= state.m_axis_left.y;
+        }
+
+        return result;
+    }
+
     auto make_rotation_angles(const dal::KeyInputManager& im) {
         glm::vec2 result{ 0, 0 };
 
@@ -46,6 +57,17 @@ namespace {
         }
         if (im.key_state_of(dal::KeyCode::down).m_pressed) {
             result.x -= 1;
+        }
+
+        return result;
+    }
+
+    auto make_rotation_angles(const dal::GamepadInputManager& m) {
+        glm::vec2 result{ 0, 0 };
+
+        for (const auto& [id, state] : m) {
+            result.x += state.m_axis_right.y;
+            result.y -= state.m_axis_right.x;
         }
 
         return result;
@@ -121,14 +143,15 @@ namespace dal {
         // Process inputs
         {
             constexpr float MOVE_SPEED = 2;
+            constexpr float ROT_SPEED = 1.5;
 
-            const auto move_vec = ::make_move_direc(this->input_manager().key_manager());
+            const auto move_vec = ::make_move_direc(this->input_manager().key_manager()) + ::make_move_direc(this->input_manager().gamepad_manager());
             this->m_camera.move_horizontal(MOVE_SPEED * move_vec.x * delta_time, MOVE_SPEED * move_vec.z * delta_time);
             this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time;
 
-            const auto rotation_angles = ::make_rotation_angles(this->input_manager().key_manager());
-            this->m_camera.m_rotations.x += rotation_angles.x * delta_time;
-            this->m_camera.m_rotations.y += rotation_angles.y * delta_time;
+            const auto rotation_angles = ::make_rotation_angles(this->input_manager().key_manager()) + ::make_rotation_angles(this->input_manager().gamepad_manager());
+            this->m_camera.m_rotations.x += rotation_angles.x * ROT_SPEED * delta_time;
+            this->m_camera.m_rotations.y += rotation_angles.y * ROT_SPEED * delta_time;
 
             this->input_manager().touch_manager().queue().clear();
             this->input_manager().key_manager().queue().clear();

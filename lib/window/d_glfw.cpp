@@ -297,7 +297,7 @@ namespace dal {
     }
 
     void WindowGLFW::update_input_gamepad(GamepadInputManager& gamepad_manager) const {
-        for (auto& [id, state] : gamepad_manager) {
+        for (auto& [id, game_pad] : gamepad_manager) {
             const bool is_present = GLFW_TRUE == glfwJoystickPresent(id);
             if (!is_present) {
                 gamepad_manager.remove_gamepad(id);
@@ -306,7 +306,14 @@ namespace dal {
 
             GLFWgamepadstate state;
             if (GLFW_TRUE == glfwGetGamepadState(id, &state)) {
-                dalInfo(fmt::format("{} x {}", state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER], state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER]).c_str());
+                game_pad.m_axis_left.x = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X];
+                game_pad.m_axis_left.y = -state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y];
+
+                game_pad.m_axis_right.x = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X];
+                game_pad.m_axis_right.y = -state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y];
+
+                game_pad.m_trigger_left = state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER];
+                game_pad.m_trigger_right = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER];
             }
         }
     }
