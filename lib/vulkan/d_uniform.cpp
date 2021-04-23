@@ -359,7 +359,7 @@ namespace dal {
     void DescriptorManager::init(const uint32_t swapchain_count, const VkDevice logi_device) {
         constexpr uint32_t POOL_SIZE_MULTIPLIER = 50;
 
-        this->m_pool.init(
+        this->m_pool_simple.init(
             swapchain_count * POOL_SIZE_MULTIPLIER,
             swapchain_count * POOL_SIZE_MULTIPLIER,
             swapchain_count * POOL_SIZE_MULTIPLIER,
@@ -367,18 +367,28 @@ namespace dal {
             logi_device
         );
 
-        this->m_pool_final.init(
-            swapchain_count * POOL_SIZE_MULTIPLIER,
-            swapchain_count * POOL_SIZE_MULTIPLIER,
-            swapchain_count * POOL_SIZE_MULTIPLIER,
-            swapchain_count * POOL_SIZE_MULTIPLIER,
-            logi_device
-        );
+        this->m_pool_final.resize(swapchain_count);
+        for (auto& pool : this->m_pool_final) {
+            pool.init(
+                swapchain_count * POOL_SIZE_MULTIPLIER,
+                swapchain_count * POOL_SIZE_MULTIPLIER,
+                swapchain_count * POOL_SIZE_MULTIPLIER,
+                swapchain_count * POOL_SIZE_MULTIPLIER,
+                logi_device
+            );
+        }
+
+        this->m_descset_final.resize(swapchain_count);
     }
 
     void DescriptorManager::destroy(VkDevice logiDevice) {
-        this->m_pool.destroy(logiDevice);
-        this->m_pool_final.destroy(logiDevice);
+        this->m_pool_simple.destroy(logiDevice);
+
+        for (auto& pool : this->m_pool_final) {
+            pool.destroy(logiDevice);
+        }
+        this->m_pool_final.clear();
+
         this->m_descset_simple.clear();
     }
 
@@ -388,7 +398,7 @@ namespace dal {
         const VkDescriptorSetLayout desc_layout_simple,
         const VkDevice logi_device
     ) {
-        this->m_descset_simple = this->pool().allocate(swapchain_count, desc_layout_simple, logi_device);
+        this->m_descset_simple = this->m_pool_simple.allocate(swapchain_count, desc_layout_simple, logi_device);
 
         for (size_t i = 0; i < this->m_descset_simple.size(); ++i) {
             auto& desc_set = this->m_descset_simple.at(i);
@@ -397,20 +407,15 @@ namespace dal {
     }
 
     void DescriptorManager::init_desc_sets_final(
-        const std::vector<VkImageView>& color_views,
-        const uint32_t swapchain_count,
+        const uint32_t index,
+        const VkImageView color_view,
         const VkSampler sampler,
         const VkDescriptorSetLayout desc_layout_final,
         const VkDevice logi_device
     ) {
-        this->m_pool_final.reset(logi_device);
-        this->m_descset_final.clear();
-
-        this->m_descset_final = this->m_pool_final.allocate(swapchain_count, desc_layout_final, logi_device);
-
-        for (size_t i = 0; i < this->m_descset_final.size(); ++i) {
-            this->m_descset_final.at(i).record_final(color_views.at(i), sampler, logi_device);
-        }
+        this->m_pool_final.at(index).reset(logi_device);
+        this->m_descset_final.at(index) = this->m_pool_final.at(index).allocate(desc_layout_final, logi_device);
+        this->m_descset_final.at(index).record_final(color_view, sampler, logi_device);
     }
 
     std::vector<VkDescriptorSet> DescriptorManager::desc_set_raw_simple() const {

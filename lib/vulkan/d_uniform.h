@@ -222,7 +222,8 @@ namespace dal {
     class DescriptorManager {
 
     private:
-        DescPool m_pool, m_pool_final;
+        DescPool m_pool_simple;
+        std::vector<DescPool> m_pool_final;
         std::vector<DescSet> m_descset_simple;
         std::vector<DescSet> m_descset_final;
 
@@ -232,7 +233,7 @@ namespace dal {
         void destroy(VkDevice logiDevice);
 
         auto& pool() {
-            return this->m_pool;
+            return this->m_pool_simple;
         }
 
         void init_desc_sets_simple(
@@ -243,8 +244,8 @@ namespace dal {
         );
 
         void init_desc_sets_final(
-            const std::vector<VkImageView>& color_views,
-            const uint32_t swapchain_count,
+            const uint32_t index,
+            const VkImageView color_view,
             const VkSampler sampler,
             const VkDescriptorSetLayout desc_layout_final,
             const VkDevice logi_device

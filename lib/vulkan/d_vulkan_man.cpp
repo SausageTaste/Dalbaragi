@@ -759,8 +759,8 @@ namespace dal {
             );
 
             this->m_desc_man.init_desc_sets_final(
-                std::vector<VkImageView>(this->m_swapchain.size(), this->m_attach_man.color().view().get()),
-                this->m_swapchain.size(),
+                *swapchain_index,
+                this->m_attach_man.color().view().get(),
                 this->m_tex_man.sampler_tex().get(),
                 this->m_desc_layout_man.layout_final(),
                 this->m_logi_device.get()
@@ -829,8 +829,6 @@ namespace dal {
             vkQueuePresentKHR(this->m_logi_device.queue_present(), &presentInfo);
 
             this->m_flight_frame_index.increase();
-
-            this->wait_device_idle();
         }
 
         void wait_device_idle() const {
