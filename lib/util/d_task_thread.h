@@ -104,7 +104,7 @@ namespace dal {
         void update();
 
         // If client is null, there will be no notification and ITask object will be deleted.
-        void order_task(std::unique_ptr<ITask> task, ITaskListener* const client);
+        void order_task(std::unique_ptr<ITask>&& task, ITaskListener* const client);
 
     };
 
