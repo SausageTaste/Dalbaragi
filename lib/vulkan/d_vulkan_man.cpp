@@ -746,7 +746,7 @@ namespace dal {
 
             U_PerFrame ubuf_data_per_frame;
             ubuf_data_per_frame.m_view = camera.make_view_mat();
-            ubuf_data_per_frame.m_proj = this->m_swapchain.pre_ratation_mat() * ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
+            ubuf_data_per_frame.m_proj = ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
             this->m_ubufs_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
             this->m_cmd_man.record_simple(
@@ -771,7 +771,7 @@ namespace dal {
             this->m_cmd_man.record_final(
                 this->m_flight_frame_index.get(),
                 this->m_fbuf_man.fbuf_final_at(*swapchain_index),
-                this->m_swapchain.extent(),
+                this->m_swapchain.identity_extent(),
                 this->m_desc_man.desc_set_final_at(this->m_flight_frame_index.get()),
                 this->m_pipelines.final().layout(),
                 this->m_pipelines.final().pipeline(),
@@ -886,7 +886,7 @@ namespace dal {
             this->m_fbuf_man.init(
                 this->m_swapchain.views(),
                 this->m_attach_man,
-                this->m_swapchain.extent(),
+                this->m_swapchain.screen_extent(),
                 this->m_attach_man.color().extent(),
                 this->m_renderpasses.rp_gbuf(),
                 this->m_renderpasses.rp_final(),
@@ -896,7 +896,7 @@ namespace dal {
             this->m_pipelines.init(
                 this->m_filesys.asset_mgr(),
                 !this->m_swapchain.is_format_srgb(),
-                this->m_swapchain.extent(),
+                this->m_swapchain.identity_extent(),
                 this->m_attach_man.color().extent(),
                 this->m_desc_layout_man.layout_final(),
                 this->m_desc_layout_man.layout_simple(),

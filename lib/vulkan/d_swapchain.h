@@ -236,7 +236,7 @@ namespace dal {
         VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
 
         VkFormat m_image_format;
-        VkExtent2D m_identity_extent;
+        VkExtent2D m_identity_extent, m_screen_extent;
         VkSurfaceTransformFlagBitsKHR m_transform;
 
         glm::mat4 m_pre_rotate_mat;
@@ -267,16 +267,12 @@ namespace dal {
             return this->m_image_format;
         }
 
-        auto& extent() const {
+        auto& screen_extent() const {
+            return this->m_screen_extent;
+        }
+
+        auto& identity_extent() const {
             return this->m_identity_extent;
-        }
-
-        auto width() const {
-            return this->extent().width;
-        }
-
-        auto height() const {
-            return this->extent().height;
         }
 
         auto perspective_ratio() const {
