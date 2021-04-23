@@ -606,7 +606,7 @@ namespace dal {
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
 #endif
 
-        size_t m_cur_frame_index = 0;
+        FrameInFlightIndex m_flight_frame_index;
         bool m_screen_resize_notified = false;
         VkExtent2D m_new_extent;
 
@@ -718,8 +718,8 @@ namespace dal {
                 return;
             }
 
-            this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).wait(this->m_logi_device.get());
-            const auto [acquire_result, img_index] = this->m_swapchain.acquire_next_img_index(this->m_cur_frame_index, this->m_logi_device.get());
+            this->m_swapchain.sync_man().fence_frame_in_flight(this->m_flight_frame_index).wait(this->m_logi_device.get());
+            const auto [acquire_result, swapchain_index] = this->m_swapchain.acquire_next_img_index(this->m_flight_frame_index, this->m_logi_device.get());
 
             if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
                 this->m_screen_resize_notified = this->on_recreate_swapchain();
@@ -732,11 +732,11 @@ namespace dal {
                 dalAbort("Failed to acquire swapchain image");
             }
 
-            auto img_fences = this->m_swapchain.sync_man().fences_image_in_flight();
-            if (nullptr != img_fences.at(img_index)) {
-                img_fences.at(img_index)->wait(this->m_logi_device.get());
+            auto& img_fences = this->m_swapchain.sync_man().fence_image_in_flight(swapchain_index);
+            if (nullptr != img_fences) {
+                img_fences->wait(this->m_logi_device.get());
             }
-            img_fences.at(img_index) = &this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index);
+            img_fences = &this->m_swapchain.sync_man().fence_frame_in_flight(this->m_flight_frame_index);
 
             //-----------------------------------------------------------------------------------------------------
 
@@ -745,10 +745,10 @@ namespace dal {
             U_PerFrame ubuf_data_per_frame;
             ubuf_data_per_frame.m_view = camera.make_view_mat();
             ubuf_data_per_frame.m_proj = this->m_swapchain.pre_ratation_mat() * ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
-            this->m_ubufs_simple.at(img_index).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
+            this->m_ubufs_simple.at(*swapchain_index).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
             this->m_cmd_man.record_simple(
-                img_index,
+                *swapchain_index,
                 this->m_models,
                 this->m_fbuf_man.swapchain_fbuf(),
                 this->m_desc_man.desc_set_raw_simple(),
@@ -767,10 +767,10 @@ namespace dal {
             );
 
             this->m_cmd_man.record_final(
-                img_index,
-                this->m_fbuf_man.fbuf_final_at(img_index),
+                *swapchain_index,
+                this->m_fbuf_man.fbuf_final_at(*swapchain_index),
                 this->m_swapchain.extent(),
-                this->m_desc_man.desc_set_final_at(img_index),
+                this->m_desc_man.desc_set_final_at(*swapchain_index),
                 this->m_pipelines.final().layout(),
                 this->m_pipelines.final().pipeline(),
                 this->m_renderpasses.rp_final()
@@ -778,9 +778,9 @@ namespace dal {
 
             //-----------------------------------------------------------------------------------------------------
 
-            std::array<VkSemaphore, 1> waitSemaphores{ this->m_swapchain.sync_man().semaphore_img_available(this->m_cur_frame_index).get() };
+            std::array<VkSemaphore, 1> waitSemaphores{ this->m_swapchain.sync_man().semaphore_img_available(this->m_flight_frame_index).get() };
             std::array<VkPipelineStageFlags, 1> waitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-            std::array<VkSemaphore, 1> signalSemaphores{ this->m_swapchain.sync_man().semaphore_render_finished(this->m_cur_frame_index).get() };
+            std::array<VkSemaphore, 1> signalSemaphores{ this->m_swapchain.sync_man().semaphore_render_finished(this->m_flight_frame_index).get() };
 
             std::array<VkSubmitInfo, 2> submit_info{};
 
@@ -789,7 +789,7 @@ namespace dal {
             submit_info[0].pWaitSemaphores = nullptr;
             submit_info[0].pWaitDstStageMask = nullptr;
             submit_info[0].commandBufferCount = 1;
-            submit_info[0].pCommandBuffers = &this->m_cmd_man.cmd_simple_at(img_index);
+            submit_info[0].pCommandBuffers = &this->m_cmd_man.cmd_simple_at(*swapchain_index);
             submit_info[0].signalSemaphoreCount = 0;
             submit_info[0].pSignalSemaphores = nullptr;
 
@@ -798,17 +798,17 @@ namespace dal {
             submit_info[1].pWaitSemaphores = waitSemaphores.data();
             submit_info[1].pWaitDstStageMask = waitStages.data();
             submit_info[1].commandBufferCount = 1;
-            submit_info[1].pCommandBuffers = &this->m_cmd_man.cmd_final_at(img_index);
+            submit_info[1].pCommandBuffers = &this->m_cmd_man.cmd_final_at(*swapchain_index);
             submit_info[1].signalSemaphoreCount = signalSemaphores.size();
             submit_info[1].pSignalSemaphores = signalSemaphores.data();
 
-            this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).reset(this->m_logi_device.get());
+            this->m_swapchain.sync_man().fence_frame_in_flight(this->m_flight_frame_index).reset(this->m_logi_device.get());
 
             const auto submit_result = vkQueueSubmit(
                 this->m_logi_device.queue_graphics(),
                 submit_info.size(),
                 submit_info.data(),
-                this->m_swapchain.sync_man().fence_frame_in_flight(this->m_cur_frame_index).get()
+                this->m_swapchain.sync_man().fence_frame_in_flight(this->m_flight_frame_index).get()
             );
 
             if (VK_SUCCESS != submit_result) {
@@ -823,12 +823,12 @@ namespace dal {
             presentInfo.pWaitSemaphores    = signalSemaphores.data();
             presentInfo.swapchainCount     = swapchains.size();
             presentInfo.pSwapchains        = swapchains.data();
-            presentInfo.pImageIndices      = &img_index;
+            presentInfo.pImageIndices      = &*swapchain_index;
             presentInfo.pResults           = nullptr;
 
             vkQueuePresentKHR(this->m_logi_device.queue_present(), &presentInfo);
 
-            this->m_cur_frame_index = (this->m_cur_frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
+            this->m_flight_frame_index.increase();
 
             this->wait_device_idle();
         }

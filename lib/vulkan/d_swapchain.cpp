@@ -389,7 +389,7 @@ namespace dal {
         return result;
     }
 
-    std::pair<ImgAcquireResult, uint32_t> SwapchainManager::acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const {
+    std::pair<ImgAcquireResult, SwapchainIndex> SwapchainManager::acquire_next_img_index(const FrameInFlightIndex& cur_img_index, const VkDevice logi_device) const {
         uint32_t img_index;
 
         const auto result = vkAcquireNextImageKHR(
@@ -403,13 +403,13 @@ namespace dal {
 
         switch (result) {
             case VK_ERROR_OUT_OF_DATE_KHR:
-                return { ImgAcquireResult::out_of_date, UINT32_MAX };
+                return { ImgAcquireResult::out_of_date, SwapchainIndex::max_value() };
             case VK_SUBOPTIMAL_KHR:
-                return { ImgAcquireResult::suboptimal, img_index };
+                return { ImgAcquireResult::suboptimal, SwapchainIndex{img_index} };
             case VK_SUCCESS:
-                return { ImgAcquireResult::success, img_index };
+                return { ImgAcquireResult::success, SwapchainIndex{img_index} };
             default:
-                return { ImgAcquireResult::fail, UINT32_MAX };
+                return { ImgAcquireResult::fail, SwapchainIndex::max_value() };
         }
     }
 
