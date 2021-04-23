@@ -846,19 +846,19 @@ namespace dal {
         }
 
     private:
+        // Returns true if recreation is still needed.
         bool on_recreate_swapchain() {
             if (0 == this->m_new_extent.width || 0 == this->m_new_extent.height) {
                 return true;
             }
             this->wait_device_idle();
 
-            this->init_swapchain_and_dependers();
-
-            return false;
+            return !this->init_swapchain_and_dependers();
         }
 
-        void init_swapchain_and_dependers() {
-            this->m_swapchain.init(
+        [[nodiscard]]
+        bool init_swapchain_and_dependers() {
+            const auto result_swapchain = this->m_swapchain.init(
                 this->m_new_extent.width,
                 this->m_new_extent.height,
                 this->m_logi_device.indices(),
@@ -866,6 +866,9 @@ namespace dal {
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
+
+            if (!result_swapchain)
+                return false;
 
             this->m_attach_man.init(
                 this->calc_smaller_extent(this->m_new_extent),
@@ -924,6 +927,8 @@ namespace dal {
                 this->m_desc_layout_man.layout_simple(),
                 this->m_logi_device.get()
             );
+
+            return true;
         }
 
         void populate_models() {

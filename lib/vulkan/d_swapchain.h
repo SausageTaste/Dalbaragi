@@ -245,7 +245,8 @@ namespace dal {
     public:
         ~SwapchainManager();
 
-        void init(
+        [[nodiscard]]
+        bool init(
             const unsigned desired_width,
             const unsigned desired_height,
             const QueueFamilyIndices& indices,

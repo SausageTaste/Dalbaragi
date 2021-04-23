@@ -215,7 +215,7 @@ namespace dal {
         dalAssert(VK_NULL_HANDLE == this->m_swapChain);
     }
 
-    void SwapchainManager::init(
+    bool SwapchainManager::init(
         const unsigned desired_width,
         const unsigned desired_height,
         const QueueFamilyIndices& indices,
@@ -265,8 +265,10 @@ namespace dal {
             create_info_swapchain.clipped = VK_TRUE;
             create_info_swapchain.oldSwapchain = this->m_swapChain;
 
-            const auto create_result_swapchain = vkCreateSwapchainKHR(logi_device, &create_info_swapchain, nullptr, &this->m_swapChain);
-            dalAssert(VK_SUCCESS == create_result_swapchain);
+            if (VK_SUCCESS != vkCreateSwapchainKHR(logi_device, &create_info_swapchain, nullptr, &this->m_swapChain)) {
+                dalError("Failed to create swapchain");
+                return false;
+            }
         }
 
         // Create images
@@ -288,7 +290,11 @@ namespace dal {
                     VK_IMAGE_ASPECT_COLOR_BIT,
                     logi_device
                 );
-                dalAssert(result);
+
+                if (!result) {
+                    dalError("Failed to create image views for swapchain")
+                    return false;
+                }
             }
         }
 
@@ -353,6 +359,8 @@ namespace dal {
 
             dalInfo(msg.c_str());
         }
+
+        return true;
     }
 
     void SwapchainManager::destroy(const VkDevice logi_device) {
