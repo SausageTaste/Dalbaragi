@@ -163,3 +163,37 @@ namespace dal {
     }
 
 }
+
+
+namespace dal {
+
+    void GamepadInputManager::notify_connection_change(const GamepadConnectionEvent& e) {
+        this->remove_gamepad(e.m_id);
+        if (!e.m_connected)
+            return;
+
+        auto [iter, success] = this->m_gamepads.emplace(e.m_id, GamepadState{});
+        dalAssert(success);
+
+        iter->second.m_name = e.m_name;
+
+        dalInfo(fmt::format("Gamepad connected {{ id={}, name='{}' }}", e.m_id, e.m_name).c_str());
+    }
+
+    GamepadInputManager::GamepadState& GamepadInputManager::get_gamepad_state(const int id) {
+        auto iter = this->m_gamepads.find(id);
+        if (this->m_gamepads.end() == iter)
+            dalAbort("Failed to find gamepad state");
+
+        return iter->second;
+    }
+
+    void GamepadInputManager::remove_gamepad(const int id) {
+        auto iter = this->m_gamepads.find(id);
+        if (this->m_gamepads.end() != iter) {
+            dalInfo(fmt::format("Gamepad removed {{ id={}, name='{}' }}", iter->first, iter->second.m_name).c_str());
+            this->m_gamepads.erase(iter);
+        }
+    }
+
+}

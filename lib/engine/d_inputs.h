@@ -2,6 +2,8 @@
 
 #include <array>
 #include <bitset>
+#include <string>
+#include <unordered_map>
 
 #include <glm/glm.hpp>
 
@@ -135,6 +137,13 @@ namespace dal {
 
     };
 
+
+    struct GamepadConnectionEvent {
+        std::string m_name;
+        int m_id;
+        bool m_connected;
+    };
+
 }
 
 
@@ -187,11 +196,40 @@ namespace dal {
     };
 
 
+    class GamepadInputManager {
+
+    private:
+        struct GamepadState {
+            std::string m_name;
+        };
+
+    private:
+        std::unordered_map<int, GamepadState> m_gamepads;
+
+    public:
+        void notify_connection_change(const GamepadConnectionEvent& e);
+
+        GamepadState& get_gamepad_state(const int id);
+
+        void remove_gamepad(const int id);
+
+        auto begin() {
+            return this->m_gamepads.begin();
+        }
+
+        auto end() {
+            return this->m_gamepads.end();
+        }
+
+    };
+
+
     class InputManager {
 
     private:
         TouchInputManager m_touch_man;
         KeyInputManager m_key_man;
+        GamepadInputManager m_gamepad_man;
 
     public:
         auto& touch_manager() {
@@ -200,6 +238,10 @@ namespace dal {
 
         auto& key_manager() {
             return this->m_key_man;
+        }
+
+        auto& gamepad_manager() {
+            return this->m_gamepad_man;
         }
 
     };

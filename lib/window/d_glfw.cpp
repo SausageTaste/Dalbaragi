@@ -190,6 +190,34 @@ namespace {
         g_callback_func_key_event(e);
     }
 
+
+    std::function<void(const dal::GamepadConnectionEvent&)> g_callback_func_gamepad_connection;
+
+    dal::GamepadConnectionEvent make_gamepad_connection_event(const int jid) {
+        dal::GamepadConnectionEvent e;
+        e.m_id = jid;
+
+        if (GLFW_TRUE == glfwJoystickPresent(jid)) {
+            if (GLFW_TRUE != glfwJoystickIsGamepad(jid)) {
+                e.m_connected = false;
+                return e;
+            }
+
+            e.m_connected = true;
+            e.m_name = glfwGetJoystickName(jid);
+        }
+
+        return e;
+    }
+
+    void joystick_callback(const int jid, const int event) {
+        if (!g_callback_func_gamepad_connection)
+            return;
+
+        const auto e = ::make_gamepad_connection_event(jid);
+        g_callback_func_gamepad_connection(e);
+    }
+
 }
 
 
@@ -208,6 +236,7 @@ namespace dal {
         glfwSetCursorPosCallback(window, ::callback_cursor_pos);
         glfwSetMouseButtonCallback(window, ::callback_mouse_button);
         glfwSetKeyCallback(window, ::callback_key_event);
+        glfwSetJoystickCallback(::joystick_callback);
     }
 
     WindowGLFW::~WindowGLFW() {
@@ -252,6 +281,34 @@ namespace dal {
 
     void WindowGLFW::set_callback_key_event(std::function<void(const dal::KeyEvent&)> func) {
         g_callback_func_key_event = func;
+    }
+
+    void WindowGLFW::set_callback_gamepad_connection(std::function<void(const dal::GamepadConnectionEvent&)> func) {
+        g_callback_func_gamepad_connection = func;
+
+        for (auto i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
+            const bool present = 0 != glfwJoystickPresent(i);
+            if (present) {
+                const auto e = ::make_gamepad_connection_event(i);
+                if (e.m_connected)
+                    func(e);
+            }
+        }
+    }
+
+    void WindowGLFW::update_input_gamepad(GamepadInputManager& gamepad_manager) const {
+        for (auto& [id, state] : gamepad_manager) {
+            const bool is_present = GLFW_TRUE == glfwJoystickPresent(id);
+            if (!is_present) {
+                gamepad_manager.remove_gamepad(id);
+                continue;
+            }
+
+            GLFWgamepadstate state;
+            if (GLFW_TRUE == glfwGetGamepadState(id, &state)) {
+                dalInfo(fmt::format("{} x {}", state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER], state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER]).c_str());
+            }
+        }
     }
 
     uint32_t WindowGLFW::width() const {
