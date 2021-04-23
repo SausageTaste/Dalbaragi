@@ -752,9 +752,9 @@ namespace dal {
             this->m_cmd_man.record_simple(
                 this->m_flight_frame_index.get(),
                 this->m_models,
-                this->m_fbuf_man.swapchain_fbuf(),
                 this->m_desc_man.desc_set_raw_simple(),
                 this->m_attach_man.color().extent(),
+                this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
                 this->m_pipelines.simple().layout(),
                 this->m_pipelines.simple().pipeline(),
                 this->m_renderpasses.rp_gbuf()

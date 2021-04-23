@@ -32,16 +32,16 @@ namespace dal {
     }
 
     void CmdPoolManager::record_simple(
-        const size_t index,
+        const size_t flight_frame_index,
         const std::vector<ModelRenderer*>& models,
-        const std::vector<VkFramebuffer>& swapchain_fbufs,
         const std::vector<VkDescriptorSet>& desc_sets_simple,
         const VkExtent2D& swapchain_extent,
+        const VkFramebuffer swapchain_fbuf,
         const VkPipelineLayout pipe_layout_simple,
         const VkPipeline graphics_pipeline,
         const RenderPass_Gbuf& render_pass
     ) {
-        auto& cmd_buf = this->m_cmd_simple[index];
+        auto& cmd_buf = this->m_cmd_simple.at(flight_frame_index);
 
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -59,7 +59,7 @@ namespace dal {
         VkRenderPassBeginInfo render_pass_info{};
         render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         render_pass_info.renderPass = render_pass.get();
-        render_pass_info.framebuffer = swapchain_fbufs[index];
+        render_pass_info.framebuffer = swapchain_fbuf;
         render_pass_info.renderArea.offset = {0, 0};
         render_pass_info.renderArea.extent = swapchain_extent;
         render_pass_info.clearValueCount = clear_colors.size();
@@ -94,7 +94,7 @@ namespace dal {
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         pipe_layout_simple,
                         0,
-                        1, &desc_sets_simple.at(index),
+                        1, &desc_sets_simple.at(flight_frame_index),
                         0, nullptr
                     );
 

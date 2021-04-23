@@ -24,11 +24,11 @@ namespace dal {
         void destroy(const VkDevice logi_device);
 
         void record_simple(
-            const size_t index,
+            const size_t flight_frame_index,
             const std::vector<ModelRenderer*>& models,
-            const std::vector<VkFramebuffer>& swapchain_fbufs,
             const std::vector<VkDescriptorSet>& desc_sets_simple,
             const VkExtent2D& swapchain_extent,
+            const VkFramebuffer swapchain_fbuf,
             const VkPipelineLayout pipe_layout_simple,
             const VkPipeline graphics_pipeline,
             const RenderPass_Gbuf& render_pass
