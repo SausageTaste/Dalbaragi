@@ -53,7 +53,7 @@ namespace dal {
         }
 
         std::array<VkClearValue, 2> clear_colors{};
-        clear_colors[0].color = { 0.1, 0.1, 0.1, 1 };
+        clear_colors[0].color = { 0, 0, 0, 1 };
         clear_colors[1].depthStencil = { 1, 0 };
 
         VkRenderPassBeginInfo render_pass_info{};

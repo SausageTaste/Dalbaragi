@@ -239,8 +239,7 @@ namespace dal {
         VkExtent2D m_identity_extent, m_screen_extent;
         VkSurfaceTransformFlagBitsKHR m_transform;
 
-        glm::mat4 m_pre_rotate_mat4;
-        glm::mat2 m_pre_rotate_mat2;
+        glm::mat4 m_pre_rotate_mat;
         float m_perspective_ratio;
 
     public:
@@ -280,12 +279,8 @@ namespace dal {
             return this->m_perspective_ratio;
         }
 
-        auto& pre_ratation_mat2() const {
-            return this->m_pre_rotate_mat2;
-        }
-
-        auto& pre_ratation_mat4() const {
-            return this->m_pre_rotate_mat4;
+        auto& pre_ratation_mat() const {
+            return this->m_pre_rotate_mat;
         }
 
         auto& views() const {

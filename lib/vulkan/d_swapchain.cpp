@@ -78,17 +78,6 @@ namespace {
         }
     }
 
-    glm::mat2 make_rot_mat2(const glm::mat4& mat) {
-        glm::mat2 output;
-
-        output[0][0] = mat[0][0];
-        output[0][1] = mat[0][1];
-        output[1][0] = mat[1][0];
-        output[1][1] = mat[1][1];
-
-        return output;
-    }
-
 }
 
 
@@ -246,9 +235,6 @@ namespace dal {
         this->m_identity_extent = ::get_identity_screen_resoultion(swapchain_support.m_capabilities);
         this->m_transform = swapchain_support.m_capabilities.currentTransform;
 
-        //this->m_screen_extent = VkExtent2D{ this->m_identity_extent.height, this->m_identity_extent.width };
-        //this->m_transform = VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR;
-
         const auto needed_images_count = ::choose_image_count(swapchain_support);
 
         // Create swap chain
@@ -317,26 +303,24 @@ namespace dal {
         {
             switch (this->m_transform) {
                 case VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR:
-                    this->m_pre_rotate_mat4 = glm::mat4{1};
+                    this->m_pre_rotate_mat = glm::mat4{1};
                     this->m_perspective_ratio = static_cast<float>(this->identity_extent().width) / static_cast<float>(this->identity_extent().height);
                     break;
                 case VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR:
-                    this->m_pre_rotate_mat4 = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{0, 0, 1});
+                    this->m_pre_rotate_mat = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{0, 0, 1});
                     this->m_perspective_ratio = static_cast<float>(this->identity_extent().height) / static_cast<float>(this->identity_extent().width);
                     break;
                 case VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR:
-                    this->m_pre_rotate_mat4 = glm::rotate(glm::mat4{1}, glm::radians<float>(180), glm::vec3{0, 0, 1});
+                    this->m_pre_rotate_mat = glm::rotate(glm::mat4{1}, glm::radians<float>(180), glm::vec3{0, 0, 1});
                     this->m_perspective_ratio = static_cast<float>(this->identity_extent().width) / static_cast<float>(this->identity_extent().height);
                     break;
                 case VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR:
-                    this->m_pre_rotate_mat4 = glm::rotate(glm::mat4{1}, glm::radians<float>(270), glm::vec3{0, 0, 1});
+                    this->m_pre_rotate_mat = glm::rotate(glm::mat4{1}, glm::radians<float>(270), glm::vec3{0, 0, 1});
                     this->m_perspective_ratio = static_cast<float>(this->identity_extent().height) / static_cast<float>(this->identity_extent().width);
                     break;
                 default:
                     dalAbort("Unkown swapchain transform");
             }
-
-            this->m_pre_rotate_mat2 = ::make_rot_mat2(this->m_pre_rotate_mat4);
         }
 
         this->m_sync_man.init(this->size(), logi_device);

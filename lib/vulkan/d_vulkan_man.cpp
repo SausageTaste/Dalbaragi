@@ -924,7 +924,7 @@ namespace dal {
 
             this->m_ubuf_final.init(this->m_phys_device.get(), this->m_logi_device.get());
             U_PerFrame_InFinal data;
-            data.m_rotation = this->m_swapchain.pre_ratation_mat4();
+            data.m_rotation = this->m_swapchain.pre_ratation_mat();
             this->m_ubuf_final.copy_to_buffer(data, this->m_logi_device.get());
 
             this->m_desc_man.init(MAX_FRAMES_IN_FLIGHT, this->m_logi_device.get());
