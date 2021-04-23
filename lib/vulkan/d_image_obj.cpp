@@ -1,6 +1,5 @@
 #include "d_image_obj.h"
 
-#include <vector>
 #include <cstdint>
 
 #include <fmt/format.h>
@@ -32,35 +31,6 @@ namespace {
         VkMemoryRequirements mem_requirements;
         vkGetImageMemoryRequirements(logi_device, image, &mem_requirements);
         return mem_requirements;
-    }
-
-    VkFormat find_supported_format(
-        const std::vector<VkFormat>& candidates,
-        const VkImageTiling tiling,
-        const VkFormatFeatureFlags features,
-        const VkPhysicalDevice phys_device
-    ) {
-        for (VkFormat format : candidates) {
-            VkFormatProperties props;
-            vkGetPhysicalDeviceFormatProperties(phys_device, format, &props);
-
-            if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-                return format;
-            } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-                return format;
-            }
-        }
-
-        dalAbort("failed to find supported format!");
-    }
-
-    VkFormat find_depth_format(const VkPhysicalDevice phys_device) {
-        return ::find_supported_format(
-            { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
-            phys_device
-        );
     }
 
     bool has_stencil_component(VkFormat depth_format) {
@@ -112,8 +82,10 @@ namespace {
         if (VK_SUCCESS != vkAllocateMemory(logi_device, &alloc_info, nullptr, &memory)) {
             dalAbort("failed to allocate image memory!");
         }
+        if (VK_SUCCESS != vkBindImageMemory(logi_device, image, memory, 0)) {
+            dalAbort("failed to bind image and memory!");
+        }
 
-        vkBindImageMemory(logi_device, image, memory, 0);
         return std::make_pair(image, memory);
     }
 
@@ -261,6 +233,7 @@ namespace dal {
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         viewInfo.format   = format;
 
+        viewInfo.subresourceRange = {};
         viewInfo.subresourceRange.aspectMask     = aspect_flags;
         viewInfo.subresourceRange.baseMipLevel   = 0;
         viewInfo.subresourceRange.levelCount     = mip_level;
@@ -351,19 +324,22 @@ namespace dal {
         );
     }
 
-    void TextureImage::init_depth(
+    void TextureImage::init_attachment(
         const uint32_t width,
         const uint32_t height,
+        const VkFormat format,
+        const VkImageUsageFlags usage_flags,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->m_format = ::find_depth_format(phys_device);
+        this->destory(logi_device);
+        this->m_format = format;
 
         std::tie(this->m_image, this->m_memory) = ::create_image(
             width, height,
             this->m_format,
             VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            usage_flags,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             phys_device, logi_device
         );

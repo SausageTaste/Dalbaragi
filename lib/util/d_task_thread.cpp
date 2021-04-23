@@ -211,7 +211,7 @@ namespace dal {
 
     }
 
-    void TaskManager::order_task(std::unique_ptr<ITask> task, ITaskListener* const client) {
+    void TaskManager::order_task(std::unique_ptr<ITask>&& task, ITaskListener* const client) {
 
 #ifdef DAL_MULTITHREADING
         this->m_registry.registerTask(task.get(), client);

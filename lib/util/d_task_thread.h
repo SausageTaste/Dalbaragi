@@ -27,7 +27,13 @@ namespace dal {
     class ITaskListener {
 
     public:
+        ITaskListener() = default;
         virtual ~ITaskListener() = default;
+
+        ITaskListener(const ITaskListener&) = delete;
+        ITaskListener(ITaskListener&&) = delete;
+        ITaskListener& operator=(const ITaskListener&) = delete;
+        ITaskListener& operator=(ITaskListener&&) = delete;
 
         virtual void notify_task_done(std::unique_ptr<ITask> task) = 0;
 
@@ -98,7 +104,7 @@ namespace dal {
         void update();
 
         // If client is null, there will be no notification and ITask object will be deleted.
-        void order_task(std::unique_ptr<ITask> task, ITaskListener* const client);
+        void order_task(std::unique_ptr<ITask>&& task, ITaskListener* const client);
 
     };
 

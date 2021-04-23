@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <vector>
 #include <optional>
 #include <algorithm>
@@ -67,6 +68,83 @@ namespace dal {
     };
 
 
+    template <typename T>
+    class IIndex {
+
+    private:
+        T m_value = 0;
+
+    public:
+        IIndex()
+            : m_value(0)
+        {
+
+        }
+
+        explicit
+        IIndex(const T v) noexcept
+            : m_value(v)
+        {
+
+        }
+
+        IIndex& operator=(const T v) {
+            this->set(v);
+            return *this;
+        }
+
+        T& operator*() noexcept {
+            return this->m_value;
+        }
+
+        const T& operator*() const noexcept {
+            return this->m_value;
+        }
+
+        const T& get() const noexcept {
+            return this->m_value;
+        }
+
+        void set(const T v) noexcept {
+            this->m_value = v;
+        }
+
+        void set_max_value() noexcept {
+            this->m_value = (std::numeric_limits<T>::max)();
+        }
+
+    };
+
+
+    class FrameInFlightIndex : public IIndex<uint32_t> {
+
+    public:
+        using IIndex::IIndex;
+        using IIndex::operator=;
+
+        void increase() noexcept {
+            this->set( (this->get() + 1) % MAX_FRAMES_IN_FLIGHT );
+        }
+
+    };
+
+
+    class SwapchainIndex : public IIndex<uint32_t> {
+
+    public:
+        using IIndex::IIndex;
+        using IIndex::operator=;
+
+        [[nodiscard]]
+        static SwapchainIndex max_value() noexcept {
+            SwapchainIndex output;
+            output.set_max_value();
+            return output;
+        }
+
+    };
+
+
     class SwapchainSyncManager {
 
     private:
@@ -88,23 +166,24 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        auto& semaphore_img_available(const size_t index) const {
-            return this->m_img_available.at(index);
+        auto& semaphore_img_available(const FrameInFlightIndex& index) const {
+            return this->m_img_available.at(index.get());
         }
 
-        auto& semaphore_render_finished(const size_t index) const {
-            return this->m_render_finished.at(index);
+        auto& semaphore_render_finished(const FrameInFlightIndex& index) const {
+            return this->m_render_finished.at(index.get());
         }
 
-        auto& fence_frame_in_flight(const size_t index) const {
-            return this->m_frame_in_flight_fences.at(index);
+        auto& fence_frame_in_flight(const FrameInFlightIndex& index) const {
+            return this->m_frame_in_flight_fences.at(index.get());
         }
 
-        auto& fences_image_in_flight() {
-            return this->m_img_in_flight_fences;
+        auto& fence_image_in_flight(const SwapchainIndex& index) {
+            return this->m_img_in_flight_fences.at(index.get());
         }
-        auto& fences_image_in_flight() const {
-            return this->m_img_in_flight_fences;
+
+        auto& fence_image_in_flight(const SwapchainIndex& index) const {
+            return this->m_img_in_flight_fences.at(index.get());
         }
 
     };
@@ -157,7 +236,7 @@ namespace dal {
         VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
 
         VkFormat m_image_format;
-        VkExtent2D m_identity_extent;
+        VkExtent2D m_identity_extent, m_screen_extent;
         VkSurfaceTransformFlagBitsKHR m_transform;
 
         glm::mat4 m_pre_rotate_mat;
@@ -166,7 +245,8 @@ namespace dal {
     public:
         ~SwapchainManager();
 
-        void init(
+        [[nodiscard]]
+        bool init(
             const unsigned desired_width,
             const unsigned desired_height,
             const QueueFamilyIndices& indices,
@@ -187,16 +267,12 @@ namespace dal {
             return this->m_image_format;
         }
 
-        auto& extent() const {
+        auto& screen_extent() const {
+            return this->m_screen_extent;
+        }
+
+        auto& identity_extent() const {
             return this->m_identity_extent;
-        }
-
-        auto width() const {
-            return this->extent().width;
-        }
-
-        auto height() const {
-            return this->extent().height;
         }
 
         auto perspective_ratio() const {
@@ -211,6 +287,10 @@ namespace dal {
             return this->m_views;
         }
 
+        auto& sync_man() {
+            return this->m_sync_man;
+        }
+
         auto& sync_man() const {
             return this->m_sync_man;
         }
@@ -219,7 +299,7 @@ namespace dal {
 
         SwapchainSpec make_spec() const;
 
-        std::pair<ImgAcquireResult, uint32_t> acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const;
+        std::pair<ImgAcquireResult, SwapchainIndex> acquire_next_img_index(const FrameInFlightIndex& cur_img_index, const VkDevice logi_device) const;
 
     private:
         void destroy_except_swapchain(const VkDevice logi_device);

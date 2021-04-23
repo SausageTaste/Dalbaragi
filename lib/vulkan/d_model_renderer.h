@@ -71,7 +71,7 @@ namespace dal {
         dal::TaskManager* m_task_man;
         dal::Filesystem* m_filesys;
         dal::TextureManager* m_tex_man;
-        dal::CmdPoolManager* m_cmd_man;
+        dal::CommandPool* m_single_time_pool;
         dal::DescSetLayoutManager* m_desc_layout_man;
         VkQueue m_graphics_queue;
         VkPhysicalDevice m_phys_device;
@@ -82,7 +82,7 @@ namespace dal {
             dal::TaskManager& task_man,
             dal::Filesystem& filesys,
             dal::TextureManager& tex_man,
-            dal::CmdPoolManager& cmd_man,
+            dal::CommandPool& single_time_pool,
             dal::DescSetLayoutManager& desc_layout_man,
             VkQueue graphics_queue,
             VkPhysicalDevice phys_device,
@@ -91,7 +91,7 @@ namespace dal {
             m_task_man = &task_man;
             m_filesys = &filesys;
             m_tex_man = &tex_man;
-            m_cmd_man = &cmd_man;
+            m_single_time_pool = &single_time_pool;
             m_desc_layout_man = &desc_layout_man;
             m_graphics_queue = graphics_queue;
             m_phys_device = phys_device;

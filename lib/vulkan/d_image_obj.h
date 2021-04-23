@@ -70,9 +70,11 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void init_depth(
+        void init_attachment(
             const uint32_t width,
             const uint32_t height,
+            const VkFormat format,
+            const VkImageUsageFlags usage_flags,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );

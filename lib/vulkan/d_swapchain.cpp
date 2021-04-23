@@ -215,7 +215,7 @@ namespace dal {
         dalAssert(VK_NULL_HANDLE == this->m_swapChain);
     }
 
-    void SwapchainManager::init(
+    bool SwapchainManager::init(
         const unsigned desired_width,
         const unsigned desired_height,
         const QueueFamilyIndices& indices,
@@ -231,6 +231,7 @@ namespace dal {
 
         this->m_image_format = surface_format.format;
         //this->m_extent = ::choose_extent(swapchain_support.m_capabilities, desired_width, desired_height);
+        this->m_screen_extent = swapchain_support.m_capabilities.currentExtent;
         this->m_identity_extent = ::get_identity_screen_resoultion(swapchain_support.m_capabilities);
         this->m_transform = swapchain_support.m_capabilities.currentTransform;
 
@@ -265,8 +266,10 @@ namespace dal {
             create_info_swapchain.clipped = VK_TRUE;
             create_info_swapchain.oldSwapchain = this->m_swapChain;
 
-            const auto create_result_swapchain = vkCreateSwapchainKHR(logi_device, &create_info_swapchain, nullptr, &this->m_swapChain);
-            dalAssert(VK_SUCCESS == create_result_swapchain);
+            if (VK_SUCCESS != vkCreateSwapchainKHR(logi_device, &create_info_swapchain, nullptr, &this->m_swapChain)) {
+                dalError("Failed to create swapchain");
+                return false;
+            }
         }
 
         // Create images
@@ -288,7 +291,11 @@ namespace dal {
                     VK_IMAGE_ASPECT_COLOR_BIT,
                     logi_device
                 );
-                dalAssert(result);
+
+                if (!result) {
+                    dalError("Failed to create image views for swapchain")
+                    return false;
+                }
             }
         }
 
@@ -297,19 +304,19 @@ namespace dal {
             switch (this->m_transform) {
                 case VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR:
                     this->m_pre_rotate_mat = glm::mat4{1};
-                    this->m_perspective_ratio = static_cast<float>(this->width()) / static_cast<float>(this->height());
+                    this->m_perspective_ratio = static_cast<float>(this->identity_extent().width) / static_cast<float>(this->identity_extent().height);
                     break;
                 case VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR:
                     this->m_pre_rotate_mat = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{0, 0, 1});
-                    this->m_perspective_ratio = static_cast<float>(this->height()) / static_cast<float>(this->width());
+                    this->m_perspective_ratio = static_cast<float>(this->identity_extent().height) / static_cast<float>(this->identity_extent().width);
                     break;
                 case VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR:
                     this->m_pre_rotate_mat = glm::rotate(glm::mat4{1}, glm::radians<float>(180), glm::vec3{0, 0, 1});
-                    this->m_perspective_ratio = static_cast<float>(this->width()) / static_cast<float>(this->height());
+                    this->m_perspective_ratio = static_cast<float>(this->identity_extent().width) / static_cast<float>(this->identity_extent().height);
                     break;
                 case VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR:
                     this->m_pre_rotate_mat = glm::rotate(glm::mat4{1}, glm::radians<float>(270), glm::vec3{0, 0, 1});
-                    this->m_perspective_ratio = static_cast<float>(this->height()) / static_cast<float>(this->width());
+                    this->m_perspective_ratio = static_cast<float>(this->identity_extent().height) / static_cast<float>(this->identity_extent().width);
                     break;
                 default:
                     dalAbort("Unkown swapchain transform");
@@ -320,7 +327,13 @@ namespace dal {
 
         // Report result
         {
-            auto msg = fmt::format("Swapchain created{{ res: {}x{}", this->extent().width, this->extent().height);
+            auto msg = fmt::format(
+                "Swapchain created{{ identity: {}x{}, screen: {}x{}",
+                this->identity_extent().width,
+                this->identity_extent().height,
+                this->screen_extent().width,
+                this->screen_extent().height
+            );
 
             switch (this->m_image_format) {
                 case VK_FORMAT_B8G8R8A8_SRGB:
@@ -353,6 +366,8 @@ namespace dal {
 
             dalInfo(msg.c_str());
         }
+
+        return true;
     }
 
     void SwapchainManager::destroy(const VkDevice logi_device) {
@@ -385,11 +400,11 @@ namespace dal {
 
     SwapchainSpec SwapchainManager::make_spec() const {
         SwapchainSpec result;
-        result.set(this->size(), this->format(), this->extent());
+        result.set(this->size(), this->format(), this->identity_extent());
         return result;
     }
 
-    std::pair<ImgAcquireResult, uint32_t> SwapchainManager::acquire_next_img_index(const size_t cur_img_index, const VkDevice logi_device) const {
+    std::pair<ImgAcquireResult, SwapchainIndex> SwapchainManager::acquire_next_img_index(const FrameInFlightIndex& cur_img_index, const VkDevice logi_device) const {
         uint32_t img_index;
 
         const auto result = vkAcquireNextImageKHR(
@@ -403,13 +418,13 @@ namespace dal {
 
         switch (result) {
             case VK_ERROR_OUT_OF_DATE_KHR:
-                return { ImgAcquireResult::out_of_date, UINT32_MAX };
+                return { ImgAcquireResult::out_of_date, SwapchainIndex::max_value() };
             case VK_SUBOPTIMAL_KHR:
-                return { ImgAcquireResult::suboptimal, img_index };
+                return { ImgAcquireResult::suboptimal, SwapchainIndex{img_index} };
             case VK_SUCCESS:
-                return { ImgAcquireResult::success, img_index };
+                return { ImgAcquireResult::success, SwapchainIndex{img_index} };
             default:
-                return { ImgAcquireResult::fail, UINT32_MAX };
+                return { ImgAcquireResult::fail, SwapchainIndex::max_value() };
         }
     }
 

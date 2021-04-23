@@ -7,35 +7,51 @@
 
 namespace dal {
 
-    class RenderPass {
+    class IRenderPass {
 
-    private:
+    protected:
         VkRenderPass m_handle = VK_NULL_HANDLE;
 
     public:
-        RenderPass() = default;
+        IRenderPass() = default;
 
-        RenderPass(const RenderPass&) = delete;
-        RenderPass& operator=(const RenderPass&) = delete;
-        RenderPass(RenderPass&&) = delete;
-        RenderPass& operator=(RenderPass&&) = delete;
+        IRenderPass(const IRenderPass&) = delete;
+        IRenderPass& operator=(const IRenderPass&) = delete;
 
     public:
-        ~RenderPass();
+        IRenderPass(IRenderPass&& other) noexcept;
 
-        void init(const VkRenderPass handle) {
-            this->m_handle = handle;
-        }
+        IRenderPass& operator=(IRenderPass&& other) noexcept;
+
+        ~IRenderPass();
 
         void destroy(const VkDevice logi_device);
 
-        void operator=(const VkRenderPass handle) {
-            this->init(handle);
+        bool is_ready() const {
+            return VK_NULL_HANDLE != this->m_handle;
         }
 
-        VkRenderPass get() const {
-            return this->m_handle;
-        }
+        VkRenderPass get() const;
+
+    };
+
+
+    class RenderPass_Gbuf : public IRenderPass {
+
+    public:
+        void init(
+            const VkFormat format_color,
+            const VkFormat format_depth,
+            const VkDevice logi_device
+        );
+
+    };
+
+
+    class RenderPass_Final : public IRenderPass {
+
+    public:
+        void init(const VkFormat swapchain_img_format, const VkDevice logi_device);
 
     };
 
@@ -51,19 +67,25 @@ namespace dal {
         RenderPassManager& operator=(RenderPassManager&&) = delete;
 
     private:
-        RenderPass m_rp_rendering;
+        RenderPass_Gbuf m_rp_gbuf;
+        RenderPass_Final m_rp_final;
 
     public:
         void init(
+            const VkFormat format_swapchain,
             const VkFormat format_color,
             const VkFormat format_depth,
             const VkDevice logi_device
         );
 
-        void destroy(VkDevice logi_device);
+        void destroy(const VkDevice logi_device);
 
-        auto& rp_rendering(void) const {
-            return this->m_rp_rendering;
+        auto& rp_gbuf() const {
+            return this->m_rp_gbuf;
+        }
+
+        auto& rp_final() const {
+            return this->m_rp_final;
         }
 
     };

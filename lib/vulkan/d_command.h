@@ -7,9 +7,6 @@
 
 namespace dal {
 
-    class ModelRenderer;
-
-
     class CommandPool {
 
     private:
@@ -45,40 +42,6 @@ namespace dal {
             const VkQueue graphics_queue,
             const VkDevice logi_device
         );
-
-    };
-
-
-    class CmdPoolManager {
-
-    private:
-        std::vector<CommandPool> m_pools;  // Per swapchain
-        std::vector<VkCommandBuffer> m_cmd_buffers;  // Per swapchain
-        CommandPool m_pool_for_single_time;
-
-    public:
-        void init(const uint32_t swapchain_count, const uint32_t queue_family_index, const VkDevice logi_device);
-
-        void destroy(const VkDevice logi_device);
-
-        void record_simple(
-            const size_t index,
-            const std::vector<ModelRenderer*>& models,
-            const std::vector<VkFramebuffer>& swapchain_fbufs,
-            const std::vector<VkDescriptorSet>& desc_sets_simple,
-            const VkExtent2D& swapchain_extent,
-            const VkPipelineLayout pipe_layout_simple,
-            const VkPipeline graphics_pipeline,
-            const VkRenderPass render_pass
-        );
-
-        auto& cmd_buffer_at(const size_t index) const {
-            return this->m_cmd_buffers.at(index);
-        }
-
-        auto& pool_single_time() {
-            return this->m_pool_for_single_time;
-        }
 
     };
 
