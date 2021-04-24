@@ -36,9 +36,6 @@ namespace dal {
         // -z is forward, +y is up, +x is right
         void move_forward(const glm::vec3& v);
 
-    private:
-        glm::mat4 make_view_rotation_mat() const;
-
     };
 
 }
