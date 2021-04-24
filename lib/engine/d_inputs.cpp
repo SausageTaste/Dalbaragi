@@ -46,18 +46,7 @@ namespace dal {
             ).c_str());
         }
 
-        auto& state = this->m_key_states[static_cast<size_t>(e.m_key)];
-        state.m_last_updated_sec = e.m_time_sec;
-
-        switch (e.m_action_type) {
-            case KeyActionType::down:
-                state.m_pressed = true;
-                break;
-            case KeyActionType::up:
-                state.m_pressed = false;
-                break;
-        }
-
+        this->m_key_states.update_one(e);
         return this->m_queue.push_back(e);
     }
 

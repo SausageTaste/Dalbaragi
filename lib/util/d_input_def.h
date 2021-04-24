@@ -1,10 +1,12 @@
 #pragma once
 
+#include <array>
 #include <bitset>
 
 #include <glm/glm.hpp>
 
 
+// Touch
 namespace dal {
 
     struct MouseEvent;
@@ -30,6 +32,11 @@ namespace dal {
         TouchEvent(const MouseEvent& e);
     };
 
+}
+
+
+// Mouse
+namespace dal {
 
     enum class MouseActionType { down, move, up };
 
@@ -44,6 +51,11 @@ namespace dal {
         operator TouchEvent() const;
     };
 
+}
+
+
+// Keyboard
+namespace dal {
 
     enum class KeyActionType { down, up };
 
@@ -86,6 +98,46 @@ namespace dal {
 
     };
 
+
+    class KeyStateRegistry {
+
+    public:
+        struct KeyState {
+            double m_last_updated_sec = 0;
+            bool m_pressed = false;
+        };
+
+    private:
+        static constexpr auto KEY_CODE_SIZE = static_cast<unsigned int>(KeyCode::eoe) - static_cast<unsigned int>(KeyCode::unknown);
+        std::array<KeyState, KEY_CODE_SIZE> m_states;
+
+    public:
+        void update_one(const KeyEvent& e) {
+            const auto index = this->to_index(e.m_key);
+            this->m_states[index].m_last_updated_sec = e.m_time_sec;
+            this->m_states[index].m_pressed = (e.m_action_type == KeyActionType::down);
+        }
+
+        KeyState& operator[](const KeyCode key) {
+            return this->m_states[this->to_index(key)];
+        }
+
+        const KeyState& operator[](const KeyCode key) const {
+            return this->m_states[this->to_index(key)];
+        }
+
+    private:
+        static size_t to_index(const KeyCode key) {
+            return static_cast<size_t>(key) - static_cast<size_t>(KeyCode::unknown);
+        }
+
+    };
+
+}
+
+
+// Game pad
+namespace dal {
 
     struct GamepadConnectionEvent {
         std::string m_name;

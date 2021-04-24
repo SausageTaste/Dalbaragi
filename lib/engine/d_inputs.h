@@ -77,15 +77,9 @@ namespace dal {
 
     class KeyInputManager {
 
-    public:
-        struct KeyState {
-            double m_last_updated_sec = 0;
-            bool m_pressed = false;
-        };
-
     private:
         ResetQueue<KeyEvent, 128> m_queue;
-        std::array<KeyState, static_cast<size_t>(KeyCode::eoe)> m_key_states;
+        KeyStateRegistry m_key_states;
 
     public:
         bool push_back(const KeyEvent& e);
@@ -93,12 +87,13 @@ namespace dal {
         auto& queue() {
             return this->m_queue;
         }
+
         auto& queue() const {
             return this->m_queue;
         }
 
         auto& key_state_of(const KeyCode key_code) const {
-            return this->m_key_states[static_cast<size_t>(key_code)];
+            return this->m_key_states[key_code];
         }
 
     };
