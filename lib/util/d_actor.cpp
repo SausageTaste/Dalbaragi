@@ -53,12 +53,52 @@ namespace {
 
     template <typename _Mat>
     _Mat make_rotation_xy(const float x, const float y) {
-        return ::make_rotation_x<_Mat>(x) * ::make_rotation_y<_Mat>(y);
+        _Mat output{1};
+
+        const auto cx = cos(x);
+        const auto sx = sin(x);
+        const auto cy = cos(y);
+        const auto sy = sin(y);
+
+        output[0][0] = cy;
+        output[0][1] = sx*sy;
+        output[0][2] = -cx*sy;
+
+        output[1][0] = 0;
+        output[1][1] = cx;
+        output[1][2] = sx;
+
+        output[2][0] = sy;
+        output[2][1] = -sx*cy;
+        output[2][2] = cx*cy;
+
+        return output;
     }
 
     template <typename _Mat>
     _Mat make_rotation_zxy(const float x, const float y, const float z) {
-        return ::make_rotation_z<_Mat>(z) * ::make_rotation_xy<_Mat>(x, y);
+        _Mat output{1};
+
+        const auto cx = cos(x);
+        const auto sx = sin(x);
+        const auto cy = cos(y);
+        const auto sy = sin(y);
+        const auto cz = cos(z);
+        const auto sz = sin(z);
+
+        output[0][0] = cz*cy - sz*sx*sy;
+        output[0][1] = sz*cy + cz*sx*sy;
+        output[0][2] = -cx*sy;
+
+        output[1][0] = -sz*cx;
+        output[1][1] = cz*cx;
+        output[1][2] = sx;
+
+        output[2][0] = cz*sy + sz*sx*cy;
+        output[2][1] = sz*sy - cz*sx*cy;
+        output[2][2] = cx*cy;
+
+        return output;
     }
 
     template <typename _Mat>
