@@ -76,6 +76,11 @@ namespace {
     }
 
     template <typename _Mat>
+    _Mat make_rotation_yx(const float x, const float y) {
+        return glm::transpose(::make_rotation_xy<_Mat>(-x, -y));
+    }
+
+    template <typename _Mat>
     _Mat make_rotation_zxy(const float x, const float y, const float z) {
         _Mat output{1};
 
@@ -106,6 +111,11 @@ namespace {
         return ::make_rotation_zxy<_Mat>(v.x, v.y, v.z);
     }
 
+    template <typename _Mat>
+    _Mat make_rotation_yxz(const glm::vec3& v) {
+        return glm::transpose(::make_rotation_zxy<_Mat>(-v));
+    }
+
 }
 
 
@@ -117,17 +127,16 @@ namespace dal {
         return rotation * translate;
     }
 
-    void EulerCamera::move_horizontal(const float x, const float z) {
-        const glm::vec4 move_vec{ x, 0, z, 0 };
-        const auto rotated = glm::rotate(glm::mat4{1}, this->m_rotations.y, glm::vec3{0, 1, 0}) * move_vec;
+    void EulerCamera::move_horizontal(glm::vec3 v) {
+        v.y = 0;
+        const auto rotated = make_rotation_y<glm::mat3>(this->m_rotations.y) * v;
 
         this->m_pos.x += rotated.x;
         this->m_pos.z += rotated.z;
     }
 
     void EulerCamera::move_forward(const glm::vec3& v) {
-        // Transpose of rotation matrices are equal to inverse of them
-        this->m_pos += ::make_rotation_zxy<glm::mat3>(this->m_rotations) * v;
+        this->m_pos += ::make_rotation_yxz<glm::mat3>(this->m_rotations) * v;
     }
 
 }

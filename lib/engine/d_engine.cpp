@@ -138,7 +138,8 @@ namespace dal {
     }
 
     void Engine::update() {
-        const float delta_time = this->m_timer.check_get_elapsed();
+        const auto delta_time = this->m_timer.check_get_elapsed();
+        const auto delta_time_f = static_cast<float>(delta_time);
 
         // Process inputs
         {
@@ -146,18 +147,18 @@ namespace dal {
             constexpr float ROT_SPEED = 1.5;
 
             const auto move_vec = ::make_move_direc(this->input_manager().key_manager()) + ::make_move_direc(this->input_manager().gamepad_manager());
-            this->m_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time * MOVE_SPEED);
-            this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time;
+            this->m_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
+            this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
 
             const auto rotation_angles = ::make_rotation_angles(this->input_manager().key_manager()) + ::make_rotation_angles(this->input_manager().gamepad_manager());
-            this->m_camera.m_rotations.x += rotation_angles.x * ROT_SPEED * delta_time;
-            this->m_camera.m_rotations.y += rotation_angles.y * ROT_SPEED * delta_time;
+            this->m_camera.m_rotations.x += rotation_angles.x * ROT_SPEED * delta_time_f;
+            this->m_camera.m_rotations.y += rotation_angles.y * ROT_SPEED * delta_time_f;
 
             if (this->input_manager().key_manager().key_state_of(dal::KeyCode::q).m_pressed) {
-                this->m_camera.m_rotations.z += ROT_SPEED * delta_time;
+                this->m_camera.m_rotations.z += ROT_SPEED * delta_time_f;
             }
             if (this->input_manager().key_manager().key_state_of(dal::KeyCode::e).m_pressed) {
-                this->m_camera.m_rotations.z -= ROT_SPEED * delta_time;
+                this->m_camera.m_rotations.z -= ROT_SPEED * delta_time_f;
             }
 
             this->input_manager().touch_manager().queue().clear();
