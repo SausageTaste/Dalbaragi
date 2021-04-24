@@ -30,7 +30,7 @@ namespace dal {
         }
 
         void clear(void) {
-
+            this->m_cur_index = 0;
         }
 
         bool is_full(void) const {
@@ -48,6 +48,22 @@ namespace dal {
 
         auto& at(const size_t index) const {
             return this->m_data.at(index);
+        }
+
+        auto begin() {
+            return this->m_data.begin();
+        }
+
+        auto begin() const {
+            return this->m_data.begin();
+        }
+
+        auto end() {
+            return this->m_data.begin() + this->size();
+        }
+
+        auto end() const {
+            return this->m_data.begin() + this->size();
         }
 
     };
@@ -68,8 +84,25 @@ namespace dal {
         auto& queue() {
             return this->m_queue;
         }
+
         auto& queue() const {
             return this->m_queue;
+        }
+
+        auto begin() {
+            return this->m_queue.begin();
+        }
+
+        auto begin() const {
+            return this->m_queue.begin();
+        }
+
+        auto end() {
+            return this->m_queue.end();
+        }
+
+        auto end() const {
+            return this->m_queue.end();
         }
 
     };
