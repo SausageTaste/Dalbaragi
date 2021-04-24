@@ -12,6 +12,7 @@ add_library(libdal_util STATIC
     d_model_parser.h        d_model_parser.cpp
     d_actor.h               d_actor.cpp
     d_task_thread.h         d_task_thread.cpp
+    d_input_def.h           d_input_def.cpp
 )
 target_compile_features(libdal_util PUBLIC cxx_std_17)
 target_include_directories(libdal_util PUBLIC ./)
