@@ -25,7 +25,7 @@ namespace dal {
         const auto rotation_x = glm::rotate(identity, -this->m_rotations.x, glm::vec3{1, 0, 0});
         const auto rotation_y = glm::rotate(identity, -this->m_rotations.y, glm::vec3{0, 1, 0});
         const auto rotation_z = glm::rotate(identity, -this->m_rotations.z, glm::vec3{0, 0, 1});
-        return rotation_x * rotation_y * rotation_z;
+        return rotation_z * rotation_x * rotation_y;
     }
 
 }

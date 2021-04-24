@@ -153,6 +153,13 @@ namespace dal {
             this->m_camera.m_rotations.x += rotation_angles.x * ROT_SPEED * delta_time;
             this->m_camera.m_rotations.y += rotation_angles.y * ROT_SPEED * delta_time;
 
+            if (this->input_manager().key_manager().key_state_of(dal::KeyCode::q).m_pressed) {
+                this->m_camera.m_rotations.z += ROT_SPEED * delta_time;
+            }
+            if (this->input_manager().key_manager().key_state_of(dal::KeyCode::e).m_pressed) {
+                this->m_camera.m_rotations.z -= ROT_SPEED * delta_time;
+            }
+
             this->input_manager().touch_manager().queue().clear();
             this->input_manager().key_manager().queue().clear();
         }
