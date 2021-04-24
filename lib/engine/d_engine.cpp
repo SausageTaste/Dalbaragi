@@ -138,7 +138,7 @@ namespace dal {
     }
 
     void Engine::update() {
-        const auto delta_time = this->m_timer.check_get_elapsed();
+        const float delta_time = this->m_timer.check_get_elapsed();
 
         // Process inputs
         {
@@ -146,7 +146,7 @@ namespace dal {
             constexpr float ROT_SPEED = 1.5;
 
             const auto move_vec = ::make_move_direc(this->input_manager().key_manager()) + ::make_move_direc(this->input_manager().gamepad_manager());
-            this->m_camera.move_horizontal(MOVE_SPEED * move_vec.x * delta_time, MOVE_SPEED * move_vec.z * delta_time);
+            this->m_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time * MOVE_SPEED);
             this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time;
 
             const auto rotation_angles = ::make_rotation_angles(this->input_manager().key_manager()) + ::make_rotation_angles(this->input_manager().gamepad_manager());
