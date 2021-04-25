@@ -126,17 +126,25 @@ namespace {
             return x < w * 0.4;
         };
 
-        glm::vec3 make_move_vec() const {
+        glm::vec3 make_move_vec(const float w, const float h) const {
             if (dal::NULL_TOUCH_ID == this->m_controlling_id)
                 return glm::vec3{0};
 
-            const auto a = this->m_last_pos - this->m_down_pos;
-            const auto len_spr = glm::dot(a, a);
-            if (0.001 > len_spr)
-                return glm::vec3{0};
+            const auto circle_radius = std::min(w, h) / 6.f;
+            dalInfo(fmt::format("{}", circle_radius).c_str());
 
-            const auto b = a / sqrt(len_spr);
-            return glm::vec3{b.x, 0, b.y};
+            const auto a = (this->m_last_pos - this->m_down_pos) / circle_radius;
+            const auto len_spr = glm::dot(a, a);
+            if (0.001f > len_spr) {
+                return glm::vec3{0};
+            }
+            else if (1.f < len_spr) {
+                const auto b = a / sqrt(len_spr);
+                return glm::vec3{b.x, 0, b.y};
+            }
+            else {
+                return glm::vec3{a.x, 0, a.y};
+            }
         }
 
     } g_touch_dpad;
@@ -297,7 +305,7 @@ namespace dal {
             const auto move_vec = (
                 ::make_move_direc(this->input_manager().key_manager()) +
                 ::make_move_direc(this->input_manager().gamepad_manager()) +
-                g_touch_dpad.make_move_vec()
+                g_touch_dpad.make_move_vec(this->m_screen_width, this->m_screen_height)
             );
             this->m_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
             this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
