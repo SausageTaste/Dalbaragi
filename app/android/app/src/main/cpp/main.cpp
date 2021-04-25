@@ -115,11 +115,76 @@ namespace {
 
 namespace {
 
-    auto parse_pointer_index(AInputEvent* const event) {
+    enum class InputSource {
+        unknown,
+        touch_screen,
+        keyboard,
+        joystick,
+        game_pad_btn,
+        touch_pad_mouse,
+        touch_pen,
+    };
+
+    enum class EventType {
+        unknown,
+        motion,
+        key,
+    };
+
+
+    struct EventInfo {
+        InputSource m_source = InputSource::unknown;
+        EventType m_type = EventType::unknown;
+    };
+
+    auto interpret_event(AInputEvent* const event) {
+        ::EventInfo output;
+
+        // Input source
+        {
+            const auto input_src_bits = static_cast<unsigned>(AInputEvent_getSource(event));
+
+            if (AINPUT_SOURCE_KEYBOARD == input_src_bits)
+                output.m_source = ::InputSource::keyboard;
+            else if (AINPUT_SOURCE_TOUCHSCREEN == input_src_bits)
+                output.m_source = ::InputSource::touch_screen;
+            else if (AINPUT_SOURCE_JOYSTICK == input_src_bits)
+                output.m_source = ::InputSource::joystick;
+            else if ((AINPUT_SOURCE_KEYBOARD | AINPUT_SOURCE_GAMEPAD) == input_src_bits)
+                output.m_source = ::InputSource::game_pad_btn;
+            else if ((AINPUT_SOURCE_TOUCHSCREEN | AINPUT_SOURCE_MOUSE) == input_src_bits)
+                output.m_source = ::InputSource::touch_pad_mouse;
+            else if ((AINPUT_SOURCE_TOUCHSCREEN | AINPUT_SOURCE_STYLUS) == input_src_bits)
+                output.m_source = ::InputSource::touch_pen;
+            else
+                dalWarn(fmt::format("unknown source {:x}", input_src_bits).c_str());
+        }
+
+        // Type
+        {
+            const auto event_type_bits = AInputEvent_getType(event);
+
+            if (AINPUT_EVENT_TYPE_MOTION == event_type_bits)
+                output.m_type = ::EventType::motion;
+            else if (AINPUT_EVENT_TYPE_KEY == event_type_bits)
+                output.m_type = ::EventType::key;
+            else
+                dalWarn(fmt::format("unknown event type {:x}", event_type_bits).c_str());
+        }
+
+        return output;
+    }
+
+}
+
+
+namespace {
+
+    int parse_pointer_index(AInputEvent* const event) {
         return (AMotionEvent_getAction(event) & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
     }
 
-    auto determine_motion_action_type(AInputEvent* const event) {
+    dal::TouchActionType determine_motion_action_type(AInputEvent* const event) {
         const auto type = AMotionEvent_getAction(event) & AMOTION_EVENT_ACTION_MASK;
 
         switch (type) {
@@ -150,19 +215,37 @@ namespace {
 
     void handle_motion_event(AInputEvent* const event, dal::TouchInputManager& tm) {
         const auto num_pointers = AMotionEvent_getPointerCount(event);
-        const auto pointer_index = ::parse_pointer_index(event);
-        const auto pointer_id = AMotionEvent_getPointerId(event, pointer_index);
-        const auto raw_x = AMotionEvent_getRawX(event, pointer_index);
-        const auto raw_y = AMotionEvent_getRawY(event, pointer_index);
         const auto action_type = ::determine_motion_action_type(event);
 
-        dal::TouchEvent te;
-        te.m_id = pointer_id;
-        te.m_action_type = action_type;
-        te.m_time_sec = dal::get_cur_sec();
-        te.m_pos = glm::vec2{ raw_x, raw_y };
+        if (dal::TouchActionType::move == action_type) {
+            for (int i = 0; i < num_pointers; i++) {
+                const auto pointer_id = AMotionEvent_getPointerId(event, i);
+                const auto raw_x = AMotionEvent_getRawX(event, i);
+                const auto raw_y = AMotionEvent_getRawY(event, i);
 
-        tm.push_back(te);
+                dal::TouchEvent te;
+                te.m_id = pointer_id;
+                te.m_action_type = action_type;
+                te.m_time_sec = dal::get_cur_sec();
+                te.m_pos = glm::vec2{ raw_x, raw_y };
+
+                tm.push_back(te);
+            }
+        }
+        else {
+            const auto pointer_index = ::parse_pointer_index(event);
+            const auto pointer_id = AMotionEvent_getPointerId(event, pointer_index);
+            const auto raw_x = AMotionEvent_getRawX(event, pointer_index);
+            const auto raw_y = AMotionEvent_getRawY(event, pointer_index);
+
+            dal::TouchEvent te;
+            te.m_id = pointer_id;
+            te.m_action_type = action_type;
+            te.m_time_sec = dal::get_cur_sec();
+            te.m_pos = glm::vec2{ raw_x, raw_y };
+
+            tm.push_back(te);
+        }
     }
 
 
@@ -217,7 +300,7 @@ namespace {
         }
     }
 
-    void handle_key_event(AInputEvent* const event, dal::KeyInputManager& km) {
+    void handle_keyboard_event(AInputEvent* const event, dal::KeyInputManager& km) {
         const auto action = AKeyEvent_getAction(event);
         const auto key_code = AKeyEvent_getKeyCode(event);
         const auto meta_state = AKeyEvent_getMetaState(event);
@@ -257,6 +340,27 @@ namespace {
         km.push_back(e);
     }
 
+
+    void handle_joystick_event(AInputEvent* const event, const EventInfo& event_info, dal::GamepadInputManager& gm) {
+        const auto pointer_index = ::parse_pointer_index(event);
+
+        auto& game_pad = gm.get_gamepad_state(0);
+
+        if (::EventType::motion == event_info.m_type) {
+            game_pad.m_dpad.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_HAT_X, pointer_index);
+            game_pad.m_dpad.y = -AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_HAT_Y, pointer_index);
+
+            game_pad.m_axis_left.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_X, pointer_index);
+            game_pad.m_axis_left.y = -AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Y, pointer_index);
+
+            game_pad.m_axis_right.x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Z, pointer_index);
+            game_pad.m_axis_right.y = -AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_RZ, pointer_index);
+
+            game_pad.m_trigger_left = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_BRAKE, pointer_index);
+            game_pad.m_trigger_right = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_GAS, pointer_index);
+        }
+    }
+
 }
 
 
@@ -267,13 +371,23 @@ extern "C" {
             return 0;
 
         auto &engine = *reinterpret_cast<dal::Engine*>(state->userData);
-        const auto event_type = AInputEvent_getType(event);
+        const auto event_info = ::interpret_event(event);
 
-        if (AINPUT_EVENT_TYPE_MOTION == event_type) {
+        if (::InputSource::touch_screen == event_info.m_source) {
             ::handle_motion_event(event, engine.input_manager().touch_manager());
         }
-        else if (AINPUT_EVENT_TYPE_KEY == event_type) {
-            ::handle_key_event(event, engine.input_manager().key_manager());
+        else if (::InputSource::keyboard == event_info.m_source) {
+            ::handle_keyboard_event(event, engine.input_manager().key_manager());
+        }
+        else if (::InputSource::joystick == event_info.m_source) {
+            ::handle_joystick_event(event, event_info, engine.input_manager().gamepad_manager());
+        }
+        else {
+            dalWarn(fmt::format(
+                "Not processed a input: type={}, source={}",
+                static_cast<int>(event_info.m_type),
+                static_cast<int>(event_info.m_source)
+            ).c_str());
         }
 
         return 0;

@@ -4,6 +4,7 @@
 #include "d_inputs.h"
 #include "d_actor.h"
 #include "d_timer.h"
+#include "d_input_consumer.h"
 
 
 namespace dal {
@@ -26,6 +27,10 @@ namespace dal {
         dal::TaskManager m_task_man;
         dal::VulkanState m_vulkan_man;
         InputManager m_input_man;
+
+        std::vector<IInputListener*> m_input_listeners;
+        InputDispatcher m_input_dispatch;
+        unsigned m_screen_width, m_screen_height;
 
         EulerCamera m_camera;
         Timer m_timer;

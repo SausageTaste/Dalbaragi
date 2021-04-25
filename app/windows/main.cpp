@@ -31,10 +31,14 @@ int main(int argc, char** argv) {
     window.set_callback_key_event([&engine](const dal::KeyEvent& e) {
         engine.input_manager().key_manager().push_back(e);
     });
+    window.set_callback_gamepad_connection([&engine](const dal::GamepadConnectionEvent& e) {
+        engine.input_manager().gamepad_manager().notify_connection_change(e);
+    });
 
     dalInfo("Done init");
 
     while (!window.should_close()) {
+        window.update_input_gamepad(engine.input_manager().gamepad_manager());
         window.do_frame();
         engine.update();
     }
