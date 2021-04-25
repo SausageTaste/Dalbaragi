@@ -215,19 +215,37 @@ namespace {
 
     void handle_motion_event(AInputEvent* const event, dal::TouchInputManager& tm) {
         const auto num_pointers = AMotionEvent_getPointerCount(event);
-        const auto pointer_index = ::parse_pointer_index(event);
-        const auto pointer_id = AMotionEvent_getPointerId(event, pointer_index);
-        const auto raw_x = AMotionEvent_getRawX(event, pointer_index);
-        const auto raw_y = AMotionEvent_getRawY(event, pointer_index);
         const auto action_type = ::determine_motion_action_type(event);
 
-        dal::TouchEvent te;
-        te.m_id = pointer_id;
-        te.m_action_type = action_type;
-        te.m_time_sec = dal::get_cur_sec();
-        te.m_pos = glm::vec2{ raw_x, raw_y };
+        if (dal::TouchActionType::move == action_type) {
+            for (int i = 0; i < num_pointers; i++) {
+                const auto pointer_id = AMotionEvent_getPointerId(event, i);
+                const auto raw_x = AMotionEvent_getRawX(event, i);
+                const auto raw_y = AMotionEvent_getRawY(event, i);
 
-        tm.push_back(te);
+                dal::TouchEvent te;
+                te.m_id = pointer_id;
+                te.m_action_type = action_type;
+                te.m_time_sec = dal::get_cur_sec();
+                te.m_pos = glm::vec2{ raw_x, raw_y };
+
+                tm.push_back(te);
+            }
+        }
+        else {
+            const auto pointer_index = ::parse_pointer_index(event);
+            const auto pointer_id = AMotionEvent_getPointerId(event, pointer_index);
+            const auto raw_x = AMotionEvent_getRawX(event, pointer_index);
+            const auto raw_y = AMotionEvent_getRawY(event, pointer_index);
+
+            dal::TouchEvent te;
+            te.m_id = pointer_id;
+            te.m_action_type = action_type;
+            te.m_time_sec = dal::get_cur_sec();
+            te.m_pos = glm::vec2{ raw_x, raw_y };
+
+            tm.push_back(te);
+        }
     }
 
 
