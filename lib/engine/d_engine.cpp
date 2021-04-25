@@ -44,8 +44,8 @@ namespace {
         return result;
     }
 
-    auto make_rotation_angles(const dal::KeyInputManager& im) {
-        glm::vec2 result{ 0, 0 };
+    glm::vec3 make_rotation_angles(const dal::KeyInputManager& im) {
+        glm::vec3 result{0};
 
         if (im.key_state_of(dal::KeyCode::left).m_pressed) {
             result.y += 1;
@@ -61,11 +61,16 @@ namespace {
             result.x -= 1;
         }
 
+        if (im.key_state_of(dal::KeyCode::q).m_pressed)
+             result.z += 1;
+        if (im.key_state_of(dal::KeyCode::e).m_pressed)
+             result.z -= 1;
+
         return result;
     }
 
-    auto make_rotation_angles(const dal::GamepadInputManager& m) {
-        glm::vec2 result{ 0, 0 };
+    glm::vec3 make_rotation_angles(const dal::GamepadInputManager& m) {
+        glm::vec3 result{0};
 
         for (const auto& [id, state] : m) {
             result.x += state.m_axis_right.y;
@@ -121,17 +126,25 @@ namespace {
             return x < w * 0.4;
         };
 
-        glm::vec3 make_move_vec() const {
+        glm::vec3 make_move_vec(const float w, const float h) const {
             if (dal::NULL_TOUCH_ID == this->m_controlling_id)
                 return glm::vec3{0};
 
-            const auto a = this->m_last_pos - this->m_down_pos;
-            const auto len_spr = glm::dot(a, a);
-            if (0.001 > len_spr)
-                return glm::vec3{0};
+            const auto circle_radius = std::min(w, h) / 6.f;
+            dalInfo(fmt::format("{}", circle_radius).c_str());
 
-            const auto b = a / sqrt(len_spr);
-            return glm::vec3{b.x, 0, b.y};
+            const auto a = (this->m_last_pos - this->m_down_pos) / circle_radius;
+            const auto len_spr = glm::dot(a, a);
+            if (0.001f > len_spr) {
+                return glm::vec3{0};
+            }
+            else if (1.f < len_spr) {
+                const auto b = a / sqrt(len_spr);
+                return glm::vec3{b.x, 0, b.y};
+            }
+            else {
+                return glm::vec3{a.x, 0, a.y};
+            }
         }
 
     } g_touch_dpad;
@@ -186,12 +199,12 @@ namespace {
             return true;
         };
 
-        glm::vec2 check_view_vec(const float w, const float h) {
+        glm::vec3 check_view_vec(const float w, const float h) {
             if (dal::NULL_TOUCH_ID == this->m_controlling_id)
-                return glm::vec2{0};
+                return glm::vec3{0};
 
-            const auto accum = glm::vec2{ -this->m_accum_pos.y, -this->m_accum_pos.x } / std::min(w, h) * 200.f;
-            this->m_accum_pos = glm::vec2{0};
+            const auto accum = glm::vec3{ -this->m_accum_pos.y, -this->m_accum_pos.x, 0 } / std::min(w, h) * 200.f;
+            this->m_accum_pos = glm::vec3{0};
             return accum;
         }
 
@@ -251,10 +264,9 @@ namespace dal {
             create_info.m_surface_create_func
         );
 
-        g_touch_dpad.reset();
         this->m_input_listeners.clear();
-        this->m_input_listeners.push_back(&g_touch_dpad);
-        this->m_input_listeners.push_back(&g_touch_view);
+        this->m_input_listeners.push_back(&g_touch_dpad); g_touch_dpad.reset();
+        this->m_input_listeners.push_back(&g_touch_view); g_touch_view.reset();
 
         this->m_screen_width = create_info.m_init_width;
         this->m_screen_height = create_info.m_init_height;
@@ -290,20 +302,19 @@ namespace dal {
             constexpr float MOVE_SPEED = 2;
             constexpr float ROT_SPEED = 1.5;
 
-            const auto move_vec = ::make_move_direc(this->input_manager().key_manager()) + ::make_move_direc(this->input_manager().gamepad_manager()) + g_touch_dpad.make_move_vec();
+            const auto move_vec = (
+                ::make_move_direc(this->input_manager().key_manager()) +
+                ::make_move_direc(this->input_manager().gamepad_manager()) +
+                g_touch_dpad.make_move_vec(this->m_screen_width, this->m_screen_height)
+            );
             this->m_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
             this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
 
-            const auto rotation_angles = ::make_rotation_angles(this->input_manager().key_manager()) + ::make_rotation_angles(this->input_manager().gamepad_manager()) + g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height);
-            this->m_camera.m_rotations.x += rotation_angles.x * ROT_SPEED * delta_time_f;
-            this->m_camera.m_rotations.y += rotation_angles.y * ROT_SPEED * delta_time_f;
-
-            if (this->input_manager().key_manager().key_state_of(dal::KeyCode::q).m_pressed) {
-                this->m_camera.m_rotations.z += ROT_SPEED * delta_time_f;
-            }
-            if (this->input_manager().key_manager().key_state_of(dal::KeyCode::e).m_pressed) {
-                this->m_camera.m_rotations.z -= ROT_SPEED * delta_time_f;
-            }
+            this->m_camera.m_rotations += (
+                ::make_rotation_angles(this->input_manager().key_manager()) +
+                ::make_rotation_angles(this->input_manager().gamepad_manager()) +
+                g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height)
+            ) * ROT_SPEED * delta_time_f;
         }
 
         this->m_task_man.update();
