@@ -131,8 +131,6 @@ namespace {
                 return glm::vec3{0};
 
             const auto circle_radius = std::min(w, h) / 6.f;
-            dalInfo(fmt::format("{}", circle_radius).c_str());
-
             const auto a = (this->m_last_pos - this->m_down_pos) / circle_radius;
             const auto len_spr = glm::dot(a, a);
             if (0.001f > len_spr) {
