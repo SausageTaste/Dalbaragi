@@ -8,13 +8,19 @@
 namespace {
 
     VkDescriptorSetLayout create_layout_final(const VkDevice logi_device) {
-        std::array<VkDescriptorSetLayoutBinding, 1> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings{};
 
         bindings.at(0).binding = 0;
         bindings.at(0).descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         bindings.at(0).descriptorCount = 1;
         bindings.at(0).stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings.at(0).pImmutableSamplers = nullptr;
+
+        bindings.at(1).binding = 1;
+        bindings.at(1).descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.at(1).descriptorCount = 1;
+        bindings.at(1).stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        bindings.at(1).pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutCreateInfo layout_info{};
         layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -152,6 +158,7 @@ namespace dal {
     void DescSet::record_final(
         const VkImageView color_view,
         const VkSampler sampler,
+        const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
         VkDescriptorImageInfo image_info{};
@@ -159,9 +166,14 @@ namespace dal {
         image_info.imageView = color_view;
         image_info.sampler = sampler;
 
+        VkDescriptorBufferInfo buffer_info{};
+        buffer_info.buffer = ubuf_per_frame.buffer();
+        buffer_info.offset = 0;
+        buffer_info.range = ubuf_per_frame.data_size();
+
         //--------------------------------------------------------------------
 
-        std::array<VkWriteDescriptorSet, 1> desc_writes{};
+        std::array<VkWriteDescriptorSet, 2> desc_writes{};
 
         desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         desc_writes[0].dstSet = this->m_handle;
@@ -170,6 +182,14 @@ namespace dal {
         desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         desc_writes[0].descriptorCount = 1;
         desc_writes[0].pImageInfo = &image_info;
+
+        desc_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        desc_writes[1].dstSet = this->m_handle;
+        desc_writes[1].dstBinding = 1;
+        desc_writes[1].dstArrayElement = 0;
+        desc_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        desc_writes[1].descriptorCount = 1;
+        desc_writes[1].pBufferInfo = &buffer_info;
 
         //--------------------------------------------------------------------
 
@@ -408,6 +428,7 @@ namespace dal {
 
     void DescriptorManager::init_desc_sets_final(
         const uint32_t index,
+        const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
         const VkImageView color_view,
         const VkSampler sampler,
         const VkDescriptorSetLayout desc_layout_final,
@@ -415,7 +436,7 @@ namespace dal {
     ) {
         this->m_pool_final.at(index).reset(logi_device);
         this->m_descset_final.at(index) = this->m_pool_final.at(index).allocate(desc_layout_final, logi_device);
-        this->m_descset_final.at(index).record_final(color_view, sampler, logi_device);
+        this->m_descset_final.at(index).record_final(color_view, sampler, ubuf_per_frame, logi_device);
     }
 
     std::vector<VkDescriptorSet> DescriptorManager::desc_set_raw_simple() const {

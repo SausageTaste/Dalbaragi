@@ -592,6 +592,7 @@ namespace dal {
         CmdPoolManager m_cmd_man;
         DescSetLayoutManager m_desc_layout_man;
         UniformBufferArray<U_PerFrame> m_ubufs_simple;
+        UniformBuffer<U_PerFrame_InFinal> m_ubuf_final;
         DescriptorManager m_desc_man;
 
         TextureManager m_tex_man;
@@ -684,6 +685,7 @@ namespace dal {
             this->m_model_man.destroy(this->m_logi_device.get());
             this->m_tex_man.destroy(this->m_logi_device.get());
             this->m_desc_man.destroy(this->m_logi_device.get());
+            this->m_ubuf_final.destroy(this->m_logi_device.get());
             this->m_ubufs_simple.destroy(this->m_logi_device.get());
             this->m_cmd_man.destroy(this->m_logi_device.get());
             this->m_pipelines.destroy(this->m_logi_device.get());
@@ -762,6 +764,7 @@ namespace dal {
 
             this->m_desc_man.init_desc_sets_final(
                 this->m_flight_frame_index.get(),
+                this->m_ubuf_final,
                 this->m_attach_man.color().view().get(),
                 this->m_tex_man.sampler_tex().get(),
                 this->m_desc_layout_man.layout_final(),
@@ -886,7 +889,7 @@ namespace dal {
             this->m_fbuf_man.init(
                 this->m_swapchain.views(),
                 this->m_attach_man,
-                this->m_swapchain.screen_extent(),
+                this->m_swapchain.identity_extent(),
                 this->m_attach_man.color().extent(),
                 this->m_renderpasses.rp_gbuf(),
                 this->m_renderpasses.rp_final(),
@@ -918,6 +921,11 @@ namespace dal {
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
+
+            this->m_ubuf_final.init(this->m_phys_device.get(), this->m_logi_device.get());
+            U_PerFrame_InFinal data;
+            data.m_rotation = this->m_swapchain.pre_ratation_mat();
+            this->m_ubuf_final.copy_to_buffer(data, this->m_logi_device.get());
 
             this->m_desc_man.init(MAX_FRAMES_IN_FLIGHT, this->m_logi_device.get());
 
@@ -955,8 +963,8 @@ namespace dal {
 
         static VkExtent2D calc_smaller_extent(const VkExtent2D& extent) {
             return VkExtent2D{
-                static_cast<uint32_t>(static_cast<double>(extent.width) * 0.8),
-                static_cast<uint32_t>(static_cast<double>(extent.height) * 0.8)
+                static_cast<uint32_t>(static_cast<double>(extent.width) * 0.9),
+                static_cast<uint32_t>(static_cast<double>(extent.height) * 0.9)
             };
         }
 

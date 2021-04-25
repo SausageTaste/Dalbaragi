@@ -140,7 +140,7 @@ namespace dal {
         }
 
         std::array<VkClearValue, 1> clear_colors{};
-        clear_colors[0].color = { 0, 0, 0, 1 };
+        clear_colors[0].color = { 1, 0, 0, 1 };
 
         VkRenderPassBeginInfo render_pass_info{};
         render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
