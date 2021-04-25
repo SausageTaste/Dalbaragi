@@ -136,6 +136,67 @@ namespace {
 
     } g_touch_dpad;
 
+
+    class TouchViewController : public dal::IInputListener {
+
+    private:
+        dal::touchID_t m_controlling_id = dal::NULL_TOUCH_ID;
+        glm::vec2 m_last_pos, m_accum_pos;
+
+    public:
+        void reset() {
+            this->m_controlling_id = dal::NULL_TOUCH_ID;
+        }
+
+        dal::InputConsumeResult on_touch_event(const dal::TouchEvent& e) override {
+            if (dal::NULL_TOUCH_ID == this->m_controlling_id) {
+                switch (e.m_action_type) {
+                    case dal::TouchActionType::down:
+                        //dalInfo(fmt::format("Touch down in view: {}", e.m_id).c_str());
+                        this->m_controlling_id = e.m_id;
+                        this->m_accum_pos = glm::vec2{0};
+                        this->m_last_pos = e.m_pos;
+                        return dal::InputConsumeResult::owned;
+                    default:
+                        return dal::InputConsumeResult::ignored;
+                }
+            }
+            else {
+                if (e.m_id != this->m_controlling_id)
+                    return dal::InputConsumeResult::ignored;
+
+                switch (e.m_action_type) {
+                    case dal::TouchActionType::down:
+                    case dal::TouchActionType::move:
+                        //dalInfo(fmt::format("Touch move in view: {}", e.m_id).c_str());
+                        this->m_accum_pos += e.m_pos - this->m_last_pos;
+                        this->m_last_pos = e.m_pos;
+                        return dal::InputConsumeResult::owned;
+                    case dal::TouchActionType::up:
+                        //dalInfo(fmt::format("Touch up in view: {}", e.m_id).c_str());
+                        this->m_controlling_id = dal::NULL_TOUCH_ID;
+                        return dal::InputConsumeResult::done_with;
+                    default:
+                        return dal::InputConsumeResult::owned;
+                }
+            }
+        }
+
+        bool is_in_bound(const float x, const float y, const float w, const float h) override {
+            return true;
+        };
+
+        glm::vec2 check_view_vec(const float w, const float h) {
+            if (dal::NULL_TOUCH_ID == this->m_controlling_id)
+                return glm::vec2{0};
+
+            const auto accum = glm::vec2{ -this->m_accum_pos.y, -this->m_accum_pos.x } / std::min(w, h) * 200.f;
+            this->m_accum_pos = glm::vec2{0};
+            return accum;
+        }
+
+    } g_touch_view;
+
 }
 
 
@@ -193,6 +254,7 @@ namespace dal {
         g_touch_dpad.reset();
         this->m_input_listeners.clear();
         this->m_input_listeners.push_back(&g_touch_dpad);
+        this->m_input_listeners.push_back(&g_touch_view);
 
         this->m_screen_width = create_info.m_init_width;
         this->m_screen_height = create_info.m_init_height;
@@ -232,7 +294,7 @@ namespace dal {
             this->m_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
             this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
 
-            const auto rotation_angles = ::make_rotation_angles(this->input_manager().key_manager()) + ::make_rotation_angles(this->input_manager().gamepad_manager());
+            const auto rotation_angles = ::make_rotation_angles(this->input_manager().key_manager()) + ::make_rotation_angles(this->input_manager().gamepad_manager()) + g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height);
             this->m_camera.m_rotations.x += rotation_angles.x * ROT_SPEED * delta_time_f;
             this->m_camera.m_rotations.y += rotation_angles.y * ROT_SPEED * delta_time_f;
 
