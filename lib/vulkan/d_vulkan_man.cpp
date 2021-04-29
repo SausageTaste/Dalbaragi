@@ -951,14 +951,14 @@ namespace dal {
             }
 
             // Sponza
-            /*{
+            {
                 auto& model = this->m_model_man.request_model("_asset/model/sponza.dmd");
                 this->m_models.push_back(&model);
 
                 U_PerActor ubuf_data_per_actor;
                 ubuf_data_per_actor.m_model = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{1, 0, 0}) * glm::scale(glm::mat4{1}, glm::vec3{0.01});;
                 model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
-            }*/
+            }
         }
 
         static VkExtent2D calc_smaller_extent(const VkExtent2D& extent) {

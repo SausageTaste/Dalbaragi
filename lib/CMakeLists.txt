@@ -34,7 +34,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     fetch_dal_blender
     GIT_REPOSITORY https://github.com/SausageTaste/io_scene_dalbaragi
-    GIT_TAG        master
+    GIT_TAG        main
 )
 
 
