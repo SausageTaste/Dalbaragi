@@ -11,13 +11,13 @@
 namespace dal {
 
     void TaskManager::TaskQueue::push(std::unique_ptr<dal::ITask> t) {
-        std::unique_lock<std::mutex> lck{ m_mut, std::defer_lock };
+        std::unique_lock<std::mutex> lck{ this->m_mut };
 
         m_q.push(std::move(t));
     }
 
     std::unique_ptr<dal::ITask> TaskManager::TaskQueue::pop(void) {
-        std::unique_lock<std::mutex> lck{ m_mut, std::defer_lock };
+        std::unique_lock<std::mutex> lck{ this->m_mut };
 
         if ( m_q.empty() ) {
             return nullptr;
@@ -30,7 +30,7 @@ namespace dal {
     }
 
     size_t TaskManager::TaskQueue::size(void) {
-        std::unique_lock<std::mutex> lck{ this->m_mut, std::defer_lock };
+        std::unique_lock<std::mutex> lck{ this->m_mut };
 
         return m_q.size();
     }
