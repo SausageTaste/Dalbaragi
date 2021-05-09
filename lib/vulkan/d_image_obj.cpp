@@ -439,6 +439,7 @@ namespace dal {
     const TextureManager::TextureUnit& TextureManager::request_asset_tex(const dal::ResPath& respath) {
         const auto resolved_respath = this->m_filesys->resolve_respath(respath);
         if (!resolved_respath.has_value()) {
+            dalError(fmt::format("Failed to find texture file: {}", respath.make_str()).c_str());
             return this->get_missing_tex();
         }
 

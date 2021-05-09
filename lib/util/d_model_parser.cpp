@@ -33,6 +33,7 @@ namespace dal {
             output_render_unit.m_material.m_albedo_map = unit.m_material.m_albedo_map;
             output_render_unit.m_material.m_roughness = unit.m_material.m_roughness;
             output_render_unit.m_material.m_metallic = unit.m_material.m_metallic;
+            output_render_unit.m_material.m_alpha_blending = unit.m_material.alpha_blend;
         }
 
         for (const auto& unit : model_data->m_units_indexed_joint) {
@@ -50,6 +51,7 @@ namespace dal {
             output_render_unit.m_material.m_albedo_map = unit.m_material.m_albedo_map;
             output_render_unit.m_material.m_roughness = unit.m_material.m_roughness;
             output_render_unit.m_material.m_metallic = unit.m_material.m_metallic;
+            output_render_unit.m_material.m_alpha_blending = unit.m_material.alpha_blend;
         }
 
         if (!model_data->m_units_straight.empty())

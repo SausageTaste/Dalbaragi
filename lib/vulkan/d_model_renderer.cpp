@@ -78,6 +78,8 @@ namespace dal {
         for (auto& unit_data : model_data.m_units) {
             auto& unit = this->m_units.emplace_back();
 
+            unit.m_alpha_blend = unit_data.m_material.m_alpha_blending;
+
             unit.m_vert_buffer.init(
                 unit_data.m_vertices,
                 unit_data.m_indices,

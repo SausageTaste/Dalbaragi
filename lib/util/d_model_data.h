@@ -21,6 +21,7 @@ namespace dal {
         std::string m_albedo_map;
         float m_roughness;
         float m_metallic;
+        bool m_alpha_blending;
     };
 
     struct RenderUnitStatic {

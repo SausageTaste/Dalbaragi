@@ -16,6 +16,7 @@ namespace dal {
             dal::VertexBuffer m_vert_buffer;
             dal::UniformBuffer<dal::U_PerMaterial> m_ubuf;
             dal::DescSet m_desc_set;
+            bool m_alpha_blend = false;
         };
 
     private:
