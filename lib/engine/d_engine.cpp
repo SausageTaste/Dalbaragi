@@ -269,8 +269,8 @@ namespace dal {
         this->m_screen_width = create_info.m_init_width;
         this->m_screen_height = create_info.m_init_height;
 
-        this->m_camera.m_pos = {0, 2, 3};
-        this->m_camera.m_rotations = {glm::radians<float>(-30), 0, 0};
+        this->m_camera.m_pos = {2.68, 1.91, 0};
+        this->m_camera.m_rotations = {-0.22, glm::radians<float>(90), 0};
 
         this->m_timer.check();
     }
