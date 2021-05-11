@@ -374,7 +374,7 @@ namespace {
         const auto multisampling = ::create_info_multisampling();
 
         // Color blending
-        const auto color_blend_attachments = ::create_info_color_blend_attachment<1, false>();
+        const auto color_blend_attachments = ::create_info_color_blend_attachment<4, false>();
         const auto color_blending = ::create_info_color_blend(color_blend_attachments.data(), color_blend_attachments.size(), false);
 
         // Depth, stencil

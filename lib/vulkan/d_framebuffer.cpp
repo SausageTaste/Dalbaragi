@@ -151,11 +151,41 @@ namespace dal {
             phys_device,
             logi_device
         );
+
+        this->m_albedo.init(
+            this->m_extent.width,
+            this->m_extent.height,
+            dal::FbufAttachment::Usage::color_attachment,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            phys_device,
+            logi_device
+        );
+
+        this->m_materials.init(
+            this->m_extent.width,
+            this->m_extent.height,
+            dal::FbufAttachment::Usage::color_attachment,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            phys_device,
+            logi_device
+        );
+
+        this->m_normal.init(
+            this->m_extent.width,
+            this->m_extent.height,
+            dal::FbufAttachment::Usage::color_attachment,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            phys_device,
+            logi_device
+        );
     }
 
     void AttachmentManager::destroy(const VkDevice logi_device) {
         this->m_color.destroy(logi_device);
         this->m_depth.destroy(logi_device);
+        this->m_albedo.destroy(logi_device);
+        this->m_materials.destroy(logi_device);
+        this->m_normal.destroy(logi_device);
     }
 
 }
@@ -215,11 +245,17 @@ namespace dal {
         const VkExtent2D& swapchain_extent,
         const VkImageView color_view,
         const VkImageView depth_view,
+        const VkImageView albedo_view,
+        const VkImageView materials_view,
+        const VkImageView normal_view,
         const VkDevice logi_device
     ) {
-        const std::array<VkImageView, 2> attachments{
+        const std::array<VkImageView, 5> attachments{
             color_view,
             depth_view,
+            albedo_view,
+            materials_view,
+            normal_view,
         };
 
         const auto result = this->create(

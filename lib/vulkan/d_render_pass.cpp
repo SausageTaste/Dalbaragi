@@ -12,27 +12,62 @@ namespace {
     VkRenderPass create_renderpass_gbuf(
         const VkFormat format_color,
         const VkFormat format_depth,
+        const VkFormat format_albedo,
+        const VkFormat format_materials,
+        const VkFormat format_normal,
         const VkDevice logi_device
     ) {
-        std::array<VkAttachmentDescription, 2> attachments{};
+        std::vector<VkAttachmentDescription> attachments{};
         {
-            attachments[0].format = format_color;
-            attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            attachments.emplace_back();
+            attachments.back().format = format_color;
+            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-            attachments[1].format = format_depth;
-            attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            attachments.emplace_back();
+            attachments.back().format = format_depth;
+            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments.back().finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+            attachments.emplace_back();
+            attachments.back().format = format_albedo;
+            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            attachments.emplace_back();
+            attachments.back().format = format_materials;
+            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            attachments.emplace_back();
+            attachments.back().format = format_normal;
+            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         }
 
         VkAttachmentReference depth_attachment_ref{};
@@ -44,8 +79,11 @@ namespace {
         // First subpass
         // ---------------------------------------------------------------------------------
 
-        std::array<VkAttachmentReference, 1> color_attachment_ref{};
-        color_attachment_ref[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+        std::array<VkAttachmentReference, 4> color_attachment_ref{};
+        color_attachment_ref[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };  // color
+        color_attachment_ref[1] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };  // albedo
+        color_attachment_ref[2] = { 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };  // materials
+        color_attachment_ref[3] = { 4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };  // normal
 
         subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
@@ -186,10 +224,13 @@ namespace dal {
     void RenderPass_Gbuf::init(
         const VkFormat format_color,
         const VkFormat format_depth,
+        const VkFormat format_albedo,
+        const VkFormat format_materials,
+        const VkFormat format_normal,
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
-        this->m_handle = ::create_renderpass_gbuf(format_color, format_depth, logi_device);
+        this->m_handle = ::create_renderpass_gbuf(format_color, format_depth, format_albedo, format_materials, format_normal, logi_device);
     }
 
     void RenderPass_Final::init(
@@ -209,9 +250,12 @@ namespace dal {
         const VkFormat format_swapchain,
         const VkFormat format_color,
         const VkFormat format_depth,
+        const VkFormat format_albedo,
+        const VkFormat format_materials,
+        const VkFormat format_normal,
         const VkDevice logi_device
     ) {
-        this->m_rp_gbuf.init(format_color, format_depth, logi_device);
+        this->m_rp_gbuf.init(format_color, format_depth, format_albedo, format_materials, format_normal, logi_device);
         this->m_rp_final.init(format_swapchain, logi_device);
     }
 

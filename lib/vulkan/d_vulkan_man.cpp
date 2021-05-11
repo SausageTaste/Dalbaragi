@@ -81,6 +81,9 @@ namespace {
                     gbuf_extent,
                     attach_man.color().view().get(),
                     attach_man.depth().view().get(),
+                    attach_man.albedo().view().get(),
+                    attach_man.materials().view().get(),
+                    attach_man.normal().view().get(),
                     logi_device
                 );
 
@@ -886,6 +889,9 @@ namespace dal {
                 this->m_swapchain.format(),
                 this->m_attach_man.color().format(),
                 this->m_attach_man.depth().format(),
+                this->m_attach_man.albedo().format(),
+                this->m_attach_man.materials().format(),
+                this->m_attach_man.normal().format(),
                 this->m_logi_device.get()
             );
 

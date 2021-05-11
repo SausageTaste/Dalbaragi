@@ -42,6 +42,9 @@ namespace dal {
         void init(
             const VkFormat format_color,
             const VkFormat format_depth,
+            const VkFormat format_albedo,
+            const VkFormat format_materials,
+            const VkFormat format_normal,
             const VkDevice logi_device
         );
 
@@ -75,6 +78,9 @@ namespace dal {
             const VkFormat format_swapchain,
             const VkFormat format_color,
             const VkFormat format_depth,
+            const VkFormat format_albedo,
+            const VkFormat format_materials,
+            const VkFormat format_normal,
             const VkDevice logi_device
         );
 

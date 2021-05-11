@@ -59,6 +59,9 @@ namespace dal {
     private:
         FbufAttachment m_color;
         FbufAttachment m_depth;
+        FbufAttachment m_albedo;
+        FbufAttachment m_materials;
+        FbufAttachment m_normal;
 
         VkExtent2D m_extent{ 0, 0 };
 
@@ -86,6 +89,18 @@ namespace dal {
 
         auto& depth() const {
             return this->m_depth;
+        }
+
+        auto& albedo() const {
+            return this->m_albedo;
+        }
+
+        auto& materials() const {
+            return this->m_materials;
+        }
+
+        auto& normal() const {
+            return this->m_normal;
         }
 
     };
@@ -139,6 +154,9 @@ namespace dal {
             const VkExtent2D& swapchain_extent,
             const VkImageView color_view,
             const VkImageView depth_view,
+            const VkImageView albedo_view,
+            const VkImageView materials_view,
+            const VkImageView normal_view,
             const VkDevice logi_device
         );
 

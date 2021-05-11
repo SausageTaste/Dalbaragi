@@ -3,7 +3,10 @@
 
 layout(location = 0) in vec2 v_uv_coord;
 
-layout(location = 0) out vec4 f_out_color;
+layout(location = 0) out vec4 out_color;
+layout(location = 1) out vec4 out_albedo;
+layout(location = 2) out vec4 out_material;
+layout(location = 3) out vec4 out_normal;
 
 
 layout(set = 1, binding = 0) uniform U_PerMaterial {
@@ -26,15 +29,18 @@ vec3 fix_color(const vec3 color) {
 
 
 void main() {
-    f_out_color = texture(u_albedo_map, v_uv_coord);
+    out_albedo = texture(u_albedo_map, v_uv_coord);
 
 #ifdef DAL_ALPHA_CLIP
-    if (f_out_color.a < 0.5)
+    if (out_albedo.a < 0.5)
         discard;
 #endif
 
 #ifdef DAL_GAMMA_CORRECT
-    f_out_color.xyz = fix_color(f_out_color.xyz);
+    out_albedo.xyz = fix_color(out_albedo.xyz);
 #endif
 
+    out_color = out_albedo;
+    out_material = vec4(1, 0, 0, 1);
+    out_normal = vec4(0, 1, 0, 1);
 }
