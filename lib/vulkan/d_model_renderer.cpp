@@ -96,14 +96,7 @@ namespace dal {
             unit.m_ubuf.copy_to_buffer(ubuf_data, logi_device);
 
             const auto albedo_map_path = fmt::format("{}/?/{}", fallback_file_namespace, unit_data.m_material.m_albedo_map);
-
-            unit.m_desc_set = this->m_desc_pool.allocate(layout_per_material, logi_device);
-            unit.m_desc_set.record_material(
-                unit.m_ubuf,
-                tex_man.request_asset_tex(albedo_map_path).m_view.get(),
-                tex_man.sampler_tex().get(),
-                logi_device
-            );
+            unit.m_albedo_map = &tex_man.request_asset_tex(albedo_map_path);
         }
     }
 
@@ -117,8 +110,38 @@ namespace dal {
         this->m_ubuf_per_actor.destroy(logi_device);
     }
 
+    bool ModelRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device) {
+        for (auto& unit : this->m_units) {
+            if (unit.m_desc_set.is_ready())
+                continue;
+            if (!unit.m_albedo_map->is_ready())
+                continue;
+
+            unit.m_desc_set = this->m_desc_pool.allocate(layout_per_material, logi_device);
+
+            unit.m_desc_set.record_material(
+                unit.m_ubuf,
+                unit.m_albedo_map->view().get(),
+                sampler,
+                logi_device
+            );
+
+            return true;
+        }
+
+        return false;
+    }
+
     bool ModelRenderer::is_ready() const {
-        return !this->m_units.empty();
+        if (this->m_units.empty())
+            return false;
+
+        for (auto& unit : this->m_units) {
+            if (!unit.m_desc_set.is_ready())
+                return false;
+        }
+
+        return true;
     }
 
 }
@@ -134,6 +157,19 @@ namespace dal {
             x.second.destroy(logi_device);
         }
         this->m_models.clear();
+    }
+
+    void ModelManager::update() {
+        for (auto& [res_id, model] : this->m_models) {
+            const auto did_fetch = model.fetch_one_resource(
+                this->m_desc_layout_man->layout_per_material(),
+                this->m_tex_man->sampler_tex().get(),
+                this->m_logi_device
+            );
+
+            if (did_fetch)
+                return;
+        }
     }
 
     void ModelManager::notify_task_done(std::unique_ptr<ITask> task) {

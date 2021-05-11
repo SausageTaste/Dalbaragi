@@ -3,7 +3,6 @@
 #include "d_vert_data.h"
 #include "d_uniform.h"
 #include "d_image_obj.h"
-#include "d_task_thread.h"
 #include "d_filesystem.h"
 
 
@@ -16,6 +15,7 @@ namespace dal {
             dal::VertexBuffer m_vert_buffer;
             dal::UniformBuffer<dal::U_PerMaterial> m_ubuf;
             dal::DescSet m_desc_set;
+            const dal::TextureUnit* m_albedo_map = nullptr;
             bool m_alpha_blend = false;
         };
 
@@ -45,6 +45,8 @@ namespace dal {
         );
 
         void destroy(const VkDevice logi_device);
+
+        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device);
 
         bool is_ready() const;
 
@@ -100,6 +102,8 @@ namespace dal {
         }
 
         void destroy(const VkDevice logi_device);
+
+        void update();
 
         void notify_task_done(std::unique_ptr<ITask> task) override;
 

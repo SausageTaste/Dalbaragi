@@ -653,6 +653,7 @@ namespace dal {
             this->init_swapchain_and_dependers();
 
             this->m_tex_man.init(
+                task_man,
                 this->m_filesys,
                 this->m_cmd_man.pool_single_time(),
                 this->m_phys_info.does_support_anisotropic_sampling(),
@@ -715,6 +716,8 @@ namespace dal {
         }
 
         void update(const EulerCamera& camera) {
+            this->m_model_man.update();
+
             if (this->m_screen_resize_notified) {
                 this->m_screen_resize_notified = this->on_recreate_swapchain();
                 return;
