@@ -19,8 +19,8 @@ void main() {
     const vec3 albedo = subpassLoad(input_albedo).xyz;
     const vec2 material = subpassLoad(input_material).xy;
 
-    float light_color = 0.05;
-    light_color += max(dot(TO_LIGHT_DIRECTION, normal), 0);
+    float light_color = 0.25;
+    light_color += max(dot(TO_LIGHT_DIRECTION, normal), 0) * 0.75;
 
     out_color = vec4(albedo * light_color, 1);
 }
