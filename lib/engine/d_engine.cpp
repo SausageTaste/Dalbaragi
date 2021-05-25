@@ -309,10 +309,10 @@ namespace dal {
             this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
 
             this->m_camera.m_rotations += (
-                ::make_rotation_angles(this->input_manager().key_manager()) +
-                ::make_rotation_angles(this->input_manager().gamepad_manager()) +
-                g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height)
-            ) * ROT_SPEED * delta_time_f;
+                ::make_rotation_angles(this->input_manager().key_manager()) * delta_time_f +
+                ::make_rotation_angles(this->input_manager().gamepad_manager()) * delta_time_f +
+                g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height) * 0.02f
+            ) * ROT_SPEED;
         }
 
         this->m_task_man.update();
