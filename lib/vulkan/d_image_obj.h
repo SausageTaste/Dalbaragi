@@ -52,9 +52,7 @@ namespace dal {
             return VK_NULL_HANDLE != this->m_view;
         }
 
-        auto get() const {
-            return this->m_view;
-        }
+        VkImageView get() const;
 
     };
 

@@ -27,10 +27,13 @@ namespace dal {
             const size_t flight_frame_index,
             const std::vector<ModelRenderer*>& models,
             const std::vector<VkDescriptorSet>& desc_sets_simple,
+            const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
             const VkFramebuffer swapchain_fbuf,
-            const VkPipelineLayout pipe_layout_simple,
-            const VkPipeline graphics_pipeline,
+            const VkPipeline pipeline_gbuf,
+            const VkPipelineLayout pipe_layout_gbuf,
+            const VkPipeline pipeline_composition,
+            const VkPipelineLayout pipe_layout_composition,
             const RenderPass_Gbuf& render_pass
         );
 

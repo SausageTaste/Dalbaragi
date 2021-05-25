@@ -761,10 +761,13 @@ namespace dal {
                 this->m_flight_frame_index.get(),
                 this->m_models,
                 this->m_desc_man.desc_set_raw_simple(),
+                this->m_desc_man.desc_set_composition_at(0).get(),
                 this->m_attach_man.color().extent(),
                 this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
-                this->m_pipelines.simple().layout(),
                 this->m_pipelines.simple().pipeline(),
+                this->m_pipelines.simple().layout(),
+                this->m_pipelines.composition().pipeline(),
+                this->m_pipelines.composition().layout(),
                 this->m_renderpasses.rp_gbuf()
             );
 
@@ -914,6 +917,7 @@ namespace dal {
                 this->m_desc_layout_man.layout_simple(),
                 this->m_desc_layout_man.layout_per_material(),
                 this->m_desc_layout_man.layout_per_actor(),
+                this->m_desc_layout_man.layout_composition(),
                 this->m_renderpasses.rp_gbuf(),
                 this->m_renderpasses.rp_final(),
                 this->m_logi_device.get()
@@ -942,6 +946,17 @@ namespace dal {
                 this->m_ubufs_simple,
                 MAX_FRAMES_IN_FLIGHT,
                 this->m_desc_layout_man.layout_simple(),
+                this->m_logi_device.get()
+            );
+
+            this->m_desc_man.add_desc_set_composition(
+                {
+                    this->m_attach_man.depth().view().get(),
+                    this->m_attach_man.albedo().view().get(),
+                    this->m_attach_man.materials().view().get(),
+                    this->m_attach_man.normal().view().get(),
+                },
+                this->m_desc_layout_man.layout_composition(),
                 this->m_logi_device.get()
             );
 

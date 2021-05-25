@@ -287,6 +287,11 @@ namespace dal {
         }
     }
 
+    VkImageView ImageView::get() const {
+        dalAssert(this->is_ready());
+        return this->m_view;
+    }
+
 }
 
 

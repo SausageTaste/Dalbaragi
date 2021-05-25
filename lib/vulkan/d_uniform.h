@@ -125,6 +125,8 @@ namespace dal {
         VkDescriptorSetLayout m_layout_per_material = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_actor = VK_NULL_HANDLE;
 
+        VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
+
     public:
         void init(const VkDevice logiDevice);
 
@@ -144,6 +146,10 @@ namespace dal {
 
         auto layout_per_actor() const {
             return this->m_layout_per_actor;
+        }
+
+        auto layout_composition() const {
+            return this->m_layout_composition;
         }
 
     };
@@ -189,6 +195,11 @@ namespace dal {
             const VkDevice logi_device
         );
 
+        void record_composition(
+            const std::vector<VkImageView>& attachment_views,
+            const VkDevice logi_device
+        );
+
     };
 
 
@@ -227,10 +238,11 @@ namespace dal {
     class DescriptorManager {
 
     private:
-        DescPool m_pool_simple;
+        DescPool m_pool_simple, m_pool_composition;
         std::vector<DescPool> m_pool_final;
         std::vector<DescSet> m_descset_simple;
         std::vector<DescSet> m_descset_final;
+        std::vector<DescSet> m_descset_composition;  // Per frame
 
     public:
         void init(const uint32_t swapchain_count, const VkDevice logi_device);
@@ -257,6 +269,12 @@ namespace dal {
             const VkDevice logi_device
         );
 
+        void add_desc_set_composition(
+            const std::vector<VkImageView>& attachment_views,
+            const VkDescriptorSetLayout desc_layout_composition,
+            const VkDevice logi_device
+        );
+
         auto& desc_set_simple() {
             return this->m_descset_simple;
         }
@@ -265,6 +283,10 @@ namespace dal {
 
         auto& desc_set_final_at(const size_t index) const {
             return this->m_descset_final.at(index).get();
+        }
+
+        auto& desc_set_composition_at(const size_t index) const {
+            return this->m_descset_composition.at(index);
         }
 
     };

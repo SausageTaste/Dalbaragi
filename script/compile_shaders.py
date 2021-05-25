@@ -50,6 +50,10 @@ def main():
 
     _work_for_one("fill_screen_f.spv", "fill_screen.frag", [])
 
+    _work_for_one("composition_v.spv", "composition.vert", [])
+
+    _work_for_one("composition_f.spv", "composition.frag", [])
+
 
 if "__main__" == __name__:
     main()

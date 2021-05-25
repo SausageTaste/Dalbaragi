@@ -51,6 +51,7 @@ namespace dal {
 
     private:
         ShaderPipeline m_gbuf;
+        ShaderPipeline m_composition;
         ShaderPipeline m_final;
 
     public:
@@ -63,6 +64,7 @@ namespace dal {
             const VkDescriptorSetLayout desc_layout_simple,
             const VkDescriptorSetLayout desc_layout_per_material,
             const VkDescriptorSetLayout desc_layout_per_actor,
+            const VkDescriptorSetLayout desc_layout_composition,
             const RenderPass_Gbuf& rp_gbuf,
             const RenderPass_Final& rp_final,
             const VkDevice logi_device
@@ -72,6 +74,10 @@ namespace dal {
 
         auto& simple() const {
             return this->m_gbuf;
+        }
+
+        auto& composition() const {
+            return this->m_composition;
         }
 
         auto& final() const {

@@ -2,11 +2,11 @@
 
 
 layout(location = 0) in vec2 v_uv_coord;
+layout(location = 1) in vec3 v_normal;
 
-layout(location = 0) out vec4 out_color;
-layout(location = 1) out vec4 out_albedo;
-layout(location = 2) out vec4 out_material;
-layout(location = 3) out vec4 out_normal;
+layout(location = 0) out vec4 out_albedo;
+layout(location = 1) out vec4 out_material;
+layout(location = 2) out vec4 out_normal;
 
 
 layout(set = 1, binding = 0) uniform U_PerMaterial {
@@ -40,7 +40,6 @@ void main() {
     out_albedo.xyz = fix_color(out_albedo.xyz);
 #endif
 
-    out_color = out_albedo;
     out_material = vec4(1, 0, 0, 1);
-    out_normal = vec4(0, 1, 0, 1);
+    out_normal = vec4(v_normal, 0);
 }

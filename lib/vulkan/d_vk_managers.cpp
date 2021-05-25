@@ -35,10 +35,13 @@ namespace dal {
         const size_t flight_frame_index,
         const std::vector<ModelRenderer*>& models,
         const std::vector<VkDescriptorSet>& desc_sets_simple,
+        const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
         const VkFramebuffer swapchain_fbuf,
-        const VkPipelineLayout pipe_layout_simple,
-        const VkPipeline graphics_pipeline,
+        const VkPipeline pipeline_gbuf,
+        const VkPipelineLayout pipe_layout_gbuf,
+        const VkPipeline pipeline_composition,
+        const VkPipelineLayout pipe_layout_composition,
         const RenderPass_Gbuf& render_pass
     ) {
         auto& cmd_buf = this->m_cmd_simple.at(flight_frame_index);
@@ -70,7 +73,7 @@ namespace dal {
 
         vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
         {
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_gbuf);
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
@@ -81,7 +84,7 @@ namespace dal {
                 vkCmdBindDescriptorSets(
                     cmd_buf,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    pipe_layout_simple,
+                    pipe_layout_gbuf,
                     2,
                     1, &model->desc_set_per_actor().get(),
                     0, nullptr
@@ -95,7 +98,7 @@ namespace dal {
                     vkCmdBindDescriptorSets(
                         cmd_buf,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipe_layout_simple,
+                        pipe_layout_gbuf,
                         0,
                         1, &desc_sets_simple.at(flight_frame_index),
                         0, nullptr
@@ -104,7 +107,7 @@ namespace dal {
                     vkCmdBindDescriptorSets(
                         cmd_buf,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipe_layout_simple,
+                        pipe_layout_gbuf,
                         1,
                         1, &unit.m_desc_set.get(),
                         0, nullptr
@@ -113,6 +116,21 @@ namespace dal {
                     vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
                 }
             }
+        }
+        {
+            vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_composition);
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipe_layout_composition,
+                0,
+                1, &desc_set_composition,
+                0, nullptr
+            );
+
+            vkCmdDraw(cmd_buf, 6, 1, 0, 0);
         }
         vkCmdEndRenderPass(cmd_buf);
 
