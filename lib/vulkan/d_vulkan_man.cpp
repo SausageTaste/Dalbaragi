@@ -29,17 +29,9 @@
 namespace {
 
     glm::mat4 make_perspective_proj_mat(const float ratio, const float fov) {
-        auto mat = glm::perspective<float>(glm::radians(fov), ratio, 0.1, 100.0);
+        auto mat = glm::perspective<float>(glm::radians(fov), ratio, 0.1f, 100.0f);
         mat[1][1] *= -1;
         return mat;
-    }
-
-    glm::mat4 make_view_mat(const glm::vec3& pos, const glm::vec2& rotations) {
-        const auto translate = glm::translate(glm::mat4{1}, -pos);
-        const auto rotation_x = glm::rotate(glm::mat4{1}, -rotations.x, glm::vec3{1, 0, 0});
-        const auto rotation_y = glm::rotate(glm::mat4{1}, -rotations.y, glm::vec3{0, 1, 0});
-
-        return rotation_x * rotation_y * translate;
     }
 
 }
