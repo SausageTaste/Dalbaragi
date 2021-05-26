@@ -427,11 +427,9 @@ namespace dal {
                 this->m_screen_resize_notified = this->on_recreate_swapchain();
                 return;
             }
-            else if (ImgAcquireResult::success == acquire_result) {
-
-            }
-            else {
-                dalAbort("Failed to acquire swapchain image");
+            else if (ImgAcquireResult::success != acquire_result) {
+                dalError("Failed to acquire swapchain image");
+                return;
             }
 
             auto& img_fences = sync_man.fence_image_in_flight(swapchain_index);
