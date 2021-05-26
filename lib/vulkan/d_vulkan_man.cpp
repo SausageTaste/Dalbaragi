@@ -348,7 +348,7 @@ namespace dal {
             dalAssert(VK_NULL_HANDLE != this->m_debug_messenger);
 #endif
 
-            std::tie(this->m_phys_device, this->m_phys_info) = dal::get_best_phys_device<true>(this->m_instance, this->m_surface);
+            std::tie(this->m_phys_device, this->m_phys_info) = dal::get_best_phys_device(this->m_instance, this->m_surface, true);
             this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
             this->m_desc_layout_man.init(this->m_logi_device.get());
 
