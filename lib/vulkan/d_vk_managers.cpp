@@ -37,7 +37,7 @@ namespace dal {
     void CmdPoolManager::record_simple(
         const size_t flight_frame_index,
         const std::vector<ModelRenderer*>& models,
-        const std::vector<VkDescriptorSet>& desc_sets_simple,
+        const VkDescriptorSet desc_set_per_frame,
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
         const VkFramebuffer swapchain_fbuf,
@@ -106,7 +106,7 @@ namespace dal {
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         pipe_layout_gbuf,
                         0,
-                        1, &desc_sets_simple.at(flight_frame_index),
+                        1, &desc_set_per_frame,
                         0, nullptr
                     );
 
@@ -204,7 +204,7 @@ namespace dal {
     void CmdPoolManager::record_alpha(
         const size_t flight_frame_index,
         const std::vector<ModelRenderer*>& models,
-        const std::vector<VkDescriptorSet>& desc_sets_simple,
+        const VkDescriptorSet desc_set_per_frame,
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
         const VkFramebuffer swapchain_fbuf,
@@ -271,7 +271,7 @@ namespace dal {
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         pipe_layout_alpha,
                         0,
-                        1, &desc_sets_simple.at(flight_frame_index),
+                        1, &desc_set_per_frame,
                         0, nullptr
                     );
 

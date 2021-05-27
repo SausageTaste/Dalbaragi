@@ -35,7 +35,7 @@ namespace {
         return output;
     }
 
-    VkDescriptorSetLayout create_layout_simple(const VkDevice logiDevice) {
+    VkDescriptorSetLayout create_layout_per_frame(const VkDevice logiDevice) {
         std::array<VkDescriptorSetLayoutBinding, 1> bindings{};
 
         bindings[0].binding = 0;
@@ -158,7 +158,7 @@ namespace dal {
 
         this->m_layout_final = ::create_layout_final(logiDevice);
 
-        this->m_layout_simple = ::create_layout_simple(logiDevice);
+        this->m_layout_per_frame = ::create_layout_per_frame(logiDevice);
         this->m_layout_per_material = ::create_layout_per_material(logiDevice);
         this->m_layout_per_actor = ::create_layout_per_actor(logiDevice);
 
@@ -171,9 +171,9 @@ namespace dal {
             this->m_layout_final = VK_NULL_HANDLE;
         }
 
-        if (VK_NULL_HANDLE != this->m_layout_simple) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_simple, nullptr);
-            this->m_layout_simple = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->m_layout_per_frame) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_frame, nullptr);
+            this->m_layout_per_frame = VK_NULL_HANDLE;
         }
 
         if (VK_NULL_HANDLE != this->m_layout_per_material) {
@@ -243,7 +243,7 @@ namespace dal {
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
 
-    void DescSet::record_simple(
+    void DescSet::record_per_frame(
         const UniformBuffer<U_PerFrame>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
@@ -502,21 +502,21 @@ namespace dal {
         }
         this->m_pool_final.clear();
 
-        this->m_descset_simple.clear();
+        this->m_descset_per_frame.clear();
         this->m_descset_composition.clear();
     }
 
-    void DescriptorManager::init_desc_sets_simple(
+    void DescriptorManager::init_desc_sets_per_frame(
         const dal::UniformBufferArray<U_PerFrame>& ubufs_simple,
         const uint32_t swapchain_count,
         const VkDescriptorSetLayout desc_layout_simple,
         const VkDevice logi_device
     ) {
-        this->m_descset_simple = this->m_pool_simple.allocate(swapchain_count, desc_layout_simple, logi_device);
+        this->m_descset_per_frame = this->m_pool_simple.allocate(swapchain_count, desc_layout_simple, logi_device);
 
-        for (size_t i = 0; i < this->m_descset_simple.size(); ++i) {
-            auto& desc_set = this->m_descset_simple.at(i);
-            desc_set.record_simple(ubufs_simple.at(i), logi_device);
+        for (size_t i = 0; i < this->m_descset_per_frame.size(); ++i) {
+            auto& desc_set = this->m_descset_per_frame.at(i);
+            desc_set.record_per_frame(ubufs_simple.at(i), logi_device);
         }
     }
 
@@ -541,16 +541,6 @@ namespace dal {
         auto& new_desc = this->m_descset_composition.emplace_back();
         new_desc = this->m_pool_composition.allocate(desc_layout_composition, logi_device);
         new_desc.record_composition(attachment_views, logi_device);
-    }
-
-    std::vector<VkDescriptorSet> DescriptorManager::desc_set_raw_simple() const {
-        std::vector<VkDescriptorSet> output(this->m_descset_simple.size());
-
-        for (size_t i = 0; i < this->m_descset_simple.size(); ++i) {
-            output[i] = this->m_descset_simple[i].get();
-        }
-
-        return output;
     }
 
 }

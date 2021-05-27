@@ -27,7 +27,7 @@ namespace dal {
         void record_simple(
             const size_t flight_frame_index,
             const std::vector<ModelRenderer*>& models,
-            const std::vector<VkDescriptorSet>& desc_sets_simple,
+            const VkDescriptorSet desc_set_per_frame,
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
             const VkFramebuffer swapchain_fbuf,
@@ -51,7 +51,7 @@ namespace dal {
         void record_alpha(
             const size_t flight_frame_index,
             const std::vector<ModelRenderer*>& models,
-            const std::vector<VkDescriptorSet>& desc_sets_simple,
+            const VkDescriptorSet desc_set_per_frame,
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
             const VkFramebuffer swapchain_fbuf,

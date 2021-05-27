@@ -121,7 +121,7 @@ namespace dal {
     private:
         VkDescriptorSetLayout m_layout_final = VK_NULL_HANDLE;
 
-        VkDescriptorSetLayout m_layout_simple = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_per_frame = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_material = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_actor = VK_NULL_HANDLE;
 
@@ -137,7 +137,7 @@ namespace dal {
         }
 
         auto& layout_simple() const {
-            return this->m_layout_simple;
+            return this->m_layout_per_frame;
         }
 
         auto layout_per_material() const {
@@ -178,7 +178,7 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void record_simple(
+        void record_per_frame(
             const UniformBuffer<U_PerFrame>& ubuf_per_frame,
             const VkDevice logi_device
         );
@@ -240,7 +240,7 @@ namespace dal {
     private:
         DescPool m_pool_simple, m_pool_composition;
         std::vector<DescPool> m_pool_final;
-        std::vector<DescSet> m_descset_simple;
+        std::vector<DescSet> m_descset_per_frame;
         std::vector<DescSet> m_descset_final;
         std::vector<DescSet> m_descset_composition;  // Per frame
 
@@ -253,7 +253,7 @@ namespace dal {
             return this->m_pool_simple;
         }
 
-        void init_desc_sets_simple(
+        void init_desc_sets_per_frame(
             const dal::UniformBufferArray<U_PerFrame>& ubufs_simple,
             const uint32_t swapchain_count,
             const VkDescriptorSetLayout desc_layout_simple,
@@ -275,11 +275,9 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        auto& desc_set_simple() {
-            return this->m_descset_simple;
+        auto& desc_set_per_frame_at(const size_t index) const {
+            return this->m_descset_per_frame.at(index).get();
         }
-
-        std::vector<VkDescriptorSet> desc_set_raw_simple() const;
 
         auto& desc_set_final_at(const size_t index) const {
             return this->m_descset_final.at(index).get();

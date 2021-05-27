@@ -467,7 +467,7 @@ namespace dal {
             this->m_cmd_man.record_simple(
                 this->m_flight_frame_index.get(),
                 this->m_models,
-                this->m_desc_man.desc_set_raw_simple(),
+                this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(0).get(),
                 this->m_attach_man.color().extent(),
                 this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
@@ -500,7 +500,7 @@ namespace dal {
             this->m_cmd_man.record_alpha(
                 this->m_flight_frame_index.get(),
                 this->m_models,
-                this->m_desc_man.desc_set_raw_simple(),
+                this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(0).get(),
                 this->m_attach_man.color().extent(),
                 this->m_fbuf_man.fbuf_alpha_at(swapchain_index.get()).get(),
@@ -672,7 +672,7 @@ namespace dal {
 
             this->m_desc_man.init(MAX_FRAMES_IN_FLIGHT, this->m_logi_device.get());
 
-            this->m_desc_man.init_desc_sets_simple(
+            this->m_desc_man.init_desc_sets_per_frame(
                 this->m_ubufs_simple,
                 MAX_FRAMES_IN_FLIGHT,
                 this->m_desc_layout_man.layout_simple(),
