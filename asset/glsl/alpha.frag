@@ -1,5 +1,7 @@
 #version 450
 
+#include "d_lighting.glsl"
+
 
 layout(location = 0) in vec2 v_uv_coord;
 layout(location = 1) in vec3 v_normal;
@@ -28,6 +30,11 @@ vec3 fix_color(const vec3 color) {
 
 void main() {
     out_color = texture(u_albedo_map, v_uv_coord);
+
+    float light_color = 0.25;
+    light_color += max(dot(TO_LIGHT_DIRECTION, v_normal), 0) * 0.75;
+
+    out_color.xyz *= light_color;
 
 #ifdef DAL_ALPHA_CLIP
     if (out_albedo.a < 0.5)

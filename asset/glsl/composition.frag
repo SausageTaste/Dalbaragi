@@ -1,5 +1,7 @@
 #version 450
 
+#include "d_lighting.glsl"
+
 
 layout (input_attachment_index = 0, binding = 0) uniform subpassInput input_depth;
 layout (input_attachment_index = 1, binding = 1) uniform subpassInput input_albedo;
@@ -8,9 +10,6 @@ layout (input_attachment_index = 3, binding = 3) uniform subpassInput input_norm
 
 
 layout (location = 0) out vec4 out_color;
-
-
-const vec3 TO_LIGHT_DIRECTION = normalize(vec3(1, 1, 1));
 
 
 void main() {
