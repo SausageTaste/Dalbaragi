@@ -94,6 +94,9 @@ namespace dal {
                 );
 
                 for (auto& unit : model->render_units()) {
+                    if (unit.m_alpha_blend)
+                        continue;
+
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
                     vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
                     vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
@@ -209,7 +212,7 @@ namespace dal {
         const VkPipelineLayout pipe_layout_alpha,
         const RenderPass_Alpha& render_pass
     ) {
-        auto& cmd_buf = this->m_cmd_simple.at(flight_frame_index);
+        auto& cmd_buf = this->m_cmd_alpha.at(flight_frame_index);
 
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -256,6 +259,9 @@ namespace dal {
                 );
 
                 for (auto& unit : model->render_units()) {
+                    if (!unit.m_alpha_blend)
+                        continue;
+
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
                     vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
                     vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);

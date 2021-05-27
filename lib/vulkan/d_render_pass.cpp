@@ -27,13 +27,13 @@ namespace {
             attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            attachments.back().finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
             attachments.emplace_back();
             attachments.back().format = format_depth;
             attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
             attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -229,21 +229,21 @@ namespace {
             attachments.emplace_back();
             attachments.back().format = format_color;
             attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
             attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments.back().initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
             attachments.emplace_back();
             attachments.back().format = format_depth;
             attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
             attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments.back().initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             attachments.back().finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         }
 
@@ -258,7 +258,7 @@ namespace {
         subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpasses[0].colorAttachmentCount = color_attachment_ref.size();
         subpasses[0].pColorAttachments = color_attachment_ref.data();
-        subpasses[0].pDepthStencilAttachment = nullptr;
+        subpasses[0].pDepthStencilAttachment = &depth_attachment_ref;
 
         // Dependencies
         // ---------------------------------------------------------------------------------

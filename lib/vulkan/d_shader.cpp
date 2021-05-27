@@ -540,7 +540,7 @@ namespace {
         const auto color_blending = ::create_info_color_blend(color_blend_attachments.data(), color_blend_attachments.size(), false);
 
         // Depth, stencil
-        const auto depth_stencil = ::create_info_depth_stencil(false);
+        const auto depth_stencil = ::create_info_depth_stencil(true);
 
         // Pipeline layout
         const std::array<VkDescriptorSetLayout, 1> desc_layouts{ desc_layout_final };

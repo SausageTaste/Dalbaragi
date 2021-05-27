@@ -516,7 +516,7 @@ namespace dal {
             std::array<VkPipelineStageFlags, 1> waitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
             std::array<VkSemaphore, 1> signalSemaphores{ sync_man.semaphore_render_finished(this->m_flight_frame_index).get() };
 
-            std::array<VkSubmitInfo, 2> submit_info{};
+            std::array<VkSubmitInfo, 3> submit_info{};
 
             submit_info[0].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             submit_info[0].waitSemaphoreCount = 0;
@@ -532,9 +532,18 @@ namespace dal {
             submit_info[1].pWaitSemaphores = waitSemaphores.data();
             submit_info[1].pWaitDstStageMask = waitStages.data();
             submit_info[1].commandBufferCount = 1;
-            submit_info[1].pCommandBuffers = &this->m_cmd_man.cmd_final_at(this->m_flight_frame_index.get());
-            submit_info[1].signalSemaphoreCount = signalSemaphores.size();
-            submit_info[1].pSignalSemaphores = signalSemaphores.data();
+            submit_info[1].pCommandBuffers = &this->m_cmd_man.cmd_alpha_at(this->m_flight_frame_index.get());
+            submit_info[1].signalSemaphoreCount = 0;
+            submit_info[1].pSignalSemaphores = nullptr;
+
+            submit_info[2].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info[2].waitSemaphoreCount = 0;
+            submit_info[2].pWaitSemaphores = nullptr;
+            submit_info[2].pWaitDstStageMask = nullptr;
+            submit_info[2].commandBufferCount = 1;
+            submit_info[2].pCommandBuffers = &this->m_cmd_man.cmd_final_at(this->m_flight_frame_index.get());
+            submit_info[2].signalSemaphoreCount = signalSemaphores.size();
+            submit_info[2].pSignalSemaphores = signalSemaphores.data();
 
             sync_man.fence_frame_in_flight(this->m_flight_frame_index).reset(this->m_logi_device.get());
 

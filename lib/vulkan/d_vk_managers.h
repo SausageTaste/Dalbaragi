@@ -68,6 +68,10 @@ namespace dal {
             return this->m_cmd_final.at(index);
         }
 
+        auto& cmd_alpha_at(const size_t index) const {
+            return this->m_cmd_alpha.at(index);
+        }
+
         auto& pool_single_time() {
             return this->m_pool_for_single_time;
         }
