@@ -446,7 +446,6 @@ namespace dal {
                 return;
             }
             else if (ImgAcquireResult::success != acquire_result) {
-                dalError("Failed to acquire swapchain image");
                 return;
             }
 
