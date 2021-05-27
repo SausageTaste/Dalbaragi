@@ -28,6 +28,7 @@ namespace dal {
         std::vector<VertexStatic> m_vertices;
         std::vector<uint32_t> m_indices;
         Material m_material;
+        glm::vec3 m_weight_center;
     };
 
     struct ModelStatic {

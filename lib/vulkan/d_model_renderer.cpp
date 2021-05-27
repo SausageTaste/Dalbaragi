@@ -79,6 +79,7 @@ namespace dal {
             auto& unit = this->m_units.emplace_back();
 
             unit.m_alpha_blend = unit_data.m_material.m_alpha_blending;
+            unit.m_weight_center = unit_data.m_weight_center;
 
             unit.m_vert_buffer.init(
                 unit_data.m_vertices,

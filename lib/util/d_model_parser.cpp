@@ -7,6 +7,22 @@
 #include "d_logger.h"
 
 
+namespace {
+
+    glm::vec3 calc_weight_center(const std::vector<dal::VertexStatic>& vertices) {
+        const auto vert_size_inv = static_cast<float>(1.0 / static_cast<double>(vertices.size()));
+        glm::vec3 sum{0};
+
+        for (const auto& x : vertices) {
+            sum += x.m_pos * vert_size_inv;
+        }
+
+        return sum;
+    }
+
+}
+
+
 namespace dal {
 
     bool parse_model_dmd(ModelStatic& output, const uint8_t* const data, const size_t data_size) {
@@ -34,6 +50,8 @@ namespace dal {
             output_render_unit.m_material.m_roughness = unit.m_material.m_roughness;
             output_render_unit.m_material.m_metallic = unit.m_material.m_metallic;
             output_render_unit.m_material.m_alpha_blending = unit.m_material.alpha_blend;
+
+            output_render_unit.m_weight_center = ::calc_weight_center(output_render_unit.m_vertices);
         }
 
         for (const auto& unit : model_data->m_units_indexed_joint) {
@@ -52,6 +70,8 @@ namespace dal {
             output_render_unit.m_material.m_roughness = unit.m_material.m_roughness;
             output_render_unit.m_material.m_metallic = unit.m_material.m_metallic;
             output_render_unit.m_material.m_alpha_blending = unit.m_material.alpha_blend;
+
+            output_render_unit.m_weight_center = ::calc_weight_center(output_render_unit.m_vertices);
         }
 
         if (!model_data->m_units_straight.empty())
