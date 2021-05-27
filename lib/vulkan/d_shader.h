@@ -53,6 +53,7 @@ namespace dal {
         ShaderPipeline m_gbuf;
         ShaderPipeline m_composition;
         ShaderPipeline m_final;
+        ShaderPipeline m_alpha;
 
     public:
         void init(
@@ -67,6 +68,7 @@ namespace dal {
             const VkDescriptorSetLayout desc_layout_composition,
             const RenderPass_Gbuf& rp_gbuf,
             const RenderPass_Final& rp_final,
+            const RenderPass_Alpha& rp_alpha,
             const VkDevice logi_device
         );
 
@@ -82,6 +84,10 @@ namespace dal {
 
         auto& final() const {
             return this->m_final;
+        }
+
+        auto& alpha() const {
+            return this->m_alpha;
         }
 
     };

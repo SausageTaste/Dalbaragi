@@ -59,6 +59,18 @@ namespace dal {
     };
 
 
+    class RenderPass_Alpha : public IRenderPass {
+
+    public:
+        void init(
+            const VkFormat format_color,
+            const VkFormat format_depth,
+            const VkDevice logi_device
+        );
+
+    };
+
+
     class RenderPassManager {
 
     public:
@@ -72,6 +84,7 @@ namespace dal {
     private:
         RenderPass_Gbuf m_rp_gbuf;
         RenderPass_Final m_rp_final;
+        RenderPass_Alpha m_rp_alpha;
 
     public:
         void init(
@@ -92,6 +105,10 @@ namespace dal {
 
         auto& rp_final() const {
             return this->m_rp_final;
+        }
+
+        auto& rp_alpha() const {
+            return this->m_rp_alpha;
         }
 
     };

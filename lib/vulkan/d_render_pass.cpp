@@ -219,6 +219,76 @@ namespace {
         return renderpass;
     }
 
+    VkRenderPass create_renderpass_alpha(
+        const VkFormat format_color,
+        const VkFormat format_depth,
+        const VkDevice logi_device
+    ) {
+        std::vector<VkAttachmentDescription> attachments{};
+        {
+            attachments.emplace_back();
+            attachments.back().format = format_color;
+            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            attachments.emplace_back();
+            attachments.back().format = format_depth;
+            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments.back().finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        }
+
+        VkAttachmentReference depth_attachment_ref{};
+        depth_attachment_ref.attachment = 1;
+        depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        std::array<VkSubpassDescription, 1> subpasses{};
+        subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpasses[0].colorAttachmentCount = 0;
+        subpasses[0].pColorAttachments = nullptr;
+        subpasses[0].pDepthStencilAttachment = &depth_attachment_ref;
+
+        // Dependencies
+        // ---------------------------------------------------------------------------------
+
+        std::array<VkSubpassDependency, 1> dependencies{};
+
+        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass = 0;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        // Create render pass
+        // ---------------------------------------------------------------------------------
+
+        VkRenderPassCreateInfo renderpass_info{};
+        renderpass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderpass_info.attachmentCount = attachments.size();
+        renderpass_info.pAttachments    = attachments.data();
+        renderpass_info.subpassCount    = subpasses.size();
+        renderpass_info.pSubpasses      = subpasses.data();
+        renderpass_info.dependencyCount = dependencies.size();
+        renderpass_info.pDependencies   = dependencies.data();
+
+        VkRenderPass renderpass = VK_NULL_HANDLE;
+        if ( VK_SUCCESS != vkCreateRenderPass(logi_device, &renderpass_info, nullptr, &renderpass) ) {
+            dalAbort("failed to create render pass");
+        }
+
+        return renderpass;
+    }
+
 }
 
 
@@ -276,6 +346,15 @@ namespace dal {
         this->m_handle = ::create_renderpass_final(swapchain_img_format, logi_device);
     }
 
+    void RenderPass_Alpha::init(
+        const VkFormat format_color,
+        const VkFormat format_depth,
+        const VkDevice logi_device
+    ) {
+        this->destroy(logi_device);
+        this->m_handle = ::create_renderpass_alpha(format_color, format_depth, logi_device);
+    }
+
 }
 
 
@@ -292,11 +371,13 @@ namespace dal {
     ) {
         this->m_rp_gbuf.init(format_color, format_depth, format_albedo, format_materials, format_normal, logi_device);
         this->m_rp_final.init(format_swapchain, logi_device);
+        this->m_rp_alpha.init(format_color, format_depth, logi_device);
     }
 
     void RenderPassManager::destroy(const VkDevice logi_device) {
         this->m_rp_gbuf.destroy(logi_device);
         this->m_rp_final.destroy(logi_device);
+        this->m_rp_alpha.destroy(logi_device);
     }
 
 }
