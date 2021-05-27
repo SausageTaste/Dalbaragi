@@ -174,4 +174,17 @@ namespace dal {
 
     };
 
+    class Fbuf_Alpha : public Framebuffer {
+
+    public:
+        void init(
+            const dal::RenderPass_Alpha& renderpass,
+            const VkExtent2D& extent,
+            const VkImageView color_view,
+            const VkImageView depth_view,
+            const VkDevice logi_device
+        );
+
+    };
+
 }

@@ -16,6 +16,7 @@ namespace dal {
         std::vector<CommandPool> m_pools;  // Per swapchain
         std::vector<VkCommandBuffer> m_cmd_simple;  // Per swapchain
         std::vector<VkCommandBuffer> m_cmd_final;  // Per swapchain
+        std::vector<VkCommandBuffer> m_cmd_alpha;  // Per swapchain
         CommandPool m_pool_for_single_time;
 
     public:
@@ -45,6 +46,18 @@ namespace dal {
             const VkPipelineLayout pipe_layout_final,
             const VkPipeline pipeline_final,
             const RenderPass_Final& renderpass
+        );
+
+        void record_alpha(
+            const size_t flight_frame_index,
+            const std::vector<ModelRenderer*>& models,
+            const std::vector<VkDescriptorSet>& desc_sets_simple,
+            const VkDescriptorSet desc_set_composition,
+            const VkExtent2D& swapchain_extent,
+            const VkFramebuffer swapchain_fbuf,
+            const VkPipeline pipeline_alpha,
+            const VkPipelineLayout pipe_layout_alpha,
+            const RenderPass_Alpha& render_pass
         );
 
         auto& cmd_simple_at(const size_t index) const {

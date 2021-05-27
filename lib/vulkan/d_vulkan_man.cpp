@@ -45,6 +45,7 @@ namespace {
     private:
         std::vector<dal::Fbuf_Simple> m_fbuf_simple;
         std::vector<dal::Fbuf_Final> m_fbuf_final;
+        std::vector<dal::Fbuf_Alpha> m_fbuf_alpha;
 
     public:
         void init(
@@ -54,6 +55,7 @@ namespace {
             const VkExtent2D& gbuf_extent,
             const dal::RenderPass_Gbuf& rp_gbuf,
             const dal::RenderPass_Final& rp_final,
+            const dal::RenderPass_Alpha& rp_alpha,
             const VkDevice logi_device
         ) {
             this->destroy(logi_device);
@@ -76,6 +78,14 @@ namespace {
                     swapchain_views.at(i).get(),
                     logi_device
                 );
+
+                this->m_fbuf_alpha.emplace_back().init(
+                    rp_alpha,
+                    gbuf_extent,
+                    attach_man.color().view().get(),
+                    attach_man.depth().view().get(),
+                    logi_device
+                );
             }
         }
 
@@ -87,6 +97,10 @@ namespace {
             for (auto& fbuf : this->m_fbuf_final)
                 fbuf.destroy(logi_device);
             this->m_fbuf_final.clear();
+
+            for (auto& fbuf : this->m_fbuf_alpha)
+                fbuf.destroy(logi_device);
+            this->m_fbuf_alpha.clear();
         }
 
         std::vector<VkFramebuffer> swapchain_fbuf() const {
@@ -101,6 +115,10 @@ namespace {
 
         auto& fbuf_final_at(const size_t index) const {
             return this->m_fbuf_final.at(index);
+        }
+
+        auto& fbuf_alpha_at(const size_t index) const {
+            return this->m_fbuf_alpha.at(index);
         }
 
     };
@@ -480,6 +498,18 @@ namespace dal {
                 this->m_renderpasses.rp_final()
             );
 
+            this->m_cmd_man.record_alpha(
+                this->m_flight_frame_index.get(),
+                this->m_models,
+                this->m_desc_man.desc_set_raw_simple(),
+                this->m_desc_man.desc_set_composition_at(0).get(),
+                this->m_attach_man.color().extent(),
+                this->m_fbuf_man.fbuf_alpha_at(swapchain_index.get()).get(),
+                this->m_pipelines.alpha().pipeline(),
+                this->m_pipelines.alpha().layout(),
+                this->m_renderpasses.rp_alpha()
+            );
+
             //-----------------------------------------------------------------------------------------------------
 
             std::array<VkSemaphore, 1> waitSemaphores{ sync_man.semaphore_img_available(this->m_flight_frame_index).get() };
@@ -595,6 +625,7 @@ namespace dal {
                 this->m_attach_man.color().extent(),
                 this->m_renderpasses.rp_gbuf(),
                 this->m_renderpasses.rp_final(),
+                this->m_renderpasses.rp_alpha(),
                 this->m_logi_device.get()
             );
 

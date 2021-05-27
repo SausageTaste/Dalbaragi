@@ -583,15 +583,15 @@ namespace {
         const VkDescriptorSetLayout desc_layout_per_actor,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/simple_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = asset_mgr.open("_asset/spv/alpha_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
-            dalAbort("Vertex shader 'simple_v.spv' not found");
+            dalAbort("Vertex shader 'alpha_v.spv' not found");
         }
         const auto frag_src = need_gamma_correction ?
-            asset_mgr.open("_asset/spv/simple_gamma_f.spv")->read_stl<std::vector<char>>() :
-            asset_mgr.open("_asset/spv/simple_f.spv")->read_stl<std::vector<char>>();
+            asset_mgr.open("_asset/spv/alpha_gamma_f.spv")->read_stl<std::vector<char>>() :
+            asset_mgr.open("_asset/spv/alpha_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
-            dalAbort("Fragment shader 'simple_f.spv' not found");
+            dalAbort("Fragment shader 'alpha_f.spv' not found");
         }
 
         // Shaders
@@ -618,7 +618,7 @@ namespace {
         const auto multisampling = ::create_info_multisampling();
 
         // Color blending
-        const auto color_blend_attachments = ::create_info_color_blend_attachment<3, true>();
+        const auto color_blend_attachments = ::create_info_color_blend_attachment<1, true>();
         const auto color_blending = ::create_info_color_blend(color_blend_attachments.data(), color_blend_attachments.size(), false);
 
         // Depth, stencil

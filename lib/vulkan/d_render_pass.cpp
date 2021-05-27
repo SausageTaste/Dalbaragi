@@ -251,11 +251,14 @@ namespace {
         depth_attachment_ref.attachment = 1;
         depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+        std::array<VkAttachmentReference, 1> color_attachment_ref{};
+        color_attachment_ref[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
         std::array<VkSubpassDescription, 1> subpasses{};
         subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpasses[0].colorAttachmentCount = 0;
-        subpasses[0].pColorAttachments = nullptr;
-        subpasses[0].pDepthStencilAttachment = &depth_attachment_ref;
+        subpasses[0].colorAttachmentCount = color_attachment_ref.size();
+        subpasses[0].pColorAttachments = color_attachment_ref.data();
+        subpasses[0].pDepthStencilAttachment = nullptr;
 
         // Dependencies
         // ---------------------------------------------------------------------------------
