@@ -755,15 +755,22 @@ namespace dal {
         }
     }
 
+    bool VulkanState::is_ready() const {
+        return nullptr != this->m_pimpl;
+    }
+
     void VulkanState::update(const EulerCamera& camera) {
+        dalAssert(this->is_ready());
         this->m_pimpl->update(camera);
     }
 
     void VulkanState::wait_device_idle() const {
+        dalAssert(this->is_ready());
         this->m_pimpl->wait_device_idle();
     }
 
     void VulkanState::on_screen_resize(const unsigned width, const unsigned height) {
+        dalAssert(this->is_ready());
         this->m_pimpl->on_screen_resize(width, height);
     }
 

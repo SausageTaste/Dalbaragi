@@ -58,7 +58,7 @@ namespace {
     void init(android_app* const state) {
         g_filesys.asset_mgr().set_android_asset_manager(state->activity->assetManager);
 
-        const std::vector<const char*> instanceExt{
+        const std::vector<std::string> instanceExt{
             "VK_KHR_surface",
             "VK_KHR_android_surface",
         };
@@ -84,8 +84,6 @@ namespace {
 
         dal::EngineCreateInfo engine_info;
         engine_info.m_window_title = "Dalbrargi Android";
-        engine_info.m_init_width = ANativeWindow_getWidth(state->window);
-        engine_info.m_init_height = ANativeWindow_getHeight(state->window);
         engine_info.m_filesystem = &g_filesys;
         engine_info.m_extensions = instanceExt;
         engine_info.m_surface_create_func = surface_creator;
@@ -394,10 +392,17 @@ extern "C" {
     }
 
     void handle_cmd(android_app* const state, const int32_t cmd) {
+        dalAssert(nullptr != state->userData);
+        auto& engine = *reinterpret_cast<dal::Engine*>(state->userData);
+
         switch (cmd) {
             case APP_CMD_INIT_WINDOW:
                 dalInfo("handle cmd: init window");
-                ::init(state);
+                engine.init_vulkan(ANativeWindow_getWidth(state->window), ANativeWindow_getHeight(state->window));
+                break;
+            case APP_CMD_TERM_WINDOW:
+                dalInfo("handle cmd: window terminated");
+                engine.destory_vulkan();
                 break;
             case APP_CMD_CONTENT_RECT_CHANGED:
                 dalInfo("handle cmd: content rect changed");
@@ -436,9 +441,6 @@ extern "C" {
             case APP_CMD_INPUT_CHANGED:
                 dalInfo("handle cmd: input changed");
                 break;
-            case APP_CMD_TERM_WINDOW:
-                dalInfo("handle cmd: window terminated");
-                break;
             case APP_CMD_SAVE_STATE:
                 dalInfo("handle cmd: save state");
                 break;
@@ -452,6 +454,8 @@ extern "C" {
         pApp->onAppCmd = handle_cmd;
         pApp->onInputEvent = handle_input;
         dal::LoggerSingleton::inst().emplace_channel<LogChannel_Logcat>();
+
+        ::init(pApp);
 
         int events;
         android_poll_source *pSource;
