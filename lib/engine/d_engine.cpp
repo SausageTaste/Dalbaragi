@@ -132,12 +132,12 @@ namespace {
 
             const auto circle_radius = std::min(w, h) / 6.f;
             const auto a = (this->m_last_pos - this->m_down_pos) / circle_radius;
-            const auto len_spr = glm::dot(a, a);
+            const float len_spr = glm::dot(a, a);
             if (0.001f > len_spr) {
                 return glm::vec3{0};
             }
             else if (1.f < len_spr) {
-                const auto b = a / sqrt(len_spr);
+                const auto b = a / static_cast<float>(sqrt(len_spr));
                 return glm::vec3{b.x, 0, b.y};
             }
             else {
