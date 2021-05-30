@@ -304,6 +304,7 @@ namespace dal {
         CmdPoolManager m_cmd_man;
         DescSetLayoutManager m_desc_layout_man;
         UniformBufferArray<U_PerFrame> m_ubufs_simple;
+        UniformBufferArray<U_GlobalLight> m_ubufs_glights;
         UniformBuffer<U_PerFrame_InFinal> m_ubuf_final;
         DescriptorManager m_desc_man;
 
@@ -400,6 +401,7 @@ namespace dal {
             this->m_tex_man.destroy(this->m_logi_device.get());
             this->m_desc_man.destroy(this->m_logi_device.get());
             this->m_ubuf_final.destroy(this->m_logi_device.get());
+            this->m_ubufs_glights.destroy(this->m_logi_device.get());
             this->m_ubufs_simple.destroy(this->m_logi_device.get());
             this->m_cmd_man.destroy(this->m_logi_device.get());
             this->m_pipelines.destroy(this->m_logi_device.get());
@@ -463,6 +465,13 @@ namespace dal {
             ubuf_data_per_frame.m_view = camera.make_view_mat();
             ubuf_data_per_frame.m_proj = ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
             this->m_ubufs_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
+
+            U_GlobalLight ubuf_data_glight{};
+            const auto light_direc = glm::vec3{sin(dal::get_cur_sec()), 1, cos(dal::get_cur_sec())};
+            ubuf_data_glight.m_dlight_count = 1;
+            ubuf_data_glight.m_dlight_direc[0] = glm::vec4{glm::normalize(light_direc), 0};
+            ubuf_data_glight.m_dlight_color[0] = glm::vec4{1, 1, 1, 1};
+            this->m_ubufs_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_glight, this->m_logi_device.get());
 
             this->m_cmd_man.record_simple(
                 this->m_flight_frame_index.get(),
@@ -665,6 +674,12 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
+            this->m_ubufs_glights.init(
+                MAX_FRAMES_IN_FLIGHT,
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
             this->m_ubuf_final.init(this->m_phys_device.get(), this->m_logi_device.get());
             U_PerFrame_InFinal data;
             data.m_rotation = this->m_swapchain.pre_ratation_mat();
@@ -679,16 +694,19 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
-            this->m_desc_man.add_desc_set_composition(
-                {
-                    this->m_attach_man.depth().view().get(),
-                    this->m_attach_man.albedo().view().get(),
-                    this->m_attach_man.materials().view().get(),
-                    this->m_attach_man.normal().view().get(),
-                },
-                this->m_desc_layout_man.layout_composition(),
-                this->m_logi_device.get()
-            );
+            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+                this->m_desc_man.add_desc_set_composition(
+                    {
+                        this->m_attach_man.depth().view().get(),
+                        this->m_attach_man.albedo().view().get(),
+                        this->m_attach_man.materials().view().get(),
+                        this->m_attach_man.normal().view().get(),
+                    },
+                    this->m_ubufs_glights.at(i),
+                    this->m_desc_layout_man.layout_composition(),
+                    this->m_logi_device.get()
+                );
+            }
 
             return true;
         }

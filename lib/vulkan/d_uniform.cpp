@@ -134,6 +134,13 @@ namespace {
         bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+        // Ubuf U_GlobalLight
+        bindings.emplace_back();
+        bindings.back().binding = bindings.size() - 1;
+        bindings.back().descriptorCount = 1;
+        bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = bindings.size();
@@ -344,6 +351,7 @@ namespace dal {
 
     void DescSet::record_composition(
         const std::vector<VkImageView>& attachment_views,
+        const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const VkDevice logi_device
     ) {
         std::vector<VkDescriptorImageInfo> attachments_info(attachment_views.size());
@@ -353,6 +361,11 @@ namespace dal {
             x.imageView = attachment_views.at(i);
             x.sampler = VK_NULL_HANDLE;
         }
+
+        VkDescriptorBufferInfo ubuf_info_global_light{};
+        ubuf_info_global_light.buffer = ubuf_global_light.buffer();
+        ubuf_info_global_light.offset = 0;
+        ubuf_info_global_light.range = ubuf_global_light.data_size();
 
         //--------------------------------------------------------------------
 
@@ -369,6 +382,19 @@ namespace dal {
             x.descriptorCount = 1;
             x.pBufferInfo = nullptr;
             x.pImageInfo = &attachments_info[i];
+            x.pTexelBufferView = nullptr;
+        }
+
+        {
+            auto& x = desc_writes.emplace_back();
+            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            x.dstSet = this->m_handle;
+            x.dstBinding = desc_writes.size() - 1;
+            x.dstArrayElement = 0;
+            x.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            x.descriptorCount = 1;
+            x.pBufferInfo = &ubuf_info_global_light;
+            x.pImageInfo = nullptr;
             x.pTexelBufferView = nullptr;
         }
 
@@ -535,12 +561,13 @@ namespace dal {
 
     void DescriptorManager::add_desc_set_composition(
         const std::vector<VkImageView>& attachment_views,
+        const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const VkDescriptorSetLayout desc_layout_composition,
         const VkDevice logi_device
     ) {
         auto& new_desc = this->m_descset_composition.emplace_back();
         new_desc = this->m_pool_composition.allocate(desc_layout_composition, logi_device);
-        new_desc.record_composition(attachment_views, logi_device);
+        new_desc.record_composition(attachment_views, ubuf_global_light, logi_device);
     }
 
 }

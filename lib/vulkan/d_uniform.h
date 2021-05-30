@@ -29,6 +29,12 @@ namespace dal {
         glm::mat4 m_model{1};
     };
 
+    struct U_GlobalLight {
+        glm::vec4 m_dlight_direc[2];
+        glm::vec4 m_dlight_color[2];
+        uint32_t m_dlight_count;
+    };
+
 
     template <typename _DataStruct>
     class UniformBuffer {
@@ -197,6 +203,7 @@ namespace dal {
 
         void record_composition(
             const std::vector<VkImageView>& attachment_views,
+            const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const VkDevice logi_device
         );
 
@@ -271,6 +278,7 @@ namespace dal {
 
         void add_desc_set_composition(
             const std::vector<VkImageView>& attachment_views,
+            const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const VkDescriptorSetLayout desc_layout_composition,
             const VkDevice logi_device
         );
