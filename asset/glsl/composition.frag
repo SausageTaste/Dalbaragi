@@ -16,7 +16,14 @@ layout (input_attachment_index = 3, binding = 3) uniform subpassInput input_norm
 layout(set = 0, binding = 4) uniform U_GlobalLight {
     vec4 m_dlight_direc[2];
     vec4 m_dlight_color[2];
+
+    vec4 m_plight_pos_n_max_dist[3];
+    vec4 m_plight_color[3];
+
+    vec4 m_ambient_light;
+
     uint m_dlight_count;
+    uint m_plight_count;
 } u_global_light;
 
 layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
@@ -44,10 +51,16 @@ void main() {
     const vec2 material = subpassLoad(input_material).xy;
     const vec3 world_pos = calc_world_pos(depth);
 
-    vec3 light_color = vec3(0.25);
+    vec3 light_color = u_global_light.m_ambient_light.xyz;
 
     for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
         light_color += u_global_light.m_dlight_color[i].xyz * max(dot(u_global_light.m_dlight_direc[i].xyz, normal), 0);
+    }
+
+    for (uint i = 0; i < u_global_light.m_plight_count; ++i) {
+        const float light_dist = distance(world_pos, u_global_light.m_plight_pos_n_max_dist[i].xyz);
+        const float light_dist_inv = 1.0 / light_dist;
+        light_color += u_global_light.m_plight_color[i].xyz * (light_dist_inv * light_dist_inv);
     }
 
     out_color = vec4(albedo * light_color, 1);
