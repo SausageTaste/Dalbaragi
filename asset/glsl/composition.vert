@@ -11,6 +11,10 @@ const vec2 positions[6] = vec2[](
 );
 
 
+layout (location = 0) out vec2 v_device_coord;
+
+
 void main() {
-    gl_Position = vec4(positions[gl_VertexIndex], 0, 1);
+    v_device_coord = positions[gl_VertexIndex];
+    gl_Position = vec4(v_device_coord, 0, 1);
 }

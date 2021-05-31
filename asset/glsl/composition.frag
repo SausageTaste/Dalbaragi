@@ -3,6 +3,8 @@
 #include "d_lighting.glsl"
 
 
+layout(location = 0) in vec2 v_device_coord;
+
 layout (location = 0) out vec4 out_color;
 
 
@@ -23,11 +25,24 @@ layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
 } u_per_frame_composition;
 
 
+vec3 calc_world_pos(const float z) {
+    const vec4 clipSpacePosition = vec4(v_device_coord, z, 1);
+
+    vec4 viewSpacePosition = u_per_frame_composition.m_proj_inv * clipSpacePosition;
+    viewSpacePosition /= viewSpacePosition.w;
+
+    const vec4 worldSpacePosition = u_per_frame_composition.m_view_inv * viewSpacePosition;
+
+    return worldSpacePosition.xyz;
+}
+
+
 void main() {
     const float depth = subpassLoad(input_depth).x;
     const vec3 normal = subpassLoad(input_normal).xyz;
     const vec3 albedo = subpassLoad(input_albedo).xyz;
     const vec2 material = subpassLoad(input_material).xy;
+    const vec3 world_pos = calc_world_pos(depth);
 
     vec3 light_color = vec3(0.25);
 
