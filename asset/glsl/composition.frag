@@ -29,6 +29,7 @@ layout(set = 0, binding = 4) uniform U_GlobalLight {
 layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
     mat4 m_view_inv;
     mat4 m_proj_inv;
+    vec4 m_view_pos;
 } u_per_frame_composition;
 
 
@@ -49,19 +50,42 @@ void main() {
     const vec3 normal = subpassLoad(input_normal).xyz;
     const vec3 albedo = subpassLoad(input_albedo).xyz;
     const vec2 material = subpassLoad(input_material).xy;
-    const vec3 world_pos = calc_world_pos(depth);
 
-    vec3 light_color = u_global_light.m_ambient_light.xyz;
+    const vec3 world_pos = calc_world_pos(depth);
+    const vec3 view_direc = normalize(u_per_frame_composition.m_view_pos.xyz - world_pos);
+    const vec3 F0 = mix(vec3(0.04), albedo, material.y);
+
+    vec3 light = albedo * u_global_light.m_ambient_light.xyz;
 
     for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
-        light_color += u_global_light.m_dlight_color[i].xyz * max(dot(u_global_light.m_dlight_direc[i].xyz, normal), 0);
+        light += calc_pbr_illumination(
+            material.x,
+            material.y,
+            albedo,
+            normal,
+            F0,
+            view_direc,
+            u_global_light.m_dlight_direc[i].xyz,
+            1,
+            u_global_light.m_dlight_color[i].xyz
+        );
     }
 
     for (uint i = 0; i < u_global_light.m_plight_count; ++i) {
-        const float light_dist = distance(world_pos, u_global_light.m_plight_pos_n_max_dist[i].xyz);
-        const float light_dist_inv = 1.0 / light_dist;
-        light_color += u_global_light.m_plight_color[i].xyz * (light_dist_inv * light_dist_inv);
+        const vec3 frag_to_light_direc = normalize(u_global_light.m_plight_pos_n_max_dist[i].xyz - world_pos);
+
+        light += calc_pbr_illumination(
+            material.x,
+            material.y,
+            albedo,
+            normal,
+            F0,
+            view_direc,
+            frag_to_light_direc,
+            1,
+            u_global_light.m_plight_color[i].xyz
+        );
     }
 
-    out_color = vec4(albedo * light_color, 1);
+    out_color = vec4(light, 1);
 }

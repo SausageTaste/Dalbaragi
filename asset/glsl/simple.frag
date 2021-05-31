@@ -40,6 +40,6 @@ void main() {
     out_albedo.xyz = fix_color(out_albedo.xyz);
 #endif
 
-    out_material = vec4(1, 0, 0, 1);
+    out_material = vec4(u_per_material.m_roughness, u_per_material.m_metallic, 0, 1);
     out_normal = vec4(v_normal, 0);
 }

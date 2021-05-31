@@ -467,11 +467,13 @@ namespace dal {
                 U_PerFrame ubuf_data_per_frame{};
                 ubuf_data_per_frame.m_view = camera.make_view_mat();
                 ubuf_data_per_frame.m_proj = ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
+                ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.m_pos, 1 };
                 this->m_ubufs_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
                 U_PerFrame_Composition ubuf_data_composition{};
                 ubuf_data_composition.m_proj_inv = glm::inverse(ubuf_data_per_frame.m_proj);
                 ubuf_data_composition.m_view_inv = glm::inverse(ubuf_data_per_frame.m_view);
+                ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
                 this->m_ubufs_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
             }
 

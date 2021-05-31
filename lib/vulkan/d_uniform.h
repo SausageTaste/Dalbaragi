@@ -18,10 +18,12 @@ namespace dal {
 
     struct U_PerFrame_Composition {
         glm::mat4 m_view_inv{1}, m_proj_inv{1};
+        glm::vec4 m_view_pos{};
     };
 
     struct U_PerFrame {
         glm::mat4 m_view{1}, m_proj{1};
+        glm::vec4 m_view_pos{};
     };
 
     struct U_PerMaterial {
