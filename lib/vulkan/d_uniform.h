@@ -16,6 +16,10 @@ namespace dal {
         glm::mat4 m_rotation;
     };
 
+    struct U_PerFrame_Composition {
+        glm::mat4 m_view_inv{1}, m_proj_inv{1};
+    };
+
     struct U_PerFrame {
         glm::mat4 m_view{1}, m_proj{1};
     };
@@ -204,6 +208,7 @@ namespace dal {
         void record_composition(
             const std::vector<VkImageView>& attachment_views,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+            const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
             const VkDevice logi_device
         );
 
@@ -279,6 +284,7 @@ namespace dal {
         void add_desc_set_composition(
             const std::vector<VkImageView>& attachment_views,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+            const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
             const VkDescriptorSetLayout desc_layout_composition,
             const VkDevice logi_device
         );

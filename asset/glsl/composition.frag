@@ -17,6 +17,11 @@ layout(set = 0, binding = 4) uniform U_GlobalLight {
     uint m_dlight_count;
 } u_global_light;
 
+layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
+    mat4 m_view_inv;
+    mat4 m_proj_inv;
+} u_per_frame_composition;
+
 
 void main() {
     const float depth = subpassLoad(input_depth).x;
