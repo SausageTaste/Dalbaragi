@@ -442,7 +442,7 @@ namespace dal {
 
             auto& sync_man = this->m_swapchain.sync_man();
 
-            sync_man.fence_frame_in_flight(this->m_flight_frame_index).wait(this->m_logi_device.get());
+            sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index).wait(this->m_logi_device.get());
             const auto [acquire_result, swapchain_index] = this->m_swapchain.acquire_next_img_index(this->m_flight_frame_index, this->m_logi_device.get());
 
             if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
@@ -458,7 +458,7 @@ namespace dal {
                 if (nullptr != img_fences) {
                     img_fences->wait(this->m_logi_device.get());
                 }
-                img_fences = &sync_man.fence_frame_in_flight(this->m_flight_frame_index);
+                img_fences = &sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
             }
 
             //-----------------------------------------------------------------------------------------------------
@@ -553,8 +553,8 @@ namespace dal {
 
             {
                 std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.semaph_surface_img_available(this->m_flight_frame_index).get() };
-                std::array<VkSemaphore, 1> signal_semaphores{ sync_man.semaph_cmd_done_gbuf(this->m_flight_frame_index).get() };
+                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_img_available.at(this->m_flight_frame_index).get() };
+                std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
 
                 VkSubmitInfo submit_info{};
                 submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -578,8 +578,8 @@ namespace dal {
 
             {
                 std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.semaph_cmd_done_gbuf(this->m_flight_frame_index).get() };
-                std::array<VkSemaphore, 1> signal_semaphores{ sync_man.semaph_cmd_done_alpha(this->m_flight_frame_index).get() };
+                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
+                std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
 
                 VkSubmitInfo submit_info{};
                 submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -603,8 +603,8 @@ namespace dal {
 
             {
                 std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.semaph_cmd_done_alpha(this->m_flight_frame_index).get() };
-                std::array<VkSemaphore, 1> signal_semaphores{ sync_man.semaph_cmd_done_final(this->m_flight_frame_index).get() };
+                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
+                std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_final.at(this->m_flight_frame_index).get() };
 
                 VkSubmitInfo submit_info{};
                 submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -616,20 +616,20 @@ namespace dal {
                 submit_info.signalSemaphoreCount = signal_semaphores.size();
                 submit_info.pSignalSemaphores = signal_semaphores.data();
 
-                sync_man.fence_frame_in_flight(this->m_flight_frame_index).reset(this->m_logi_device.get());
+                sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index).reset(this->m_logi_device.get());
 
                 const auto submit_result = vkQueueSubmit(
                     this->m_logi_device.queue_graphics(),
                     1,
                     &submit_info,
-                    sync_man.fence_frame_in_flight(this->m_flight_frame_index).get()
+                    sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index).get()
                 );
 
                 dalAssert(VK_SUCCESS == submit_result);
             }
 
             {
-                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.semaph_cmd_done_final(this->m_flight_frame_index).get() };
+                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_final.at(this->m_flight_frame_index).get() };
                 std::array<VkSwapchainKHR, 1> swapchains{ this->m_swapchain.swapchain() };
 
                 VkPresentInfoKHR presentInfo{};

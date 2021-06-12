@@ -176,14 +176,16 @@ namespace dal {
 
         };
 
+    public:
+        FenceSemaphList<Semaphore, FrameInFlightIndex> m_semaph_img_available;
+
+        FenceSemaphList<Semaphore, FrameInFlightIndex> m_semaph_cmd_done_gbuf;
+        FenceSemaphList<Semaphore, FrameInFlightIndex> m_semaph_cmd_done_final;
+        FenceSemaphList<Semaphore, FrameInFlightIndex> m_semaph_cmd_done_alpha;
+
+        FenceSemaphList<Fence, FrameInFlightIndex> m_fence_frame_in_flight;
+
     private:
-        FenceSemaphList<Semaphore, FrameInFlightIndex> m_img_available;
-
-        FenceSemaphList<Semaphore, FrameInFlightIndex> m_cmd_done_gbuf;
-        FenceSemaphList<Semaphore, FrameInFlightIndex> m_cmd_done_final;
-        FenceSemaphList<Semaphore, FrameInFlightIndex> m_cmd_done_alpha;
-
-        FenceSemaphList<Fence, FrameInFlightIndex> m_frame_in_flight_fences;
         std::vector<const Fence*> m_img_in_flight_fences;
 
     public:
@@ -198,26 +200,6 @@ namespace dal {
         void init(const uint32_t swapchain_count, const VkDevice logi_device);
 
         void destroy(const VkDevice logi_device);
-
-        auto& semaph_surface_img_available(const FrameInFlightIndex& index) const {
-            return this->m_img_available.at(index);
-        }
-
-        auto& semaph_cmd_done_gbuf(const FrameInFlightIndex& index) const {
-            return this->m_cmd_done_gbuf.at(index);
-        }
-
-        auto& semaph_cmd_done_final(const FrameInFlightIndex& index) const {
-            return this->m_cmd_done_final.at(index);
-        }
-
-        auto& semaph_cmd_done_alpha(const FrameInFlightIndex& index) const {
-            return this->m_cmd_done_alpha.at(index);
-        }
-
-        auto& fence_frame_in_flight(const FrameInFlightIndex& index) const {
-            return this->m_frame_in_flight_fences.at(index);
-        }
 
         auto& fence_image_in_flight(const SwapchainIndex& index) {
             return this->m_img_in_flight_fences.at(index.get());
