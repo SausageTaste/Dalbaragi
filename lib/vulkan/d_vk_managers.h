@@ -51,6 +51,7 @@ namespace dal {
             const size_t flight_frame_index,
             const std::vector<ModelRenderer*>& models,
             const VkDescriptorSet desc_set_per_frame,
+            const VkDescriptorSet desc_set_per_world,
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
             const VkFramebuffer swapchain_fbuf,

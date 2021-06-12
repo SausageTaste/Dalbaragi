@@ -203,6 +203,7 @@ namespace dal {
         const size_t flight_frame_index,
         const std::vector<ModelRenderer*>& models,
         const VkDescriptorSet desc_set_per_frame,
+        const VkDescriptorSet desc_set_per_world,
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
         const VkFramebuffer swapchain_fbuf,
@@ -270,6 +271,15 @@ namespace dal {
                         pipe_layout_alpha,
                         0,
                         1, &desc_set_per_frame,
+                        0, nullptr
+                    );
+
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipe_layout_alpha,
+                        3,
+                        1, &desc_set_per_world,
                         0, nullptr
                     );
 

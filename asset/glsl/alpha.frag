@@ -16,6 +16,19 @@ layout(set = 1, binding = 0) uniform U_PerMaterial {
 
 layout(set = 1, binding = 1) uniform sampler2D u_albedo_map;
 
+layout(set=3, binding=0) uniform U_GlobalLight {
+    vec4 m_dlight_direc[2];
+    vec4 m_dlight_color[2];
+
+    vec4 m_plight_pos_n_max_dist[3];
+    vec4 m_plight_color[3];
+
+    vec4 m_ambient_light;
+
+    uint m_dlight_count;
+    uint m_plight_count;
+} u_global_light;
+
 
 vec3 fix_color(const vec3 color) {
     const float GAMMA = 2.2;

@@ -65,6 +65,7 @@ namespace dal {
             const VkDescriptorSetLayout desc_layout_simple,
             const VkDescriptorSetLayout desc_layout_per_material,
             const VkDescriptorSetLayout desc_layout_per_actor,
+            const VkDescriptorSetLayout desc_layout_per_world,
             const VkDescriptorSetLayout desc_layout_composition,
             const RenderPass_Gbuf& rp_gbuf,
             const RenderPass_Final& rp_final,

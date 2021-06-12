@@ -556,6 +556,7 @@ namespace dal {
                     this->m_flight_frame_index.get(),
                     this->m_models,
                     this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
+                    this->m_desc_man.desc_set_per_world(this->m_flight_frame_index.get()),
                     this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                     this->m_attach_man.color().extent(),
                     this->m_fbuf_man.fbuf_alpha_at(swapchain_index.get()).get(),
@@ -723,6 +724,7 @@ namespace dal {
                 this->m_desc_layout_man.layout_simple(),
                 this->m_desc_layout_man.layout_per_material(),
                 this->m_desc_layout_man.layout_per_actor(),
+                this->m_desc_layout_man.layout_per_world(),
                 this->m_desc_layout_man.layout_composition(),
                 this->m_renderpasses.rp_gbuf(),
                 this->m_renderpasses.rp_final(),
@@ -765,6 +767,13 @@ namespace dal {
                 this->m_ubufs_simple,
                 MAX_FRAMES_IN_FLIGHT,
                 this->m_desc_layout_man.layout_simple(),
+                this->m_logi_device.get()
+            );
+
+            this->m_desc_man.init_desc_sets_per_world(
+                this->m_ubufs_glights,
+                MAX_FRAMES_IN_FLIGHT,
+                this->m_desc_layout_man.layout_per_world(),
                 this->m_logi_device.get()
             );
 

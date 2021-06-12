@@ -143,6 +143,7 @@ namespace dal {
         VkDescriptorSetLayout m_layout_per_frame = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_material = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_actor = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_per_world = VK_NULL_HANDLE;
 
         VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
 
@@ -165,6 +166,10 @@ namespace dal {
 
         auto layout_per_actor() const {
             return this->m_layout_per_actor;
+        }
+
+        auto layout_per_world() const {
+            return this->m_layout_per_world;
         }
 
         auto layout_composition() const {
@@ -211,6 +216,11 @@ namespace dal {
 
         void record_per_actor(
             const UniformBuffer<U_PerActor>& ubuf_per_actor,
+            const VkDevice logi_device
+        );
+
+        void record_per_world(
+            const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const VkDevice logi_device
         );
 
@@ -263,6 +273,7 @@ namespace dal {
         std::vector<DescPool> m_pool_final;
         std::vector<DescSet> m_descset_per_frame;
         std::vector<DescSet> m_descset_final;
+        std::vector<DescSet> m_descset_per_world;
         std::vector<DescSet> m_descset_composition;  // Per frame
 
     public:
@@ -278,6 +289,13 @@ namespace dal {
             const dal::UniformBufferArray<U_PerFrame>& ubufs_simple,
             const uint32_t swapchain_count,
             const VkDescriptorSetLayout desc_layout_simple,
+            const VkDevice logi_device
+        );
+
+        void init_desc_sets_per_world(
+            const UniformBufferArray<U_GlobalLight>& ubuf_global_light,
+            const uint32_t swapchain_count,
+            const VkDescriptorSetLayout desc_layout_world,
             const VkDevice logi_device
         );
 
@@ -300,6 +318,10 @@ namespace dal {
 
         auto& desc_set_per_frame_at(const size_t index) const {
             return this->m_descset_per_frame.at(index).get();
+        }
+
+        auto& desc_set_per_world(const size_t index) const {
+            return this->m_descset_per_world.at(index).get();
         }
 
         auto& desc_set_final_at(const size_t index) const {

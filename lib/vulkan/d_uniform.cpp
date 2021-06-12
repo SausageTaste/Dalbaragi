@@ -107,6 +107,31 @@ namespace {
         return output;
     }
 
+    VkDescriptorSetLayout create_layout_per_world(const VkDevice logi_device) {
+        std::vector<VkDescriptorSetLayoutBinding> bindings{};
+
+        // U_GlobalLight
+        bindings.emplace_back();
+        bindings.back().binding = bindings.size() - 1;
+        bindings.back().descriptorCount = 1;
+        bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        //----------------------------------------------------------------------------------
+
+        VkDescriptorSetLayoutCreateInfo layout_info{};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.bindingCount = bindings.size();
+        layout_info.pBindings = bindings.data();
+
+        VkDescriptorSetLayout result = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &result)) {
+            dalAbort("failed to create descriptor set layout!");
+        }
+
+        return result;
+    }
+
     VkDescriptorSetLayout create_layout_composition(const VkDevice logiDevice) {
         std::vector<VkDescriptorSetLayoutBinding> bindings{};
 
@@ -175,6 +200,7 @@ namespace dal {
         this->m_layout_per_frame = ::create_layout_per_frame(logiDevice);
         this->m_layout_per_material = ::create_layout_per_material(logiDevice);
         this->m_layout_per_actor = ::create_layout_per_actor(logiDevice);
+        this->m_layout_per_world = ::create_layout_per_world(logiDevice);
 
         this->m_layout_composition = ::create_layout_composition(logiDevice);
     }
@@ -198,6 +224,11 @@ namespace dal {
         if (VK_NULL_HANDLE != this->m_layout_per_actor) {
             vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_actor, nullptr);
             this->m_layout_per_actor = VK_NULL_HANDLE;
+        }
+
+        if (VK_NULL_HANDLE != this->m_layout_per_world) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_world, nullptr);
+            this->m_layout_per_world = VK_NULL_HANDLE;
         }
 
         if (VK_NULL_HANDLE != this->m_layout_composition) {
@@ -350,6 +381,41 @@ namespace dal {
         desc_writes[0].pBufferInfo = &buffer_info;
         desc_writes[0].pImageInfo = nullptr;
         desc_writes[0].pTexelBufferView = nullptr;
+
+        //--------------------------------------------------------------------
+
+        vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
+    }
+
+    void DescSet::record_per_world(
+        const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+        const VkDevice logi_device
+    ) {
+
+        VkDescriptorBufferInfo ubuf_info_global_light{};
+        ubuf_info_global_light.buffer = ubuf_global_light.buffer();
+        ubuf_info_global_light.offset = 0;
+        ubuf_info_global_light.range = ubuf_global_light.data_size();
+
+        //--------------------------------------------------------------------
+
+        std::vector<VkWriteDescriptorSet> desc_writes{};
+
+        // U_GlobalLight
+        {
+            auto& x = desc_writes.emplace_back();
+            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            x.dstSet = this->m_handle;
+            x.dstBinding = desc_writes.size() - 1;
+            x.dstArrayElement = 0;
+            x.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            x.descriptorCount = 1;
+            x.pBufferInfo = &ubuf_info_global_light;
+            x.pImageInfo = nullptr;
+            x.pTexelBufferView = nullptr;
+
+            dalAssert(0 == x.dstBinding);
+        }
 
         //--------------------------------------------------------------------
 
@@ -569,6 +635,20 @@ namespace dal {
         for (size_t i = 0; i < this->m_descset_per_frame.size(); ++i) {
             auto& desc_set = this->m_descset_per_frame.at(i);
             desc_set.record_per_frame(ubufs_simple.at(i), logi_device);
+        }
+    }
+
+    void DescriptorManager::init_desc_sets_per_world(
+        const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
+        const uint32_t swapchain_count,
+        const VkDescriptorSetLayout desc_layout_world,
+        const VkDevice logi_device
+    ) {
+        this->m_descset_per_world = this->m_pool_simple.allocate(swapchain_count, desc_layout_world, logi_device);
+
+        for (size_t i = 0; i < this->m_descset_per_world.size(); ++i) {
+            auto& desc_set = this->m_descset_per_world.at(i);
+            desc_set.record_per_world(ubufs_global_light.at(i), logi_device);
         }
     }
 
