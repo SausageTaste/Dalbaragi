@@ -512,9 +512,6 @@ namespace dal {
                 std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
                 std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_img_available.at(this->m_flight_frame_index).get() };
                 std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
-                auto& fence = sync_man.m_fence_cmd_done_gbuf.at(this->m_flight_frame_index);
-
-                fence.wait(this->m_logi_device.get());
 
                 this->m_cmd_man.record_simple(
                     this->m_flight_frame_index.get(),
@@ -540,13 +537,11 @@ namespace dal {
                 submit_info.signalSemaphoreCount = signal_semaphores.size();
                 submit_info.pSignalSemaphores = signal_semaphores.data();
 
-                fence.reset(this->m_logi_device.get());
-
                 const auto submit_result = vkQueueSubmit(
                     this->m_logi_device.queue_graphics(),
                     1,
                     &submit_info,
-                    fence.get()
+                    VK_NULL_HANDLE
                 );
 
                 dalAssert(VK_SUCCESS == submit_result);
@@ -556,9 +551,6 @@ namespace dal {
                 std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
                 std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
                 std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
-                auto& fence = sync_man.m_fence_cmd_done_alpha.at(this->m_flight_frame_index);
-
-                fence.wait_reset(this->m_logi_device.get());
 
                 this->m_cmd_man.record_alpha(
                     this->m_flight_frame_index.get(),
@@ -586,7 +578,7 @@ namespace dal {
                     this->m_logi_device.queue_graphics(),
                     1,
                     &submit_info,
-                    fence.get()
+                    VK_NULL_HANDLE
                 );
 
                 dalAssert(VK_SUCCESS == submit_result);

@@ -183,10 +183,6 @@ namespace dal {
         FenceSemaphList<Semaphore, FrameInFlightIndex> m_semaph_cmd_done_final;
         FenceSemaphList<Semaphore, FrameInFlightIndex> m_semaph_cmd_done_alpha;
 
-        FenceSemaphList<Fence, FrameInFlightIndex> m_fence_cmd_done_gbuf;
-        FenceSemaphList<Fence, FrameInFlightIndex> m_fence_cmd_done_final;
-        FenceSemaphList<Fence, FrameInFlightIndex> m_fence_cmd_done_alpha;
-
         FenceSemaphList<Fence, FrameInFlightIndex> m_fence_frame_in_flight;
 
     private:
