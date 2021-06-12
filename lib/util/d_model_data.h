@@ -21,12 +21,14 @@ namespace dal {
         std::string m_albedo_map;
         float m_roughness;
         float m_metallic;
+        bool m_alpha_blending;
     };
 
     struct RenderUnitStatic {
         std::vector<VertexStatic> m_vertices;
         std::vector<uint32_t> m_indices;
         Material m_material;
+        glm::vec3 m_weight_center;
     };
 
     struct ModelStatic {

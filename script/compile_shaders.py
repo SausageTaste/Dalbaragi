@@ -50,6 +50,16 @@ def main():
 
     _work_for_one("fill_screen_f.spv", "fill_screen.frag", [])
 
+    _work_for_one("composition_v.spv", "composition.vert", [])
+
+    _work_for_one("composition_f.spv", "composition.frag", [])
+
+    _work_for_one("alpha_v.spv", "alpha.vert", [])
+
+    _work_for_one("alpha_f.spv", "alpha.frag", [])
+
+    _work_for_one("alpha_gamma_f.spv", "alpha.frag", ["DAL_GAMMA_CORRECT"])
+
 
 if "__main__" == __name__:
     main()

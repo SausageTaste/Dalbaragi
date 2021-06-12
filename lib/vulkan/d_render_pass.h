@@ -42,6 +42,9 @@ namespace dal {
         void init(
             const VkFormat format_color,
             const VkFormat format_depth,
+            const VkFormat format_albedo,
+            const VkFormat format_materials,
+            const VkFormat format_normal,
             const VkDevice logi_device
         );
 
@@ -52,6 +55,18 @@ namespace dal {
 
     public:
         void init(const VkFormat swapchain_img_format, const VkDevice logi_device);
+
+    };
+
+
+    class RenderPass_Alpha : public IRenderPass {
+
+    public:
+        void init(
+            const VkFormat format_color,
+            const VkFormat format_depth,
+            const VkDevice logi_device
+        );
 
     };
 
@@ -69,12 +84,16 @@ namespace dal {
     private:
         RenderPass_Gbuf m_rp_gbuf;
         RenderPass_Final m_rp_final;
+        RenderPass_Alpha m_rp_alpha;
 
     public:
         void init(
             const VkFormat format_swapchain,
             const VkFormat format_color,
             const VkFormat format_depth,
+            const VkFormat format_albedo,
+            const VkFormat format_materials,
+            const VkFormat format_normal,
             const VkDevice logi_device
         );
 
@@ -86,6 +105,10 @@ namespace dal {
 
         auto& rp_final() const {
             return this->m_rp_final;
+        }
+
+        auto& rp_alpha() const {
+            return this->m_rp_alpha;
         }
 
     };

@@ -132,12 +132,12 @@ namespace {
 
             const auto circle_radius = std::min(w, h) / 6.f;
             const auto a = (this->m_last_pos - this->m_down_pos) / circle_radius;
-            const auto len_spr = glm::dot(a, a);
+            const float len_spr = glm::dot(a, a);
             if (0.001f > len_spr) {
                 return glm::vec3{0};
             }
             else if (1.f < len_spr) {
-                const auto b = a / sqrt(len_spr);
+                const auto b = a / static_cast<float>(sqrt(len_spr));
                 return glm::vec3{b.x, 0, b.y};
             }
             else {
@@ -214,12 +214,6 @@ namespace {
 namespace dal {
 
     bool EngineCreateInfo::check_validity() const {
-        if (nullptr == this->m_window_title)
-            return false;
-        if (0 == this->m_init_width)
-            return false;
-        if (0 == this->m_init_height)
-            return false;
         if (nullptr == this->m_filesystem)
             return false;
         if (!this->m_surface_create_func)
@@ -248,35 +242,23 @@ namespace dal {
     }
 
     void Engine::init(const EngineCreateInfo& create_info) {
-        dalAssert(create_info.check_validity());
-
         this->destroy();
 
-        this->m_vulkan_man.init(
-            create_info.m_window_title,
-            create_info.m_init_width,
-            create_info.m_init_height,
-            *create_info.m_filesystem,
-            this->m_task_man,
-            create_info.m_extensions,
-            create_info.m_surface_create_func
-        );
+        dalAssert(create_info.check_validity());
+        this->m_create_info = create_info;
 
         this->m_input_listeners.clear();
         this->m_input_listeners.push_back(&g_touch_dpad); g_touch_dpad.reset();
         this->m_input_listeners.push_back(&g_touch_view); g_touch_view.reset();
 
-        this->m_screen_width = create_info.m_init_width;
-        this->m_screen_height = create_info.m_init_height;
-
-        this->m_camera.m_pos = {0, 2, 3};
-        this->m_camera.m_rotations = {glm::radians<float>(-30), 0, 0};
+        this->m_camera.m_pos = {2.68, 1.91, 0};
+        this->m_camera.m_rotations = {-0.22, glm::radians<float>(90), 0};
 
         this->m_timer.check();
     }
 
     void Engine::destroy() {
-        this->m_vulkan_man.destroy();
+        this->destory_vulkan();
     }
 
     void Engine::update() {
@@ -309,15 +291,40 @@ namespace dal {
             this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
 
             this->m_camera.m_rotations += (
-                ::make_rotation_angles(this->input_manager().key_manager()) +
-                ::make_rotation_angles(this->input_manager().gamepad_manager()) +
-                g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height)
-            ) * ROT_SPEED * delta_time_f;
+                ::make_rotation_angles(this->input_manager().key_manager()) * delta_time_f +
+                ::make_rotation_angles(this->input_manager().gamepad_manager()) * delta_time_f +
+                g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height) * 0.02f
+            ) * ROT_SPEED;
         }
 
         this->m_task_man.update();
 
-        this->m_vulkan_man.update(this->m_camera);
+        if (this->m_vulkan_man.is_ready())
+            this->m_vulkan_man.update(this->m_camera);
+    }
+
+    void Engine::init_vulkan(const unsigned win_width, const unsigned win_height) {
+        this->m_screen_width = win_width;
+        this->m_screen_height = win_height;
+
+        std::vector<const char*> extensions;
+        for (const auto& x : this->m_create_info.m_extensions) {
+            extensions.push_back(x.c_str());
+        }
+
+        this->m_vulkan_man.init(
+            this->m_create_info.m_window_title.c_str(),
+            win_width,
+            win_height,
+            *this->m_create_info.m_filesystem,
+            this->m_task_man,
+            extensions,
+            this->m_create_info.m_surface_create_func
+        );
+    }
+
+    void Engine::destory_vulkan() {
+        this->m_vulkan_man.destroy();
     }
 
     void Engine::wait_device_idle() const {

@@ -7,11 +7,43 @@
 #include "d_logger.h"
 #include "d_buffer_memory.h"
 #include "d_image_parser.h"
+#include "d_timer.h"
 
 
 namespace {
 
     constexpr char* const MISSING_TEX_PATH = "_asset/image/missing_tex.png";
+
+
+    class Task_LoadImage : public dal::ITask {
+
+    public:
+        dal::Filesystem& m_filesys;
+        dal::ResPath m_respath;
+
+        std::optional<dal::ImageData> out_image_data;
+
+    public:
+        Task_LoadImage(const dal::ResPath& respath, dal::Filesystem& filesys)
+            : m_filesys(filesys)
+            , m_respath(respath)
+            , out_image_data(std::nullopt)
+        {
+
+        }
+
+        void run() override {
+            dal::Timer timer;
+
+            auto file = this->m_filesys.open(this->m_respath);
+            dalAssert(file->is_ready());
+            const auto file_data = file->read_stl<std::vector<uint8_t>>();
+            dalAssert(file_data.has_value());
+            this->out_image_data = dal::parse_image_stb(file_data->data(), file_data->size());
+            dalInfo(fmt::format("Image res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
+        }
+
+    };
 
 }
 
@@ -255,6 +287,11 @@ namespace dal {
         }
     }
 
+    VkImageView ImageView::get() const {
+        dalAssert(this->is_ready());
+        return this->m_view;
+    }
+
 }
 
 
@@ -357,6 +394,10 @@ namespace dal {
         }
     }
 
+    bool TextureImage::is_ready() const {
+        return (VK_NULL_HANDLE != this->m_image) && (VK_NULL_HANDLE != this->m_memory);
+    }
+
 }
 
 
@@ -406,10 +447,52 @@ namespace dal {
 }
 
 
+// TextureUnit
+namespace dal {
+
+    bool TextureUnit::init(
+        dal::CommandPool& cmd_pool,
+        const dal::ImageData& img_data,
+        const VkQueue graphics_queue,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->m_image.init_texture(
+            img_data,
+            cmd_pool,
+            graphics_queue,
+            phys_device,
+            logi_device
+        );
+
+        const auto result_view = this->m_view.init(
+            this->m_image.image(),
+            this->m_image.format(),
+            1,
+            VK_IMAGE_ASPECT_COLOR_BIT,
+            logi_device
+        );
+
+        return result_view;
+    }
+
+    void TextureUnit::destroy(const VkDevice logi_device) {
+        this->m_image.destory(logi_device);
+        this->m_view.destroy(logi_device);
+    }
+
+    bool TextureUnit::is_ready() const {
+        return this->m_image.is_ready() && this->m_view.is_ready();
+    }
+
+}
+
+
 // TextureManager
 namespace dal {
 
     void TextureManager::init(
+        dal::TaskManager& task_man,
         dal::Filesystem& filesys,
         CommandPool& cmd_pool,
         const bool enable_anisotropy,
@@ -417,6 +500,7 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
+        this->m_task_man = &task_man;
         this->m_filesys = &filesys;
         this->m_cmd_pool = &cmd_pool,
         this->m_graphics_queue = m_graphics_queue;
@@ -427,18 +511,34 @@ namespace dal {
     }
 
     void TextureManager::destroy(const VkDevice logi_device) {
-        for (auto& x : this->m_textures) {
-            x.second.m_image.destory(logi_device);
-            x.second.m_view.destroy(logi_device);
-        }
+        for (auto& x : this->m_textures)
+            x.second.destroy(logi_device);
         this->m_textures.clear();
 
         this->m_tex_sampler.destroy(logi_device);
     }
 
-    const TextureManager::TextureUnit& TextureManager::request_asset_tex(const dal::ResPath& respath) {
+    void TextureManager::notify_task_done(std::unique_ptr<ITask> task) {
+        const auto iter = this->m_sent_task.find(task.get());
+        if (this->m_sent_task.end() != iter) {
+            auto task_load = reinterpret_cast<::Task_LoadImage*>(task.get());
+
+            iter->second->init(
+                *this->m_cmd_pool,
+                task_load->out_image_data.value(),
+                this->m_graphics_queue,
+                this->m_phys_device,
+                this->m_logi_device
+            );
+
+            this->m_sent_task.erase(iter);
+        }
+    }
+
+    const TextureUnit& TextureManager::request_asset_tex(const dal::ResPath& respath) {
         const auto resolved_respath = this->m_filesys->resolve_respath(respath);
         if (!resolved_respath.has_value()) {
+            dalError(fmt::format("Failed to find texture file: {}", respath.make_str()).c_str());
             return this->get_missing_tex();
         }
 
@@ -449,37 +549,18 @@ namespace dal {
             return result->second;
         }
         else {
-            auto file = this->m_filesys->open(resolved_respath.value());
-            if (!file->is_ready()) {
-                dalAbort(fmt::format("Failed to find texture file: {}", path_str).c_str());
-            }
-            const auto file_data = file->read_stl<std::vector<uint8_t>>();
-            const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
-
             this->m_textures[path_str] = TextureUnit{};
             auto iter = this->m_textures.find(path_str);
 
-            iter->second.m_image.init_texture(
-                image.value(),
-                *this->m_cmd_pool,
-                this->m_graphics_queue,
-                this->m_phys_device,
-                this->m_logi_device
-            );
-
-            iter->second.m_view.init(
-                iter->second.m_image.image(),
-                iter->second.m_image.format(),
-                1,
-                VK_IMAGE_ASPECT_COLOR_BIT,
-                m_logi_device
-            );
+            std::unique_ptr<dal::ITask> task{ new ::Task_LoadImage(*resolved_respath, *this->m_filesys) };
+            this->m_sent_task[task.get()] = &iter->second;
+            this->m_task_man->order_task(std::move(task), this);
 
             return iter->second;
         }
     };
 
-    const TextureManager::TextureUnit& TextureManager::get_missing_tex() {
+    const TextureUnit& TextureManager::get_missing_tex() {
         const auto find_result = this->m_textures.find(::MISSING_TEX_PATH);
 
         if (this->m_textures.end() != find_result) {
@@ -495,20 +576,12 @@ namespace dal {
             this->m_textures[::MISSING_TEX_PATH] = TextureUnit{};
             auto iter = this->m_textures.find(::MISSING_TEX_PATH);
 
-            iter->second.m_image.init_texture(
-                image.value(),
+            iter->second.init(
                 *this->m_cmd_pool,
+                image.value(),
                 this->m_graphics_queue,
                 this->m_phys_device,
                 this->m_logi_device
-            );
-
-            iter->second.m_view.init(
-                iter->second.m_image.image(),
-                iter->second.m_image.format(),
-                1,
-                VK_IMAGE_ASPECT_COLOR_BIT,
-                m_logi_device
             );
 
             return iter->second;

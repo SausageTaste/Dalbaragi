@@ -10,11 +10,9 @@
 namespace dal {
 
     struct EngineCreateInfo {
-        const char*                     m_window_title = nullptr;
-        unsigned                        m_init_width = 0;
-        unsigned                        m_init_height = 0;
+        std::string                     m_window_title;
         dal::Filesystem*                m_filesystem = nullptr;
-        std::vector<const char*>        m_extensions;
+        std::vector<std::string>        m_extensions;
         std::function<void*(void*)>     m_surface_create_func;
 
         bool check_validity() const;
@@ -24,6 +22,8 @@ namespace dal {
     class Engine {
 
     private:
+        EngineCreateInfo m_create_info;
+
         dal::TaskManager m_task_man;
         dal::VulkanState m_vulkan_man;
         InputManager m_input_man;
@@ -47,6 +47,10 @@ namespace dal {
         void destroy();
 
         void update();
+
+        void init_vulkan(const unsigned win_width, const unsigned win_height);
+
+        void destory_vulkan();
 
         void wait_device_idle() const;
 

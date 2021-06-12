@@ -253,11 +253,11 @@ namespace dal {
         return glfwWindowShouldClose(reinterpret_cast<GLFWwindow*>(this->m_window));
     }
 
-    std::vector<const char*> WindowGLFW::get_vulkan_extensions() const {
+    std::vector<std::string> WindowGLFW::get_vulkan_extensions() const {
         uint32_t ext_count = 0;
         const char** glfw_extensions = nullptr;
         glfw_extensions = glfwGetRequiredInstanceExtensions(&ext_count);
-        std::vector<const char*> extensions(glfw_extensions, glfw_extensions + ext_count);
+        std::vector<std::string> extensions(glfw_extensions, glfw_extensions + ext_count);
 
         return extensions;
     }
