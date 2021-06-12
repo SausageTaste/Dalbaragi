@@ -306,6 +306,7 @@ namespace dal {
         UniformBufferArray<U_PerFrame> m_ubufs_simple;
         UniformBufferArray<U_GlobalLight> m_ubufs_glights;
         UniformBufferArray<U_PerFrame_Composition> m_ubufs_per_frame_composition;
+        UniformBufferArray<U_PerFrame_Alpha> m_ubufs_per_frame_alpha;
         UniformBuffer<U_PerFrame_InFinal> m_ubuf_final;
         DescriptorManager m_desc_man;
 
@@ -403,6 +404,7 @@ namespace dal {
             this->m_desc_man.destroy(this->m_logi_device.get());
             this->m_ubuf_final.destroy(this->m_logi_device.get());
             this->m_ubufs_per_frame_composition.destroy(this->m_logi_device.get());
+            this->m_ubufs_per_frame_alpha.destroy(this->m_logi_device.get());
             this->m_ubufs_glights.destroy(this->m_logi_device.get());
             this->m_ubufs_simple.destroy(this->m_logi_device.get());
             this->m_cmd_man.destroy(this->m_logi_device.get());
@@ -483,6 +485,10 @@ namespace dal {
                 ubuf_data_composition.m_view_inv = glm::inverse(ubuf_data_per_frame.m_view);
                 ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
                 this->m_ubufs_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
+
+                U_PerFrame_Alpha ubuf_data_alpha{};
+                ubuf_data_alpha.m_view_pos = ubuf_data_per_frame.m_view_pos;
+                this->m_ubufs_per_frame_alpha.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_alpha, this->m_logi_device.get());
             }
 
             {
@@ -756,6 +762,12 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
+            this->m_ubufs_per_frame_alpha.init(
+                MAX_FRAMES_IN_FLIGHT,
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
             this->m_ubuf_final.init(this->m_phys_device.get(), this->m_logi_device.get());
             U_PerFrame_InFinal data;
             data.m_rotation = this->m_swapchain.pre_ratation_mat();
@@ -772,6 +784,7 @@ namespace dal {
 
             this->m_desc_man.init_desc_sets_per_world(
                 this->m_ubufs_glights,
+                this->m_ubufs_per_frame_alpha,
                 MAX_FRAMES_IN_FLIGHT,
                 this->m_desc_layout_man.layout_per_world(),
                 this->m_logi_device.get()

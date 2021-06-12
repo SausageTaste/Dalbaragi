@@ -21,6 +21,10 @@ namespace dal {
         glm::vec4 m_view_pos{};
     };
 
+    struct U_PerFrame_Alpha {
+        glm::vec4 m_view_pos{0};
+    };
+
     struct U_PerFrame {
         glm::mat4 m_view{1}, m_proj{1};
         glm::vec4 m_view_pos{};
@@ -221,6 +225,7 @@ namespace dal {
 
         void record_per_world(
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+            const UniformBuffer<U_PerFrame_Alpha>& ubuf_per_frame_alpha,
             const VkDevice logi_device
         );
 
@@ -294,6 +299,7 @@ namespace dal {
 
         void init_desc_sets_per_world(
             const UniformBufferArray<U_GlobalLight>& ubuf_global_light,
+            const UniformBufferArray<U_PerFrame_Alpha>& ubufs_per_frame_alpha,
             const uint32_t swapchain_count,
             const VkDescriptorSetLayout desc_layout_world,
             const VkDevice logi_device

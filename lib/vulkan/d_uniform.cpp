@@ -117,6 +117,13 @@ namespace {
         bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+        // U_PerFrame_Alpha
+        bindings.emplace_back();
+        bindings.back().binding = bindings.size() - 1;
+        bindings.back().descriptorCount = 1;
+        bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
         //----------------------------------------------------------------------------------
 
         VkDescriptorSetLayoutCreateInfo layout_info{};
@@ -389,13 +396,18 @@ namespace dal {
 
     void DescSet::record_per_world(
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+        const UniformBuffer<U_PerFrame_Alpha>& ubuf_per_frame_alpha,
         const VkDevice logi_device
     ) {
-
         VkDescriptorBufferInfo ubuf_info_global_light{};
         ubuf_info_global_light.buffer = ubuf_global_light.buffer();
         ubuf_info_global_light.offset = 0;
         ubuf_info_global_light.range = ubuf_global_light.data_size();
+
+        VkDescriptorBufferInfo ubuf_info_per_frame_alpha{};
+        ubuf_info_per_frame_alpha.buffer = ubuf_per_frame_alpha.buffer();
+        ubuf_info_per_frame_alpha.range = ubuf_per_frame_alpha.data_size();
+        ubuf_info_per_frame_alpha.offset = 0;
 
         //--------------------------------------------------------------------
 
@@ -415,6 +427,22 @@ namespace dal {
             x.pTexelBufferView = nullptr;
 
             dalAssert(0 == x.dstBinding);
+        }
+
+        // U_PerFrame_Alpha
+        {
+            auto& x = desc_writes.emplace_back();
+            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            x.dstSet = this->m_handle;
+            x.dstBinding = desc_writes.size() - 1;
+            x.dstArrayElement = 0;
+            x.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            x.descriptorCount = 1;
+            x.pBufferInfo = &ubuf_info_per_frame_alpha;
+            x.pImageInfo = nullptr;
+            x.pTexelBufferView = nullptr;
+
+            dalAssert(1 == x.dstBinding);
         }
 
         //--------------------------------------------------------------------
@@ -640,6 +668,7 @@ namespace dal {
 
     void DescriptorManager::init_desc_sets_per_world(
         const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
+        const UniformBufferArray<U_PerFrame_Alpha>& ubufs_per_frame_alpha,
         const uint32_t swapchain_count,
         const VkDescriptorSetLayout desc_layout_world,
         const VkDevice logi_device
@@ -648,7 +677,7 @@ namespace dal {
 
         for (size_t i = 0; i < this->m_descset_per_world.size(); ++i) {
             auto& desc_set = this->m_descset_per_world.at(i);
-            desc_set.record_per_world(ubufs_global_light.at(i), logi_device);
+            desc_set.record_per_world(ubufs_global_light.at(i), ubufs_per_frame_alpha.at(i), logi_device);
         }
     }
 

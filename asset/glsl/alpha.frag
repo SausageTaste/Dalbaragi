@@ -29,6 +29,10 @@ layout(set=3, binding=0) uniform U_GlobalLight {
     uint m_plight_count;
 } u_global_light;
 
+layout(set=3, binding=1) uniform U_PerFrame_Alpha {
+    vec4 m_view_pos;
+} u_per_frame_alpha;
+
 
 vec3 fix_color(const vec3 color) {
     const float GAMMA = 2.2;
