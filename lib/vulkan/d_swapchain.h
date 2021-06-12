@@ -148,7 +148,7 @@ namespace dal {
     class SwapchainSyncManager {
 
     private:
-        template <typename T>
+        template <typename T, typename _IndexType>
         class FenceSemaphList {
 
         private:
@@ -170,20 +170,20 @@ namespace dal {
                 this->m_list.clear();
             }
 
-            auto& at(const size_t index) const {
-                return this->m_list.at(index);
+            auto& at(const _IndexType& index) const {
+                return this->m_list.at(*index);
             }
 
         };
 
     private:
-        FenceSemaphList<Semaphore> m_img_available;
+        FenceSemaphList<Semaphore, FrameInFlightIndex> m_img_available;
 
-        FenceSemaphList<Semaphore> m_cmd_done_gbuf;
-        FenceSemaphList<Semaphore> m_cmd_done_final;
-        FenceSemaphList<Semaphore> m_cmd_done_alpha;
+        FenceSemaphList<Semaphore, FrameInFlightIndex> m_cmd_done_gbuf;
+        FenceSemaphList<Semaphore, FrameInFlightIndex> m_cmd_done_final;
+        FenceSemaphList<Semaphore, FrameInFlightIndex> m_cmd_done_alpha;
 
-        FenceSemaphList<Fence> m_frame_in_flight_fences;
+        FenceSemaphList<Fence, FrameInFlightIndex> m_frame_in_flight_fences;
         std::vector<const Fence*> m_img_in_flight_fences;
 
     public:
@@ -200,23 +200,23 @@ namespace dal {
         void destroy(const VkDevice logi_device);
 
         auto& semaph_surface_img_available(const FrameInFlightIndex& index) const {
-            return this->m_img_available.at(index.get());
+            return this->m_img_available.at(index);
         }
 
         auto& semaph_cmd_done_gbuf(const FrameInFlightIndex& index) const {
-            return this->m_cmd_done_gbuf.at(index.get());
+            return this->m_cmd_done_gbuf.at(index);
         }
 
         auto& semaph_cmd_done_final(const FrameInFlightIndex& index) const {
-            return this->m_cmd_done_final.at(index.get());
+            return this->m_cmd_done_final.at(index);
         }
 
         auto& semaph_cmd_done_alpha(const FrameInFlightIndex& index) const {
-            return this->m_cmd_done_alpha.at(index.get());
+            return this->m_cmd_done_alpha.at(index);
         }
 
         auto& fence_frame_in_flight(const FrameInFlightIndex& index) const {
-            return this->m_frame_in_flight_fences.at(index.get());
+            return this->m_frame_in_flight_fences.at(index);
         }
 
         auto& fence_image_in_flight(const SwapchainIndex& index) {
