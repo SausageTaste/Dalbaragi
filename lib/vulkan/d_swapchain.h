@@ -148,9 +148,42 @@ namespace dal {
     class SwapchainSyncManager {
 
     private:
-        std::vector<Semaphore> m_img_available;
-        std::vector<Semaphore> m_render_finished;
-        std::vector<Fence> m_frame_in_flight_fences;
+        template <typename T>
+        class FenceSemaphList {
+
+        private:
+            std::vector<T> m_list;
+
+        public:
+            void init(const size_t count, const VkDevice logi_device) {
+                this->destroy(logi_device);
+                this->m_list.resize(count);
+
+                for (auto& x : this->m_list)
+                    x.init(logi_device);
+            }
+
+            void destroy(const VkDevice logi_device) {
+                for (auto& x : this->m_list)
+                    x.destory(logi_device);
+
+                this->m_list.clear();
+            }
+
+            auto& at(const size_t index) const {
+                return this->m_list.at(index);
+            }
+
+        };
+
+    private:
+        FenceSemaphList<Semaphore> m_img_available;
+
+        FenceSemaphList<Semaphore> m_cmd_done_gbuf;
+        FenceSemaphList<Semaphore> m_cmd_done_final;
+        FenceSemaphList<Semaphore> m_cmd_done_alpha;
+
+        FenceSemaphList<Fence> m_frame_in_flight_fences;
         std::vector<const Fence*> m_img_in_flight_fences;
 
     public:
@@ -166,12 +199,20 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        auto& semaphore_img_available(const FrameInFlightIndex& index) const {
+        auto& semaph_surface_img_available(const FrameInFlightIndex& index) const {
             return this->m_img_available.at(index.get());
         }
 
-        auto& semaphore_render_finished(const FrameInFlightIndex& index) const {
-            return this->m_render_finished.at(index.get());
+        auto& semaph_cmd_done_gbuf(const FrameInFlightIndex& index) const {
+            return this->m_cmd_done_gbuf.at(index.get());
+        }
+
+        auto& semaph_cmd_done_final(const FrameInFlightIndex& index) const {
+            return this->m_cmd_done_final.at(index.get());
+        }
+
+        auto& semaph_cmd_done_alpha(const FrameInFlightIndex& index) const {
+            return this->m_cmd_done_alpha.at(index.get());
         }
 
         auto& fence_frame_in_flight(const FrameInFlightIndex& index) const {
