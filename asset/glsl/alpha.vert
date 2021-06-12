@@ -7,6 +7,7 @@ layout(location = 2) in vec2 i_uv_coord;
 
 layout(location = 0) out vec2 v_uv_coord;
 layout(location = 1) out vec3 v_normal;
+layout(location = 2) out vec3 v_world_pos;
 
 
 layout(set = 0, binding = 0) uniform U_PerFrame {
@@ -21,7 +22,9 @@ layout(set = 2, binding = 0) uniform U_PerActor {
 
 
 void main() {
-    gl_Position = u_per_frame.m_proj * u_per_frame.m_view * u_per_actor.m_model * vec4(i_position, 1);
+    const vec4 world_pos = u_per_actor.m_model * vec4(i_position, 1);
+    v_world_pos = world_pos.xyz;
+    gl_Position = u_per_frame.m_proj * u_per_frame.m_view * world_pos;
     v_uv_coord = i_uv_coord;
     v_normal = normalize((u_per_actor.m_model * vec4(i_normal, 0)).xyz);
 }
