@@ -222,6 +222,10 @@ namespace dal {
         this->m_semaph_cmd_done_final.init(MAX_FRAMES_IN_FLIGHT, logi_device);
         this->m_semaph_cmd_done_alpha.init(MAX_FRAMES_IN_FLIGHT, logi_device);
 
+        this->m_fence_cmd_done_gbuf.init(MAX_FRAMES_IN_FLIGHT, logi_device);
+        this->m_fence_cmd_done_final.init(MAX_FRAMES_IN_FLIGHT, logi_device);
+        this->m_fence_cmd_done_alpha.init(MAX_FRAMES_IN_FLIGHT, logi_device);
+
         this->m_fence_frame_in_flight.init(MAX_FRAMES_IN_FLIGHT, logi_device);
         this->m_img_in_flight_fences.resize(swapchain_count, nullptr);
     }
@@ -232,6 +236,10 @@ namespace dal {
         this->m_semaph_cmd_done_gbuf.destroy(logi_device);
         this->m_semaph_cmd_done_final.destroy(logi_device);
         this->m_semaph_cmd_done_alpha.destroy(logi_device);
+
+        this->m_fence_cmd_done_gbuf.destroy(logi_device);
+        this->m_fence_cmd_done_final.destroy(logi_device);
+        this->m_fence_cmd_done_alpha.destroy(logi_device);
 
         this->m_fence_frame_in_flight.destroy(logi_device);
         this->m_img_in_flight_fences.clear();

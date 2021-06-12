@@ -450,6 +450,7 @@ namespace dal {
                 return;
             }
             else if (ImgAcquireResult::success != acquire_result) {
+                dalError("Failed to acquire swapchain image");
                 return;
             }
 
@@ -500,61 +501,29 @@ namespace dal {
                 this->m_ubufs_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_glight, this->m_logi_device.get());
             }
 
-            this->wait_device_idle();
-
-            this->m_cmd_man.record_simple(
-                this->m_flight_frame_index.get(),
-                this->m_models,
-                this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
-                this->m_desc_man.desc_set_composition_at(0).get(),
-                this->m_attach_man.color().extent(),
-                this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
-                this->m_pipelines.simple().pipeline(),
-                this->m_pipelines.simple().layout(),
-                this->m_pipelines.composition().pipeline(),
-                this->m_pipelines.composition().layout(),
-                this->m_renderpasses.rp_gbuf()
-            );
-
-            this->m_desc_man.init_desc_sets_final(
-                this->m_flight_frame_index.get(),
-                this->m_ubuf_final,
-                this->m_attach_man.color().view().get(),
-                this->m_tex_man.sampler_tex().get(),
-                this->m_desc_layout_man.layout_final(),
-                this->m_logi_device.get()
-            );
-
-            this->m_cmd_man.record_final(
-                this->m_flight_frame_index.get(),
-                this->m_fbuf_man.fbuf_final_at(*swapchain_index),
-                this->m_swapchain.identity_extent(),
-                this->m_desc_man.desc_set_final_at(this->m_flight_frame_index.get()),
-                this->m_pipelines.final().layout(),
-                this->m_pipelines.final().pipeline(),
-                this->m_renderpasses.rp_final()
-            );
-
-            this->m_cmd_man.record_alpha(
-                this->m_flight_frame_index.get(),
-                this->m_models,
-                this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
-                this->m_desc_man.desc_set_composition_at(0).get(),
-                this->m_attach_man.color().extent(),
-                this->m_fbuf_man.fbuf_alpha_at(swapchain_index.get()).get(),
-                this->m_pipelines.alpha().pipeline(),
-                this->m_pipelines.alpha().layout(),
-                this->m_renderpasses.rp_alpha()
-            );
-
-            this->wait_device_idle();
-
             //-----------------------------------------------------------------------------------------------------
 
             {
                 std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
                 std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_img_available.at(this->m_flight_frame_index).get() };
                 std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
+                auto& fence = sync_man.m_fence_cmd_done_gbuf.at(this->m_flight_frame_index);
+
+                fence.wait(this->m_logi_device.get());
+
+                this->m_cmd_man.record_simple(
+                    this->m_flight_frame_index.get(),
+                    this->m_models,
+                    this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
+                    this->m_desc_man.desc_set_composition_at(0).get(),
+                    this->m_attach_man.color().extent(),
+                    this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
+                    this->m_pipelines.simple().pipeline(),
+                    this->m_pipelines.simple().layout(),
+                    this->m_pipelines.composition().pipeline(),
+                    this->m_pipelines.composition().layout(),
+                    this->m_renderpasses.rp_gbuf()
+                );
 
                 VkSubmitInfo submit_info{};
                 submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -566,11 +535,13 @@ namespace dal {
                 submit_info.signalSemaphoreCount = signal_semaphores.size();
                 submit_info.pSignalSemaphores = signal_semaphores.data();
 
+                fence.reset(this->m_logi_device.get());
+
                 const auto submit_result = vkQueueSubmit(
                     this->m_logi_device.queue_graphics(),
                     1,
                     &submit_info,
-                    VK_NULL_HANDLE
+                    fence.get()
                 );
 
                 dalAssert(VK_SUCCESS == submit_result);
@@ -580,6 +551,21 @@ namespace dal {
                 std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
                 std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
                 std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
+                auto& fence = sync_man.m_fence_cmd_done_alpha.at(this->m_flight_frame_index);
+
+                fence.wait_reset(this->m_logi_device.get());
+
+                this->m_cmd_man.record_alpha(
+                    this->m_flight_frame_index.get(),
+                    this->m_models,
+                    this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
+                    this->m_desc_man.desc_set_composition_at(0).get(),
+                    this->m_attach_man.color().extent(),
+                    this->m_fbuf_man.fbuf_alpha_at(swapchain_index.get()).get(),
+                    this->m_pipelines.alpha().pipeline(),
+                    this->m_pipelines.alpha().layout(),
+                    this->m_renderpasses.rp_alpha()
+                );
 
                 VkSubmitInfo submit_info{};
                 submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -595,7 +581,7 @@ namespace dal {
                     this->m_logi_device.queue_graphics(),
                     1,
                     &submit_info,
-                    VK_NULL_HANDLE
+                    fence.get()
                 );
 
                 dalAssert(VK_SUCCESS == submit_result);
@@ -605,6 +591,28 @@ namespace dal {
                 std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
                 std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
                 std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_final.at(this->m_flight_frame_index).get() };
+                auto& fence = sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
+
+                fence.wait_reset(this->m_logi_device.get());
+
+                this->m_desc_man.init_desc_sets_final(
+                    this->m_flight_frame_index.get(),
+                    this->m_ubuf_final,
+                    this->m_attach_man.color().view().get(),
+                    this->m_tex_man.sampler_tex().get(),
+                    this->m_desc_layout_man.layout_final(),
+                    this->m_logi_device.get()
+                );
+
+                this->m_cmd_man.record_final(
+                    this->m_flight_frame_index.get(),
+                    this->m_fbuf_man.fbuf_final_at(*swapchain_index),
+                    this->m_swapchain.identity_extent(),
+                    this->m_desc_man.desc_set_final_at(this->m_flight_frame_index.get()),
+                    this->m_pipelines.final().layout(),
+                    this->m_pipelines.final().pipeline(),
+                    this->m_renderpasses.rp_final()
+                );
 
                 VkSubmitInfo submit_info{};
                 submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -616,13 +624,11 @@ namespace dal {
                 submit_info.signalSemaphoreCount = signal_semaphores.size();
                 submit_info.pSignalSemaphores = signal_semaphores.data();
 
-                sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index).reset(this->m_logi_device.get());
-
                 const auto submit_result = vkQueueSubmit(
                     this->m_logi_device.queue_graphics(),
                     1,
                     &submit_info,
-                    sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index).get()
+                    fence.get()
                 );
 
                 dalAssert(VK_SUCCESS == submit_result);
