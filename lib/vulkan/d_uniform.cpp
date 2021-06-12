@@ -297,11 +297,33 @@ namespace {
             return index;
         }
 
-        size_t add_image(const VkImageView img_view, const VkSampler sampler) {
+        size_t add_img_sampler(const VkImageView img_view, const VkSampler sampler) {
             auto& info = this->m_image_info.emplace_back();
             info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             info.imageView = img_view;
             info.sampler = sampler;
+
+            const auto index = this->m_desc_writes.size();
+
+            auto& write = this->m_desc_writes.emplace_back();
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.dstSet = this->m_desc_set;
+            write.dstBinding = index;
+            write.dstArrayElement = 0;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write.descriptorCount = 1;
+            write.pBufferInfo = nullptr;
+            write.pImageInfo = &info;
+            write.pTexelBufferView = nullptr;
+
+            return index;
+        }
+
+        size_t add_input_attachment(const VkImageView img_view) {
+            auto& info = this->m_image_info.emplace_back();
+            info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            info.imageView = img_view;
+            info.sampler = VK_NULL_HANDLE;
 
             const auto index = this->m_desc_writes.size();
 
@@ -337,37 +359,10 @@ namespace dal {
         const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
-        VkDescriptorImageInfo image_info{};
-        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        image_info.imageView = color_view;
-        image_info.sampler = sampler;
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = ubuf_per_frame.buffer();
-        buffer_info.offset = 0;
-        buffer_info.range = ubuf_per_frame.data_size();
-
-        //--------------------------------------------------------------------
-
-        std::array<VkWriteDescriptorSet, 2> desc_writes{};
-
-        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[0].dstSet = this->m_handle;
-        desc_writes[0].dstBinding = 0;
-        desc_writes[0].dstArrayElement = 0;
-        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        desc_writes[0].descriptorCount = 1;
-        desc_writes[0].pImageInfo = &image_info;
-
-        desc_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[1].dstSet = this->m_handle;
-        desc_writes[1].dstBinding = 1;
-        desc_writes[1].dstArrayElement = 0;
-        desc_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        desc_writes[1].descriptorCount = 1;
-        desc_writes[1].pBufferInfo = &buffer_info;
-
-        //--------------------------------------------------------------------
+        desc_writes.add_img_sampler(color_view, sampler);
+        desc_writes.add_buffer(ubuf_per_frame);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -376,26 +371,9 @@ namespace dal {
         const UniformBuffer<U_PerFrame>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
-        VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = ubuf_per_frame.buffer();
-        buffer_info.offset = 0;
-        buffer_info.range = ubuf_per_frame.data_size();
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        //--------------------------------------------------------------------
-
-        std::array<VkWriteDescriptorSet, 1> desc_writes{};
-
-        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[0].dstSet = this->m_handle;
-        desc_writes[0].dstBinding = 0;  // specified in shader code
-        desc_writes[0].dstArrayElement = 0;
-        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        desc_writes[0].descriptorCount = 1;
-        desc_writes[0].pBufferInfo = &buffer_info;
-        desc_writes[0].pImageInfo = nullptr;
-        desc_writes[0].pTexelBufferView = nullptr;
-
-        //--------------------------------------------------------------------
+        desc_writes.add_buffer(ubuf_per_frame);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -406,39 +384,10 @@ namespace dal {
         const VkSampler sampler,
         const VkDevice logi_device
     ) {
-        VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = ubuf_per_material.buffer();
-        buffer_info.offset = 0;
-        buffer_info.range = ubuf_per_material.data_size();
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        VkDescriptorImageInfo image_info{};
-        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        image_info.imageView = texture_view;
-        image_info.sampler = sampler;
-
-        //--------------------------------------------------------------------
-
-        std::array<VkWriteDescriptorSet, 2> desc_writes{};
-
-        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[0].dstSet = this->m_handle;
-        desc_writes[0].dstBinding = 0;  // specified in shader code
-        desc_writes[0].dstArrayElement = 0;
-        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        desc_writes[0].descriptorCount = 1;
-        desc_writes[0].pBufferInfo = &buffer_info;
-        desc_writes[0].pImageInfo = nullptr;
-        desc_writes[0].pTexelBufferView = nullptr;
-
-        desc_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[1].dstSet = this->m_handle;
-        desc_writes[1].dstBinding = 1;
-        desc_writes[1].dstArrayElement = 0;
-        desc_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        desc_writes[1].descriptorCount = 1;
-        desc_writes[1].pImageInfo = &image_info;
-
-        //--------------------------------------------------------------------
+        desc_writes.add_buffer(ubuf_per_material);
+        desc_writes.add_img_sampler(texture_view, sampler);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -447,26 +396,9 @@ namespace dal {
         const UniformBuffer<U_PerActor>& ubuf_per_actor,
         const VkDevice logi_device
     ) {
-        VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = ubuf_per_actor.buffer();
-        buffer_info.offset = 0;
-        buffer_info.range = ubuf_per_actor.data_size();
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        //--------------------------------------------------------------------
-
-        std::array<VkWriteDescriptorSet, 1> desc_writes{};
-
-        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[0].dstSet = this->m_handle;
-        desc_writes[0].dstBinding = 0;  // specified in shader code
-        desc_writes[0].dstArrayElement = 0;
-        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        desc_writes[0].descriptorCount = 1;
-        desc_writes[0].pBufferInfo = &buffer_info;
-        desc_writes[0].pImageInfo = nullptr;
-        desc_writes[0].pTexelBufferView = nullptr;
-
-        //--------------------------------------------------------------------
+        desc_writes.add_buffer(ubuf_per_actor);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -476,7 +408,7 @@ namespace dal {
         const UniformBuffer<U_PerFrame_Alpha>& ubuf_per_frame_alpha,
         const VkDevice logi_device
     ) {
-        WriteDescBuilder desc_writes{ this->m_handle };
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
         desc_writes.add_buffer(ubuf_global_light);
         desc_writes.add_buffer(ubuf_per_frame_alpha);
@@ -490,69 +422,15 @@ namespace dal {
         const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
-        std::vector<VkDescriptorImageInfo> attachments_info(attachment_views.size());
-        for (size_t i = 0; i < attachment_views.size(); ++i) {
-            auto& x = attachments_info.at(i);
-            x.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            x.imageView = attachment_views.at(i);
-            x.sampler = VK_NULL_HANDLE;
-        }
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        VkDescriptorBufferInfo ubuf_info_global_light{};
-        ubuf_info_global_light.buffer = ubuf_global_light.buffer();
-        ubuf_info_global_light.offset = 0;
-        ubuf_info_global_light.range = ubuf_global_light.data_size();
+        for (size_t i = 0; i < attachment_views.size(); ++i)
+            desc_writes.add_input_attachment(attachment_views.at(i));
 
-        VkDescriptorBufferInfo ubuf_info_per_frame{};
-        ubuf_info_per_frame.buffer = ubuf_per_frame.buffer();
-        ubuf_info_per_frame.offset = 0;
-        ubuf_info_per_frame.range = ubuf_per_frame.data_size();
+        const auto global_light_index = desc_writes.add_buffer(ubuf_global_light);
+        dalAssert(4 == global_light_index);
 
-        //--------------------------------------------------------------------
-
-        std::vector<VkWriteDescriptorSet> desc_writes{};
-
-        for (size_t i = 0; i < attachments_info.size(); ++i) {
-            auto& x = desc_writes.emplace_back();
-
-            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            x.dstSet = this->m_handle;
-            x.dstBinding = desc_writes.size() - 1;
-            x.dstArrayElement = 0;
-            x.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-            x.descriptorCount = 1;
-            x.pBufferInfo = nullptr;
-            x.pImageInfo = &attachments_info[i];
-            x.pTexelBufferView = nullptr;
-        }
-
-        {
-            auto& x = desc_writes.emplace_back();
-            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            x.dstSet = this->m_handle;
-            x.dstBinding = desc_writes.size() - 1;
-            x.dstArrayElement = 0;
-            x.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            x.descriptorCount = 1;
-            x.pBufferInfo = &ubuf_info_global_light;
-            x.pImageInfo = nullptr;
-            x.pTexelBufferView = nullptr;
-        }
-
-        {
-            auto& x = desc_writes.emplace_back();
-            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            x.dstSet = this->m_handle;
-            x.dstBinding = desc_writes.size() - 1;
-            x.dstArrayElement = 0;
-            x.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            x.descriptorCount = 1;
-            x.pBufferInfo = &ubuf_info_per_frame;
-            x.pImageInfo = nullptr;
-            x.pTexelBufferView = nullptr;
-        }
-
-        //--------------------------------------------------------------------
+        desc_writes.add_buffer(ubuf_per_frame);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
