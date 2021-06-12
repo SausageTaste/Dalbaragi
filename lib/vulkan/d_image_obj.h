@@ -1,5 +1,6 @@
 #pragma once
 
+#include <queue>
 #include <memory>
 #include <unordered_map>
 
@@ -150,6 +151,7 @@ namespace dal {
     private:
         std::unordered_map<std::string, TextureUnit> m_textures;
         std::unordered_map<void*, TextureUnit*> m_sent_task;
+        std::queue<std::unique_ptr<ITask>> m_finalize_q;
         Sampler m_tex_sampler;
 
         dal::TaskManager* m_task_man = nullptr;
@@ -171,6 +173,8 @@ namespace dal {
         );
 
         void destroy(const VkDevice logi_device);
+
+        void update();
 
         void notify_task_done(std::unique_ptr<ITask> task) override;
 

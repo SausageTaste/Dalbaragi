@@ -518,21 +518,31 @@ namespace dal {
         this->m_tex_sampler.destroy(logi_device);
     }
 
-    void TextureManager::notify_task_done(std::unique_ptr<ITask> task) {
-        const auto iter = this->m_sent_task.find(task.get());
-        if (this->m_sent_task.end() != iter) {
-            auto task_load = reinterpret_cast<::Task_LoadImage*>(task.get());
+    void TextureManager::update() {
+        if (!this->m_finalize_q.empty()) {
+            auto& task = this->m_finalize_q.front();
+            const auto iter = this->m_sent_task.find(task.get());
 
-            iter->second->init(
-                *this->m_cmd_pool,
-                task_load->out_image_data.value(),
-                this->m_graphics_queue,
-                this->m_phys_device,
-                this->m_logi_device
-            );
+            if (this->m_sent_task.end() != iter) {
+                const auto task_load = reinterpret_cast<::Task_LoadImage*>(task.get());
 
-            this->m_sent_task.erase(iter);
+                iter->second->init(
+                    *this->m_cmd_pool,
+                    task_load->out_image_data.value(),
+                    this->m_graphics_queue,
+                    this->m_phys_device,
+                    this->m_logi_device
+                );
+
+                this->m_sent_task.erase(iter);
+            }
+
+            this->m_finalize_q.pop();
         }
+    }
+
+    void TextureManager::notify_task_done(std::unique_ptr<ITask> task) {
+        this->m_finalize_q.push(std::move(task));
     }
 
     const TextureUnit& TextureManager::request_asset_tex(const dal::ResPath& respath) {

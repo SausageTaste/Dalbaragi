@@ -433,8 +433,6 @@ namespace dal {
         }
 
         void update(const EulerCamera& camera) {
-            this->m_model_man.update();
-
             if (this->m_screen_resize_notified) {
                 this->m_screen_resize_notified = this->on_recreate_swapchain();
                 return;
@@ -461,6 +459,13 @@ namespace dal {
                 }
                 img_fences = &sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
             }
+
+            //-----------------------------------------------------------------------------------------------------
+
+            this->wait_device_idle();
+            this->m_tex_man.update();
+            this->m_model_man.update();
+            this->wait_device_idle();
 
             //-----------------------------------------------------------------------------------------------------
 
