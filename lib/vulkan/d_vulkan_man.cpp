@@ -370,8 +370,8 @@ namespace dal {
             this->m_tex_man.init(
                 task_man,
                 this->m_filesys,
-                this->m_cmd_man.pool_single_time(),
                 this->m_phys_info.does_support_anisotropic_sampling(),
+                this->m_logi_device.indices().graphics_family(),
                 this->m_logi_device.queue_graphics(),
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
@@ -381,8 +381,8 @@ namespace dal {
                 task_man,
                 this->m_filesys,
                 this->m_tex_man,
-                this->m_cmd_man.pool_single_time(),
                 this->m_desc_layout_man,
+                this->m_logi_device.indices().graphics_family(),
                 this->m_logi_device.queue_graphics(),
                 this->m_phys_device.get(),
                 this->m_logi_device.get()

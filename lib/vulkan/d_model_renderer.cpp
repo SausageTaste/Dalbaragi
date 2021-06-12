@@ -153,6 +153,7 @@ namespace dal {
 
     void ModelManager::destroy(const VkDevice logi_device) {
         this->m_sent_task.clear();
+        this->m_cmd_pool.destroy(logi_device);
 
         for (auto& x : this->m_models) {
             x.second.destroy(logi_device);
@@ -180,7 +181,7 @@ namespace dal {
 
             iter->second->upload_meshes(
                 task_load->out_model_data.value(),
-                *this->m_single_time_pool,
+                this->m_cmd_pool,
                 *this->m_tex_man,
                 task_load->m_respath.dir_list().front().c_str(),
                 this->m_desc_layout_man->layout_per_actor(),

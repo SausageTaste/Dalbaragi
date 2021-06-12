@@ -494,20 +494,20 @@ namespace dal {
     void TextureManager::init(
         dal::TaskManager& task_man,
         dal::Filesystem& filesys,
-        CommandPool& cmd_pool,
         const bool enable_anisotropy,
-        const VkQueue m_graphics_queue,
+        const uint32_t queue_family_index,
+        const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
         this->m_task_man = &task_man;
         this->m_filesys = &filesys;
-        this->m_cmd_pool = &cmd_pool,
-        this->m_graphics_queue = m_graphics_queue;
+        this->m_graphics_queue = graphics_queue;
         this->m_phys_device = phys_device;
         this->m_logi_device = logi_device;
 
         this->m_tex_sampler.init_for_color_map(enable_anisotropy, this->m_phys_device, this->m_logi_device);
+        this->m_cmd_pool.init(queue_family_index, logi_device);
     }
 
     void TextureManager::destroy(const VkDevice logi_device) {
@@ -516,6 +516,7 @@ namespace dal {
         this->m_textures.clear();
 
         this->m_tex_sampler.destroy(logi_device);
+        this->m_cmd_pool.destroy(logi_device);
     }
 
     void TextureManager::update() {
@@ -527,7 +528,7 @@ namespace dal {
                 const auto task_load = reinterpret_cast<::Task_LoadImage*>(task.get());
 
                 iter->second->init(
-                    *this->m_cmd_pool,
+                    this->m_cmd_pool,
                     task_load->out_image_data.value(),
                     this->m_graphics_queue,
                     this->m_phys_device,
@@ -587,7 +588,7 @@ namespace dal {
             auto iter = this->m_textures.find(::MISSING_TEX_PATH);
 
             iter->second.init(
-                *this->m_cmd_pool,
+                this->m_cmd_pool,
                 image.value(),
                 this->m_graphics_queue,
                 this->m_phys_device,
