@@ -818,8 +818,8 @@ namespace dal {
 
         static VkExtent2D calc_smaller_extent(const VkExtent2D& extent) {
             return VkExtent2D{
-                static_cast<uint32_t>(static_cast<double>(extent.width) * 0.9),
-                static_cast<uint32_t>(static_cast<double>(extent.height) * 0.9)
+                std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<double>(extent.width) * 0.9)),
+                std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<double>(extent.height) * 0.9))
             };
         }
 
