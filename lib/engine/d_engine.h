@@ -5,6 +5,7 @@
 #include "d_actor.h"
 #include "d_timer.h"
 #include "d_input_consumer.h"
+#include "d_scene.h"
 
 
 namespace dal {
@@ -24,8 +25,9 @@ namespace dal {
     private:
         EngineCreateInfo m_create_info;
 
-        dal::TaskManager m_task_man;
-        dal::VulkanState m_vulkan_man;
+        Scene m_scene;
+        TaskManager m_task_man;
+        VulkanState m_vulkan_man;
         InputManager m_input_man;
 
         std::vector<IInputListener*> m_input_listeners;
