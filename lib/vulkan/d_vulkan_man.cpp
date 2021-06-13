@@ -434,7 +434,7 @@ namespace dal {
             }
         }
 
-        void update(const EulerCamera& camera) {
+        void update(const ICamera& camera) {
             if (this->m_screen_resize_notified) {
                 this->m_screen_resize_notified = this->on_recreate_swapchain();
                 return;
@@ -477,7 +477,7 @@ namespace dal {
                 U_PerFrame ubuf_data_per_frame{};
                 ubuf_data_per_frame.m_view = camera.make_view_mat();
                 ubuf_data_per_frame.m_proj = ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
-                ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.m_pos, 1 };
+                ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
                 this->m_ubufs_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
                 U_PerFrame_Composition ubuf_data_composition{};
@@ -874,7 +874,7 @@ namespace dal {
         return nullptr != this->m_pimpl;
     }
 
-    void VulkanState::update(const EulerCamera& camera) {
+    void VulkanState::update(const ICamera& camera) {
         dalAssert(this->is_ready());
         this->m_pimpl->update(camera);
     }

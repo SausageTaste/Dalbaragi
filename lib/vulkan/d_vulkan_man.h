@@ -35,7 +35,7 @@ namespace dal {
 
         bool is_ready() const;
 
-        void update(const EulerCamera& camera);
+        void update(const ICamera& camera);
 
         void wait_device_idle() const;
 
