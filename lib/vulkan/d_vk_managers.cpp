@@ -3,6 +3,7 @@
 #include "d_logger.h"
 
 
+// CmdPoolManager
 namespace dal {
 
     void CmdPoolManager::init(const uint32_t swapchain_count, const uint32_t queue_family_index, const VkDevice logi_device) {
@@ -301,6 +302,51 @@ namespace dal {
         if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS) {
             dalAbort("failed to record command buffer!");
         }
+    }
+
+}
+
+
+// UbufManager
+namespace dal {
+
+    void UbufManager::init(
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->m_ub_simple.init(
+            MAX_FRAMES_IN_FLIGHT,
+            phys_device,
+            logi_device
+        );
+
+        this->m_ub_glights.init(
+            MAX_FRAMES_IN_FLIGHT,
+            phys_device,
+            logi_device
+        );
+
+        this->m_ub_per_frame_composition.init(
+            MAX_FRAMES_IN_FLIGHT,
+            phys_device,
+            logi_device
+        );
+
+        this->m_ub_per_frame_alpha.init(
+            MAX_FRAMES_IN_FLIGHT,
+            phys_device,
+            logi_device
+        );
+
+        this->m_ub_final.init(phys_device, logi_device);
+    }
+
+    void UbufManager::destroy(const VkDevice logi_device) {
+        this->m_ub_simple.destroy(logi_device);
+        this->m_ub_glights.destroy(logi_device);
+        this->m_ub_per_frame_composition.destroy(logi_device);
+        this->m_ub_per_frame_alpha.destroy(logi_device);
+        this->m_ub_final.destroy(logi_device);
     }
 
 }

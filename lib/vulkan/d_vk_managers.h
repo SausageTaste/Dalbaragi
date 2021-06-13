@@ -6,6 +6,7 @@
 #include "d_model_renderer.h"
 #include "d_render_pass.h"
 #include "d_framebuffer.h"
+#include "d_konsts.h"
 
 
 namespace dal {
@@ -71,6 +72,26 @@ namespace dal {
         auto& cmd_alpha_at(const size_t index) const {
             return this->m_cmd_alpha.at(index);
         }
+
+    };
+
+
+    class UbufManager {
+
+    public:
+        UniformBufferArray<U_PerFrame> m_ub_simple;
+        UniformBufferArray<U_GlobalLight> m_ub_glights;
+        UniformBufferArray<U_PerFrame_Composition> m_ub_per_frame_composition;
+        UniformBufferArray<U_PerFrame_Alpha> m_ub_per_frame_alpha;
+        UniformBuffer<U_PerFrame_InFinal> m_ub_final;
+
+    public:
+        void init(
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
 
     };
 
