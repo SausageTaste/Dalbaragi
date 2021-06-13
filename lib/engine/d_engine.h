@@ -2,7 +2,6 @@
 
 #include "d_vulkan_man.h"
 #include "d_inputs.h"
-#include "d_actor.h"
 #include "d_timer.h"
 #include "d_input_consumer.h"
 #include "d_scene.h"
@@ -34,7 +33,6 @@ namespace dal {
         InputDispatcher m_input_dispatch;
         unsigned m_screen_width, m_screen_height;
 
-        EulerCamera m_camera;
         Timer m_timer;
 
     public:

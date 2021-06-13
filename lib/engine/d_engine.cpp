@@ -251,9 +251,6 @@ namespace dal {
         this->m_input_listeners.push_back(&g_touch_dpad); g_touch_dpad.reset();
         this->m_input_listeners.push_back(&g_touch_view); g_touch_view.reset();
 
-        this->m_camera.m_pos = {2.68, 1.91, 0};
-        this->m_camera.m_rotations = {-0.22, glm::radians<float>(90), 0};
-
         this->m_timer.check();
     }
 
@@ -287,10 +284,10 @@ namespace dal {
                 ::make_move_direc(this->input_manager().gamepad_manager()) +
                 g_touch_dpad.make_move_vec(this->m_screen_width, this->m_screen_height)
             );
-            this->m_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
-            this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
+            this->m_scene.m_euler_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
+            this->m_scene.m_euler_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
 
-            this->m_camera.m_rotations += (
+            this->m_scene.m_euler_camera.m_rotations += (
                 ::make_rotation_angles(this->input_manager().key_manager()) * delta_time_f +
                 ::make_rotation_angles(this->input_manager().gamepad_manager()) * delta_time_f +
                 g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height) * 0.02f
@@ -300,7 +297,7 @@ namespace dal {
         this->m_task_man.update();
 
         if (this->m_vulkan_man.is_ready())
-            this->m_vulkan_man.update(this->m_camera);
+            this->m_vulkan_man.update(this->m_scene.m_euler_camera);
     }
 
     void Engine::init_vulkan(const unsigned win_width, const unsigned win_height) {

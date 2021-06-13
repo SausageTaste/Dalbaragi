@@ -9,5 +9,6 @@ target_include_directories(libdal_scene PUBLIC ./)
 
 target_link_libraries(libdal_scene
     PUBLIC
+        EnTT::EnTT
         libdal_util
 )
