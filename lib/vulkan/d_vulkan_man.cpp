@@ -32,6 +32,13 @@ namespace {
         return mat;
     }
 
+    VkExtent2D calc_smaller_extent(const VkExtent2D& extent, const float scale) {
+        return VkExtent2D{
+            std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<float>(extent.width) * scale)),
+            std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<float>(extent.height) * scale))
+        };
+    }
+
 }
 
 
@@ -685,7 +692,7 @@ namespace dal {
                 return false;
 
             this->m_attach_man.init(
-                this->calc_smaller_extent(this->m_new_extent),
+                ::calc_smaller_extent(this->m_new_extent, 0.9),
                 this->m_phys_device.get(),
                 this->m_logi_device.get()
             );
@@ -795,13 +802,6 @@ namespace dal {
                 ubuf_data_per_actor.m_model = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{1, 0, 0}) * glm::scale(glm::mat4{1}, glm::vec3{0.01});;
                 model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
             }
-        }
-
-        static VkExtent2D calc_smaller_extent(const VkExtent2D& extent) {
-            return VkExtent2D{
-                std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<double>(extent.width) * 0.8)),
-                std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<double>(extent.height) * 0.8))
-            };
         }
 
     };
