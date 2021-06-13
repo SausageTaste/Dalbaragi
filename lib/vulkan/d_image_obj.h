@@ -65,9 +65,18 @@ namespace dal {
         VkDeviceMemory m_memory = VK_NULL_HANDLE;
 
         VkFormat m_format;
+        uint32_t m_mip_levels = 1;
 
     public:
         void init_texture(
+            const ImageData& img,
+            dal::CommandPool& cmd_pool,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void init_texture_gen_mipmaps(
             const ImageData& img,
             dal::CommandPool& cmd_pool,
             const VkQueue graphics_queue,
@@ -94,6 +103,10 @@ namespace dal {
 
         auto format() const {
             return this->m_format;
+        }
+
+        auto mip_levels() const {
+            return this->m_mip_levels;
         }
 
     };
