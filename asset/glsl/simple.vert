@@ -12,6 +12,7 @@ layout(location = 1) out vec3 v_normal;
 layout(set = 0, binding = 0) uniform U_PerFrame {
     mat4 m_view;
     mat4 m_proj;
+    vec4 m_view_pos;
 } u_per_frame;
 
 layout(set = 2, binding = 0) uniform U_PerActor {

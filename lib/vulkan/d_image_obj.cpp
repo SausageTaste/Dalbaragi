@@ -69,9 +69,17 @@ namespace {
         return depth_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
+    template <typename T>
+    uint32_t calc_mip_levels(const T texture_width, const T texture_height) {
+        const auto a = std::floor(std::log2(std::max<double>(texture_width, texture_height)));
+        return static_cast<uint32_t>(a);
+    }
+
+
     auto create_image(
         const uint32_t width,
         const uint32_t height,
+        const uint32_t mip_levels,
         const VkFormat format,
         const VkImageTiling tiling,
         const VkImageUsageFlags usage,
@@ -88,7 +96,7 @@ namespace {
         image_info.extent.width = width;
         image_info.extent.height = height;
         image_info.extent.depth = 1;
-        image_info.mipLevels = 1;
+        image_info.mipLevels = mip_levels;
         image_info.arrayLayers = 1;
         image_info.format = format;
         image_info.tiling = tiling;
@@ -123,6 +131,7 @@ namespace {
 
     void transition_image_layout(
         const VkImage image,
+        const uint32_t mip_levels,
         const VkFormat format,
         const VkImageLayout old_layout,
         const VkImageLayout new_layout,
@@ -143,7 +152,7 @@ namespace {
         barrier.dstAccessMask = 0; // TODO
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.levelCount = mip_levels;
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = 1;
 
@@ -185,6 +194,7 @@ namespace {
         const VkBuffer src_buffer,
         const uint32_t width,
         const uint32_t height,
+        const uint32_t mip_level,
         dal::CommandPool& cmd_pool,
         const VkQueue graphics_queue,
         const VkDevice logi_device
@@ -197,16 +207,12 @@ namespace {
         region.bufferImageHeight = 0;
 
         region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.mipLevel = mip_level;
         region.imageSubresource.baseArrayLayer = 0;
         region.imageSubresource.layerCount = 1;
 
-        region.imageOffset = {0, 0, 0};
-        region.imageExtent = {
-            width,
-            height,
-            1
-        };
+        region.imageOffset = { 0, 0, 0 };
+        region.imageExtent = { width, height, 1 };
 
         vkCmdCopyBufferToImage(
             cmd_buf,
@@ -218,6 +224,101 @@ namespace {
         );
 
         cmd_pool.end_single_time_cmd(cmd_buf, graphics_queue, logi_device);
+    }
+
+    void generate_mipmaps(
+        const VkImage image,
+        const int32_t tex_width,
+        const int32_t tex_height,
+        const uint32_t mip_levels,
+        dal::CommandPool& cmdPool,
+        const VkQueue graphicsQ,
+        const VkDevice logiDevice
+    ) {
+        const auto cmdBuffer = cmdPool.begin_single_time_cmd(logiDevice);
+        {
+            VkImageMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.image = image;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.layerCount = 1;
+            barrier.subresourceRange.levelCount = 1;
+
+            int32_t mip_width = tex_width;
+            int32_t mip_height = tex_height;
+
+            for (uint32_t i = 1; i < mip_levels; ++i) {
+                barrier.subresourceRange.baseMipLevel = i - 1;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+                vkCmdPipelineBarrier(
+                    cmdBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+                );
+
+                VkImageBlit blit{};
+                blit.srcOffsets[0] = { 0, 0, 0 };
+                blit.srcOffsets[1] = { mip_width, mip_height, 1 };
+                blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                blit.srcSubresource.mipLevel = i - 1;
+                blit.srcSubresource.baseArrayLayer = 0;
+                blit.srcSubresource.layerCount = 1;
+                blit.dstOffsets[0] = { 0, 0, 0 };
+                blit.dstOffsets[1] = { mip_width > 1 ? mip_width / 2 : 1, mip_height > 1 ? mip_height / 2 : 1, 1 };
+                blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                blit.dstSubresource.mipLevel = i;
+                blit.dstSubresource.baseArrayLayer = 0;
+                blit.dstSubresource.layerCount = 1;
+
+                vkCmdBlitImage(
+                    cmdBuffer,
+                    image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    1, &blit,
+                    VK_FILTER_LINEAR
+                );
+
+                barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+                vkCmdPipelineBarrier(
+                    cmdBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+                );
+
+                if (mip_width > 1) mip_width /= 2;
+                if (mip_height > 1) mip_height /= 2;
+            }
+
+            barrier.subresourceRange.baseMipLevel = mip_levels - 1;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            vkCmdPipelineBarrier(
+                cmdBuffer,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier
+            );
+        }
+        cmdPool.end_single_time_cmd(cmdBuffer, graphicsQ, logiDevice);
     }
 
 }
@@ -307,6 +408,7 @@ namespace dal {
     ) {
         this->destory(logi_device);
         this->m_format = ::map_to_vk_format(img.format());
+        this->m_mip_levels = 1;
 
         BufferMemory staging_buffer;
         const auto staging_result = staging_buffer.init(
@@ -321,6 +423,7 @@ namespace dal {
         std::tie(this->m_image, this->m_memory) = ::create_image(
             img.width(),
             img.height(),
+            this->m_mip_levels,
             this->m_format,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -330,6 +433,7 @@ namespace dal {
 
         ::transition_image_layout(
             this->m_image,
+            this->m_mip_levels,
             this->m_format,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -343,6 +447,7 @@ namespace dal {
             staging_buffer.buffer(),
             img.width(),
             img.height(),
+            0,
             cmd_pool,
             graphics_queue,
             logi_device
@@ -352,9 +457,77 @@ namespace dal {
 
         ::transition_image_layout(
             this->m_image,
+            this->m_mip_levels,
             this->m_format,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            cmd_pool,
+            graphics_queue,
+            logi_device
+        );
+    }
+
+    void TextureImage::init_texture_gen_mipmaps(
+        const ImageData& img,
+        dal::CommandPool& cmd_pool,
+        const VkQueue graphics_queue,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->destory(logi_device);
+        this->m_format = ::map_to_vk_format(img.format());
+        this->m_mip_levels = ::calc_mip_levels(img.width(), img.height());
+
+        BufferMemory staging_buffer;
+        const auto staging_result = staging_buffer.init(
+            img.data_size(),
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            phys_device, logi_device
+        );
+        dalAssert(staging_result);
+        staging_buffer.copy_from_mem(img.data(), img.data_size(), logi_device);
+
+        std::tie(this->m_image, this->m_memory) = ::create_image(
+            img.width(),
+            img.height(),
+            this->m_mip_levels,
+            this->m_format,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            phys_device, logi_device
+        );
+
+        ::transition_image_layout(
+            this->m_image,
+            this->m_mip_levels,
+            this->m_format,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            cmd_pool,
+            graphics_queue,
+            logi_device
+        );
+
+        ::copy_buffer_to_image(
+            this->m_image,
+            staging_buffer.buffer(),
+            img.width(),
+            img.height(),
+            0,
+            cmd_pool,
+            graphics_queue,
+            logi_device
+        );
+
+        staging_buffer.destroy(logi_device);
+
+        ::generate_mipmaps(
+            this->image(),
+            img.width(),
+            img.height(),
+            this->m_mip_levels,
             cmd_pool,
             graphics_queue,
             logi_device
@@ -371,9 +544,11 @@ namespace dal {
     ) {
         this->destory(logi_device);
         this->m_format = format;
+        this->m_mip_levels = 1;
 
         std::tie(this->m_image, this->m_memory) = ::create_image(
             width, height,
+            this->m_mip_levels,
             this->m_format,
             VK_IMAGE_TILING_OPTIMAL,
             usage_flags,
@@ -430,7 +605,7 @@ namespace dal {
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0;
         samplerInfo.minLod = 0;
-        samplerInfo.maxLod = 0;
+        samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
 
         if (VK_SUCCESS != vkCreateSampler(logi_device, &samplerInfo, nullptr, &this->m_sampler)) {
             dalAbort("failed to create texture sampler!");
@@ -457,7 +632,7 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->m_image.init_texture(
+        this->m_image.init_texture_gen_mipmaps(
             img_data,
             cmd_pool,
             graphics_queue,
@@ -468,7 +643,7 @@ namespace dal {
         const auto result_view = this->m_view.init(
             this->m_image.image(),
             this->m_image.format(),
-            1,
+            this->m_image.mip_levels(),
             VK_IMAGE_ASPECT_COLOR_BIT,
             logi_device
         );
@@ -494,20 +669,20 @@ namespace dal {
     void TextureManager::init(
         dal::TaskManager& task_man,
         dal::Filesystem& filesys,
-        CommandPool& cmd_pool,
         const bool enable_anisotropy,
-        const VkQueue m_graphics_queue,
+        const uint32_t queue_family_index,
+        const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
         this->m_task_man = &task_man;
         this->m_filesys = &filesys;
-        this->m_cmd_pool = &cmd_pool,
-        this->m_graphics_queue = m_graphics_queue;
+        this->m_graphics_queue = graphics_queue;
         this->m_phys_device = phys_device;
         this->m_logi_device = logi_device;
 
         this->m_tex_sampler.init_for_color_map(enable_anisotropy, this->m_phys_device, this->m_logi_device);
+        this->m_cmd_pool.init(queue_family_index, logi_device);
     }
 
     void TextureManager::destroy(const VkDevice logi_device) {
@@ -516,23 +691,34 @@ namespace dal {
         this->m_textures.clear();
 
         this->m_tex_sampler.destroy(logi_device);
+        this->m_cmd_pool.destroy(logi_device);
+    }
+
+    void TextureManager::update() {
+        if (!this->m_finalize_q.empty()) {
+            auto& task = this->m_finalize_q.front();
+            const auto iter = this->m_sent_task.find(task.get());
+
+            if (this->m_sent_task.end() != iter) {
+                const auto task_load = reinterpret_cast<::Task_LoadImage*>(task.get());
+
+                iter->second->init(
+                    this->m_cmd_pool,
+                    task_load->out_image_data.value(),
+                    this->m_graphics_queue,
+                    this->m_phys_device,
+                    this->m_logi_device
+                );
+
+                this->m_sent_task.erase(iter);
+            }
+
+            this->m_finalize_q.pop();
+        }
     }
 
     void TextureManager::notify_task_done(std::unique_ptr<ITask> task) {
-        const auto iter = this->m_sent_task.find(task.get());
-        if (this->m_sent_task.end() != iter) {
-            auto task_load = reinterpret_cast<::Task_LoadImage*>(task.get());
-
-            iter->second->init(
-                *this->m_cmd_pool,
-                task_load->out_image_data.value(),
-                this->m_graphics_queue,
-                this->m_phys_device,
-                this->m_logi_device
-            );
-
-            this->m_sent_task.erase(iter);
-        }
+        this->m_finalize_q.push(std::move(task));
     }
 
     const TextureUnit& TextureManager::request_asset_tex(const dal::ResPath& respath) {
@@ -577,7 +763,7 @@ namespace dal {
             auto iter = this->m_textures.find(::MISSING_TEX_PATH);
 
             iter->second.init(
-                *this->m_cmd_pool,
+                this->m_cmd_pool,
                 image.value(),
                 this->m_graphics_queue,
                 this->m_phys_device,

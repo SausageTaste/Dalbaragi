@@ -1,5 +1,6 @@
 #pragma once
 
+#include <queue>
 #include <memory>
 #include <unordered_map>
 
@@ -64,9 +65,18 @@ namespace dal {
         VkDeviceMemory m_memory = VK_NULL_HANDLE;
 
         VkFormat m_format;
+        uint32_t m_mip_levels = 1;
 
     public:
         void init_texture(
+            const ImageData& img,
+            dal::CommandPool& cmd_pool,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void init_texture_gen_mipmaps(
             const ImageData& img,
             dal::CommandPool& cmd_pool,
             const VkQueue graphics_queue,
@@ -93,6 +103,10 @@ namespace dal {
 
         auto format() const {
             return this->m_format;
+        }
+
+        auto mip_levels() const {
+            return this->m_mip_levels;
         }
 
     };
@@ -150,11 +164,12 @@ namespace dal {
     private:
         std::unordered_map<std::string, TextureUnit> m_textures;
         std::unordered_map<void*, TextureUnit*> m_sent_task;
+        std::queue<std::unique_ptr<ITask>> m_finalize_q;
         Sampler m_tex_sampler;
+        CommandPool m_cmd_pool;
 
         dal::TaskManager* m_task_man = nullptr;
         Filesystem* m_filesys = nullptr;
-        CommandPool* m_cmd_pool = nullptr;
         VkQueue m_graphics_queue = VK_NULL_HANDLE;
         VkPhysicalDevice m_phys_device = VK_NULL_HANDLE;
         VkDevice m_logi_device = VK_NULL_HANDLE;
@@ -163,14 +178,16 @@ namespace dal {
         void init(
             dal::TaskManager& task_man,
             dal::Filesystem& filesys,
-            CommandPool& cmd_pool,
             const bool enable_anisotropy,
-            const VkQueue m_graphics_queue,
+            const uint32_t queue_family_index,
+            const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
 
         void destroy(const VkDevice logi_device);
+
+        void update();
 
         void notify_task_done(std::unique_ptr<ITask> task) override;
 

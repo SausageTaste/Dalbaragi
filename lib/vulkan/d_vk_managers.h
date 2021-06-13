@@ -17,7 +17,6 @@ namespace dal {
         std::vector<VkCommandBuffer> m_cmd_simple;  // Per swapchain
         std::vector<VkCommandBuffer> m_cmd_final;  // Per swapchain
         std::vector<VkCommandBuffer> m_cmd_alpha;  // Per swapchain
-        CommandPool m_pool_for_single_time;
 
     public:
         void init(const uint32_t swapchain_count, const uint32_t queue_family_index, const VkDevice logi_device);
@@ -52,6 +51,7 @@ namespace dal {
             const size_t flight_frame_index,
             const std::vector<ModelRenderer*>& models,
             const VkDescriptorSet desc_set_per_frame,
+            const VkDescriptorSet desc_set_per_world,
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
             const VkFramebuffer swapchain_fbuf,
@@ -70,10 +70,6 @@ namespace dal {
 
         auto& cmd_alpha_at(const size_t index) const {
             return this->m_cmd_alpha.at(index);
-        }
-
-        auto& pool_single_time() {
-            return this->m_pool_for_single_time;
         }
 
     };

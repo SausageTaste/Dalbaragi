@@ -8,7 +8,6 @@ namespace dal {
     void CmdPoolManager::init(const uint32_t swapchain_count, const uint32_t queue_family_index, const VkDevice logi_device) {
         this->destroy(logi_device);
 
-        this->m_pool_for_single_time.init(queue_family_index, logi_device);
         this->m_pools.resize(swapchain_count);
 
         this->m_cmd_simple.resize(swapchain_count);
@@ -24,7 +23,6 @@ namespace dal {
     }
 
     void CmdPoolManager::destroy(const VkDevice logi_device) {
-        this->m_pool_for_single_time.destroy(logi_device);
         for (auto& pool : this->m_pools)
             pool.destroy(logi_device);
         this->m_pools.clear();
@@ -205,6 +203,7 @@ namespace dal {
         const size_t flight_frame_index,
         const std::vector<ModelRenderer*>& models,
         const VkDescriptorSet desc_set_per_frame,
+        const VkDescriptorSet desc_set_per_world,
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
         const VkFramebuffer swapchain_fbuf,
@@ -272,6 +271,15 @@ namespace dal {
                         pipe_layout_alpha,
                         0,
                         1, &desc_set_per_frame,
+                        0, nullptr
+                    );
+
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipe_layout_alpha,
+                        3,
+                        1, &desc_set_per_world,
                         0, nullptr
                     );
 

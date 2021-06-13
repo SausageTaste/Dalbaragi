@@ -16,8 +16,18 @@ namespace dal {
         glm::mat4 m_rotation;
     };
 
+    struct U_PerFrame_Composition {
+        glm::mat4 m_view_inv{1}, m_proj_inv{1};
+        glm::vec4 m_view_pos{};
+    };
+
+    struct U_PerFrame_Alpha {
+        glm::vec4 m_view_pos{0};
+    };
+
     struct U_PerFrame {
         glm::mat4 m_view{1}, m_proj{1};
+        glm::vec4 m_view_pos{};
     };
 
     struct U_PerMaterial {
@@ -32,7 +42,14 @@ namespace dal {
     struct U_GlobalLight {
         glm::vec4 m_dlight_direc[2];
         glm::vec4 m_dlight_color[2];
-        uint32_t m_dlight_count;
+
+        glm::vec4 m_plight_pos_n_max_dist[3];
+        glm::vec4 m_plight_color[3];
+
+        glm::vec4 m_ambient_light;
+
+        uint32_t m_dlight_count = 0;
+        uint32_t m_plight_count = 0;
     };
 
 
@@ -130,6 +147,7 @@ namespace dal {
         VkDescriptorSetLayout m_layout_per_frame = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_material = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_actor = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_per_world = VK_NULL_HANDLE;
 
         VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
 
@@ -152,6 +170,10 @@ namespace dal {
 
         auto layout_per_actor() const {
             return this->m_layout_per_actor;
+        }
+
+        auto layout_per_world() const {
+            return this->m_layout_per_world;
         }
 
         auto layout_composition() const {
@@ -201,9 +223,16 @@ namespace dal {
             const VkDevice logi_device
         );
 
+        void record_per_world(
+            const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+            const UniformBuffer<U_PerFrame_Alpha>& ubuf_per_frame_alpha,
+            const VkDevice logi_device
+        );
+
         void record_composition(
             const std::vector<VkImageView>& attachment_views,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+            const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
             const VkDevice logi_device
         );
 
@@ -249,6 +278,7 @@ namespace dal {
         std::vector<DescPool> m_pool_final;
         std::vector<DescSet> m_descset_per_frame;
         std::vector<DescSet> m_descset_final;
+        std::vector<DescSet> m_descset_per_world;
         std::vector<DescSet> m_descset_composition;  // Per frame
 
     public:
@@ -267,6 +297,14 @@ namespace dal {
             const VkDevice logi_device
         );
 
+        void init_desc_sets_per_world(
+            const UniformBufferArray<U_GlobalLight>& ubuf_global_light,
+            const UniformBufferArray<U_PerFrame_Alpha>& ubufs_per_frame_alpha,
+            const uint32_t swapchain_count,
+            const VkDescriptorSetLayout desc_layout_world,
+            const VkDevice logi_device
+        );
+
         void init_desc_sets_final(
             const uint32_t index,
             const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
@@ -279,12 +317,17 @@ namespace dal {
         void add_desc_set_composition(
             const std::vector<VkImageView>& attachment_views,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+            const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
             const VkDescriptorSetLayout desc_layout_composition,
             const VkDevice logi_device
         );
 
         auto& desc_set_per_frame_at(const size_t index) const {
             return this->m_descset_per_frame.at(index).get();
+        }
+
+        auto& desc_set_per_world(const size_t index) const {
+            return this->m_descset_per_world.at(index).get();
         }
 
         auto& desc_set_final_at(const size_t index) const {

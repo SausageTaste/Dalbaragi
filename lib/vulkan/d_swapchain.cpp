@@ -216,40 +216,24 @@ namespace dal {
     void SwapchainSyncManager::init(const uint32_t swapchain_count, const VkDevice logi_device) {
         this->destroy(logi_device);
 
-        this->m_img_available.resize(MAX_FRAMES_IN_FLIGHT);
-        for (auto& sem : this->m_img_available) {
-            sem.init(logi_device);
-        }
+        this->m_semaph_img_available.init(MAX_FRAMES_IN_FLIGHT, logi_device);
 
-        this->m_render_finished.resize(MAX_FRAMES_IN_FLIGHT);
-        for (auto& sem : this->m_render_finished) {
-            sem.init(logi_device);
-        }
+        this->m_semaph_cmd_done_gbuf.init(MAX_FRAMES_IN_FLIGHT, logi_device);
+        this->m_semaph_cmd_done_final.init(MAX_FRAMES_IN_FLIGHT, logi_device);
+        this->m_semaph_cmd_done_alpha.init(MAX_FRAMES_IN_FLIGHT, logi_device);
 
-        this->m_frame_in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
-        for (auto& fence : this->m_frame_in_flight_fences) {
-            fence.init(logi_device);
-        }
-
+        this->m_fence_frame_in_flight.init(MAX_FRAMES_IN_FLIGHT, logi_device);
         this->m_img_in_flight_fences.resize(swapchain_count, nullptr);
     }
 
     void SwapchainSyncManager::destroy(const VkDevice logi_device) {
-        for (auto& sem : this->m_img_available) {
-            sem.destory(logi_device);
-        }
-        this->m_img_available.clear();
+        this->m_semaph_img_available.destroy(logi_device);
 
-        for (auto& sem : this->m_render_finished) {
-            sem.destory(logi_device);
-        }
-        this->m_render_finished.clear();
+        this->m_semaph_cmd_done_gbuf.destroy(logi_device);
+        this->m_semaph_cmd_done_final.destroy(logi_device);
+        this->m_semaph_cmd_done_alpha.destroy(logi_device);
 
-        for (auto& x : this->m_frame_in_flight_fences) {
-            x.destory(logi_device);
-        }
-        this->m_frame_in_flight_fences.clear();
-
+        this->m_fence_frame_in_flight.destroy(logi_device);
         this->m_img_in_flight_fences.clear();
     }
 
@@ -485,7 +469,7 @@ namespace dal {
             logi_device,
             this->m_swapChain,
             UINT64_MAX,
-            this->m_sync_man.semaphore_img_available(cur_img_index).get(),  // Signaled when the presentation engine is finished using the image
+            this->m_sync_man.m_semaph_img_available.at(cur_img_index).get(),  // Signaled when the presentation engine is finished using the image
             VK_NULL_HANDLE,
             &img_index
         );

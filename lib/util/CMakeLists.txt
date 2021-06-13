@@ -14,6 +14,7 @@ add_library(libdal_util STATIC
     d_task_thread.h         d_task_thread.cpp
     d_input_consumer.h      d_input_consumer.cpp
     d_input_def.h           d_input_def.cpp
+    d_static_list.h         d_static_list.cpp
 )
 target_compile_features(libdal_util PUBLIC cxx_std_17)
 target_include_directories(libdal_util PUBLIC ./)

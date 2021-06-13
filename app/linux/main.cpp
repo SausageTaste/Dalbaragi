@@ -17,13 +17,13 @@ int main(int argc, char** argv) {
 
     dal::EngineCreateInfo engine_info;
     engine_info.m_window_title = "Dalbrargi";
-    engine_info.m_init_width = window.width();
-    engine_info.m_init_height = window.height();
     engine_info.m_filesystem = &filesys;
     engine_info.m_extensions = window.get_vulkan_extensions();
     engine_info.m_surface_create_func = window.get_vk_surface_creator();
 
     dal::Engine engine{ engine_info };
+    engine.init_vulkan(window.width(), window.height());
+
     window.set_callback_fbuf_resize([&engine](int width, int height) { engine.on_screen_resize(width, height); });
     window.set_callback_mouse_event([&engine](const dal::MouseEvent& e) {
         engine.input_manager().touch_manager().push_back(static_cast<dal::TouchEvent>(e));
@@ -31,10 +31,14 @@ int main(int argc, char** argv) {
     window.set_callback_key_event([&engine](const dal::KeyEvent& e) {
         engine.input_manager().key_manager().push_back(e);
     });
+    window.set_callback_gamepad_connection([&engine](const dal::GamepadConnectionEvent& e) {
+        engine.input_manager().gamepad_manager().notify_connection_change(e);
+    });
 
     dalInfo("Done init");
 
     while (!window.should_close()) {
+        window.update_input_gamepad(engine.input_manager().gamepad_manager());
         window.do_frame();
         engine.update();
     }

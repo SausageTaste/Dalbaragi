@@ -3,6 +3,7 @@
 #include <array>
 
 #include "d_logger.h"
+#include "d_static_list.h"
 
 
 namespace {
@@ -107,6 +108,38 @@ namespace {
         return output;
     }
 
+    VkDescriptorSetLayout create_layout_per_world(const VkDevice logi_device) {
+        std::vector<VkDescriptorSetLayoutBinding> bindings{};
+
+        // U_GlobalLight
+        bindings.emplace_back();
+        bindings.back().binding = bindings.size() - 1;
+        bindings.back().descriptorCount = 1;
+        bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        // U_PerFrame_Alpha
+        bindings.emplace_back();
+        bindings.back().binding = bindings.size() - 1;
+        bindings.back().descriptorCount = 1;
+        bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        //----------------------------------------------------------------------------------
+
+        VkDescriptorSetLayoutCreateInfo layout_info{};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.bindingCount = bindings.size();
+        layout_info.pBindings = bindings.data();
+
+        VkDescriptorSetLayout result = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &result)) {
+            dalAbort("failed to create descriptor set layout!");
+        }
+
+        return result;
+    }
+
     VkDescriptorSetLayout create_layout_composition(const VkDevice logiDevice) {
         std::vector<VkDescriptorSetLayoutBinding> bindings{};
 
@@ -141,6 +174,13 @@ namespace {
         bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+        // Ubuf U_PerFrame_Composition
+        bindings.emplace_back();
+        bindings.back().binding = bindings.size() - 1;
+        bindings.back().descriptorCount = 1;
+        bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = bindings.size();
@@ -168,6 +208,7 @@ namespace dal {
         this->m_layout_per_frame = ::create_layout_per_frame(logiDevice);
         this->m_layout_per_material = ::create_layout_per_material(logiDevice);
         this->m_layout_per_actor = ::create_layout_per_actor(logiDevice);
+        this->m_layout_per_world = ::create_layout_per_world(logiDevice);
 
         this->m_layout_composition = ::create_layout_composition(logiDevice);
     }
@@ -193,11 +234,114 @@ namespace dal {
             this->m_layout_per_actor = VK_NULL_HANDLE;
         }
 
+        if (VK_NULL_HANDLE != this->m_layout_per_world) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_world, nullptr);
+            this->m_layout_per_world = VK_NULL_HANDLE;
+        }
+
         if (VK_NULL_HANDLE != this->m_layout_composition) {
             vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_composition, nullptr);
             this->m_layout_composition = VK_NULL_HANDLE;
         }
     }
+
+}
+
+
+namespace {
+
+    class WriteDescBuilder {
+
+    private:
+        VkDescriptorSet m_desc_set = VK_NULL_HANDLE;
+        std::vector<VkWriteDescriptorSet> m_desc_writes;
+
+        dal::StaticVector<VkDescriptorBufferInfo, 16> m_buffer_info;
+        dal::StaticVector<VkDescriptorImageInfo, 16> m_image_info;
+
+    public:
+        WriteDescBuilder(const VkDescriptorSet desc_set)
+            : m_desc_set(desc_set)
+        {
+
+        }
+
+        uint32_t size() const {
+            return this->m_desc_writes.size();
+        }
+
+        const VkWriteDescriptorSet* data() const {
+            return this->m_desc_writes.data();
+        }
+
+        template <typename T>
+        size_t add_buffer(const dal::UniformBuffer<T>& ubuf) {
+            auto& info = this->m_buffer_info.emplace_back();
+            info.buffer = ubuf.buffer();
+            info.range = ubuf.data_size();
+            info.offset = 0;
+
+            const auto index = this->m_desc_writes.size();
+
+            auto& write = this->m_desc_writes.emplace_back();
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.dstSet = this->m_desc_set;
+            write.dstBinding = index;
+            write.dstArrayElement = 0;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            write.descriptorCount = 1;
+            write.pBufferInfo = &info;
+            write.pImageInfo = nullptr;
+            write.pTexelBufferView = nullptr;
+
+            return index;
+        }
+
+        size_t add_img_sampler(const VkImageView img_view, const VkSampler sampler) {
+            auto& info = this->m_image_info.emplace_back();
+            info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            info.imageView = img_view;
+            info.sampler = sampler;
+
+            const auto index = this->m_desc_writes.size();
+
+            auto& write = this->m_desc_writes.emplace_back();
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.dstSet = this->m_desc_set;
+            write.dstBinding = index;
+            write.dstArrayElement = 0;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write.descriptorCount = 1;
+            write.pBufferInfo = nullptr;
+            write.pImageInfo = &info;
+            write.pTexelBufferView = nullptr;
+
+            return index;
+        }
+
+        size_t add_input_attachment(const VkImageView img_view) {
+            auto& info = this->m_image_info.emplace_back();
+            info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            info.imageView = img_view;
+            info.sampler = VK_NULL_HANDLE;
+
+            const auto index = this->m_desc_writes.size();
+
+            auto& write = this->m_desc_writes.emplace_back();
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.dstSet = this->m_desc_set;
+            write.dstBinding = index;
+            write.dstArrayElement = 0;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+            write.descriptorCount = 1;
+            write.pBufferInfo = nullptr;
+            write.pImageInfo = &info;
+            write.pTexelBufferView = nullptr;
+
+            return index;
+        }
+
+    };
 
 }
 
@@ -215,37 +359,10 @@ namespace dal {
         const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
-        VkDescriptorImageInfo image_info{};
-        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        image_info.imageView = color_view;
-        image_info.sampler = sampler;
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = ubuf_per_frame.buffer();
-        buffer_info.offset = 0;
-        buffer_info.range = ubuf_per_frame.data_size();
-
-        //--------------------------------------------------------------------
-
-        std::array<VkWriteDescriptorSet, 2> desc_writes{};
-
-        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[0].dstSet = this->m_handle;
-        desc_writes[0].dstBinding = 0;
-        desc_writes[0].dstArrayElement = 0;
-        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        desc_writes[0].descriptorCount = 1;
-        desc_writes[0].pImageInfo = &image_info;
-
-        desc_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[1].dstSet = this->m_handle;
-        desc_writes[1].dstBinding = 1;
-        desc_writes[1].dstArrayElement = 0;
-        desc_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        desc_writes[1].descriptorCount = 1;
-        desc_writes[1].pBufferInfo = &buffer_info;
-
-        //--------------------------------------------------------------------
+        desc_writes.add_img_sampler(color_view, sampler);
+        desc_writes.add_buffer(ubuf_per_frame);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -254,26 +371,9 @@ namespace dal {
         const UniformBuffer<U_PerFrame>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
-        VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = ubuf_per_frame.buffer();
-        buffer_info.offset = 0;
-        buffer_info.range = ubuf_per_frame.data_size();
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        //--------------------------------------------------------------------
-
-        std::array<VkWriteDescriptorSet, 1> desc_writes{};
-
-        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[0].dstSet = this->m_handle;
-        desc_writes[0].dstBinding = 0;  // specified in shader code
-        desc_writes[0].dstArrayElement = 0;
-        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        desc_writes[0].descriptorCount = 1;
-        desc_writes[0].pBufferInfo = &buffer_info;
-        desc_writes[0].pImageInfo = nullptr;
-        desc_writes[0].pTexelBufferView = nullptr;
-
-        //--------------------------------------------------------------------
+        desc_writes.add_buffer(ubuf_per_frame);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -284,39 +384,10 @@ namespace dal {
         const VkSampler sampler,
         const VkDevice logi_device
     ) {
-        VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = ubuf_per_material.buffer();
-        buffer_info.offset = 0;
-        buffer_info.range = ubuf_per_material.data_size();
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        VkDescriptorImageInfo image_info{};
-        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        image_info.imageView = texture_view;
-        image_info.sampler = sampler;
-
-        //--------------------------------------------------------------------
-
-        std::array<VkWriteDescriptorSet, 2> desc_writes{};
-
-        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[0].dstSet = this->m_handle;
-        desc_writes[0].dstBinding = 0;  // specified in shader code
-        desc_writes[0].dstArrayElement = 0;
-        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        desc_writes[0].descriptorCount = 1;
-        desc_writes[0].pBufferInfo = &buffer_info;
-        desc_writes[0].pImageInfo = nullptr;
-        desc_writes[0].pTexelBufferView = nullptr;
-
-        desc_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[1].dstSet = this->m_handle;
-        desc_writes[1].dstBinding = 1;
-        desc_writes[1].dstArrayElement = 0;
-        desc_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        desc_writes[1].descriptorCount = 1;
-        desc_writes[1].pImageInfo = &image_info;
-
-        //--------------------------------------------------------------------
+        desc_writes.add_buffer(ubuf_per_material);
+        desc_writes.add_img_sampler(texture_view, sampler);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -325,26 +396,22 @@ namespace dal {
         const UniformBuffer<U_PerActor>& ubuf_per_actor,
         const VkDevice logi_device
     ) {
-        VkDescriptorBufferInfo buffer_info{};
-        buffer_info.buffer = ubuf_per_actor.buffer();
-        buffer_info.offset = 0;
-        buffer_info.range = ubuf_per_actor.data_size();
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        //--------------------------------------------------------------------
+        desc_writes.add_buffer(ubuf_per_actor);
 
-        std::array<VkWriteDescriptorSet, 1> desc_writes{};
+        vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
+    }
 
-        desc_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        desc_writes[0].dstSet = this->m_handle;
-        desc_writes[0].dstBinding = 0;  // specified in shader code
-        desc_writes[0].dstArrayElement = 0;
-        desc_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        desc_writes[0].descriptorCount = 1;
-        desc_writes[0].pBufferInfo = &buffer_info;
-        desc_writes[0].pImageInfo = nullptr;
-        desc_writes[0].pTexelBufferView = nullptr;
+    void DescSet::record_per_world(
+        const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+        const UniformBuffer<U_PerFrame_Alpha>& ubuf_per_frame_alpha,
+        const VkDevice logi_device
+    ) {
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        //--------------------------------------------------------------------
+        desc_writes.add_buffer(ubuf_global_light);
+        desc_writes.add_buffer(ubuf_per_frame_alpha);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -352,53 +419,18 @@ namespace dal {
     void DescSet::record_composition(
         const std::vector<VkImageView>& attachment_views,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+        const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
-        std::vector<VkDescriptorImageInfo> attachments_info(attachment_views.size());
-        for (size_t i = 0; i < attachment_views.size(); ++i) {
-            auto& x = attachments_info.at(i);
-            x.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            x.imageView = attachment_views.at(i);
-            x.sampler = VK_NULL_HANDLE;
-        }
+        ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        VkDescriptorBufferInfo ubuf_info_global_light{};
-        ubuf_info_global_light.buffer = ubuf_global_light.buffer();
-        ubuf_info_global_light.offset = 0;
-        ubuf_info_global_light.range = ubuf_global_light.data_size();
+        for (size_t i = 0; i < attachment_views.size(); ++i)
+            desc_writes.add_input_attachment(attachment_views.at(i));
 
-        //--------------------------------------------------------------------
+        const auto global_light_index = desc_writes.add_buffer(ubuf_global_light);
+        dalAssert(4 == global_light_index);
 
-        std::vector<VkWriteDescriptorSet> desc_writes{};
-
-        for (size_t i = 0; i < attachments_info.size(); ++i) {
-            auto& x = desc_writes.emplace_back();
-
-            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            x.dstSet = this->m_handle;
-            x.dstBinding = desc_writes.size() - 1;
-            x.dstArrayElement = 0;
-            x.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-            x.descriptorCount = 1;
-            x.pBufferInfo = nullptr;
-            x.pImageInfo = &attachments_info[i];
-            x.pTexelBufferView = nullptr;
-        }
-
-        {
-            auto& x = desc_writes.emplace_back();
-            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            x.dstSet = this->m_handle;
-            x.dstBinding = desc_writes.size() - 1;
-            x.dstArrayElement = 0;
-            x.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            x.descriptorCount = 1;
-            x.pBufferInfo = &ubuf_info_global_light;
-            x.pImageInfo = nullptr;
-            x.pTexelBufferView = nullptr;
-        }
-
-        //--------------------------------------------------------------------
+        desc_writes.add_buffer(ubuf_per_frame);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -546,6 +578,21 @@ namespace dal {
         }
     }
 
+    void DescriptorManager::init_desc_sets_per_world(
+        const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
+        const UniformBufferArray<U_PerFrame_Alpha>& ubufs_per_frame_alpha,
+        const uint32_t swapchain_count,
+        const VkDescriptorSetLayout desc_layout_world,
+        const VkDevice logi_device
+    ) {
+        this->m_descset_per_world = this->m_pool_simple.allocate(swapchain_count, desc_layout_world, logi_device);
+
+        for (size_t i = 0; i < this->m_descset_per_world.size(); ++i) {
+            auto& desc_set = this->m_descset_per_world.at(i);
+            desc_set.record_per_world(ubufs_global_light.at(i), ubufs_per_frame_alpha.at(i), logi_device);
+        }
+    }
+
     void DescriptorManager::init_desc_sets_final(
         const uint32_t index,
         const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
@@ -562,12 +609,13 @@ namespace dal {
     void DescriptorManager::add_desc_set_composition(
         const std::vector<VkImageView>& attachment_views,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+        const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
         const VkDescriptorSetLayout desc_layout_composition,
         const VkDevice logi_device
     ) {
         auto& new_desc = this->m_descset_composition.emplace_back();
         new_desc = this->m_pool_composition.allocate(desc_layout_composition, logi_device);
-        new_desc.record_composition(attachment_views, ubuf_global_light, logi_device);
+        new_desc.record_composition(attachment_views, ubuf_global_light, ubuf_per_frame, logi_device);
     }
 
 }

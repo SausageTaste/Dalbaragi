@@ -18,10 +18,14 @@ namespace {
         ) override {
             std::unique_lock lck{ this->m_mut };
 
-            if (static_cast<int>(level) >= static_cast<int>(dal::LogLevel::warning))
+            if (static_cast<int>(level) >= static_cast<int>(dal::LogLevel::warning)) {
                 std::cerr << "[" << dal::get_log_level_str(level) << "] " << str << std::endl;
-            else
+                return;
+            }
+            else {
                 std::cout << "[" << dal::get_log_level_str(level) << "] " << str << std::endl;
+                return;
+            }
         }
 
     };

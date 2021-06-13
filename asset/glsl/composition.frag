@@ -3,13 +3,46 @@
 #include "d_lighting.glsl"
 
 
+layout(location = 0) in vec2 v_device_coord;
+
+layout (location = 0) out vec4 out_color;
+
+
 layout (input_attachment_index = 0, binding = 0) uniform subpassInput input_depth;
 layout (input_attachment_index = 1, binding = 1) uniform subpassInput input_albedo;
 layout (input_attachment_index = 2, binding = 2) uniform subpassInput input_material;
 layout (input_attachment_index = 3, binding = 3) uniform subpassInput input_normal;
 
+layout(set = 0, binding = 4) uniform U_GlobalLight {
+    vec4 m_dlight_direc[2];
+    vec4 m_dlight_color[2];
 
-layout (location = 0) out vec4 out_color;
+    vec4 m_plight_pos_n_max_dist[3];
+    vec4 m_plight_color[3];
+
+    vec4 m_ambient_light;
+
+    uint m_dlight_count;
+    uint m_plight_count;
+} u_global_light;
+
+layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
+    mat4 m_view_inv;
+    mat4 m_proj_inv;
+    vec4 m_view_pos;
+} u_per_frame_composition;
+
+
+vec3 calc_world_pos(const float z) {
+    const vec4 clipSpacePosition = vec4(v_device_coord, z, 1);
+
+    vec4 viewSpacePosition = u_per_frame_composition.m_proj_inv * clipSpacePosition;
+    viewSpacePosition /= viewSpacePosition.w;
+
+    const vec4 worldSpacePosition = u_per_frame_composition.m_view_inv * viewSpacePosition;
+
+    return worldSpacePosition.xyz;
+}
 
 
 void main() {
@@ -18,8 +51,41 @@ void main() {
     const vec3 albedo = subpassLoad(input_albedo).xyz;
     const vec2 material = subpassLoad(input_material).xy;
 
-    float light_color = 0.25;
-    light_color += max(dot(TO_LIGHT_DIRECTION, normal), 0) * 0.75;
+    const vec3 world_pos = calc_world_pos(depth);
+    const vec3 view_direc = normalize(u_per_frame_composition.m_view_pos.xyz - world_pos);
+    const vec3 F0 = mix(vec3(0.04), albedo, material.y);
 
-    out_color = vec4(albedo * light_color, 1);
+    vec3 light = albedo * u_global_light.m_ambient_light.xyz;
+
+    for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
+        light += calc_pbr_illumination(
+            material.x,
+            material.y,
+            albedo,
+            normal,
+            F0,
+            view_direc,
+            u_global_light.m_dlight_direc[i].xyz,
+            1,
+            u_global_light.m_dlight_color[i].xyz
+        );
+    }
+
+    for (uint i = 0; i < u_global_light.m_plight_count; ++i) {
+        const vec3 frag_to_light_direc = normalize(u_global_light.m_plight_pos_n_max_dist[i].xyz - world_pos);
+
+        light += calc_pbr_illumination(
+            material.x,
+            material.y,
+            albedo,
+            normal,
+            F0,
+            view_direc,
+            frag_to_light_direc,
+            1,
+            u_global_light.m_plight_color[i].xyz
+        );
+    }
+
+    out_color = vec4(light, 1);
 }
