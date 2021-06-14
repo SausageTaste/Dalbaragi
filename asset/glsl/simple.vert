@@ -23,5 +23,5 @@ layout(set = 2, binding = 0) uniform U_PerActor {
 void main() {
     gl_Position = u_per_frame.m_proj * u_per_frame.m_view * u_per_actor.m_model * vec4(i_position, 1);
     v_uv_coord = i_uv_coord;
-    v_normal = normalize((u_per_actor.m_model * vec4(i_normal, 0)).xyz);
+    v_normal = (u_per_actor.m_model * vec4(i_normal, 0)).xyz;
 }

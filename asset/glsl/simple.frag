@@ -41,5 +41,5 @@ void main() {
 #endif
 
     out_material = vec4(u_per_material.m_roughness, u_per_material.m_metallic, 0, 1);
-    out_normal = vec4(v_normal, 0);
+    out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, 0);
 }

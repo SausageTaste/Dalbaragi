@@ -47,7 +47,7 @@ vec3 calc_world_pos(const float z) {
 
 void main() {
     const float depth = subpassLoad(input_depth).x;
-    const vec3 normal = subpassLoad(input_normal).xyz;
+    const vec3 normal = subpassLoad(input_normal).xyz * 2.0 - 1.0;
     const vec3 albedo = subpassLoad(input_albedo).xyz;
     const vec2 material = subpassLoad(input_material).xy;
 
