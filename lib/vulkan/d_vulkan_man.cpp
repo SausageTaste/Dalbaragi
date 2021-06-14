@@ -325,20 +325,20 @@ namespace dal {
         {
             U_GlobalLight ubuf_data_glight{};
 
-            const auto light_direc = glm::vec3{sin(dal::get_cur_sec()), 1, cos(dal::get_cur_sec())};
+            const auto light_direc = glm::vec3{1, 1, 1};
             ubuf_data_glight.m_dlight_count = 1;
             ubuf_data_glight.m_dlight_direc[0] = glm::vec4{glm::normalize(light_direc), 0};
-            ubuf_data_glight.m_dlight_color[0] = glm::vec4{0.2, 0.2, 0.2, 1};
+            ubuf_data_glight.m_dlight_color[0] = glm::vec4{0.2, 0.2, 0.4, 1};
 
-            ubuf_data_glight.m_plight_count = 2;
+            ubuf_data_glight.m_plight_count = 1;
 
-            ubuf_data_glight.m_plight_pos_n_max_dist[0] = glm::vec4{ sin(dal::get_cur_sec()) * 2, 1, cos(dal::get_cur_sec()) * 2, 20 };
-            ubuf_data_glight.m_plight_color[0] = glm::vec4{ 8, 1, 1, 1 };
+            ubuf_data_glight.m_plight_pos_n_max_dist[0] = glm::vec4{ sin(dal::get_cur_sec()) * 3, 1, cos(dal::get_cur_sec()) * 3, 20 };
+            ubuf_data_glight.m_plight_color[0] = glm::vec4{ glm::vec3{0.2}, 1 };
 
             ubuf_data_glight.m_plight_pos_n_max_dist[1] = glm::vec4{ cos(dal::get_cur_sec()) * 2, 1, sin(dal::get_cur_sec()) * 2, 20 };
-            ubuf_data_glight.m_plight_color[1] = glm::vec4{ 1, 1, 8, 1 };
+            ubuf_data_glight.m_plight_color[1] = glm::vec4{ 1, 1, 1, 1 };
 
-            ubuf_data_glight.m_ambient_light = glm::vec4{ 0.02, 0.02, 0.02, 1 };
+            ubuf_data_glight.m_ambient_light = glm::vec4{ 0.01, 0.01, 0.01, 1 };
 
             this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_glight, this->m_logi_device.get());
         }
@@ -557,7 +557,6 @@ namespace dal {
 
         return true;
     }
-
 
     bool VulkanState::prepare(IRenModel& h_model) {
         auto& model = reinterpret_cast<ModelRenderer&>(h_model);
