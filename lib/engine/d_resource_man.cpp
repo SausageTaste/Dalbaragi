@@ -98,7 +98,7 @@ namespace dal {
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
         if (this->m_waiting_file.end() != found) {
-            this->m_renderer->init_texture(
+            this->m_renderer->init(
                 *found->second.get(),
                 task_result.out_image_data.value()
             );
@@ -150,7 +150,7 @@ namespace dal {
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
         if (this->m_waiting_file.end() != found) {
-            this->m_renderer->init_model(
+            this->m_renderer->init(
                 *found->second.get(),
                 task_result.out_model_data.value(),
                 task_result.m_respath.dir_list().front().c_str()
@@ -255,6 +255,7 @@ namespace dal {
 
     HActor ResourceManager::request_actor() {
         this->m_actors.push_back(this->m_renderer->create_actor());
+        this->m_renderer->init(*this->m_actors.back().get());
         return this->m_actors.back();
     }
 

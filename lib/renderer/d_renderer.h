@@ -90,9 +90,11 @@ namespace dal {
 
         virtual HActor create_actor() { return nullptr; }
 
-        virtual bool init_texture(ITexture& tex, const ImageData& img_data) { return false; }
+        virtual bool init(ITexture& tex, const ImageData& img_data) { return false; }
 
-        virtual bool init_model(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) { return false; }
+        virtual bool init(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) { return false; }
+
+        virtual bool init(IActor& actor) { return false; }
 
         virtual bool prepare(IRenModel& model) { return false; }
 

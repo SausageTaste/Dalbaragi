@@ -507,17 +507,10 @@ namespace dal {
     }
 
     HActor VulkanState::create_actor() {
-        auto a = std::make_shared<ActorVK>();
-        a->init(
-            this->m_desc_pool_actor,
-            this->m_desc_layout_man.layout_per_actor(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
-        return a;
+        return std::make_shared<ActorVK>();
     }
 
-    bool VulkanState::init_texture(ITexture& h_tex, const ImageData& img_data) {
+    bool VulkanState::init(ITexture& h_tex, const ImageData& img_data) {
         auto& tex = reinterpret_cast<TextureUnit&>(h_tex);
 
         return tex.init(
@@ -529,7 +522,7 @@ namespace dal {
         );
     }
 
-    bool VulkanState::init_model(IRenModel& h_model, const dal::ModelStatic& model_data, const char* const fallback_namespace) {
+    bool VulkanState::init(IRenModel& h_model, const dal::ModelStatic& model_data, const char* const fallback_namespace) {
         auto& model = reinterpret_cast<ModelRenderer&>(h_model);
 
         model.init(this->m_phys_device.get(), this->m_logi_device.get());
@@ -548,6 +541,20 @@ namespace dal {
 
         return true;
     }
+
+    bool VulkanState::init(IActor& actor) {
+        auto& a = reinterpret_cast<ActorVK&>(actor);
+
+        a.init(
+            this->m_desc_pool_actor,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
+        return true;
+    }
+
 
     bool VulkanState::prepare(IRenModel& h_model) {
         auto& model = reinterpret_cast<ModelRenderer&>(h_model);

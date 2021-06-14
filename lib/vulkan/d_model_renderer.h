@@ -28,6 +28,8 @@ namespace dal {
 
         void destroy() override;
 
+        bool is_ready() const;
+
         void apply_changes() override;
 
         auto& desc_set_raw() const {

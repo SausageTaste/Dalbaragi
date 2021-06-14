@@ -26,12 +26,19 @@ namespace dal {
 
     void ActorVK::destroy() {
         this->m_ubuf_per_actor.destroy(this->m_logi_device);
+        this->m_logi_device = VK_NULL_HANDLE;
+    }
+
+    bool ActorVK::is_ready() const {
+        return this->m_desc_per_actor.is_ready() && this->m_ubuf_per_actor.is_ready();
     }
 
     void ActorVK::apply_changes() {
-        U_PerActor ubuf_data_per_actor;
-        ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
-        this->m_ubuf_per_actor.copy_to_buffer(ubuf_data_per_actor, this->m_logi_device);
+        if (this->is_ready()) {
+            U_PerActor ubuf_data_per_actor;
+            ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
+            this->m_ubuf_per_actor.copy_to_buffer(ubuf_data_per_actor, this->m_logi_device);
+        }
     }
 
 }
