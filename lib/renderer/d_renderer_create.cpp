@@ -28,10 +28,6 @@ namespace {
             return false;
         }
 
-        dal::HRenModel request_model(const dal::ResPath& respath) override {
-            return nullptr;
-        }
-
     };
 
 }

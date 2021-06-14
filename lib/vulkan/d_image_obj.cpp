@@ -6,46 +6,6 @@
 
 #include "d_logger.h"
 #include "d_buffer_memory.h"
-#include "d_image_parser.h"
-#include "d_timer.h"
-
-
-namespace {
-
-    constexpr char* const MISSING_TEX_PATH = "_asset/image/missing_tex.png";
-
-
-    class Task_LoadImage : public dal::ITask {
-
-    public:
-        dal::Filesystem& m_filesys;
-        dal::ResPath m_respath;
-
-        std::optional<dal::ImageData> out_image_data;
-
-    public:
-        Task_LoadImage(const dal::ResPath& respath, dal::Filesystem& filesys)
-            : m_filesys(filesys)
-            , m_respath(respath)
-            , out_image_data(std::nullopt)
-        {
-
-        }
-
-        void run() override {
-            dal::Timer timer;
-
-            auto file = this->m_filesys.open(this->m_respath);
-            dalAssert(file->is_ready());
-            const auto file_data = file->read_stl<std::vector<uint8_t>>();
-            dalAssert(file_data.has_value());
-            this->out_image_data = dal::parse_image_stb(file_data->data(), file_data->size());
-            dalInfo(fmt::format("Image res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
-        }
-
-    };
-
-}
 
 
 namespace {

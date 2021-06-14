@@ -39,7 +39,6 @@ namespace dal {
         DescriptorManager m_desc_man;
 
         SamplerManager m_sampler_man;
-        ModelManager m_model_man;
         DescPool m_desc_pool_actor;
 
     private:
@@ -84,10 +83,6 @@ namespace dal {
         bool init_texture(ITexture& tex, const ImageData& img_data) override;
 
         bool init_model(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) override;
-
-        HRenModel request_model(const dal::ResPath& respath) override {
-            return this->m_model_man.request_model(respath);
-        }
 
     private:
         // Returns true if recreation is still needed.

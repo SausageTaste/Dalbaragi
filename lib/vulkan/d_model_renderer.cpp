@@ -2,44 +2,6 @@
 
 #include <fmt/format.h>
 
-#include "d_logger.h"
-#include "d_timer.h"
-#include "d_model_parser.h"
-
-
-namespace {
-
-    class Task_LoadModel : public dal::ITask {
-
-    public:
-        dal::Filesystem& m_filesys;
-        dal::ResPath m_respath;
-
-        std::optional<dal::ModelStatic> out_model_data;
-
-    public:
-        Task_LoadModel(const dal::ResPath& respath, dal::Filesystem& filesys)
-            : m_filesys(filesys)
-            , m_respath(respath)
-        {
-
-        }
-
-        void run() override {
-            dal::Timer timer;
-
-            auto file = this->m_filesys.open(this->m_respath);
-            const auto model_content = file->read_stl<std::vector<uint8_t>>();
-            dalInfo(fmt::format("Model res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
-
-            this->out_model_data = dal::parse_model_dmd(model_content->data(), model_content->size());
-            dalInfo(fmt::format("Model res parsed ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
-        }
-
-    };
-
-}
-
 
 // ActorVK
 namespace dal {
@@ -240,80 +202,6 @@ namespace dal {
         }
 
         return true;
-    }
-
-}
-
-
-// ModelManager
-namespace dal {
-
-    void ModelManager::destroy(const VkDevice logi_device) {
-        this->m_sent_task.clear();
-        this->m_cmd_pool.destroy(logi_device);
-        this->m_models.clear();
-    }
-
-    void ModelManager::update() {
-        for (auto& [res_id, h_model] : this->m_models) {
-            auto& model = *reinterpret_cast<ModelRenderer*>(h_model.get());
-
-            const auto did_fetch = model.fetch_one_resource(
-                this->m_desc_layout_man->layout_per_material(),
-                this->m_sampler,
-                this->m_logi_device
-            );
-
-            if (did_fetch)
-                return;
-        }
-    }
-
-    void ModelManager::notify_task_done(std::unique_ptr<ITask> task) {
-        const auto iter = this->m_sent_task.find(task.get());
-        if (this->m_sent_task.end() != iter) {
-            auto task_load = reinterpret_cast<::Task_LoadModel*>(task.get());
-
-            iter->second->upload_meshes(
-                task_load->out_model_data.value(),
-                this->m_cmd_pool,
-                *this->m_tex_man,
-                task_load->m_respath.dir_list().front().c_str(),
-                this->m_desc_layout_man->layout_per_actor(),
-                this->m_desc_layout_man->layout_per_material(),
-                this->m_graphics_queue,
-                this->m_phys_device,
-                this->m_logi_device
-            );
-
-            this->m_sent_task.erase(iter);
-        }
-    }
-
-    HRenModel ModelManager::request_model(const dal::ResPath& respath) {
-        const auto resolved_path = this->m_filesys->resolve_respath(respath);
-        const auto respath_str = resolved_path->make_str();
-
-        const auto iter = this->m_models.find(respath_str);
-        if (this->m_models.end() == iter) {
-            this->m_models[respath_str] = std::make_shared<ModelRenderer>();
-            auto& h_model = this->m_models[respath_str];
-            auto& model = *reinterpret_cast<ModelRenderer*>(h_model.get());
-
-            model.init(
-                this->m_phys_device,
-                this->m_logi_device
-            );
-
-            std::unique_ptr<dal::ITask> task{ new ::Task_LoadModel(respath, *this->m_filesys) };
-            this->m_sent_task[task.get()] = &model;
-            this->m_task_man->order_task(std::move(task), this);
-
-            return h_model;
-        }
-        else {
-            return iter->second;
-        }
     }
 
 }

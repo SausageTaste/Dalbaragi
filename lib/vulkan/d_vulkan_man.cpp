@@ -235,24 +235,11 @@ namespace dal {
             this->m_logi_device.get()
         );
 
-        this->m_model_man.init(
-            task_man,
-            this->m_filesys,
-            this->m_texture_man,
-            this->m_desc_layout_man,
-            this->m_sampler_man.sampler_tex(),
-            this->m_logi_device.indices().graphics_family(),
-            this->m_logi_device.queue_graphics(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
-
         this->m_desc_pool_actor.init(64, 64, 64, 64, this->m_logi_device.get());
     }
 
     VulkanState::~VulkanState() {
         this->m_desc_pool_actor.destroy(this->m_logi_device.get());
-        this->m_model_man.destroy(this->m_logi_device.get());
         this->m_sampler_man.destroy(this->m_logi_device.get());
         this->m_desc_man.destroy(this->m_logi_device.get());
         this->m_ubuf_man.destroy(this->m_logi_device.get());
@@ -310,10 +297,6 @@ namespace dal {
             }
             img_fences = &sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
         }
-
-        //-----------------------------------------------------------------------------------------------------
-
-        this->m_model_man.update();
 
         //-----------------------------------------------------------------------------------------------------
 

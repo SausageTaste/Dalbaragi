@@ -88,8 +88,6 @@ namespace dal {
 
         virtual bool init_model(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) = 0;
 
-        virtual HRenModel request_model(const dal::ResPath& respath) = 0;
-
     };
 
 }
