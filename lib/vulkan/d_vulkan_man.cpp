@@ -239,6 +239,8 @@ namespace dal {
     }
 
     VulkanState::~VulkanState() {
+        this->wait_idle();
+
         this->m_desc_pool_actor.destroy(this->m_logi_device.get());
         this->m_sampler_man.destroy(this->m_logi_device.get());
         this->m_desc_man.destroy(this->m_logi_device.get());

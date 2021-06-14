@@ -189,14 +189,26 @@ namespace dal {
         this->m_tex_builder.set_renderer(renderer);
         this->m_model_builder.set_renderer(renderer);
 
-        for (auto& x : this->m_textures) {
+        for (auto& [respath, texture] : this->m_textures) {
+            this->m_tex_builder.start(respath, texture, this->m_filesys, this->m_task_man);
+        }
 
+        for (auto& [respath, model] : this->m_models) {
+            this->m_model_builder.start(respath, model, this->m_filesys, this->m_task_man);
+        }
+
+        for (auto& actor : this->m_actors) {
+            this->m_renderer->init(*actor.get());
+            actor->apply_changes();
         }
 
         this->m_missing_tex = this->request_texture(::MISSING_TEX_PATH);
     }
 
     void ResourceManager::invalidate_renderer() {
+        if (nullptr != this->m_renderer)
+            this->m_renderer->wait_idle();
+
         this->m_missing_tex.reset();
 
         this->m_model_builder.invalidate_renderer();

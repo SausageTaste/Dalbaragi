@@ -251,6 +251,8 @@ namespace {
             cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
             cpnt_actor.m_actors.back()->apply_changes();
         }
+
+        dalInfo("Scene populated");
     }
 
 }
@@ -366,7 +368,8 @@ namespace dal {
 
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
-        ::populate_models(this->m_scene, this->m_res_man);
+        if (this->m_scene.m_registry.empty())
+            ::populate_models(this->m_scene, this->m_res_man);
     }
 
     void Engine::destory_vulkan() {
