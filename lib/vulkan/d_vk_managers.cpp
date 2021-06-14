@@ -93,7 +93,7 @@ namespace dal {
                 );
 
                 for (auto& unit : model->render_units()) {
-                    if (unit.m_alpha_blend)
+                    if (unit.m_material.m_alpha_blend)
                         continue;
 
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
@@ -114,7 +114,7 @@ namespace dal {
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         pipe_layout_gbuf,
                         1,
-                        1, &unit.m_desc_set.get(),
+                        1, &unit.m_material.m_descset.get(),
                         0, nullptr
                     );
 
@@ -259,7 +259,7 @@ namespace dal {
                 );
 
                 for (auto& unit : model->render_units()) {
-                    if (!unit.m_alpha_blend)
+                    if (!unit.m_material.m_alpha_blend)
                         continue;
 
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
@@ -289,7 +289,7 @@ namespace dal {
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         pipe_layout_alpha,
                         1,
-                        1, &unit.m_desc_set.get(),
+                        1, &unit.m_material.m_descset.get(),
                         0, nullptr
                     );
 

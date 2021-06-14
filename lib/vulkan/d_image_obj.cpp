@@ -625,6 +625,10 @@ namespace dal {
 // TextureUnit
 namespace dal {
 
+    TextureUnit::~TextureUnit() {
+        this->destroy();
+    }
+
     bool TextureUnit::init(
         dal::CommandPool& cmd_pool,
         const dal::ImageData& img_data,
@@ -632,6 +636,8 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
+        this->m_logi_device = logi_device;
+
         this->m_image.init_texture_gen_mipmaps(
             img_data,
             cmd_pool,
@@ -651,9 +657,9 @@ namespace dal {
         return result_view;
     }
 
-    void TextureUnit::destroy(const VkDevice logi_device) {
-        this->m_image.destory(logi_device);
-        this->m_view.destroy(logi_device);
+    void TextureUnit::destroy() {
+        this->m_image.destory(this->m_logi_device);
+        this->m_view.destroy(this->m_logi_device);
     }
 
     bool TextureUnit::is_ready() const {
@@ -686,10 +692,7 @@ namespace dal {
     }
 
     void TextureManager::destroy(const VkDevice logi_device) {
-        for (auto& x : this->m_textures)
-            x.second.destroy(logi_device);
         this->m_textures.clear();
-
         this->m_tex_sampler.destroy(logi_device);
         this->m_cmd_pool.destroy(logi_device);
     }
@@ -702,7 +705,9 @@ namespace dal {
             if (this->m_sent_task.end() != iter) {
                 const auto task_load = reinterpret_cast<::Task_LoadImage*>(task.get());
 
-                iter->second->init(
+                auto tex = dynamic_cast<TextureUnit*>(iter->second);
+
+                tex->init(
                     this->m_cmd_pool,
                     task_load->out_image_data.value(),
                     this->m_graphics_queue,
@@ -721,7 +726,7 @@ namespace dal {
         this->m_finalize_q.push(std::move(task));
     }
 
-    const TextureUnit& TextureManager::request_asset_tex(const dal::ResPath& respath) {
+    std::shared_ptr<ITexture> TextureManager::request_asset_tex(const dal::ResPath& respath) {
         const auto resolved_respath = this->m_filesys->resolve_respath(respath);
         if (!resolved_respath.has_value()) {
             dalError(fmt::format("Failed to find texture file: {}", respath.make_str()).c_str());
@@ -735,18 +740,18 @@ namespace dal {
             return result->second;
         }
         else {
-            this->m_textures[path_str] = TextureUnit{};
+            this->m_textures[path_str] = std::make_shared<TextureUnit>();
             auto iter = this->m_textures.find(path_str);
 
             std::unique_ptr<dal::ITask> task{ new ::Task_LoadImage(*resolved_respath, *this->m_filesys) };
-            this->m_sent_task[task.get()] = &iter->second;
+            this->m_sent_task[task.get()] = iter->second.get();
             this->m_task_man->order_task(std::move(task), this);
 
             return iter->second;
         }
     };
 
-    const TextureUnit& TextureManager::get_missing_tex() {
+    std::shared_ptr<ITexture> TextureManager::get_missing_tex() {
         const auto find_result = this->m_textures.find(::MISSING_TEX_PATH);
 
         if (this->m_textures.end() != find_result) {
@@ -759,10 +764,11 @@ namespace dal {
             const auto file_data = file->read_stl<std::vector<uint8_t>>();
             const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
 
-            this->m_textures[::MISSING_TEX_PATH] = TextureUnit{};
+            this->m_textures[::MISSING_TEX_PATH] = std::make_shared<TextureUnit>();
             auto iter = this->m_textures.find(::MISSING_TEX_PATH);
+            auto tex = dynamic_cast<TextureUnit*>(iter->second.get());
 
-            iter->second.init(
+            tex->init(
                 this->m_cmd_pool,
                 image.value(),
                 this->m_graphics_queue,

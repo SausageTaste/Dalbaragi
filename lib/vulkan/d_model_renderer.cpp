@@ -41,6 +41,49 @@ namespace {
 }
 
 
+// RenderUnit
+namespace dal {
+
+    void RenderUnit::destroy(const VkDevice logi_device) {
+        this->m_material.m_ubuf.destroy(logi_device);
+        this->m_vert_buffer.destroy(logi_device);
+    }
+
+    bool RenderUnit::prepare(
+        DescPool& desc_pool,
+        const VkSampler sampler,
+        const VkDescriptorSetLayout layout_per_material,
+        const VkDevice logi_device
+    ) {
+        if (this->is_ready())
+            return true;
+        if (!this->m_material.m_albedo_map->is_ready())
+            return false;
+
+        this->m_material.m_descset = desc_pool.allocate(layout_per_material, logi_device);
+
+        auto albedo_map = reinterpret_cast<TextureUnit*>(this->m_material.m_albedo_map.get());
+
+        this->m_material.m_descset.record_material(
+            this->m_material.m_ubuf,
+            albedo_map->view().get(),
+            sampler,
+            logi_device
+        );
+
+        return true;
+    }
+
+    bool RenderUnit::is_ready() const {
+        if (!this->m_material.m_descset.is_ready())
+            return false;
+
+        return true;
+    }
+
+}
+
+
 // ModelRenderer
 namespace dal {
 
@@ -78,7 +121,6 @@ namespace dal {
         for (auto& unit_data : model_data.m_units) {
             auto& unit = this->m_units.emplace_back();
 
-            unit.m_alpha_blend = unit_data.m_material.m_alpha_blending;
             unit.m_weight_center = unit_data.m_weight_center;
 
             unit.m_vert_buffer.init(
@@ -90,22 +132,21 @@ namespace dal {
                 logi_device
             );
 
-            unit.m_ubuf.init(phys_device, logi_device);
-            dal::U_PerMaterial ubuf_data;
-            ubuf_data.m_roughness = unit_data.m_material.m_roughness;
-            ubuf_data.m_metallic = unit_data.m_material.m_metallic;
-            unit.m_ubuf.copy_to_buffer(ubuf_data, logi_device);
+            unit.m_material.m_alpha_blend = unit_data.m_material.m_alpha_blending;
+            unit.m_material.m_data.m_roughness = unit_data.m_material.m_roughness;
+            unit.m_material.m_data.m_metallic = unit_data.m_material.m_metallic;
+            unit.m_material.m_ubuf.init(phys_device, logi_device);
+            unit.m_material.m_ubuf.copy_to_buffer(unit.m_material.m_data, logi_device);
 
             const auto albedo_map_path = fmt::format("{}/?/{}", fallback_file_namespace, unit_data.m_material.m_albedo_map);
-            unit.m_albedo_map = &tex_man.request_asset_tex(albedo_map_path);
+            unit.m_material.m_albedo_map = tex_man.request_asset_tex(albedo_map_path);
         }
     }
 
     void ModelRenderer::destroy(const VkDevice logi_device) {
-        for (auto& x : this->m_units) {
-            x.m_vert_buffer.destroy(logi_device);
-            x.m_ubuf.destroy(logi_device);
-        }
+        for (auto& x : this->m_units)
+            x.destroy(logi_device);
+
         this->m_units.clear();
         this->m_desc_pool.destroy(logi_device);
         this->m_ubuf_per_actor.destroy(logi_device);
@@ -113,21 +154,10 @@ namespace dal {
 
     bool ModelRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device) {
         for (auto& unit : this->m_units) {
-            if (unit.m_desc_set.is_ready())
+            if (unit.is_ready())
                 continue;
-            if (!unit.m_albedo_map->is_ready())
-                continue;
-
-            unit.m_desc_set = this->m_desc_pool.allocate(layout_per_material, logi_device);
-
-            unit.m_desc_set.record_material(
-                unit.m_ubuf,
-                unit.m_albedo_map->view().get(),
-                sampler,
-                logi_device
-            );
-
-            return true;
+            if (unit.prepare(this->m_desc_pool, sampler, layout_per_material, logi_device))
+                return true;
         }
 
         return false;
@@ -138,7 +168,7 @@ namespace dal {
             return false;
 
         for (auto& unit : this->m_units) {
-            if (!unit.m_desc_set.is_ready())
+            if (!unit.is_ready())
                 return false;
         }
 

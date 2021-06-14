@@ -1,9 +1,31 @@
 #pragma once
 
+#include <memory>
+
 #include "d_actor.h"
 
 
 namespace dal {
+
+    class ITexture {
+
+    public:
+        virtual ~ITexture() = default;
+
+        virtual bool is_ready() const = 0;
+
+    };
+
+
+    class IRenModel {
+
+    public:
+        virtual ~IRenModel() = default;
+
+        virtual bool is_ready() const = 0;
+
+    };
+
 
     class IRenderer {
 

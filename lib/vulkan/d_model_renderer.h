@@ -1,5 +1,6 @@
 #pragma once
 
+#include "d_renderer.h"
 #include "d_vert_data.h"
 #include "d_uniform.h"
 #include "d_image_obj.h"
@@ -8,17 +9,38 @@
 
 namespace dal {
 
-    class ModelRenderer {
+    class RenderUnit {
 
-    public:
-        struct RenderUnit {
-            dal::VertexBuffer m_vert_buffer;
-            dal::UniformBuffer<dal::U_PerMaterial> m_ubuf;
-            dal::DescSet m_desc_set;
-            glm::vec3 m_weight_center;
-            const dal::TextureUnit* m_albedo_map = nullptr;
+    private:
+        struct Material {
+            U_PerMaterial m_data;
+            UniformBuffer<U_PerMaterial> m_ubuf;
+            DescSet m_descset;
+            std::shared_ptr<ITexture> m_albedo_map;
             bool m_alpha_blend = false;
         };
+
+    public:
+        Material m_material;
+        VertexBuffer m_vert_buffer;
+        glm::vec3 m_weight_center{ 0 };
+
+    public:
+        void destroy(const VkDevice logi_device);
+
+        bool prepare(
+            DescPool& desc_pool,
+            const VkSampler sampler,
+            const VkDescriptorSetLayout layout_per_material,
+            const VkDevice logi_device
+        );
+
+        bool is_ready() const;
+
+    };
+
+
+    class ModelRenderer {
 
     private:
         std::vector<RenderUnit> m_units;

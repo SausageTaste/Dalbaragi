@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 
+#include "d_renderer.h"
 #include "d_vulkan_header.h"
 #include "d_image_parser.h"
 #include "d_command.h"
@@ -133,13 +134,16 @@ namespace dal {
     };
 
 
-    class TextureUnit {
+    class TextureUnit : public ITexture {
 
     private:
         TextureImage m_image;
         ImageView m_view;
+        VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
+        ~TextureUnit() override;
+
         bool init(
             dal::CommandPool& cmd_pool,
             const dal::ImageData& img_data,
@@ -148,9 +152,9 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy(const VkDevice logi_device);
+        void destroy();
 
-        bool is_ready() const;
+        bool is_ready() const override;
 
         auto& view() const {
             return this->m_view;
@@ -162,8 +166,8 @@ namespace dal {
     class TextureManager : public ITaskListener {
 
     private:
-        std::unordered_map<std::string, TextureUnit> m_textures;
-        std::unordered_map<void*, TextureUnit*> m_sent_task;
+        std::unordered_map<std::string, std::shared_ptr<ITexture>> m_textures;
+        std::unordered_map<void*, ITexture*> m_sent_task;
         std::queue<std::unique_ptr<ITask>> m_finalize_q;
         Sampler m_tex_sampler;
         CommandPool m_cmd_pool;
@@ -191,9 +195,9 @@ namespace dal {
 
         void notify_task_done(std::unique_ptr<ITask> task) override;
 
-        const TextureUnit& request_asset_tex(const dal::ResPath& path);
+        std::shared_ptr<ITexture> request_asset_tex(const dal::ResPath& path);
 
-        const TextureUnit& get_missing_tex();
+        std::shared_ptr<ITexture> get_missing_tex();
 
         auto& sampler_tex() const {
             return this->m_tex_sampler;
