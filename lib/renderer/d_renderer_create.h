@@ -18,6 +18,7 @@ namespace dal {
         const unsigned init_height,
         dal::Filesystem& filesys,
         dal::TaskManager& task_man,
+        dal::ITextureManager& texture_man,
         const std::vector<const char*>& extensions,
         std::function<void*(void*)> surface_create_func
     );

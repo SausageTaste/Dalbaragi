@@ -81,7 +81,7 @@ namespace dal {
     void RenderUnit::init(
         const dal::RenderUnitStatic& unit_data,
         dal::CommandPool& cmd_pool,
-        TextureManager& tex_man,
+        ITextureManager& tex_man,
         const char* const fallback_file_namespace,
         const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
@@ -107,7 +107,7 @@ namespace dal {
         unit.m_material.m_ubuf.copy_to_buffer(unit.m_material.m_data, logi_device);
 
         const auto albedo_map_path = fmt::format("{}/?/{}", fallback_file_namespace, unit_data.m_material.m_albedo_map);
-        unit.m_material.m_albedo_map = tex_man.request_asset_tex(albedo_map_path);
+        unit.m_material.m_albedo_map = tex_man.request_texture(albedo_map_path);
     }
 
     void RenderUnit::destroy(const VkDevice logi_device) {
@@ -164,7 +164,7 @@ namespace dal {
     void ModelRenderer::upload_meshes(
         const dal::ModelStatic& model_data,
         dal::CommandPool& cmd_pool,
-        TextureManager& tex_man,
+        ITextureManager& tex_man,
         const char* const fallback_file_namespace,
         const VkDescriptorSetLayout layout_per_actor,
         const VkDescriptorSetLayout layout_per_material,
@@ -260,7 +260,7 @@ namespace dal {
 
             const auto did_fetch = model.fetch_one_resource(
                 this->m_desc_layout_man->layout_per_material(),
-                this->m_tex_man->sampler_tex().get(),
+                this->m_sampler,
                 this->m_logi_device
             );
 

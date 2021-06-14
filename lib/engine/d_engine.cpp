@@ -348,6 +348,7 @@ namespace dal {
             win_height,
             *this->m_create_info.m_filesystem,
             this->m_task_man,
+            this->m_res_man,
             extensions,
             this->m_create_info.m_surface_create_func
         );

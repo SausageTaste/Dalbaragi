@@ -200,10 +200,12 @@ namespace dal {
         const unsigned init_height,
         dal::Filesystem& filesys,
         dal::TaskManager& task_man,
+        dal::ITextureManager& texture_man,
         const std::vector<const char*>& extensions,
         std::function<void*(void*)> surface_create_func
     )
         : m_filesys(filesys)
+        , m_texture_man(texture_man)
         , m_new_extent(VkExtent2D{ init_width, init_height })
     {
 #ifdef DAL_OS_ANDROID
@@ -240,8 +242,9 @@ namespace dal {
         this->m_model_man.init(
             task_man,
             this->m_filesys,
-            this->m_tex_man,
+            this->m_texture_man,
             this->m_desc_layout_man,
+            this->m_tex_man.sampler_tex(),
             this->m_logi_device.indices().graphics_family(),
             this->m_logi_device.queue_graphics(),
             this->m_phys_device.get(),

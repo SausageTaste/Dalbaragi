@@ -45,6 +45,7 @@ namespace dal {
     private:
         // Non-vulkan members
         dal::Filesystem& m_filesys;
+        ITextureManager& m_texture_man;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
@@ -61,6 +62,7 @@ namespace dal {
             const unsigned init_height,
             dal::Filesystem& filesys,
             dal::TaskManager& task_man,
+            dal::ITextureManager& texture_man,
             const std::vector<const char*>& extensions,
             std::function<void*(void*)> surface_create_func
         );

@@ -56,6 +56,16 @@ namespace dal {
     using RenderList = std::vector<RenderPair>;
 
 
+    class ITextureManager {
+
+    public:
+        virtual ~ITextureManager() = default;
+
+        virtual HTexture request_texture(const dal::ResPath& respath) = 0;
+
+    };
+
+
     class IRenderer {
 
     public:

@@ -9,7 +9,7 @@
 
 namespace dal {
 
-    class ResourceManager {
+    class ResourceManager : public ITextureManager {
 
     private:
         std::unordered_map<std::string, HTexture> m_textures;
@@ -31,7 +31,7 @@ namespace dal {
 
         void invalidate_renderer();
 
-        HTexture request_texture(const ResPath respath);
+        HTexture request_texture(const ResPath& respath) override;
 
     };
 

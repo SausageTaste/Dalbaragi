@@ -52,10 +52,12 @@ namespace dal {
     }
 
     void ResourceManager::invalidate_renderer() {
+        this->m_textures.clear();
+
         this->m_renderer = nullptr;
     }
 
-    HTexture ResourceManager::request_texture(const ResPath respath) {
+    HTexture ResourceManager::request_texture(const ResPath& respath) {
         const auto resolved_respath = this->m_filesys.resolve_respath(respath);
         if (!resolved_respath.has_value())
             dalAbort(fmt::format("Failed to find texture file: {}", respath.make_str()).c_str());

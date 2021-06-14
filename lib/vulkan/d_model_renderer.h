@@ -57,7 +57,7 @@ namespace dal {
         void init(
             const dal::RenderUnitStatic& unit_data,
             dal::CommandPool& cmd_pool,
-            TextureManager& tex_man,
+            ITextureManager& tex_man,
             const char* const fallback_file_namespace,
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
@@ -100,7 +100,7 @@ namespace dal {
         void upload_meshes(
             const dal::ModelStatic& model_data,
             dal::CommandPool& cmd_pool,
-            TextureManager& tex_man,
+            ITextureManager& tex_man,
             const char* const fallback_file_namespace,
             const VkDescriptorSetLayout layout_per_actor,
             const VkDescriptorSetLayout layout_per_material,
@@ -135,8 +135,9 @@ namespace dal {
 
         dal::TaskManager* m_task_man;
         dal::Filesystem* m_filesys;
-        dal::TextureManager* m_tex_man;
+        dal::ITextureManager* m_tex_man;
         dal::DescSetLayoutManager* m_desc_layout_man;
+        VkSampler m_sampler;
         VkQueue m_graphics_queue;
         VkPhysicalDevice m_phys_device;
         VkDevice m_logi_device;
@@ -145,8 +146,9 @@ namespace dal {
         void init(
             dal::TaskManager& task_man,
             dal::Filesystem& filesys,
-            dal::TextureManager& tex_man,
+            dal::ITextureManager& tex_man,
             dal::DescSetLayoutManager& desc_layout_man,
+            const dal::Sampler& sampler,
             const uint32_t queue_family_index,
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
@@ -156,6 +158,7 @@ namespace dal {
             m_filesys = &filesys;
             m_tex_man = &tex_man;
             m_desc_layout_man = &desc_layout_man;
+            m_sampler = sampler.get();
             m_graphics_queue = graphics_queue;
             m_phys_device = phys_device;
             m_logi_device = logi_device;
