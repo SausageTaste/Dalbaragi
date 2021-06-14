@@ -11,7 +11,7 @@ target_include_directories(libdal_engine PUBLIC ./)
 target_link_libraries(libdal_engine
     PUBLIC
         libdal_scene
-        libdal_vulkan
+        libdal_renderer
 )
 target_include_directories(libdal_engine
     PRIVATE

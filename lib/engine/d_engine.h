@@ -1,5 +1,6 @@
 #pragma once
 
+#include "d_renderer.h"
 #include "d_vulkan_man.h"
 #include "d_inputs.h"
 #include "d_timer.h"

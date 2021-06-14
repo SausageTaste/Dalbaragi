@@ -31,7 +31,11 @@ endif()
 
 # Link libraries
 
-target_link_libraries(libdal_vulkan PUBLIC libdal_util)
+target_link_libraries(libdal_vulkan
+    PUBLIC
+        libdal_util
+        libdal_renderer
+)
 
 
 if(WIN32)
