@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "d_actor.h"
+#include "d_filesystem.h"
 
 
 namespace dal {
@@ -64,6 +65,10 @@ namespace dal {
         virtual void wait_idle() = 0;
 
         virtual void on_screen_resize(const unsigned width, const unsigned height) = 0;
+
+        virtual HRenModel request_model(const dal::ResPath& respath) = 0;
+
+        virtual HActor create_actor() = 0;
 
     };
 

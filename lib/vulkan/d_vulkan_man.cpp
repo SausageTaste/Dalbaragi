@@ -249,13 +249,9 @@ namespace dal {
         );
 
         this->m_desc_pool_actor.init(64, 64, 64, 64, this->m_logi_device.get());
-
-        this->populate_models();
     }
 
     VulkanState::~VulkanState() {
-        this->m_models.clear();
-
         this->m_desc_pool_actor.destroy(this->m_logi_device.get());
         this->m_model_man.destroy(this->m_logi_device.get());
         this->m_tex_man.destroy(this->m_logi_device.get());
@@ -318,10 +314,8 @@ namespace dal {
 
         //-----------------------------------------------------------------------------------------------------
 
-        this->wait_idle();
         this->m_tex_man.update();
         this->m_model_man.update();
-        this->wait_idle();
 
         //-----------------------------------------------------------------------------------------------------
 
@@ -375,7 +369,7 @@ namespace dal {
 
             this->m_cmd_man.record_simple(
                 this->m_flight_frame_index.get(),
-                this->m_models,
+                render_list,
                 this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_attach_man.color().extent(),
@@ -414,7 +408,7 @@ namespace dal {
 
             this->m_cmd_man.record_alpha(
                 this->m_flight_frame_index.get(),
-                this->m_models,
+                render_list,
                 this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_per_world(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
@@ -649,36 +643,6 @@ namespace dal {
         }
 
         return true;
-    }
-
-    void VulkanState::populate_models() {
-        // Honoka
-        {
-            auto& render_pair = this->m_models.emplace_back();
-            render_pair.m_model = this->m_model_man.request_model("_asset/model/honoka_basic_3.dmd");
-            auto& model = *reinterpret_cast<ModelRenderer*>(render_pair.m_model.get());
-
-            render_pair.m_actors.push_back(this->create_actor());
-            render_pair.m_actors.back()->m_transform.m_scale = 0.3;
-            render_pair.m_actors.back()->apply_changes();
-
-            render_pair.m_actors.push_back(this->create_actor());
-            render_pair.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
-            render_pair.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
-            render_pair.m_actors.back()->m_transform.m_scale = 0.3;
-            render_pair.m_actors.back()->apply_changes();
-        }
-
-        // Sponza
-        {
-            auto& render_pair = this->m_models.emplace_back();
-            render_pair.m_model = this->m_model_man.request_model("_asset/model/sponza.dmd");
-
-            render_pair.m_actors.push_back(this->create_actor());
-            render_pair.m_actors.back()->m_transform.m_scale = 0.01;
-            render_pair.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
-            render_pair.m_actors.back()->apply_changes();
-        }
     }
 
 }

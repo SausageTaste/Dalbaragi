@@ -40,7 +40,6 @@ namespace dal {
 
         TextureManager m_tex_man;
         ModelManager m_model_man;
-        RenderList m_models;
         DescPool m_desc_pool_actor;
 
     private:
@@ -74,7 +73,11 @@ namespace dal {
 
         void on_screen_resize(const unsigned width, const unsigned height) override;
 
-        HActor create_actor();
+        HRenModel request_model(const dal::ResPath& respath) override {
+            return this->m_model_man.request_model(respath);
+        }
+
+        HActor create_actor() override;
 
     private:
         // Returns true if recreation is still needed.
@@ -82,8 +85,6 @@ namespace dal {
 
         [[nodiscard]]
         bool init_swapchain_and_dependers();
-
-        void populate_models();
 
     };
 

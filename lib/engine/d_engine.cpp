@@ -212,6 +212,40 @@ namespace {
 }
 
 
+namespace {
+
+    void populate_models(dal::RenderList& render_list, dal::IRenderer& renderer) {
+        // Honoka
+        {
+            auto& render_pair = render_list.emplace_back();
+            render_pair.m_model = renderer.request_model("_asset/model/honoka_basic_3.dmd");
+
+            render_pair.m_actors.push_back(renderer.create_actor());
+            render_pair.m_actors.back()->m_transform.m_scale = 0.3;
+            render_pair.m_actors.back()->apply_changes();
+
+            render_pair.m_actors.push_back(renderer.create_actor());
+            render_pair.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
+            render_pair.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
+            render_pair.m_actors.back()->m_transform.m_scale = 0.3;
+            render_pair.m_actors.back()->apply_changes();
+        }
+
+        // Sponza
+        {
+            auto& render_pair = render_list.emplace_back();
+            render_pair.m_model = renderer.request_model("_asset/model/sponza.dmd");
+
+            render_pair.m_actors.push_back(renderer.create_actor());
+            render_pair.m_actors.back()->m_transform.m_scale = 0.01;
+            render_pair.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
+            render_pair.m_actors.back()->apply_changes();
+        }
+    }
+
+}
+
+
 namespace dal {
 
     bool EngineCreateInfo::check_validity() const {
@@ -298,7 +332,7 @@ namespace dal {
 
         this->m_task_man.update();
 
-        this->m_renderer->update(this->m_scene.m_euler_camera, {});
+        this->m_renderer->update(this->m_scene.m_euler_camera, this->m_render_list);
     }
 
     void Engine::init_vulkan(const unsigned win_width, const unsigned win_height) {
@@ -319,9 +353,12 @@ namespace dal {
             extensions,
             this->m_create_info.m_surface_create_func
         );
+
+        ::populate_models(this->m_render_list, *this->m_renderer.get());
     }
 
     void Engine::destory_vulkan() {
+        this->m_render_list.clear();
         this->m_renderer = dal::create_renderer_null();
     }
 

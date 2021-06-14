@@ -26,10 +26,11 @@ namespace dal {
     private:
         EngineCreateInfo m_create_info;
 
-        Scene m_scene;
-        TaskManager m_task_man;
-        std::unique_ptr<IRenderer> m_renderer;
         InputManager m_input_man;
+        TaskManager m_task_man;
+        Scene m_scene;
+        RenderList m_render_list;
+        std::unique_ptr<IRenderer> m_renderer;
 
         std::vector<IInputListener*> m_input_listeners;
         InputDispatcher m_input_dispatch;

@@ -8,16 +8,18 @@ namespace {
     class NullRenderer : public dal::IRenderer {
 
     public:
-        void update(const dal::ICamera& camera, const dal::RenderList& render_list) override {
+        void update(const dal::ICamera& camera, const dal::RenderList& render_list) override {}
 
+        void wait_idle() override {}
+
+        void on_screen_resize(const unsigned width, const unsigned height) override {}
+
+        dal::HRenModel request_model(const dal::ResPath& respath) override {
+            return nullptr;
         }
 
-        void wait_idle() override {
-
-        }
-
-        void on_screen_resize(const unsigned width, const unsigned height) override {
-
+        dal::HActor create_actor() override {
+            return nullptr;
         }
 
     };
