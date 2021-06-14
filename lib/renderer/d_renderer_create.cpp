@@ -10,24 +10,6 @@ namespace {
     public:
         void update(const dal::ICamera& camera, const dal::RenderList& render_list) override {}
 
-        void wait_idle() override {}
-
-        void on_screen_resize(const unsigned width, const unsigned height) override {}
-
-        dal::HTexture create_texture() override { return nullptr; }
-
-        dal::HRenModel create_model() override { return nullptr; }
-
-        dal::HActor create_actor() override { return nullptr; }
-
-        bool init_texture(dal::ITexture& tex, const dal::ImageData& img_data) override {
-            return false;
-        }
-
-        bool init_model(dal::IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) override {
-            return false;
-        }
-
     };
 
 }

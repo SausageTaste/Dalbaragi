@@ -74,19 +74,19 @@ namespace dal {
 
         virtual void update(const ICamera& camera, const RenderList& render_list) = 0;
 
-        virtual void wait_idle() = 0;
+        virtual void wait_idle() {}
 
-        virtual void on_screen_resize(const unsigned width, const unsigned height) = 0;
+        virtual void on_screen_resize(const unsigned width, const unsigned height) {}
 
-        virtual HTexture create_texture() = 0;
+        virtual HTexture create_texture() { return nullptr; }
 
-        virtual HRenModel create_model() = 0;
+        virtual HRenModel create_model() { return nullptr; }
 
-        virtual HActor create_actor() = 0;
+        virtual HActor create_actor() { return nullptr; }
 
-        virtual bool init_texture(ITexture& tex, const ImageData& img_data) = 0;
+        virtual bool init_texture(ITexture& tex, const ImageData& img_data) { return false; }
 
-        virtual bool init_model(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) = 0;
+        virtual bool init_model(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) { return false; }
 
     };
 
