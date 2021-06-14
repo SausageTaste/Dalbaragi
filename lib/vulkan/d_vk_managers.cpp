@@ -95,8 +95,7 @@ namespace dal {
                 auto model = dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
 
                 for (auto& unit : model->render_units()) {
-                    if (unit.m_material.m_alpha_blend)
-                        continue;
+                    dalAssert(!unit.m_material.m_alpha_blend);
 
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
                     vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
@@ -273,9 +272,8 @@ namespace dal {
                     continue;
 
                 auto model = dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
-                for (auto& unit : model->render_units()) {
-                    if (!unit.m_material.m_alpha_blend)
-                        continue;
+                for (auto& unit : model->render_units_alpha()) {
+                    dalAssert(unit.m_material.m_alpha_blend);
 
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
                     vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());

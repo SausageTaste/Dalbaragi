@@ -54,6 +54,16 @@ namespace dal {
         glm::vec3 m_weight_center{ 0 };
 
     public:
+        void init(
+            const dal::RenderUnitStatic& unit_data,
+            dal::CommandPool& cmd_pool,
+            TextureManager& tex_man,
+            const char* const fallback_file_namespace,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
         void destroy(const VkDevice logi_device);
 
         bool prepare(
@@ -72,6 +82,7 @@ namespace dal {
 
     private:
         std::vector<RenderUnit> m_units;
+        std::vector<RenderUnit> m_units_alpha;
         DescPool m_desc_pool;
 
         VkDevice m_logi_device = VK_NULL_HANDLE;
@@ -106,6 +117,10 @@ namespace dal {
 
         auto& render_units() const {
             return this->m_units;
+        }
+
+        auto& render_units_alpha() const {
+            return this->m_units_alpha;
         }
 
     };
