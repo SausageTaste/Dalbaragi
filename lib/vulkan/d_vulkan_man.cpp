@@ -229,12 +229,8 @@ namespace dal {
         const auto result_init_swapchain = this->init_swapchain_and_dependers();
         dalAssert(result_init_swapchain);
 
-        this->m_tex_man.init(
-            task_man,
-            this->m_filesys,
+        this->m_sampler_man.init(
             this->m_phys_info.does_support_anisotropic_sampling(),
-            this->m_logi_device.indices().graphics_family(),
-            this->m_logi_device.queue_graphics(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
@@ -244,7 +240,7 @@ namespace dal {
             this->m_filesys,
             this->m_texture_man,
             this->m_desc_layout_man,
-            this->m_tex_man.sampler_tex(),
+            this->m_sampler_man.sampler_tex(),
             this->m_logi_device.indices().graphics_family(),
             this->m_logi_device.queue_graphics(),
             this->m_phys_device.get(),
@@ -257,7 +253,7 @@ namespace dal {
     VulkanState::~VulkanState() {
         this->m_desc_pool_actor.destroy(this->m_logi_device.get());
         this->m_model_man.destroy(this->m_logi_device.get());
-        this->m_tex_man.destroy(this->m_logi_device.get());
+        this->m_sampler_man.destroy(this->m_logi_device.get());
         this->m_desc_man.destroy(this->m_logi_device.get());
         this->m_ubuf_man.destroy(this->m_logi_device.get());
         this->m_cmd_man.destroy(this->m_logi_device.get());
@@ -317,7 +313,6 @@ namespace dal {
 
         //-----------------------------------------------------------------------------------------------------
 
-        this->m_tex_man.update();
         this->m_model_man.update();
 
         //-----------------------------------------------------------------------------------------------------
@@ -454,7 +449,7 @@ namespace dal {
                 this->m_flight_frame_index.get(),
                 this->m_ubuf_man.m_ub_final,
                 this->m_attach_man.color().view().get(),
-                this->m_tex_man.sampler_tex().get(),
+                this->m_sampler_man.sampler_tex().get(),
                 this->m_desc_layout_man.layout_final(),
                 this->m_logi_device.get()
             );

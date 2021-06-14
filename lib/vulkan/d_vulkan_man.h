@@ -38,7 +38,7 @@ namespace dal {
         UbufManager m_ubuf_man;
         DescriptorManager m_desc_man;
 
-        TextureManager m_tex_man;
+        SamplerManager m_sampler_man;
         ModelManager m_model_man;
         DescPool m_desc_pool_actor;
 

@@ -163,41 +163,19 @@ namespace dal {
     };
 
 
-    class TextureManager : public ITaskListener {
+    class SamplerManager {
 
     private:
-        std::unordered_map<std::string, std::shared_ptr<ITexture>> m_textures;
-        std::unordered_map<void*, ITexture*> m_sent_task;
-        std::queue<std::unique_ptr<ITask>> m_finalize_q;
         Sampler m_tex_sampler;
-        CommandPool m_cmd_pool;
-
-        dal::TaskManager* m_task_man = nullptr;
-        Filesystem* m_filesys = nullptr;
-        VkQueue m_graphics_queue = VK_NULL_HANDLE;
-        VkPhysicalDevice m_phys_device = VK_NULL_HANDLE;
-        VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
         void init(
-            dal::TaskManager& task_man,
-            dal::Filesystem& filesys,
             const bool enable_anisotropy,
-            const uint32_t queue_family_index,
-            const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
 
         void destroy(const VkDevice logi_device);
-
-        void update();
-
-        void notify_task_done(std::unique_ptr<ITask> task) override;
-
-        std::shared_ptr<ITexture> request_asset_tex(const dal::ResPath& path);
-
-        std::shared_ptr<ITexture> get_missing_tex();
 
         auto& sampler_tex() const {
             return this->m_tex_sampler;
