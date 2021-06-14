@@ -41,8 +41,10 @@ namespace dal {
         TextureManager m_tex_man;
         ModelManager m_model_man;
 
-        std::vector<ModelRenderer*> m_models;
+    public:
+        RenderList m_models;
 
+    private:
         // Non-vulkan members
         dal::Filesystem& m_filesys;
 
@@ -67,7 +69,7 @@ namespace dal {
 
         ~VulkanState();
 
-        void update(const ICamera& camera) override;
+        void update(const ICamera& camera, const RenderList& render_list) override;
 
         void wait_idle() override;
 

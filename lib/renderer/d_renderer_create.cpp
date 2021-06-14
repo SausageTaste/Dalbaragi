@@ -8,7 +8,7 @@ namespace {
     class NullRenderer : public dal::IRenderer {
 
     public:
-        void update(const dal::ICamera& camera) override {
+        void update(const dal::ICamera& camera, const dal::RenderList& render_list) override {
 
         }
 

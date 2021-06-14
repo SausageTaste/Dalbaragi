@@ -40,7 +40,7 @@ namespace dal {
     };
 
 
-    class ModelRenderer {
+    class ModelRenderer : public IRenModel {
 
     private:
         std::vector<RenderUnit> m_units;
@@ -49,7 +49,13 @@ namespace dal {
         DescSet m_desc_per_actor;
         dal::UniformBuffer<dal::U_PerActor> m_ubuf_per_actor;
 
+        VkDevice m_logi_device = VK_NULL_HANDLE;
+
     public:
+        ~ModelRenderer() override {
+            this->destroy();
+        }
+
         void init(
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
@@ -67,11 +73,11 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy(const VkDevice logi_device);
+        void destroy();
 
         bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device);
 
-        bool is_ready() const;
+        bool is_ready() const override;
 
         auto& render_units() const {
             return this->m_units;
@@ -91,7 +97,7 @@ namespace dal {
     class ModelManager : public ITaskListener {
 
     private:
-        std::unordered_map<std::string, ModelRenderer> m_models;
+        std::unordered_map<std::string, HRenModel> m_models;
         std::unordered_map<void*, ModelRenderer*> m_sent_task;
         dal::CommandPool m_cmd_pool;
 
@@ -131,7 +137,7 @@ namespace dal {
 
         void notify_task_done(std::unique_ptr<ITask> task) override;
 
-        ModelRenderer& request_model(const dal::ResPath& respath);
+        HRenModel request_model(const dal::ResPath& respath);
 
     };
 

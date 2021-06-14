@@ -35,7 +35,7 @@ namespace dal {
 
     void CmdPoolManager::record_simple(
         const size_t flight_frame_index,
-        const std::vector<ModelRenderer*>& models,
+        const RenderList& render_list,
         const VkDescriptorSet desc_set_per_frame,
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
@@ -79,9 +79,11 @@ namespace dal {
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
-            for (auto& model : models) {
-                if (!model->is_ready())
+            for (auto& render_pair : render_list) {
+                if (!render_pair.m_model->is_ready())
                     continue;
+
+                auto model = dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
 
                 vkCmdBindDescriptorSets(
                     cmd_buf,
@@ -202,7 +204,7 @@ namespace dal {
 
     void CmdPoolManager::record_alpha(
         const size_t flight_frame_index,
-        const std::vector<ModelRenderer*>& models,
+        const RenderList& render_list,
         const VkDescriptorSet desc_set_per_frame,
         const VkDescriptorSet desc_set_per_world,
         const VkDescriptorSet desc_set_composition,
@@ -245,9 +247,11 @@ namespace dal {
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
-            for (auto& model : models) {
-                if (!model->is_ready())
+            for (auto& render_pair : render_list) {
+                if (!render_pair.m_model->is_ready())
                     continue;
+
+                auto model = dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
 
                 vkCmdBindDescriptorSets(
                     cmd_buf,

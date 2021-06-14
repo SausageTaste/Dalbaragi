@@ -91,7 +91,8 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->destroy(logi_device);
+        this->destroy();
+        this->m_logi_device = logi_device;
 
         this->m_ubuf_per_actor.init(phys_device, logi_device);
     }
@@ -143,13 +144,13 @@ namespace dal {
         }
     }
 
-    void ModelRenderer::destroy(const VkDevice logi_device) {
+    void ModelRenderer::destroy() {
         for (auto& x : this->m_units)
-            x.destroy(logi_device);
+            x.destroy(this->m_logi_device);
 
         this->m_units.clear();
-        this->m_desc_pool.destroy(logi_device);
-        this->m_ubuf_per_actor.destroy(logi_device);
+        this->m_desc_pool.destroy(this->m_logi_device);
+        this->m_ubuf_per_actor.destroy(this->m_logi_device);
     }
 
     bool ModelRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device) {
@@ -184,16 +185,14 @@ namespace dal {
     void ModelManager::destroy(const VkDevice logi_device) {
         this->m_sent_task.clear();
         this->m_cmd_pool.destroy(logi_device);
-
-        for (auto& x : this->m_models) {
-            x.second.destroy(logi_device);
-        }
         this->m_models.clear();
     }
 
     void ModelManager::update() {
-        for (auto& [res_id, model] : this->m_models) {
-            const auto did_fetch = model.fetch_one_resource(
+        for (auto& [res_id, h_model] : this->m_models) {
+            auto model = dynamic_cast<ModelRenderer*>(h_model.get());
+
+            const auto did_fetch = model->fetch_one_resource(
                 this->m_desc_layout_man->layout_per_material(),
                 this->m_tex_man->sampler_tex().get(),
                 this->m_logi_device
@@ -225,25 +224,26 @@ namespace dal {
         }
     }
 
-    ModelRenderer& ModelManager::request_model(const dal::ResPath& respath) {
+    HRenModel ModelManager::request_model(const dal::ResPath& respath) {
         const auto resolved_path = this->m_filesys->resolve_respath(respath);
         const auto respath_str = resolved_path->make_str();
 
         const auto iter = this->m_models.find(respath_str);
         if (this->m_models.end() == iter) {
-            this->m_models[respath_str] = ModelRenderer{};
-            auto& model = this->m_models[respath_str];
+            this->m_models[respath_str] = std::make_shared<ModelRenderer>();
+            auto& h_model = this->m_models[respath_str];
+            auto model = dynamic_cast<ModelRenderer*>(h_model.get());
 
-            model.init(
+            model->init(
                 this->m_phys_device,
                 this->m_logi_device
             );
 
             std::unique_ptr<dal::ITask> task{ new ::Task_LoadModel(respath, *this->m_filesys) };
-            this->m_sent_task[task.get()] = &model;
+            this->m_sent_task[task.get()] = model;
             this->m_task_man->order_task(std::move(task), this);
 
-            return model;
+            return h_model;
         }
         else {
             return iter->second;

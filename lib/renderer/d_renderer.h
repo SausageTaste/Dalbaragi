@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "d_actor.h"
 
@@ -27,12 +28,38 @@ namespace dal {
     };
 
 
+    class IActor {
+
+    public:
+        Transform m_transform;
+
+    public:
+        virtual ~IActor() = default;
+
+        virtual void on_update() = 0;
+
+    };
+
+
+    using HTexture  = std::shared_ptr<ITexture>;
+    using HRenModel = std::shared_ptr<IRenModel>;
+    using HActor    = std::shared_ptr<IActor>;
+
+
+    struct RenderPair {
+        std::vector<HActor> m_actors;
+        HRenModel m_model;
+    };
+
+    using RenderList = std::vector<RenderPair>;
+
+
     class IRenderer {
 
     public:
         virtual ~IRenderer() = default;
 
-        virtual void update(const ICamera& camera) = 0;
+        virtual void update(const ICamera& camera, const RenderList& render_list) = 0;
 
         virtual void wait_idle() = 0;
 

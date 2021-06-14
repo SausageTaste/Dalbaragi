@@ -298,7 +298,7 @@ namespace dal {
 
         this->m_task_man.update();
 
-        this->m_renderer->update(this->m_scene.m_euler_camera);
+        this->m_renderer->update(this->m_scene.m_euler_camera, {});
     }
 
     void Engine::init_vulkan(const unsigned win_width, const unsigned win_height) {
