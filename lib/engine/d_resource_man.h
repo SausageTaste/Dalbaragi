@@ -57,6 +57,7 @@ namespace dal {
     private:
         std::unordered_map<std::string, HTexture> m_textures;
         std::unordered_map<std::string, HRenModel> m_models;
+        HTexture m_missing_tex;
 
         TextureBuilder m_tex_builder;
         ModelBuilder m_model_builder;

@@ -182,9 +182,13 @@ namespace dal {
 
         this->m_tex_builder.set_renderer(renderer);
         this->m_model_builder.set_renderer(renderer);
+
+        this->m_missing_tex = this->request_texture(::MISSING_TEX_PATH);
     }
 
     void ResourceManager::invalidate_renderer() {
+        this->m_missing_tex.reset();
+
         this->m_model_builder.invalidate_renderer();
         this->m_tex_builder.invalidate_renderer();
 
@@ -196,8 +200,11 @@ namespace dal {
 
     HTexture ResourceManager::request_texture(const ResPath& respath) {
         const auto resolved_respath = this->m_filesys.resolve_respath(respath);
-        if (!resolved_respath.has_value())
-            dalAbort(fmt::format("Failed to find texture file: {}", respath.make_str()).c_str());
+        if (!resolved_respath.has_value()) {
+            dalError(fmt::format("Failed to find texture file: {}", respath.make_str()).c_str());
+            dalAssert(!!this->m_missing_tex);
+            return this->m_missing_tex;
+        }
 
         const auto path_str = resolved_respath->make_str();
         const auto result = this->m_textures.find(path_str);
