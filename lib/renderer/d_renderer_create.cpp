@@ -14,6 +14,12 @@ namespace {
 
         void on_screen_resize(const unsigned width, const unsigned height) override {}
 
+        dal::HTexture create_texture() override { return nullptr; }
+
+        bool init_texture(dal::ITexture& tex, const dal::ImageData& img_data) override {
+            return false;
+        }
+
         dal::HRenModel request_model(const dal::ResPath& respath) override {
             return nullptr;
         }

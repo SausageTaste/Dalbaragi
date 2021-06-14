@@ -262,11 +262,9 @@ namespace dal {
 
 namespace dal {
 
-    Engine::Engine() {
-        this->m_task_man.init(2);
-    }
-
-    Engine::Engine(const EngineCreateInfo& create_info) {
+    Engine::Engine(const EngineCreateInfo& create_info)
+        : m_res_man(this->m_task_man, *create_info.m_filesystem)
+    {
         this->m_task_man.init(2);
         this->init(create_info);
     }
@@ -354,11 +352,14 @@ namespace dal {
             this->m_create_info.m_surface_create_func
         );
 
+        this->m_res_man.set_renderer(*this->m_renderer.get());
+
         ::populate_models(this->m_render_list, *this->m_renderer.get());
     }
 
     void Engine::destory_vulkan() {
         this->m_render_list.clear();
+        this->m_res_man.invalidate_renderer();
         this->m_renderer = dal::create_renderer_null();
     }
 

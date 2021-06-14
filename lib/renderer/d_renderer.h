@@ -5,6 +5,7 @@
 
 #include "d_actor.h"
 #include "d_filesystem.h"
+#include "d_image_parser.h"
 
 
 namespace dal {
@@ -65,6 +66,10 @@ namespace dal {
         virtual void wait_idle() = 0;
 
         virtual void on_screen_resize(const unsigned width, const unsigned height) = 0;
+
+        virtual HTexture create_texture() = 0;
+
+        virtual bool init_texture(ITexture& tex, const ImageData& img_data) = 0;
 
         virtual HRenModel request_model(const dal::ResPath& respath) = 0;
 

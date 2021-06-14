@@ -15,6 +15,7 @@ namespace dal {
     class CmdPoolManager {
 
     private:
+        CommandPool m_general_pool;
         std::vector<CommandPool> m_pools;  // Per swapchain
         std::vector<VkCommandBuffer> m_cmd_simple;  // Per swapchain
         std::vector<VkCommandBuffer> m_cmd_final;  // Per swapchain
@@ -72,6 +73,10 @@ namespace dal {
 
         auto& cmd_alpha_at(const size_t index) const {
             return this->m_cmd_alpha.at(index);
+        }
+
+        auto& general_pool() {
+            return this->m_general_pool;
         }
 
     };

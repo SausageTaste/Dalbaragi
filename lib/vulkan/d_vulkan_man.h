@@ -73,6 +73,10 @@ namespace dal {
 
         void on_screen_resize(const unsigned width, const unsigned height) override;
 
+        HTexture create_texture() override;
+
+        bool init_texture(ITexture& tex, const ImageData& img_data) override;
+
         HRenModel request_model(const dal::ResPath& respath) override {
             return this->m_model_man.request_model(respath);
         }

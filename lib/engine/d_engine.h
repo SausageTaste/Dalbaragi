@@ -1,8 +1,6 @@
 #pragma once
 
-#include "d_renderer.h"
-#include "d_filesystem.h"
-#include "d_task_thread.h"
+#include "d_resource_man.h"
 #include "d_inputs.h"
 #include "d_timer.h"
 #include "d_input_consumer.h"
@@ -28,6 +26,8 @@ namespace dal {
 
         InputManager m_input_man;
         TaskManager m_task_man;
+        ResourceManager m_res_man;
+
         Scene m_scene;
         RenderList m_render_list;
         std::unique_ptr<IRenderer> m_renderer;
@@ -39,8 +39,6 @@ namespace dal {
         Timer m_timer;
 
     public:
-        Engine();
-
         Engine(const EngineCreateInfo& create_info);
 
         ~Engine();

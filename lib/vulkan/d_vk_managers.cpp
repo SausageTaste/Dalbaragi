@@ -9,6 +9,8 @@ namespace dal {
     void CmdPoolManager::init(const uint32_t swapchain_count, const uint32_t queue_family_index, const VkDevice logi_device) {
         this->destroy(logi_device);
 
+        this->m_general_pool.init(queue_family_index, logi_device);
+
         this->m_pools.resize(swapchain_count);
 
         this->m_cmd_simple.resize(swapchain_count);
@@ -27,6 +29,8 @@ namespace dal {
         for (auto& pool : this->m_pools)
             pool.destroy(logi_device);
         this->m_pools.clear();
+
+        this->m_general_pool.destroy(logi_device);
 
         this->m_cmd_simple.clear();
         this->m_cmd_final.clear();

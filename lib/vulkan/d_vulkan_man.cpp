@@ -517,6 +517,22 @@ namespace dal {
         dalVerbose(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
     }
 
+    HTexture VulkanState::create_texture() {
+        return std::make_shared<TextureUnit>();
+    }
+
+    bool VulkanState::init_texture(ITexture& h_tex, const ImageData& img_data) {
+        auto& tex = reinterpret_cast<TextureUnit&>(h_tex);
+
+        return tex.init(
+            this->m_cmd_man.general_pool(),
+            img_data,
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
+
     HActor VulkanState::create_actor() {
         auto a = std::make_shared<ActorVK>();
         a->init(
