@@ -1,7 +1,8 @@
 #pragma once
 
 #include "d_renderer.h"
-#include "d_vulkan_man.h"
+#include "d_filesystem.h"
+#include "d_task_thread.h"
 #include "d_inputs.h"
 #include "d_timer.h"
 #include "d_input_consumer.h"

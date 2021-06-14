@@ -310,7 +310,7 @@ namespace dal {
             extensions.push_back(x.c_str());
         }
 
-        this->m_renderer.reset(new VulkanState(
+        this->m_renderer = dal::create_renderer_vulkan(
             this->m_create_info.m_window_title.c_str(),
             win_width,
             win_height,
@@ -318,7 +318,7 @@ namespace dal {
             this->m_task_man,
             extensions,
             this->m_create_info.m_surface_create_func
-        ));
+        );
     }
 
     void Engine::destory_vulkan() {

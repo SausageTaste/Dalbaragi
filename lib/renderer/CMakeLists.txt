@@ -11,5 +11,7 @@ target_include_directories(libdal_renderer PUBLIC ./)
 target_link_libraries(libdal_renderer
     PUBLIC
         libdal_util
+
+    PRIVATE
         libdal_vulkan
 )
