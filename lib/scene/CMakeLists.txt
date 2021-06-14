@@ -11,4 +11,5 @@ target_link_libraries(libdal_scene
     PUBLIC
         EnTT::EnTT
         libdal_util
+        libdal_renderer
 )

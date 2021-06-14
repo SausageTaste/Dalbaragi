@@ -214,32 +214,42 @@ namespace {
 
 namespace {
 
-    void populate_models(dal::RenderList& render_list, dal::IRenderer& renderer, dal::ResourceManager& res_man) {
+    void populate_models(dal::Scene& scene, dal::IRenderer& renderer, dal::ResourceManager& res_man) {
         // Honoka
         {
-            auto& render_pair = render_list.emplace_back();
-            render_pair.m_model = res_man.request_model("_asset/model/honoka_basic_3.dmd");
+            const auto entity = scene.m_registry.create();
+            auto model = res_man.request_model("_asset/model/honoka_basic_3.dmd");
 
-            render_pair.m_actors.push_back(renderer.create_actor());
-            render_pair.m_actors.back()->m_transform.m_scale = 0.3;
-            render_pair.m_actors.back()->apply_changes();
+            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::Model>(entity);
+            cpnt_model.m_model = model;
 
-            render_pair.m_actors.push_back(renderer.create_actor());
-            render_pair.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
-            render_pair.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
-            render_pair.m_actors.back()->m_transform.m_scale = 0.3;
-            render_pair.m_actors.back()->apply_changes();
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
+
+            cpnt_actor.m_actors.push_back(renderer.create_actor());
+            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
+            cpnt_actor.m_actors.back()->apply_changes();
+
+            cpnt_actor.m_actors.push_back(renderer.create_actor());
+            cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
+            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
+            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
+            cpnt_actor.m_actors.back()->apply_changes();
         }
 
         // Sponza
         {
-            auto& render_pair = render_list.emplace_back();
-            render_pair.m_model = res_man.request_model("_asset/model/sponza.dmd");
+            const auto entity = scene.m_registry.create();
+            auto model = res_man.request_model("_asset/model/sponza.dmd");
 
-            render_pair.m_actors.push_back(renderer.create_actor());
-            render_pair.m_actors.back()->m_transform.m_scale = 0.01;
-            render_pair.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
-            render_pair.m_actors.back()->apply_changes();
+            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::Model>(entity);
+            cpnt_model.m_model = model;
+
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
+
+            cpnt_actor.m_actors.push_back(renderer.create_actor());
+            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.01;
+            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
+            cpnt_actor.m_actors.back()->apply_changes();
         }
     }
 
@@ -331,7 +341,7 @@ namespace dal {
         this->m_task_man.update();
         this->m_res_man.update();
 
-        this->m_renderer->update(this->m_scene.m_euler_camera, this->m_render_list);
+        this->m_renderer->update(this->m_scene.m_euler_camera, this->m_scene.make_render_list());
     }
 
     void Engine::init_vulkan(const unsigned win_width, const unsigned win_height) {
@@ -356,11 +366,10 @@ namespace dal {
 
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
-        ::populate_models(this->m_render_list, *this->m_renderer.get(), this->m_res_man);
+        ::populate_models(this->m_scene, *this->m_renderer.get(), this->m_res_man);
     }
 
     void Engine::destory_vulkan() {
-        this->m_render_list.clear();
         this->m_res_man.invalidate_renderer();
         this->m_renderer = dal::create_renderer_null();
     }

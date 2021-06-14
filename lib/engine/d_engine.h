@@ -29,7 +29,6 @@ namespace dal {
         ResourceManager m_res_man;
 
         Scene m_scene;
-        RenderList m_render_list;
         std::unique_ptr<IRenderer> m_renderer;
 
         std::vector<IInputListener*> m_input_listeners;
