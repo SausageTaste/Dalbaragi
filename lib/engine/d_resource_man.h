@@ -25,7 +25,7 @@ namespace dal {
 
         void notify_task_done(std::unique_ptr<ITask> task) override;
 
-        void insert(const std::string& respath, HTexture h_model);
+        void start(const ResPath& respath, HTexture h_texture, Filesystem& filesys, TaskManager& task_man);
 
     };
 
@@ -47,7 +47,7 @@ namespace dal {
 
         void notify_task_done(std::unique_ptr<ITask> task) override;
 
-        void insert(const std::string& respath, HRenModel h_model);
+        void start(const ResPath& respath, HRenModel h_model, Filesystem& filesys, TaskManager& task_man);
 
     };
 

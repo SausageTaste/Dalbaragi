@@ -107,9 +107,12 @@ namespace dal {
         }
     }
 
-    void TextureBuilder::insert(const std::string& respath, HTexture h_model) {
+    void TextureBuilder::start(const ResPath& respath, HTexture h_texture, Filesystem& filesys, TaskManager& task_man) {
         dalAssert(nullptr != this->m_renderer);
-        auto [iter, success] = this->m_waiting_file.emplace(respath, h_model);
+
+        auto task = std::make_unique<::Task_LoadImage>(respath, filesys);
+        task_man.order_task(std::move(task), this);
+        auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_texture);
     }
 
 }
@@ -161,9 +164,12 @@ namespace dal {
         }
     }
 
-    void ModelBuilder::insert(const std::string& respath, HRenModel h_model) {
+    void ModelBuilder::start(const ResPath& respath, HRenModel h_model, Filesystem& filesys, TaskManager& task_man) {
         dalAssert(nullptr != this->m_renderer);
-        auto [iter, success] = this->m_waiting_file.emplace(respath, h_model);
+
+        auto task = std::make_unique<::Task_LoadModel>(respath, filesys);
+        task_man.order_task(std::move(task), this);
+        auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
     }
 
 }
@@ -182,6 +188,10 @@ namespace dal {
 
         this->m_tex_builder.set_renderer(renderer);
         this->m_model_builder.set_renderer(renderer);
+
+        for (auto& x : this->m_textures) {
+
+        }
 
         this->m_missing_tex = this->request_texture(::MISSING_TEX_PATH);
     }
@@ -221,10 +231,7 @@ namespace dal {
         else {
             auto [iter, result] = this->m_textures.emplace(path_str, this->m_renderer->create_texture());
             dalAssert(result);
-
-            auto task = std::make_unique<::Task_LoadImage>(resolved_respath.value(), this->m_filesys);
-            this->m_task_man.order_task(std::move(task), &this->m_tex_builder);
-            this->m_tex_builder.insert(path_str, iter->second);
+            this->m_tex_builder.start(*resolved_respath, iter->second, this->m_filesys, this->m_task_man);
 
             return iter->second;
         }
@@ -244,10 +251,7 @@ namespace dal {
         else {
             auto [iter, result] = this->m_models.emplace(path_str, this->m_renderer->create_model());
             dalAssert(result);
-
-            auto task = std::make_unique<::Task_LoadModel>(resolved_respath.value(), this->m_filesys);
-            this->m_task_man.order_task(std::move(task), &this->m_model_builder);
-            this->m_model_builder.insert(path_str, iter->second);
+            this->m_model_builder.start(*resolved_respath, iter->second, this->m_filesys, this->m_task_man);
 
             return iter->second;
         }
