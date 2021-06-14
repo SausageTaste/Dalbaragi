@@ -76,23 +76,118 @@ namespace {
 }
 
 
+// TextureBuilder
+namespace dal {
+
+    void TextureBuilder::update() {
+
+    }
+
+    void TextureBuilder::set_renderer(IRenderer& renderer) {
+        this->m_renderer = &renderer;
+    }
+
+    void TextureBuilder::invalidate_renderer() {
+        this->m_waiting_file.clear();
+
+        this->m_renderer = nullptr;
+    }
+
+    void TextureBuilder::notify_task_done(std::unique_ptr<ITask> task) {
+        auto& task_result = *reinterpret_cast<Task_LoadImage*>(task.get());
+        const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
+
+        if (this->m_waiting_file.end() != found) {
+            this->m_renderer->init_texture(
+                *found->second.get(),
+                task_result.out_image_data.value()
+            );
+
+            this->m_waiting_file.erase(found);
+        }
+    }
+
+    void TextureBuilder::insert(const std::string& respath, HTexture h_model) {
+        dalAssert(nullptr != this->m_renderer);
+        auto [iter, success] = this->m_waiting_file.emplace(respath, h_model);
+    }
+
+}
+
+
+// ModelBuilder
+namespace dal {
+
+    void ModelBuilder::update() {
+        for (auto iter = this->m_waiting_prepare.begin(); iter < this->m_waiting_prepare.end();) {
+            auto& model = **iter;
+
+            if (model.is_ready()) {
+                iter = this->m_waiting_prepare.erase(iter);
+            }
+            else {
+                if (this->m_renderer->prepare(model))
+                    return;
+
+                ++iter;
+            }
+        }
+    }
+
+    void ModelBuilder::set_renderer(IRenderer& renderer) {
+        this->m_renderer = &renderer;
+    }
+
+    void ModelBuilder::invalidate_renderer() {
+        this->m_waiting_file.clear();
+        this->m_waiting_prepare.clear();
+
+        this->m_renderer = nullptr;
+    }
+
+    void ModelBuilder::notify_task_done(std::unique_ptr<ITask> task) {
+        auto& task_result = *reinterpret_cast<Task_LoadModel*>(task.get());
+        const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
+
+        if (this->m_waiting_file.end() != found) {
+            this->m_renderer->init_model(
+                *found->second.get(),
+                task_result.out_model_data.value(),
+                task_result.m_respath.dir_list().front().c_str()
+            );
+
+            this->m_waiting_prepare.push_back(found->second);
+            this->m_waiting_file.erase(found);
+        }
+    }
+
+    void ModelBuilder::insert(const std::string& respath, HRenModel h_model) {
+        dalAssert(nullptr != this->m_renderer);
+        auto [iter, success] = this->m_waiting_file.emplace(respath, h_model);
+    }
+
+}
+
+
+// ResourceManager
 namespace dal {
 
     void ResourceManager::update() {
-        for (auto& [id, model] : this->m_models) {
-            if (model->is_ready())
-                continue;
-
-            if (this->m_renderer->prepare(*model.get()))
-                return;
-        }
+        this->m_tex_builder.update();
+        this->m_model_builder.update();
     }
 
     void ResourceManager::set_renderer(IRenderer& renderer) {
         this->m_renderer = &renderer;
+
+        this->m_tex_builder.set_renderer(renderer);
+        this->m_model_builder.set_renderer(renderer);
     }
 
     void ResourceManager::invalidate_renderer() {
+        this->m_model_builder.invalidate_renderer();
+        this->m_tex_builder.invalidate_renderer();
+
         this->m_textures.clear();
         this->m_models.clear();
 
@@ -103,9 +198,10 @@ namespace dal {
         const auto resolved_respath = this->m_filesys.resolve_respath(respath);
         if (!resolved_respath.has_value())
             dalAbort(fmt::format("Failed to find texture file: {}", respath.make_str()).c_str());
-        const auto path_str = resolved_respath->make_str();
 
+        const auto path_str = resolved_respath->make_str();
         const auto result = this->m_textures.find(path_str);
+
         if (this->m_textures.end() != result) {
             return result->second;
         }
@@ -114,9 +210,9 @@ namespace dal {
             dalAssert(result);
 
             auto task = std::make_unique<::Task_LoadImage>(resolved_respath.value(), this->m_filesys);
-            task->run();
+            this->m_task_man.order_task(std::move(task), &this->m_tex_builder);
+            this->m_tex_builder.insert(path_str, iter->second);
 
-            this->m_renderer->init_texture(*iter->second.get(), task->out_image_data.value());
             return iter->second;
         }
     }
@@ -125,9 +221,10 @@ namespace dal {
         const auto resolved_respath = this->m_filesys.resolve_respath(respath);
         if (!resolved_respath.has_value())
             dalAbort(fmt::format("Failed to find model file: {}", respath.make_str()).c_str());
-        const auto path_str = resolved_respath->make_str();
 
+        const auto path_str = resolved_respath->make_str();
         const auto result = this->m_models.find(path_str);
+
         if (this->m_models.end() != result) {
             return result->second;
         }
@@ -136,14 +233,9 @@ namespace dal {
             dalAssert(result);
 
             auto task = std::make_unique<::Task_LoadModel>(resolved_respath.value(), this->m_filesys);
-            task->run();
+            this->m_task_man.order_task(std::move(task), &this->m_model_builder);
+            this->m_model_builder.insert(path_str, iter->second);
 
-            this->m_renderer->init_model(
-                *iter->second.get(),
-                task->out_model_data.value(),
-                respath.dir_list().front().c_str()
-
-            );
             return iter->second;
         }
     }

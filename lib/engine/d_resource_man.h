@@ -9,11 +9,57 @@
 
 namespace dal {
 
+    class TextureBuilder : public ITaskListener {
+
+    private:
+        std::unordered_map<std::string, HTexture> m_waiting_file;
+
+        IRenderer* m_renderer = nullptr;
+
+    public:
+        void update();
+
+        void set_renderer(IRenderer& renderer);
+
+        void invalidate_renderer();
+
+        void notify_task_done(std::unique_ptr<ITask> task) override;
+
+        void insert(const std::string& respath, HTexture h_model);
+
+    };
+
+
+    class ModelBuilder : public ITaskListener {
+
+    private:
+        std::unordered_map<std::string, HRenModel> m_waiting_file;
+        std::vector<HRenModel> m_waiting_prepare;
+
+        IRenderer* m_renderer = nullptr;
+
+    public:
+        void update();
+
+        void set_renderer(IRenderer& renderer);
+
+        void invalidate_renderer();
+
+        void notify_task_done(std::unique_ptr<ITask> task) override;
+
+        void insert(const std::string& respath, HRenModel h_model);
+
+    };
+
+
     class ResourceManager : public ITextureManager {
 
     private:
         std::unordered_map<std::string, HTexture> m_textures;
         std::unordered_map<std::string, HRenModel> m_models;
+
+        TextureBuilder m_tex_builder;
+        ModelBuilder m_model_builder;
 
         TaskManager& m_task_man;
         Filesystem& m_filesys;
