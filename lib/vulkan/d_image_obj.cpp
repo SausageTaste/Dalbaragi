@@ -705,9 +705,9 @@ namespace dal {
             if (this->m_sent_task.end() != iter) {
                 const auto task_load = reinterpret_cast<::Task_LoadImage*>(task.get());
 
-                auto tex = dynamic_cast<TextureUnit*>(iter->second);
+                auto& tex = *reinterpret_cast<TextureUnit*>(iter->second);
 
-                tex->init(
+                tex.init(
                     this->m_cmd_pool,
                     task_load->out_image_data.value(),
                     this->m_graphics_queue,
@@ -766,9 +766,9 @@ namespace dal {
 
             this->m_textures[::MISSING_TEX_PATH] = std::make_shared<TextureUnit>();
             auto iter = this->m_textures.find(::MISSING_TEX_PATH);
-            auto tex = dynamic_cast<TextureUnit*>(iter->second.get());
+            auto& tex = *reinterpret_cast<TextureUnit*>(iter->second.get());
 
-            tex->init(
+            tex.init(
                 this->m_cmd_pool,
                 image.value(),
                 this->m_graphics_queue,

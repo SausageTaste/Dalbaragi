@@ -92,9 +92,9 @@ namespace dal {
                 if (!render_pair.m_model->is_ready())
                     continue;
 
-                auto model = dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
+                auto& model = *reinterpret_cast<ModelRenderer*>(render_pair.m_model.get());
 
-                for (auto& unit : model->render_units()) {
+                for (auto& unit : model.render_units()) {
                     dalAssert(!unit.m_material.m_alpha_blend);
 
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
@@ -111,13 +111,13 @@ namespace dal {
                     );
 
                     for (auto& h_actor : render_pair.m_actors) {
-                        auto actor = dynamic_cast<ActorVK*>(h_actor.get());
+                        auto& actor = *reinterpret_cast<ActorVK*>(h_actor.get());
                         vkCmdBindDescriptorSets(
                             cmd_buf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipe_layout_gbuf,
                             2,
-                            1, &actor->desc_set_raw(),
+                            1, &actor.desc_set_raw(),
                             0, nullptr
                         );
 
@@ -271,8 +271,8 @@ namespace dal {
                 if (!render_pair.m_model->is_ready())
                     continue;
 
-                auto model = dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
-                for (auto& unit : model->render_units_alpha()) {
+                auto& model = *reinterpret_cast<ModelRenderer*>(render_pair.m_model.get());
+                for (auto& unit : model.render_units_alpha()) {
                     dalAssert(unit.m_material.m_alpha_blend);
 
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
@@ -289,7 +289,7 @@ namespace dal {
                     );
 
                     for (auto& h_actor : render_pair.m_actors) {
-                        auto actor = dynamic_cast<ActorVK*>(h_actor.get());
+                        auto actor = reinterpret_cast<ActorVK*>(h_actor.get());
                         vkCmdBindDescriptorSets(
                             cmd_buf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,

@@ -656,7 +656,7 @@ namespace dal {
         {
             auto& render_pair = this->m_models.emplace_back();
             render_pair.m_model = this->m_model_man.request_model("_asset/model/honoka_basic_3.dmd");
-            auto& model = *dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
+            auto& model = *reinterpret_cast<ModelRenderer*>(render_pair.m_model.get());
 
             render_pair.m_actors.push_back(this->create_actor());
             render_pair.m_actors.back()->m_transform.m_scale = 0.3;

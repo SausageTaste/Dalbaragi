@@ -256,9 +256,9 @@ namespace dal {
 
     void ModelManager::update() {
         for (auto& [res_id, h_model] : this->m_models) {
-            auto model = dynamic_cast<ModelRenderer*>(h_model.get());
+            auto& model = *reinterpret_cast<ModelRenderer*>(h_model.get());
 
-            const auto did_fetch = model->fetch_one_resource(
+            const auto did_fetch = model.fetch_one_resource(
                 this->m_desc_layout_man->layout_per_material(),
                 this->m_tex_man->sampler_tex().get(),
                 this->m_logi_device
@@ -298,15 +298,15 @@ namespace dal {
         if (this->m_models.end() == iter) {
             this->m_models[respath_str] = std::make_shared<ModelRenderer>();
             auto& h_model = this->m_models[respath_str];
-            auto model = dynamic_cast<ModelRenderer*>(h_model.get());
+            auto& model = *reinterpret_cast<ModelRenderer*>(h_model.get());
 
-            model->init(
+            model.init(
                 this->m_phys_device,
                 this->m_logi_device
             );
 
             std::unique_ptr<dal::ITask> task{ new ::Task_LoadModel(respath, *this->m_filesys) };
-            this->m_sent_task[task.get()] = model;
+            this->m_sent_task[task.get()] = &model;
             this->m_task_man->order_task(std::move(task), this);
 
             return h_model;
