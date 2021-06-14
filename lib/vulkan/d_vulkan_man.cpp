@@ -546,15 +546,17 @@ namespace dal {
             this->m_logi_device.get()
         );
 
-        while (!model.is_ready()) {
-            model.fetch_one_resource(
-                this->m_desc_layout_man.layout_per_material(),
-                this->m_sampler_man.sampler_tex().get(),
-                this->m_logi_device.get()
-            );
-        }
-
         return true;
+    }
+
+    bool VulkanState::prepare(IRenModel& h_model) {
+        auto& model = reinterpret_cast<ModelRenderer&>(h_model);
+
+        return model.fetch_one_resource(
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex().get(),
+            this->m_logi_device.get()
+        );
     }
 
     // Private

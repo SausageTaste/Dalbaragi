@@ -329,6 +329,7 @@ namespace dal {
         }
 
         this->m_task_man.update();
+        this->m_res_man.update();
 
         this->m_renderer->update(this->m_scene.m_euler_camera, this->m_render_list);
     }

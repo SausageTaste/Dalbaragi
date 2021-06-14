@@ -28,6 +28,8 @@ namespace dal {
 
         }
 
+        void update();
+
         void set_renderer(IRenderer& renderer);
 
         void invalidate_renderer();

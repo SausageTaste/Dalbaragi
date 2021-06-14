@@ -84,6 +84,8 @@ namespace dal {
 
         bool init_model(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) override;
 
+        bool prepare(IRenModel& model) override;
+
     private:
         // Returns true if recreation is still needed.
         bool on_recreate_swapchain();

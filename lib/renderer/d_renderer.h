@@ -88,6 +88,8 @@ namespace dal {
 
         virtual bool init_model(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) { return false; }
 
+        virtual bool prepare(IRenModel& model) { return false; }
+
     };
 
 }

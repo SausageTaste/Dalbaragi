@@ -78,6 +78,16 @@ namespace {
 
 namespace dal {
 
+    void ResourceManager::update() {
+        for (auto& [id, model] : this->m_models) {
+            if (model->is_ready())
+                continue;
+
+            if (this->m_renderer->prepare(*model.get()))
+                return;
+        }
+    }
+
     void ResourceManager::set_renderer(IRenderer& renderer) {
         this->m_renderer = &renderer;
     }
