@@ -16,15 +16,19 @@ namespace {
 
         dal::HTexture create_texture() override { return nullptr; }
 
+        dal::HRenModel create_model() override { return nullptr; }
+
+        dal::HActor create_actor() override { return nullptr; }
+
         bool init_texture(dal::ITexture& tex, const dal::ImageData& img_data) override {
             return false;
         }
 
-        dal::HRenModel request_model(const dal::ResPath& respath) override {
-            return nullptr;
+        bool init_model(dal::IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) override {
+            return false;
         }
 
-        dal::HActor create_actor() override {
+        dal::HRenModel request_model(const dal::ResPath& respath) override {
             return nullptr;
         }
 

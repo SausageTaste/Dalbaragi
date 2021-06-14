@@ -77,13 +77,17 @@ namespace dal {
 
         HTexture create_texture() override;
 
+        HRenModel create_model();
+
+        HActor create_actor() override;
+
         bool init_texture(ITexture& tex, const ImageData& img_data) override;
+
+        bool init_model(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) override;
 
         HRenModel request_model(const dal::ResPath& respath) override {
             return this->m_model_man.request_model(respath);
         }
-
-        HActor create_actor() override;
 
     private:
         // Returns true if recreation is still needed.

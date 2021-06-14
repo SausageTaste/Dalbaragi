@@ -5,6 +5,7 @@
 
 #include "d_actor.h"
 #include "d_filesystem.h"
+#include "d_model_data.h"
 #include "d_image_parser.h"
 
 
@@ -79,11 +80,15 @@ namespace dal {
 
         virtual HTexture create_texture() = 0;
 
-        virtual bool init_texture(ITexture& tex, const ImageData& img_data) = 0;
-
-        virtual HRenModel request_model(const dal::ResPath& respath) = 0;
+        virtual HRenModel create_model() = 0;
 
         virtual HActor create_actor() = 0;
+
+        virtual bool init_texture(ITexture& tex, const ImageData& img_data) = 0;
+
+        virtual bool init_model(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) = 0;
+
+        virtual HRenModel request_model(const dal::ResPath& respath) = 0;
 
     };
 

@@ -13,6 +13,7 @@ namespace dal {
 
     private:
         std::unordered_map<std::string, HTexture> m_textures;
+        std::unordered_map<std::string, HRenModel> m_models;
 
         TaskManager& m_task_man;
         Filesystem& m_filesys;
@@ -32,6 +33,8 @@ namespace dal {
         void invalidate_renderer();
 
         HTexture request_texture(const ResPath& respath) override;
+
+        HRenModel request_model(const ResPath& respath);
 
     };
 

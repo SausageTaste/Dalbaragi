@@ -519,6 +519,21 @@ namespace dal {
         return std::make_shared<TextureUnit>();
     }
 
+    HRenModel VulkanState::create_model() {
+        return std::make_shared<ModelRenderer>();
+    }
+
+    HActor VulkanState::create_actor() {
+        auto a = std::make_shared<ActorVK>();
+        a->init(
+            this->m_desc_pool_actor,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+        return a;
+    }
+
     bool VulkanState::init_texture(ITexture& h_tex, const ImageData& img_data) {
         auto& tex = reinterpret_cast<TextureUnit&>(h_tex);
 
@@ -531,15 +546,32 @@ namespace dal {
         );
     }
 
-    HActor VulkanState::create_actor() {
-        auto a = std::make_shared<ActorVK>();
-        a->init(
-            this->m_desc_pool_actor,
+    bool VulkanState::init_model(IRenModel& h_model, const dal::ModelStatic& model_data, const char* const fallback_namespace) {
+        auto& model = reinterpret_cast<ModelRenderer&>(h_model);
+
+        model.init(this->m_phys_device.get(), this->m_logi_device.get());
+
+        model.upload_meshes(
+            model_data,
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            fallback_namespace,
             this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_logi_device.queue_graphics(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
-        return a;
+
+        while (!model.is_ready()) {
+            model.fetch_one_resource(
+                this->m_desc_layout_man.layout_per_material(),
+                this->m_sampler_man.sampler_tex().get(),
+                this->m_logi_device.get()
+            );
+        }
+
+        return true;
     }
 
     // Private

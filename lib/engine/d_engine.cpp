@@ -214,11 +214,11 @@ namespace {
 
 namespace {
 
-    void populate_models(dal::RenderList& render_list, dal::IRenderer& renderer) {
+    void populate_models(dal::RenderList& render_list, dal::IRenderer& renderer, dal::ResourceManager& res_man) {
         // Honoka
         {
             auto& render_pair = render_list.emplace_back();
-            render_pair.m_model = renderer.request_model("_asset/model/honoka_basic_3.dmd");
+            render_pair.m_model = res_man.request_model("_asset/model/honoka_basic_3.dmd");
 
             render_pair.m_actors.push_back(renderer.create_actor());
             render_pair.m_actors.back()->m_transform.m_scale = 0.3;
@@ -234,7 +234,7 @@ namespace {
         // Sponza
         {
             auto& render_pair = render_list.emplace_back();
-            render_pair.m_model = renderer.request_model("_asset/model/sponza.dmd");
+            render_pair.m_model = res_man.request_model("_asset/model/sponza.dmd");
 
             render_pair.m_actors.push_back(renderer.create_actor());
             render_pair.m_actors.back()->m_transform.m_scale = 0.01;
@@ -355,7 +355,7 @@ namespace dal {
 
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
-        ::populate_models(this->m_render_list, *this->m_renderer.get());
+        ::populate_models(this->m_render_list, *this->m_renderer.get(), this->m_res_man);
     }
 
     void Engine::destory_vulkan() {
