@@ -2,11 +2,12 @@
 
 #include <vector>
 
+#include "d_konsts.h"
 #include "d_command.h"
-#include "d_model_renderer.h"
+#include "d_swapchain.h"
 #include "d_render_pass.h"
 #include "d_framebuffer.h"
-#include "d_konsts.h"
+#include "d_model_renderer.h"
 
 
 namespace dal {
@@ -71,6 +72,40 @@ namespace dal {
 
         auto& cmd_alpha_at(const size_t index) const {
             return this->m_cmd_alpha.at(index);
+        }
+
+    };
+
+
+    class FbufManager {
+
+    private:
+        std::vector<dal::Fbuf_Simple> m_fbuf_simple;
+        std::vector<dal::Fbuf_Final> m_fbuf_final;
+        std::vector<dal::Fbuf_Alpha> m_fbuf_alpha;
+
+    public:
+        void init(
+            const std::vector<dal::ImageView>& swapchain_views,
+            const dal::AttachmentManager& attach_man,
+            const VkExtent2D& swapchain_extent,
+            const VkExtent2D& gbuf_extent,
+            const dal::RenderPass_Gbuf& rp_gbuf,
+            const dal::RenderPass_Final& rp_final,
+            const dal::RenderPass_Alpha& rp_alpha,
+            const VkDevice logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+        std::vector<VkFramebuffer> swapchain_fbuf() const;
+
+        auto& fbuf_final_at(const dal::SwapchainIndex index) const {
+            return this->m_fbuf_final.at(*index);
+        }
+
+        auto& fbuf_alpha_at(const dal::SwapchainIndex index) const {
+            return this->m_fbuf_alpha.at(*index);
         }
 
     };

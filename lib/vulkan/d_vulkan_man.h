@@ -3,10 +3,18 @@
 #include <vector>
 #include <functional>
 
-#include "d_renderer.h"
-#include "d_filesystem.h"
 #include "d_actor.h"
+#include "d_shader.h"
+#include "d_renderer.h"
+#include "d_vk_device.h"
+#include "d_filesystem.h"
 #include "d_task_thread.h"
+#include "d_vk_managers.h"
+
+
+#ifndef DAL_OS_ANDROID
+    #define DAL_VK_DEBUG
+#endif
 
 
 namespace dal {
@@ -14,35 +22,40 @@ namespace dal {
     class VulkanState : public IRenderer {
 
     private:
-        class Pimpl;
-        Pimpl* m_pimpl = nullptr;
+        VkInstance m_instance = VK_NULL_HANDLE;
+        VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+        PhysicalDevice m_phys_device;
+        PhysDeviceInfo m_phys_info;
+        LogicalDevice m_logi_device;
+
+        SwapchainManager m_swapchain;
+        PipelineManager m_pipelines;
+        AttachmentManager m_attach_man;
+        RenderPassManager m_renderpasses;
+        FbufManager m_fbuf_man;
+        CmdPoolManager m_cmd_man;
+        DescSetLayoutManager m_desc_layout_man;
+        UbufManager m_ubuf_man;
+        DescriptorManager m_desc_man;
+
+        TextureManager m_tex_man;
+        ModelManager m_model_man;
+
+        std::vector<ModelRenderer*> m_models;
+
+        // Non-vulkan members
+        dal::Filesystem& m_filesys;
+
+#ifdef DAL_VK_DEBUG
+        VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
+#endif
+
+        FrameInFlightIndex m_flight_frame_index;
+        bool m_screen_resize_notified = false;
+        VkExtent2D m_new_extent;
 
     public:
-        VulkanState() = default;
-
         VulkanState(
-            const char* const window_title,
-            const unsigned init_width,
-            const unsigned init_height,
-            dal::Filesystem& filesys,
-            dal::TaskManager& task_man,
-            const std::vector<const char*>& extensions,
-            std::function<void*(void*)> surface_create_func
-        ) {
-            this->init(
-                window_title,
-                init_width,
-                init_height,
-                filesys,
-                task_man,
-                extensions,
-                surface_create_func
-            );
-        }
-
-        ~VulkanState();
-
-        void init(
             const char* const window_title,
             const unsigned init_width,
             const unsigned init_height,
@@ -52,15 +65,22 @@ namespace dal {
             std::function<void*(void*)> surface_create_func
         );
 
-        void destroy();
-
-        bool is_ready() const;
+        ~VulkanState();
 
         void update(const ICamera& camera) override;
 
         void wait_idle() override;
 
         void on_screen_resize(const unsigned width, const unsigned height) override;
+
+    private:
+        // Returns true if recreation is still needed.
+        bool on_recreate_swapchain();
+
+        [[nodiscard]]
+        bool init_swapchain_and_dependers();
+
+        void populate_models();
 
     };
 

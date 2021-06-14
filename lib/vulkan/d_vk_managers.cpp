@@ -307,6 +307,77 @@ namespace dal {
 }
 
 
+//
+namespace dal {
+
+    void FbufManager::init(
+        const std::vector<dal::ImageView>& swapchain_views,
+        const dal::AttachmentManager& attach_man,
+        const VkExtent2D& swapchain_extent,
+        const VkExtent2D& gbuf_extent,
+        const dal::RenderPass_Gbuf& rp_gbuf,
+        const dal::RenderPass_Final& rp_final,
+        const dal::RenderPass_Alpha& rp_alpha,
+        const VkDevice logi_device
+    ) {
+        this->destroy(logi_device);
+
+        for (uint32_t i = 0; i < swapchain_views.size(); ++i) {
+            this->m_fbuf_simple.emplace_back().init(
+                rp_gbuf,
+                gbuf_extent,
+                attach_man.color().view().get(),
+                attach_man.depth().view().get(),
+                attach_man.albedo().view().get(),
+                attach_man.materials().view().get(),
+                attach_man.normal().view().get(),
+                logi_device
+            );
+
+            this->m_fbuf_final.emplace_back().init(
+                rp_final,
+                swapchain_extent,
+                swapchain_views.at(i).get(),
+                logi_device
+            );
+
+            this->m_fbuf_alpha.emplace_back().init(
+                rp_alpha,
+                gbuf_extent,
+                attach_man.color().view().get(),
+                attach_man.depth().view().get(),
+                logi_device
+            );
+        }
+    }
+
+    void FbufManager::destroy(const VkDevice logi_device) {
+        for (auto& fbuf : this->m_fbuf_simple)
+            fbuf.destroy(logi_device);
+        this->m_fbuf_simple.clear();
+
+        for (auto& fbuf : this->m_fbuf_final)
+            fbuf.destroy(logi_device);
+        this->m_fbuf_final.clear();
+
+        for (auto& fbuf : this->m_fbuf_alpha)
+            fbuf.destroy(logi_device);
+        this->m_fbuf_alpha.clear();
+    }
+
+    std::vector<VkFramebuffer> FbufManager::swapchain_fbuf() const {
+        std::vector<VkFramebuffer> output;
+
+        for (auto& x : this->m_fbuf_simple) {
+            output.push_back(x.get());
+        }
+
+        return output;
+    }
+
+}
+
+
 // UbufManager
 namespace dal {
 
