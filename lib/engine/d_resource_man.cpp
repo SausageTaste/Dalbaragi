@@ -192,8 +192,14 @@ namespace dal {
         this->m_model_builder.invalidate_renderer();
         this->m_tex_builder.invalidate_renderer();
 
-        this->m_textures.clear();
-        this->m_models.clear();
+        for (auto& x : this->m_textures)
+            x.second->destroy();
+
+        for (auto& x : this->m_models)
+            x.second->destroy();
+
+        for (auto& x : this->m_actors)
+            x->destroy();
 
         this->m_renderer = nullptr;
     }
@@ -245,6 +251,11 @@ namespace dal {
 
             return iter->second;
         }
+    }
+
+    HActor ResourceManager::request_actor() {
+        this->m_actors.push_back(this->m_renderer->create_actor());
+        return this->m_actors.back();
     }
 
 }

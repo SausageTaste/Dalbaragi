@@ -152,7 +152,7 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy();
+        void destroy() override;
 
         bool is_ready() const override;
 

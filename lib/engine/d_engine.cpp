@@ -214,7 +214,7 @@ namespace {
 
 namespace {
 
-    void populate_models(dal::Scene& scene, dal::IRenderer& renderer, dal::ResourceManager& res_man) {
+    void populate_models(dal::Scene& scene, dal::ResourceManager& res_man) {
         // Honoka
         {
             const auto entity = scene.m_registry.create();
@@ -225,11 +225,11 @@ namespace {
 
             auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
 
-            cpnt_actor.m_actors.push_back(renderer.create_actor());
+            cpnt_actor.m_actors.push_back(res_man.request_actor());
             cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
             cpnt_actor.m_actors.back()->apply_changes();
 
-            cpnt_actor.m_actors.push_back(renderer.create_actor());
+            cpnt_actor.m_actors.push_back(res_man.request_actor());
             cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
             cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
             cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
@@ -246,7 +246,7 @@ namespace {
 
             auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
 
-            cpnt_actor.m_actors.push_back(renderer.create_actor());
+            cpnt_actor.m_actors.push_back(res_man.request_actor());
             cpnt_actor.m_actors.back()->m_transform.m_scale = 0.01;
             cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
             cpnt_actor.m_actors.back()->apply_changes();
@@ -366,7 +366,7 @@ namespace dal {
 
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
-        ::populate_models(this->m_scene, *this->m_renderer.get(), this->m_res_man);
+        ::populate_models(this->m_scene, this->m_res_man);
     }
 
     void Engine::destory_vulkan() {

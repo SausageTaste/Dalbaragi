@@ -16,6 +16,8 @@ namespace dal {
     public:
         virtual ~ITexture() = default;
 
+        virtual void destroy() = 0;
+
         virtual bool is_ready() const = 0;
 
     };
@@ -25,6 +27,8 @@ namespace dal {
 
     public:
         virtual ~IRenModel() = default;
+
+        virtual void destroy() = 0;
 
         virtual bool is_ready() const = 0;
 
@@ -38,6 +42,8 @@ namespace dal {
 
     public:
         virtual ~IActor() = default;
+
+        virtual void destroy() = 0;
 
         virtual void apply_changes() = 0;
 

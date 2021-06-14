@@ -57,6 +57,7 @@ namespace dal {
     private:
         std::unordered_map<std::string, HTexture> m_textures;
         std::unordered_map<std::string, HRenModel> m_models;
+        std::vector<HActor> m_actors;
         HTexture m_missing_tex;
 
         TextureBuilder m_tex_builder;
@@ -84,6 +85,8 @@ namespace dal {
         HTexture request_texture(const ResPath& respath) override;
 
         HRenModel request_model(const ResPath& respath);
+
+        HActor request_actor();
 
     };
 

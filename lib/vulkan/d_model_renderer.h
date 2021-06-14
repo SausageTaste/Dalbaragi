@@ -26,7 +26,7 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy();
+        void destroy() override;
 
         void apply_changes() override;
 
@@ -109,7 +109,7 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy();
+        void destroy() override;
 
         bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device);
 
