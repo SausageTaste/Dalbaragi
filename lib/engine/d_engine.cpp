@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include "d_logger.h"
+#include "d_renderer_create.h"
 
 
 namespace {
@@ -243,6 +244,7 @@ namespace dal {
 
     void Engine::init(const EngineCreateInfo& create_info) {
         this->destroy();
+        this->m_renderer = dal::create_renderer_null();
 
         dalAssert(create_info.check_validity());
         this->m_create_info = create_info;
@@ -320,7 +322,7 @@ namespace dal {
     }
 
     void Engine::destory_vulkan() {
-        this->m_renderer.reset();
+        this->m_renderer = dal::create_renderer_null();
     }
 
     void Engine::wait_device_idle() const {
