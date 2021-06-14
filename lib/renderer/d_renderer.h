@@ -36,7 +36,7 @@ namespace dal {
     public:
         virtual ~IActor() = default;
 
-        virtual void on_update() = 0;
+        virtual void apply_changes() = 0;
 
     };
 

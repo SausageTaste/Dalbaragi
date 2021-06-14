@@ -28,7 +28,7 @@ namespace dal {
 
         void destroy();
 
-        void on_update() override;
+        void apply_changes() override;
 
         auto& desc_set_raw() const {
             return this->m_desc_per_actor.get();

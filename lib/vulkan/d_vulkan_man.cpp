@@ -660,13 +660,13 @@ namespace dal {
 
             render_pair.m_actors.push_back(this->create_actor());
             render_pair.m_actors.back()->m_transform.m_scale = 0.3;
-            render_pair.m_actors.back()->on_update();
+            render_pair.m_actors.back()->apply_changes();
 
             render_pair.m_actors.push_back(this->create_actor());
             render_pair.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
             render_pair.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
             render_pair.m_actors.back()->m_transform.m_scale = 0.3;
-            render_pair.m_actors.back()->on_update();
+            render_pair.m_actors.back()->apply_changes();
         }
 
         // Sponza
@@ -677,7 +677,7 @@ namespace dal {
             render_pair.m_actors.push_back(this->create_actor());
             render_pair.m_actors.back()->m_transform.m_scale = 0.01;
             render_pair.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
-            render_pair.m_actors.back()->on_update();
+            render_pair.m_actors.back()->apply_changes();
         }
     }
 

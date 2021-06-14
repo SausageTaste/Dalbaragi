@@ -66,7 +66,7 @@ namespace dal {
         this->m_ubuf_per_actor.destroy(this->m_logi_device);
     }
 
-    void ActorVK::on_update() {
+    void ActorVK::apply_changes() {
         U_PerActor ubuf_data_per_actor;
         ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
         this->m_ubuf_per_actor.copy_to_buffer(ubuf_data_per_actor, this->m_logi_device);
