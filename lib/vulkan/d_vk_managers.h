@@ -52,6 +52,7 @@ namespace dal {
 
         void record_alpha(
             const size_t flight_frame_index,
+            const glm::vec3& view_pos,
             const RenderList& render_list,
             const VkDescriptorSet desc_set_per_frame,
             const VkDescriptorSet desc_set_per_world,

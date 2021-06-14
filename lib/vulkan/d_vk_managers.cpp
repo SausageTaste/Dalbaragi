@@ -3,6 +3,47 @@
 #include "d_logger.h"
 
 
+namespace {
+
+    struct AlphaMeshTuple {
+        const dal::RenderUnit* m_unit;
+        const dal::ActorVK* m_actor;
+        float m_dist_spr;
+
+        bool operator<(const AlphaMeshTuple& other) const {
+            return this->m_dist_spr > other.m_dist_spr;
+        }
+    };
+
+    auto sort_transparent_meshes(const glm::vec3& view_pos, const dal::RenderList& render_list) {
+        std::vector<AlphaMeshTuple> sort_vec;
+
+        for (auto& pair : render_list) {
+            auto& model = *reinterpret_cast<dal::ModelRenderer*>(pair.m_model.get());
+
+            for (auto& h_actor : pair.m_actors) {
+                auto& actor = *reinterpret_cast<dal::ActorVK*>(h_actor.get());
+                const auto actor_transform = actor.m_transform.make_mat4();
+
+                for (auto& unit : model.render_units_alpha()) {
+                    auto& sort_element = sort_vec.emplace_back();
+                    const auto unit_world_pos = actor_transform * glm::vec4(unit.m_weight_center, 1);
+                    const auto to_view = view_pos - glm::vec3(unit_world_pos);
+
+                    sort_element.m_unit = &unit;
+                    sort_element.m_actor = &actor;
+                    sort_element.m_dist_spr = glm::dot(to_view, to_view);
+                }
+            }
+        }
+
+        std::sort(sort_vec.begin(), sort_vec.end());
+        return sort_vec;
+    }
+
+}
+
+
 // CmdPoolManager
 namespace dal {
 
@@ -210,6 +251,7 @@ namespace dal {
 
     void CmdPoolManager::record_alpha(
         const size_t flight_frame_index,
+        const glm::vec3& view_pos,
         const RenderList& render_list,
         const VkDescriptorSet desc_set_per_frame,
         const VkDescriptorSet desc_set_per_world,
@@ -221,6 +263,8 @@ namespace dal {
         const RenderPass_Alpha& render_pass
     ) {
         auto& cmd_buf = this->m_cmd_alpha.at(flight_frame_index);
+
+        const auto sorted = ::sort_transparent_meshes(view_pos, render_list);
 
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -271,43 +315,33 @@ namespace dal {
                 0, nullptr
             );
 
-            for (auto& render_pair : render_list) {
-                if (!render_pair.m_model->is_ready())
+            for (auto& render_tuple : sorted) {
+                if (!render_tuple.m_unit->is_ready())
                     continue;
 
-                auto& model = *reinterpret_cast<ModelRenderer*>(render_pair.m_model.get());
-                for (auto& unit : model.render_units_alpha()) {
-                    dalAssert(unit.m_material.m_alpha_blend);
+                std::array<VkBuffer, 1> vert_bufs{ render_tuple.m_unit->m_vert_buffer.vertex_buffer() };
+                vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                vkCmdBindIndexBuffer(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
 
-                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
-                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
-                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipe_layout_alpha,
+                    1,
+                    1, &render_tuple.m_unit->m_material.m_descset.get(),
+                    0, nullptr
+                );
 
-                    vkCmdBindDescriptorSets(
-                        cmd_buf,
-                        VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipe_layout_alpha,
-                        1,
-                        1, &unit.m_material.m_descset.get(),
-                        0, nullptr
-                    );
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipe_layout_alpha,
+                    2,
+                    1, &render_tuple.m_actor->desc_set_raw(),
+                    0, nullptr
+                );
 
-                    for (auto& h_actor : render_pair.m_actors) {
-                        auto actor = reinterpret_cast<ActorVK*>(h_actor.get());
-                        vkCmdBindDescriptorSets(
-                            cmd_buf,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipe_layout_alpha,
-                            2,
-                            1, &actor->desc_set_raw(),
-                            0, nullptr
-                        );
-
-                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
-                    }
-
-
-                }
+                vkCmdDrawIndexed(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_size(), 1, 0, 0, 0);
             }
         }
         vkCmdEndRenderPass(cmd_buf);

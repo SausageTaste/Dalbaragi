@@ -391,6 +391,7 @@ namespace dal {
 
             this->m_cmd_man.record_alpha(
                 this->m_flight_frame_index.get(),
+                camera.view_pos(),
                 render_list,
                 this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_per_world(this->m_flight_frame_index.get()),
