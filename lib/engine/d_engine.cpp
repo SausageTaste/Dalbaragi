@@ -296,8 +296,7 @@ namespace dal {
 
         this->m_task_man.update();
 
-        if (this->m_vulkan_man.is_ready())
-            this->m_vulkan_man.update(this->m_scene.m_euler_camera);
+        this->m_renderer->update(this->m_scene.m_euler_camera);
     }
 
     void Engine::init_vulkan(const unsigned win_width, const unsigned win_height) {
@@ -309,7 +308,7 @@ namespace dal {
             extensions.push_back(x.c_str());
         }
 
-        this->m_vulkan_man.init(
+        this->m_renderer.reset(new VulkanState(
             this->m_create_info.m_window_title.c_str(),
             win_width,
             win_height,
@@ -317,21 +316,21 @@ namespace dal {
             this->m_task_man,
             extensions,
             this->m_create_info.m_surface_create_func
-        );
+        ));
     }
 
     void Engine::destory_vulkan() {
-        this->m_vulkan_man.destroy();
+        this->m_renderer.reset();
     }
 
     void Engine::wait_device_idle() const {
-        this->m_vulkan_man.wait_device_idle();
+        this->m_renderer->wait_idle();
     }
 
     void Engine::on_screen_resize(const unsigned width, const unsigned height) {
         this->m_screen_width = width;
         this->m_screen_height = height;
-        this->m_vulkan_man.on_screen_resize(width, height);
+        this->m_renderer->on_screen_resize(width, height);
     }
 
 }

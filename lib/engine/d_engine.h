@@ -27,7 +27,7 @@ namespace dal {
 
         Scene m_scene;
         TaskManager m_task_man;
-        VulkanState m_vulkan_man;
+        std::unique_ptr<IRenderer> m_renderer;
         InputManager m_input_man;
 
         std::vector<IInputListener*> m_input_listeners;

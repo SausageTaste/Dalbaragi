@@ -20,6 +20,26 @@ namespace dal {
     public:
         VulkanState() = default;
 
+        VulkanState(
+            const char* const window_title,
+            const unsigned init_width,
+            const unsigned init_height,
+            dal::Filesystem& filesys,
+            dal::TaskManager& task_man,
+            const std::vector<const char*>& extensions,
+            std::function<void*(void*)> surface_create_func
+        ) {
+            this->init(
+                window_title,
+                init_width,
+                init_height,
+                filesys,
+                task_man,
+                extensions,
+                surface_create_func
+            );
+        }
+
         ~VulkanState();
 
         void init(
@@ -36,11 +56,11 @@ namespace dal {
 
         bool is_ready() const;
 
-        void update(const ICamera& camera);
+        void update(const ICamera& camera) override;
 
-        void wait_device_idle() const;
+        void wait_idle() override;
 
-        void on_screen_resize(const unsigned width, const unsigned height);
+        void on_screen_resize(const unsigned width, const unsigned height) override;
 
     };
 

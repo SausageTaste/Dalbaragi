@@ -846,7 +846,7 @@ namespace dal {
         this->m_pimpl->update(camera);
     }
 
-    void VulkanState::wait_device_idle() const {
+    void VulkanState::wait_idle() {
         dalAssert(this->is_ready());
         this->m_pimpl->wait_device_idle();
     }
