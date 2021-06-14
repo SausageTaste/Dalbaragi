@@ -44,8 +44,6 @@ def main():
 
     _work_for_one("simple_f.spv", "simple.frag", [])
 
-    _work_for_one("simple_gamma_f.spv", "simple.frag", ["DAL_GAMMA_CORRECT"])
-
     _work_for_one("fill_screen_v.spv", "fill_screen.vert", [])
 
     _work_for_one("fill_screen_f.spv", "fill_screen.frag", [])
@@ -53,6 +51,8 @@ def main():
     _work_for_one("composition_v.spv", "composition.vert", [])
 
     _work_for_one("composition_f.spv", "composition.frag", [])
+
+    _work_for_one("composition_gamma_f.spv", "composition.frag", ["DAL_GAMMA_CORRECT"])
 
     _work_for_one("alpha_v.spv", "alpha.vert", [])
 

@@ -44,6 +44,16 @@ vec3 calc_world_pos(const float z) {
     return worldSpacePosition.xyz;
 }
 
+vec3 fix_color(const vec3 color) {
+    const float GAMMA = 2.2;
+    const float EXPOSURE = 1;
+
+    vec3 mapped = vec3(1.0) - exp(-color * EXPOSURE);
+    //vec3 mapped = color / (color + 1.0);
+    mapped = pow(mapped, vec3(1.0 / GAMMA));
+    return mapped;
+}
+
 
 void main() {
     const float depth = subpassLoad(input_depth).x;
@@ -88,4 +98,9 @@ void main() {
     }
 
     out_color = vec4(light, 1);
+
+#ifdef DAL_GAMMA_CORRECT
+    out_color.xyz = fix_color(out_color.xyz);
+#endif
+
 }
