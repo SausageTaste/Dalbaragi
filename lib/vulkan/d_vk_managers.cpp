@@ -79,20 +79,20 @@ namespace dal {
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipe_layout_gbuf,
+                0,
+                1, &desc_set_per_frame,
+                0, nullptr
+            );
+
             for (auto& render_pair : render_list) {
                 if (!render_pair.m_model->is_ready())
                     continue;
 
                 auto model = dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
-
-                vkCmdBindDescriptorSets(
-                    cmd_buf,
-                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    pipe_layout_gbuf,
-                    2,
-                    1, &model->desc_set_per_actor().get(),
-                    0, nullptr
-                );
 
                 for (auto& unit : model->render_units()) {
                     if (unit.m_material.m_alpha_blend)
@@ -106,21 +106,24 @@ namespace dal {
                         cmd_buf,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         pipe_layout_gbuf,
-                        0,
-                        1, &desc_set_per_frame,
-                        0, nullptr
-                    );
-
-                    vkCmdBindDescriptorSets(
-                        cmd_buf,
-                        VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipe_layout_gbuf,
                         1,
                         1, &unit.m_material.m_descset.get(),
                         0, nullptr
                     );
 
-                    vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    for (auto& h_actor : render_pair.m_actors) {
+                        auto actor = dynamic_cast<ActorVK*>(h_actor.get());
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipe_layout_gbuf,
+                            2,
+                            1, &actor->desc_set_raw(),
+                            0, nullptr
+                        );
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
                 }
             }
         }
@@ -247,21 +250,29 @@ namespace dal {
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipe_layout_alpha,
+                0,
+                1, &desc_set_per_frame,
+                0, nullptr
+            );
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipe_layout_alpha,
+                3,
+                1, &desc_set_per_world,
+                0, nullptr
+            );
+
             for (auto& render_pair : render_list) {
                 if (!render_pair.m_model->is_ready())
                     continue;
 
                 auto model = dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
-
-                vkCmdBindDescriptorSets(
-                    cmd_buf,
-                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    pipe_layout_alpha,
-                    2,
-                    1, &model->desc_set_per_actor().get(),
-                    0, nullptr
-                );
-
                 for (auto& unit : model->render_units()) {
                     if (!unit.m_material.m_alpha_blend)
                         continue;
@@ -274,30 +285,26 @@ namespace dal {
                         cmd_buf,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         pipe_layout_alpha,
-                        0,
-                        1, &desc_set_per_frame,
-                        0, nullptr
-                    );
-
-                    vkCmdBindDescriptorSets(
-                        cmd_buf,
-                        VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipe_layout_alpha,
-                        3,
-                        1, &desc_set_per_world,
-                        0, nullptr
-                    );
-
-                    vkCmdBindDescriptorSets(
-                        cmd_buf,
-                        VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipe_layout_alpha,
                         1,
                         1, &unit.m_material.m_descset.get(),
                         0, nullptr
                     );
 
-                    vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    for (auto& h_actor : render_pair.m_actors) {
+                        auto actor = dynamic_cast<ActorVK*>(h_actor.get());
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipe_layout_alpha,
+                            2,
+                            1, &actor->desc_set_raw(),
+                            0, nullptr
+                        );
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+
+
                 }
             }
         }

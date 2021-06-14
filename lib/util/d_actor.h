@@ -11,9 +11,14 @@ namespace dal {
     class Transform {
 
     public:
-        glm::quat m_quat{};
-        glm::vec3 m_pos{};
+        glm::quat m_quat{1, 0, 0, 0};
+        glm::vec3 m_pos{0, 0, 0};
         float m_scale = 1;
+
+    public:
+        glm::mat4 make_mat4() const;
+
+        void rotate(const float v, const glm::vec3& selector);
 
     };
 

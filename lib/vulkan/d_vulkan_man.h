@@ -40,9 +40,8 @@ namespace dal {
 
         TextureManager m_tex_man;
         ModelManager m_model_man;
-
-    public:
         RenderList m_models;
+        DescPool m_desc_pool_actor;
 
     private:
         // Non-vulkan members
@@ -74,6 +73,8 @@ namespace dal {
         void wait_idle() override;
 
         void on_screen_resize(const unsigned width, const unsigned height) override;
+
+        HActor create_actor();
 
     private:
         // Returns true if recreation is still needed.

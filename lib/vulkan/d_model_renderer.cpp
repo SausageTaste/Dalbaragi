@@ -41,6 +41,40 @@ namespace {
 }
 
 
+// ActorVK
+namespace dal {
+
+    ActorVK::~ActorVK() {
+        this->destroy();
+    }
+
+    void ActorVK::init(
+        DescPool& desc_pool,
+        const VkDescriptorSetLayout layout_per_actor,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->destroy();
+
+        this->m_logi_device = logi_device;
+        this->m_ubuf_per_actor.init(phys_device, logi_device);
+        this->m_desc_per_actor = desc_pool.allocate(layout_per_actor, logi_device);
+        this->m_desc_per_actor.record_per_actor(this->m_ubuf_per_actor, logi_device);
+    }
+
+    void ActorVK::destroy() {
+        this->m_ubuf_per_actor.destroy(this->m_logi_device);
+    }
+
+    void ActorVK::on_update() {
+        U_PerActor ubuf_data_per_actor;
+        ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
+        this->m_ubuf_per_actor.copy_to_buffer(ubuf_data_per_actor, this->m_logi_device);
+    }
+
+}
+
+
 // RenderUnit
 namespace dal {
 
@@ -93,8 +127,6 @@ namespace dal {
     ) {
         this->destroy();
         this->m_logi_device = logi_device;
-
-        this->m_ubuf_per_actor.init(phys_device, logi_device);
     }
 
     void ModelRenderer::upload_meshes(
@@ -115,9 +147,6 @@ namespace dal {
             1 * model_data.m_units.size() + 5,
             logi_device
         );
-
-        this->m_desc_per_actor = this->m_desc_pool.allocate(layout_per_actor, logi_device);
-        this->m_desc_per_actor.record_per_actor(this->m_ubuf_per_actor, logi_device);
 
         for (auto& unit_data : model_data.m_units) {
             auto& unit = this->m_units.emplace_back();
@@ -150,7 +179,6 @@ namespace dal {
 
         this->m_units.clear();
         this->m_desc_pool.destroy(this->m_logi_device);
-        this->m_ubuf_per_actor.destroy(this->m_logi_device);
     }
 
     bool ModelRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device) {

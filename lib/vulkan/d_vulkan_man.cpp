@@ -248,12 +248,15 @@ namespace dal {
             this->m_logi_device.get()
         );
 
+        this->m_desc_pool_actor.init(64, 64, 64, 64, this->m_logi_device.get());
+
         this->populate_models();
     }
 
     VulkanState::~VulkanState() {
         this->m_models.clear();
 
+        this->m_desc_pool_actor.destroy(this->m_logi_device.get());
         this->m_model_man.destroy(this->m_logi_device.get());
         this->m_tex_man.destroy(this->m_logi_device.get());
         this->m_desc_man.destroy(this->m_logi_device.get());
@@ -520,6 +523,17 @@ namespace dal {
         dalVerbose(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
     }
 
+    HActor VulkanState::create_actor() {
+        auto a = std::make_shared<ActorVK>();
+        a->init(
+            this->m_desc_pool_actor,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+        return a;
+    }
+
     // Private
     //---------------------------------------------------------------------------------------
 
@@ -642,11 +656,17 @@ namespace dal {
         {
             auto& render_pair = this->m_models.emplace_back();
             render_pair.m_model = this->m_model_man.request_model("_asset/model/honoka_basic_3.dmd");
-
             auto& model = *dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
-            U_PerActor ubuf_data_per_actor;
-            ubuf_data_per_actor.m_model = glm::scale(glm::mat4{1}, glm::vec3{0.3});
-            model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
+
+            render_pair.m_actors.push_back(this->create_actor());
+            render_pair.m_actors.back()->m_transform.m_scale = 0.3;
+            render_pair.m_actors.back()->on_update();
+
+            render_pair.m_actors.push_back(this->create_actor());
+            render_pair.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
+            render_pair.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
+            render_pair.m_actors.back()->m_transform.m_scale = 0.3;
+            render_pair.m_actors.back()->on_update();
         }
 
         // Sponza
@@ -654,10 +674,10 @@ namespace dal {
             auto& render_pair = this->m_models.emplace_back();
             render_pair.m_model = this->m_model_man.request_model("_asset/model/sponza.dmd");
 
-            auto& model = *dynamic_cast<ModelRenderer*>(render_pair.m_model.get());
-            U_PerActor ubuf_data_per_actor;
-            ubuf_data_per_actor.m_model = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{1, 0, 0}) * glm::scale(glm::mat4{1}, glm::vec3{0.01});;
-            model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
+            render_pair.m_actors.push_back(this->create_actor());
+            render_pair.m_actors.back()->m_transform.m_scale = 0.01;
+            render_pair.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
+            render_pair.m_actors.back()->on_update();
         }
     }
 
