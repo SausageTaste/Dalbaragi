@@ -44,6 +44,10 @@ def main():
 
     _work_for_one("gbuf_f.spv", "gbuf.frag", [])
 
+    _work_for_one("gbuf_animated_v.spv", "gbuf_animated.vert", [])
+
+    _work_for_one("gbuf_animated_f.spv", "gbuf_animated.frag", [])
+
     _work_for_one("fill_screen_v.spv", "fill_screen.vert", [])
 
     _work_for_one("fill_screen_f.spv", "fill_screen.frag", [])

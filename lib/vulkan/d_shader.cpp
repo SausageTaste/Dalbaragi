@@ -425,13 +425,13 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/gbuf_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = asset_mgr.open("_asset/spv/gbuf_animated_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
-            dalAbort("Vertex shader 'gbuf_v.spv' not found");
+            dalAbort("Vertex shader 'gbuf_animated_v.spv' not found");
         }
-        const auto frag_src = asset_mgr.open("_asset/spv/gbuf_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = asset_mgr.open("_asset/spv/gbuf_animated_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
-            dalAbort("Fragment shader 'gbuf_f.spv' not found");
+            dalAbort("Fragment shader 'gbuf_animated_f.spv' not found");
         }
 
         // Shaders
