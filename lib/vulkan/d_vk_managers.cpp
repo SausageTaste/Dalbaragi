@@ -18,7 +18,7 @@ namespace {
     auto sort_transparent_meshes(const glm::vec3& view_pos, const dal::RenderList& render_list) {
         std::vector<AlphaMeshTuple> sort_vec;
 
-        for (auto& pair : render_list) {
+        for (auto& pair : render_list.m_static_models) {
             auto& model = *reinterpret_cast<dal::ModelRenderer*>(pair.m_model.get());
 
             for (auto& h_actor : pair.m_actors) {
@@ -132,7 +132,7 @@ namespace dal {
                 0, nullptr
             );
 
-            for (auto& render_pair : render_list) {
+            for (auto& render_pair : render_list.m_static_models) {
                 if (!render_pair.m_model->is_ready())
                     continue;
 

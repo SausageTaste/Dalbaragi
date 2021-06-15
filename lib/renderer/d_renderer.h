@@ -68,12 +68,16 @@ namespace dal {
     using HActor = std::shared_ptr<IActor>;
 
 
+    template <typename _Model>
     struct RenderPair {
         std::vector<HActor> m_actors;
-        HRenModel m_model;
+        _Model m_model;
     };
 
-    using RenderList = std::vector<RenderPair>;
+    struct RenderList {
+        std::vector<RenderPair<HRenModel>> m_static_models;
+        std::vector<RenderPair<HRenModelSkinned>> m_skinned_models;
+    };
 
 
     class ITextureManager {
