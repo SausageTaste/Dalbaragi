@@ -77,15 +77,21 @@ namespace dal {
 
         HRenModel create_model() override;
 
+        HRenModelSkinned create_model_skinned() override;
+
         HActor create_actor() override;
 
         bool init(ITexture& tex, const ImageData& img_data) override;
 
         bool init(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) override;
 
+        bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) override;
+
         bool init(IActor& actor) override;
 
         bool prepare(IRenModel& model) override;
+
+        bool prepare(IRenModelSkineed& model) override;
 
     private:
         // Returns true if recreation is still needed.

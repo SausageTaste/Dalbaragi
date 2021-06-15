@@ -508,6 +508,10 @@ namespace dal {
         return std::make_shared<ModelRenderer>();
     }
 
+    HRenModelSkinned VulkanState::create_model_skinned() {
+        return std::make_shared<ModelSkinnedRenderer>();
+    }
+
     HActor VulkanState::create_actor() {
         return std::make_shared<ActorVK>();
     }
@@ -544,6 +548,26 @@ namespace dal {
         return true;
     }
 
+    bool VulkanState::init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) {
+        auto& m = reinterpret_cast<ModelSkinnedRenderer&>(model);
+
+        m.init(this->m_phys_device.get(), this->m_logi_device.get());
+
+        m.upload_meshes(
+            model_data,
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            fallback_namespace,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
+        return true;
+    }
+
     bool VulkanState::init(IActor& actor) {
         auto& a = reinterpret_cast<ActorVK&>(actor);
 
@@ -561,6 +585,16 @@ namespace dal {
         auto& model = reinterpret_cast<ModelRenderer&>(h_model);
 
         return model.fetch_one_resource(
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex().get(),
+            this->m_logi_device.get()
+        );
+    }
+
+    bool VulkanState::prepare(IRenModelSkineed& model) {
+        auto& m = reinterpret_cast<ModelSkinnedRenderer&>(model);
+
+        return m.fetch_one_resource(
             this->m_desc_layout_man.layout_per_material(),
             this->m_sampler_man.sampler_tex().get(),
             this->m_logi_device.get()

@@ -62,9 +62,10 @@ namespace dal {
     };
 
 
-    using HTexture  = std::shared_ptr<ITexture>;
+    using HTexture = std::shared_ptr<ITexture>;
     using HRenModel = std::shared_ptr<IRenModel>;
-    using HActor    = std::shared_ptr<IActor>;
+    using HRenModelSkinned = std::shared_ptr<IRenModelSkineed>;
+    using HActor = std::shared_ptr<IActor>;
 
 
     struct RenderPair {
@@ -100,15 +101,21 @@ namespace dal {
 
         virtual HRenModel create_model() { return nullptr; }
 
+        virtual HRenModelSkinned create_model_skinned() { return nullptr; }
+
         virtual HActor create_actor() { return nullptr; }
 
         virtual bool init(ITexture& tex, const ImageData& img_data) { return false; }
 
         virtual bool init(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) { return false; }
 
+        virtual bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) { return false; }
+
         virtual bool init(IActor& actor) { return false; }
 
         virtual bool prepare(IRenModel& model) { return false; }
+
+        virtual bool prepare(IRenModelSkineed& model) { return false; }
 
     };
 
