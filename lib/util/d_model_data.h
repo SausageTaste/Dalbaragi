@@ -1,12 +1,6 @@
 #pragma once
 
-#include <vector>
-#include <string>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include "d_animation.h"
 
 
 namespace dal {
@@ -50,6 +44,7 @@ namespace dal {
 
     struct ModelSkinned {
         std::vector<RenderUnitSkinned> m_units;
+        std::vector<Animation> m_animations;
     };
 
 
