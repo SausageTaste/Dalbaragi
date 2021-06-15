@@ -45,6 +45,7 @@ namespace dal {
     struct ModelSkinned {
         std::vector<RenderUnitSkinned> m_units;
         std::vector<Animation> m_animations;
+        SkeletonInterface m_skeleton;
     };
 
 

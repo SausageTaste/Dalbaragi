@@ -152,6 +152,58 @@ namespace dal {
             out_unit.m_weight_center = ::calc_weight_center(out_unit.m_vertices);
         }
 
+        for (auto& out_anim : model_data->m_animations) {
+            auto& in_anim = output.m_animations.emplace_back(out_anim.m_name, out_anim.m_ticks_par_sec, out_anim.m_duration_tick);
+
+            for (auto& out_joint : out_anim.m_joints) {
+                auto& in_joint = in_anim.newJoint();
+
+                in_joint.setName(out_joint.m_name);
+
+                for (auto& out_translate : out_joint.m_translates)
+                    in_joint.addPos(out_translate.first, out_translate.second);
+
+                for (auto& out_rotation : out_joint.m_rotations)
+                    in_joint.addRotation(out_rotation.first, out_rotation.second);
+
+                for (auto& out_scale : out_joint.m_scales)
+                    in_joint.addScale(out_scale.first, out_scale.second);
+            }
+        }
+
+        for (auto& src_joint : model_data->m_skeleton.m_joints) {
+            const auto jid = output.m_skeleton.getOrMakeIndexOf(src_joint.m_name);
+            auto& dst_joint = output.m_skeleton.at(jid);
+
+            dst_joint.setParentIndex(src_joint.m_parent_index);
+            dst_joint.setOffset(src_joint.m_offset_mat);
+
+            switch (src_joint.m_joint_type) {
+                case dal::parser::JointType::basic:
+                    dst_joint.setType(dal::JointType::basic);
+                    break;
+                case dal::parser::JointType::hair_root:
+                    dst_joint.setType(dal::JointType::hair_root);
+                    break;
+                case dal::parser::JointType::skirt_root:
+                    dst_joint.setType(dal::JointType::skirt_root);
+                    break;
+                default:
+                    dalAbort("Unknown joint type");
+            }
+        }
+
+        if (output.m_skeleton.getSize() > 0) {
+            // Character lies on ground without this line.
+            output.m_skeleton.at(0).setParentMat(output.m_skeleton.at(0).offset());
+
+            for ( int i = 1; i < output.m_skeleton.getSize(); ++i ) {
+                auto& thisInfo = output.m_skeleton.at(i);
+                const auto& parentInfo = output.m_skeleton.at(thisInfo.parentIndex());
+                thisInfo.setParentMat(parentInfo);
+            }
+        }
+
         if (!model_data->m_units_straight.empty())
             dalWarn("Not supported vertex data: straight");
         if (!model_data->m_units_straight_joint.empty())
