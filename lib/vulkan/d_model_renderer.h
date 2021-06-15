@@ -56,8 +56,18 @@ namespace dal {
         glm::vec3 m_weight_center{ 0 };
 
     public:
-        void init(
+        void init_static(
             const dal::RenderUnitStatic& unit_data,
+            dal::CommandPool& cmd_pool,
+            ITextureManager& tex_man,
+            const char* const fallback_file_namespace,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void init_skinned(
+            const dal::RenderUnitSkinned& unit_data,
             dal::CommandPool& cmd_pool,
             ITextureManager& tex_man,
             const char* const fallback_file_namespace,
@@ -101,6 +111,54 @@ namespace dal {
 
         void upload_meshes(
             const dal::ModelStatic& model_data,
+            dal::CommandPool& cmd_pool,
+            ITextureManager& tex_man,
+            const char* const fallback_file_namespace,
+            const VkDescriptorSetLayout layout_per_actor,
+            const VkDescriptorSetLayout layout_per_material,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destroy() override;
+
+        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device);
+
+        bool is_ready() const override;
+
+        auto& render_units() const {
+            return this->m_units;
+        }
+
+        auto& render_units_alpha() const {
+            return this->m_units_alpha;
+        }
+
+    };
+
+
+    class ModelSkinnedRenderer : public IRenModelSkineed {
+
+    private:
+        std::vector<RenderUnit> m_units;
+        std::vector<RenderUnit> m_units_alpha;
+        DescPool m_desc_pool;
+
+        VkDevice m_logi_device = VK_NULL_HANDLE;
+
+    public:
+        ~ModelSkinnedRenderer() override {
+            this->destroy();
+        }
+
+        void init(
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void upload_meshes(
+            const dal::ModelSkinned& model_data,
             dal::CommandPool& cmd_pool,
             ITextureManager& tex_man,
             const char* const fallback_file_namespace,

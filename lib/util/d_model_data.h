@@ -48,6 +48,10 @@ namespace dal {
         std::vector<RenderUnitStatic> m_units;
     };
 
+    struct ModelSkinned {
+        std::vector<RenderUnitSkinned> m_units;
+    };
+
 
     bool make_static_mesh_aabb(RenderUnitStatic& output, const glm::vec3 min, const glm::vec3 max, const glm::vec2 uv_scale);
 
