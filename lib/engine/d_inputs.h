@@ -132,18 +132,23 @@ namespace dal {
     };
 
 
+    struct GamepadState {
+
+    public:
+        std::string m_name;
+        glm::vec2 m_axis_left{ 0 };
+        glm::vec2 m_axis_right{ 0 };
+        glm::vec2 m_dpad{ 0 };
+        float m_trigger_left = 0;
+        float m_trigger_right = 0;
+
+    public:
+        void apply_dead_zone();
+
+    };
+
+
     class GamepadInputManager {
-
-    private:
-        struct GamepadState {
-            std::string m_name;
-
-            glm::vec2 m_axis_left{ 0 };
-            glm::vec2 m_axis_right{ 0 };
-            glm::vec2 m_dpad{ 0 };
-            float m_trigger_left = 0;
-            float m_trigger_right = 0;
-        };
 
     private:
         std::unordered_map<int, GamepadState> m_gamepads;

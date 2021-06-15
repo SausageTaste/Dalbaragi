@@ -324,6 +324,8 @@ namespace dal {
 
                     iter->second.m_trigger_left = state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER];
                     iter->second.m_trigger_right = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER];
+
+                    iter->second.apply_dead_zone();
                 }
 
                 ++iter;
