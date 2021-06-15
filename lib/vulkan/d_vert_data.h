@@ -10,8 +10,11 @@
 
 namespace dal {
 
-    VkVertexInputBindingDescription make_vert_binding_desc();
-    std::array<VkVertexInputAttributeDescription, 3> make_vert_attribute_descriptions();
+    VkVertexInputBindingDescription make_vert_binding_desc_static();
+    std::array<VkVertexInputAttributeDescription, 3> make_vert_attrib_desc_static();
+
+    VkVertexInputBindingDescription make_vert_binding_desc_skinned();
+    std::array<VkVertexInputAttributeDescription, 5> make_vert_attrib_desc_skinned();
 
 
     using index_data_t = uint32_t;

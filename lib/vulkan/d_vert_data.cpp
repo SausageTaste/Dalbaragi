@@ -5,7 +5,7 @@
 
 namespace dal {
 
-    VkVertexInputBindingDescription make_vert_binding_desc() {
+    VkVertexInputBindingDescription make_vert_binding_desc_static() {
         VkVertexInputBindingDescription result{};
 
         result.binding = 0;
@@ -15,7 +15,7 @@ namespace dal {
         return result;
     }
 
-    std::array<VkVertexInputAttributeDescription, 3> make_vert_attribute_descriptions() {
+    std::array<VkVertexInputAttributeDescription, 3> make_vert_attrib_desc_static() {
         std::array<VkVertexInputAttributeDescription, 3> result{};
 
         result[0].binding = 0;
@@ -32,6 +32,47 @@ namespace dal {
         result[2].location = 2;
         result[2].format = VK_FORMAT_R32G32_SFLOAT;
         result[2].offset = offsetof(dal::VertexStatic, m_uv_coord);
+
+        return result;
+    }
+
+    VkVertexInputBindingDescription make_vert_binding_desc_skinned() {
+        VkVertexInputBindingDescription result{};
+
+        result.binding = 0;
+        result.stride = sizeof(dal::VertexSkinned);
+        result.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return result;
+    }
+
+    std::array<VkVertexInputAttributeDescription, 5> make_vert_attrib_desc_skinned() {
+        std::array<VkVertexInputAttributeDescription, 5> result{};
+
+        result[0].binding = 0;
+        result[0].location = 0;
+        result[0].format = VK_FORMAT_R32G32B32A32_SINT;
+        result[0].offset = offsetof(dal::VertexSkinned, m_joint_ids);
+
+        result[1].binding = 0;
+        result[1].location = 1;
+        result[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        result[1].offset = offsetof(dal::VertexSkinned, m_joint_weights);
+
+        result[2].binding = 0;
+        result[2].location = 2;
+        result[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+        result[2].offset = offsetof(dal::VertexSkinned, m_pos);
+
+        result[3].binding = 0;
+        result[3].location = 3;
+        result[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+        result[3].offset = offsetof(dal::VertexSkinned, m_normal);
+
+        result[4].binding = 0;
+        result[4].location = 4;
+        result[4].format = VK_FORMAT_R32G32_SFLOAT;
+        result[4].offset = offsetof(dal::VertexSkinned, m_uv_coord);
 
         return result;
     }

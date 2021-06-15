@@ -17,6 +17,14 @@ namespace dal {
         glm::vec2 m_uv_coord;
     };
 
+    struct VertexSkinned {
+        glm::ivec4 m_joint_ids;
+        glm::vec4 m_joint_weights;
+        glm::vec3 m_pos;
+        glm::vec3 m_normal;
+        glm::vec2 m_uv_coord;
+    };
+
     struct Material {
         std::string m_albedo_map;
         float m_roughness;
@@ -24,12 +32,17 @@ namespace dal {
         bool m_alpha_blending;
     };
 
-    struct RenderUnitStatic {
-        std::vector<VertexStatic> m_vertices;
+    template <typename _Vertex>
+    struct TRenderUnit {
+        std::vector<_Vertex> m_vertices;
         std::vector<uint32_t> m_indices;
         Material m_material;
         glm::vec3 m_weight_center;
     };
+
+    using RenderUnitStatic = TRenderUnit<VertexStatic>;
+    using RenderUnitSkinned = TRenderUnit<VertexSkinned>;
+
 
     struct ModelStatic {
         std::vector<RenderUnitStatic> m_units;
