@@ -51,6 +51,7 @@ namespace dal {
 
     private:
         ShaderPipeline m_gbuf;
+        ShaderPipeline m_gbuf_animated;
         ShaderPipeline m_composition;
         ShaderPipeline m_final;
         ShaderPipeline m_alpha;
@@ -77,6 +78,10 @@ namespace dal {
 
         auto& simple() const {
             return this->m_gbuf;
+        }
+
+        auto& gbuf_animated() const {
+            return this->m_gbuf_animated;
         }
 
         auto& composition() const {
