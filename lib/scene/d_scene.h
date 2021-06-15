@@ -16,6 +16,10 @@ namespace dal {
             HRenModel m_model;
         };
 
+        struct ModelSkinned {
+            HRenModelSkinned m_model;
+        };
+
         struct Actor {
             std::vector<HActor> m_actors;
         };

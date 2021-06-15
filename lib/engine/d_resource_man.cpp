@@ -205,12 +205,70 @@ namespace dal {
 }
 
 
+// ModelSkinnedBuilder
+namespace dal {
+
+    void ModelSkinnedBuilder::update() {
+        for (auto iter = this->m_waiting_prepare.begin(); iter < this->m_waiting_prepare.end();) {
+            auto& model = **iter;
+
+            if (model.is_ready()) {
+                iter = this->m_waiting_prepare.erase(iter);
+            }
+            else {
+                if (this->m_renderer->prepare(model))
+                    return;
+
+                ++iter;
+            }
+        }
+    }
+
+    void ModelSkinnedBuilder::set_renderer(IRenderer& renderer) {
+        this->m_renderer = &renderer;
+    }
+
+    void ModelSkinnedBuilder::invalidate_renderer() {
+        this->m_waiting_file.clear();
+        this->m_waiting_prepare.clear();
+
+        this->m_renderer = nullptr;
+    }
+
+    void ModelSkinnedBuilder::notify_task_done(std::unique_ptr<ITask> task) {
+        auto& task_result = *reinterpret_cast<Task_LoadModelSkinned*>(task.get());
+        const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
+
+        if (this->m_waiting_file.end() != found) {
+            this->m_renderer->init(
+                *found->second.get(),
+                task_result.out_model_data.value(),
+                task_result.m_respath.dir_list().front().c_str()
+            );
+
+            this->m_waiting_prepare.push_back(found->second);
+            this->m_waiting_file.erase(found);
+        }
+    }
+
+    void ModelSkinnedBuilder::start(const ResPath& respath, HRenModelSkinned h_model, Filesystem& filesys, TaskManager& task_man) {
+        dalAssert(nullptr != this->m_renderer);
+
+        auto task = std::make_unique<::Task_LoadModelSkinned>(respath, filesys);
+        task_man.order_task(std::move(task), this);
+        auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
+    }
+
+}
+
+
 // ResourceManager
 namespace dal {
 
     void ResourceManager::update() {
         this->m_tex_builder.update();
         this->m_model_builder.update();
+        this->m_model_skinned_builder.update();
     }
 
     void ResourceManager::set_renderer(IRenderer& renderer) {
@@ -218,6 +276,7 @@ namespace dal {
 
         this->m_tex_builder.set_renderer(renderer);
         this->m_model_builder.set_renderer(renderer);
+        this->m_model_skinned_builder.set_renderer(renderer);
 
         for (auto& [respath, texture] : this->m_textures) {
             this->m_tex_builder.start(respath, texture, this->m_filesys, this->m_task_man);
@@ -225,6 +284,10 @@ namespace dal {
 
         for (auto& [respath, model] : this->m_models) {
             this->m_model_builder.start(respath, model, this->m_filesys, this->m_task_man);
+        }
+
+        for (auto& [respath, model] : this->m_skinned_models) {
+            this->m_model_skinned_builder.start(respath, model, this->m_filesys, this->m_task_man);
         }
 
         for (auto& actor : this->m_actors) {
@@ -241,6 +304,7 @@ namespace dal {
 
         this->m_missing_tex.reset();
 
+        this->m_model_skinned_builder.invalidate_renderer();
         this->m_model_builder.invalidate_renderer();
         this->m_tex_builder.invalidate_renderer();
 
@@ -248,6 +312,9 @@ namespace dal {
             x.second->destroy();
 
         for (auto& x : this->m_models)
+            x.second->destroy();
+
+        for (auto& x : this->m_skinned_models)
             x.second->destroy();
 
         for (auto& x : this->m_actors)
@@ -313,17 +380,7 @@ namespace dal {
         else {
             auto [iter, result] = this->m_skinned_models.emplace(path_str, this->m_renderer->create_model_skinned());
             auto task = std::make_unique<::Task_LoadModelSkinned>(respath, this->m_filesys);
-            task->run();
-
-            this->m_renderer->init(
-                *iter->second.get(),
-                task->out_model_data.value(),
-                task->m_respath.dir_list().front().c_str()
-            );
-
-            while (!iter->second->is_ready()) {
-                this->m_renderer->prepare(*iter->second.get());
-            }
+            this->m_model_skinned_builder.start(*resolved_respath, iter->second, this->m_filesys, this->m_task_man);
 
             return iter->second;
         }
