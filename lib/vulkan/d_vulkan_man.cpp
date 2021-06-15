@@ -332,8 +332,8 @@ namespace dal {
 
             ubuf_data_glight.m_plight_count = 1;
 
-            ubuf_data_glight.m_plight_pos_n_max_dist[0] = glm::vec4{ sin(dal::get_cur_sec()) * 3, 1, cos(dal::get_cur_sec()) * 3, 20 };
-            ubuf_data_glight.m_plight_color[0] = glm::vec4{ glm::vec3{0.2}, 1 };
+            ubuf_data_glight.m_plight_pos_n_max_dist[0] = glm::vec4{ sin(dal::get_cur_sec()) * 3, 1, cos(dal::get_cur_sec()) * 2, 20 };
+            ubuf_data_glight.m_plight_color[0] = glm::vec4{ glm::vec3{1.5}, 1 };
 
             ubuf_data_glight.m_plight_pos_n_max_dist[1] = glm::vec4{ cos(dal::get_cur_sec()) * 2, 1, sin(dal::get_cur_sec()) * 2, 20 };
             ubuf_data_glight.m_plight_color[1] = glm::vec4{ 1, 1, 1, 1 };
