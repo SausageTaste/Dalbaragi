@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "d_konsts.h"
+#include "d_shader.h"
 #include "d_command.h"
 #include "d_swapchain.h"
 #include "d_render_pass.h"
@@ -33,10 +34,9 @@ namespace dal {
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
             const VkFramebuffer swapchain_fbuf,
-            const VkPipeline pipeline_gbuf,
-            const VkPipelineLayout pipe_layout_gbuf,
-            const VkPipeline pipeline_composition,
-            const VkPipelineLayout pipe_layout_composition,
+            const ShaderPipeline& pipeline_gbuf,
+            const ShaderPipeline& pipeline_gbuf_animated,
+            const ShaderPipeline& pipeline_composition,
             const RenderPass_Gbuf& render_pass
         );
 

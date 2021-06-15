@@ -357,10 +357,9 @@ namespace dal {
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_attach_man.color().extent(),
                 this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
-                this->m_pipelines.gbuf().pipeline(),
-                this->m_pipelines.gbuf().layout(),
-                this->m_pipelines.composition().pipeline(),
-                this->m_pipelines.composition().layout(),
+                this->m_pipelines.gbuf(),
+                this->m_pipelines.gbuf_animated(),
+                this->m_pipelines.composition(),
                 this->m_renderpasses.rp_gbuf()
             );
 

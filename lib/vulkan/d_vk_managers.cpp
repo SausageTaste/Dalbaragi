@@ -85,10 +85,9 @@ namespace dal {
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
         const VkFramebuffer swapchain_fbuf,
-        const VkPipeline pipeline_gbuf,
-        const VkPipelineLayout pipe_layout_gbuf,
-        const VkPipeline pipeline_composition,
-        const VkPipelineLayout pipe_layout_composition,
+        const ShaderPipeline& pipeline_gbuf,
+        const ShaderPipeline& pipeline_gbuf_animated,
+        const ShaderPipeline& pipeline_composition,
         const RenderPass_Gbuf& render_pass
     ) {
         auto& cmd_buf = this->m_cmd_simple.at(flight_frame_index);
@@ -120,14 +119,14 @@ namespace dal {
 
         vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
         {
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_gbuf);
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_gbuf.pipeline());
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
             vkCmdBindDescriptorSets(
                 cmd_buf,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipe_layout_gbuf,
+                pipeline_gbuf.layout(),
                 0,
                 1, &desc_set_per_frame,
                 0, nullptr
@@ -149,7 +148,7 @@ namespace dal {
                     vkCmdBindDescriptorSets(
                         cmd_buf,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipe_layout_gbuf,
+                        pipeline_gbuf.layout(),
                         1,
                         1, &unit.m_material.m_descset.get(),
                         0, nullptr
@@ -160,7 +159,7 @@ namespace dal {
                         vkCmdBindDescriptorSets(
                             cmd_buf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipe_layout_gbuf,
+                            pipeline_gbuf.layout(),
                             2,
                             1, &actor.desc_set_raw(),
                             0, nullptr
@@ -173,12 +172,12 @@ namespace dal {
         }
         {
             vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_composition);
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_composition.pipeline());
 
             vkCmdBindDescriptorSets(
                 cmd_buf,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipe_layout_composition,
+                pipeline_composition.layout(),
                 0,
                 1, &desc_set_composition,
                 0, nullptr

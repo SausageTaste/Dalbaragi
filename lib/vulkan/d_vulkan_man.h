@@ -4,7 +4,6 @@
 #include <functional>
 
 #include "d_actor.h"
-#include "d_shader.h"
 #include "d_renderer.h"
 #include "d_vk_device.h"
 #include "d_filesystem.h"
