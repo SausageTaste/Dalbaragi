@@ -344,9 +344,7 @@ namespace {
         if (!vert_src) {
             dalAbort("Vertex shader 'simple_v.spv' not found");
         }
-        const auto frag_src = need_gamma_correction ?
-            asset_mgr.open("_asset/spv/simple_gamma_f.spv")->read_stl<std::vector<char>>() :
-            asset_mgr.open("_asset/spv/simple_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = asset_mgr.open("_asset/spv/simple_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'simple_f.spv' not found");
         }
@@ -429,7 +427,9 @@ namespace {
         if (!vert_src) {
             dalAbort("Vertex shader 'composition_v.spv' not found");
         }
-        const auto frag_src = asset_mgr.open("_asset/spv/composition_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = need_gamma_correction ?
+            asset_mgr.open("_asset/spv/composition_gamma_f.spv")->read_stl<std::vector<char>>() :
+            asset_mgr.open("_asset/spv/composition_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'composition_f.spv' not found");
         }

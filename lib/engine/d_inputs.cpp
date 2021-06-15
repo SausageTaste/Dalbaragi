@@ -8,6 +8,21 @@
 //#define DAL_PRINT_INPUT
 
 
+namespace {
+
+    constexpr float DEAD_ZONE_RATIO = 0.1;
+
+    float calc_dead_zone_reduced(const float v, const float ratio = ::DEAD_ZONE_RATIO) {
+        if (std::abs(v) < ratio)
+            return 0;
+        else
+            return v;
+    }
+
+}
+
+
+// TouchInputManager
 namespace dal {
 
     bool TouchInputManager::push_back(const TouchEvent& e) {
@@ -29,6 +44,8 @@ namespace dal {
 
 }
 
+
+// KeyInputManager
 namespace dal {
 
     bool KeyInputManager::push_back(const KeyEvent& e) {
@@ -61,11 +78,25 @@ namespace dal {
 }
 
 
+// GamepadState
+namespace dal {
+
+    void GamepadState::apply_dead_zone() {
+        this->m_axis_left.x  = ::calc_dead_zone_reduced(this->m_axis_left.x);
+        this->m_axis_left.y  = ::calc_dead_zone_reduced(this->m_axis_left.y);
+        this->m_axis_right.x = ::calc_dead_zone_reduced(this->m_axis_right.x);
+        this->m_axis_right.y = ::calc_dead_zone_reduced(this->m_axis_right.y);
+    }
+
+}
+
+
+// GamepadInputManager
 namespace dal {
 
     void GamepadInputManager::notify_connection_change(const GamepadConnectionEvent& e) {
-        this->remove_gamepad(e.m_id);
-        if (!e.m_connected)
+        this->pad_list().erase(e.m_id);
+        if (e.m_name.empty())
             return;
 
         auto [iter, success] = this->m_gamepads.emplace(e.m_id, GamepadState{});
@@ -76,7 +107,7 @@ namespace dal {
         dalInfo(fmt::format("Gamepad connected {{ id={}, name='{}' }}", e.m_id, e.m_name).c_str());
     }
 
-    GamepadInputManager::GamepadState& GamepadInputManager::get_gamepad_state(const int id) {
+    GamepadState& GamepadInputManager::get_gamepad_state(const int id) {
         auto found = this->m_gamepads.find(id);
         if (this->m_gamepads.end() == found) {
             auto [iter, success] = this->m_gamepads.emplace(id, GamepadState{});
@@ -85,14 +116,6 @@ namespace dal {
         }
         else {
             return found->second;
-        }
-    }
-
-    void GamepadInputManager::remove_gamepad(const int id) {
-        auto iter = this->m_gamepads.find(id);
-        if (this->m_gamepads.end() != iter) {
-            dalInfo(fmt::format("Gamepad removed {{ id={}, name='{}' }}", iter->first, iter->second.m_name).c_str());
-            this->m_gamepads.erase(iter);
         }
     }
 

@@ -6,46 +6,6 @@
 
 #include "d_logger.h"
 #include "d_buffer_memory.h"
-#include "d_image_parser.h"
-#include "d_timer.h"
-
-
-namespace {
-
-    constexpr char* const MISSING_TEX_PATH = "_asset/image/missing_tex.png";
-
-
-    class Task_LoadImage : public dal::ITask {
-
-    public:
-        dal::Filesystem& m_filesys;
-        dal::ResPath m_respath;
-
-        std::optional<dal::ImageData> out_image_data;
-
-    public:
-        Task_LoadImage(const dal::ResPath& respath, dal::Filesystem& filesys)
-            : m_filesys(filesys)
-            , m_respath(respath)
-            , out_image_data(std::nullopt)
-        {
-
-        }
-
-        void run() override {
-            dal::Timer timer;
-
-            auto file = this->m_filesys.open(this->m_respath);
-            dalAssert(file->is_ready());
-            const auto file_data = file->read_stl<std::vector<uint8_t>>();
-            dalAssert(file_data.has_value());
-            this->out_image_data = dal::parse_image_stb(file_data->data(), file_data->size());
-            dalInfo(fmt::format("Image res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
-        }
-
-    };
-
-}
 
 
 namespace {
@@ -625,6 +585,10 @@ namespace dal {
 // TextureUnit
 namespace dal {
 
+    TextureUnit::~TextureUnit() {
+        this->destroy();
+    }
+
     bool TextureUnit::init(
         dal::CommandPool& cmd_pool,
         const dal::ImageData& img_data,
@@ -632,6 +596,8 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
+        this->m_logi_device = logi_device;
+
         this->m_image.init_texture_gen_mipmaps(
             img_data,
             cmd_pool,
@@ -651,9 +617,9 @@ namespace dal {
         return result_view;
     }
 
-    void TextureUnit::destroy(const VkDevice logi_device) {
-        this->m_image.destory(logi_device);
-        this->m_view.destroy(logi_device);
+    void TextureUnit::destroy() {
+        this->m_image.destory(this->m_logi_device);
+        this->m_view.destroy(this->m_logi_device);
     }
 
     bool TextureUnit::is_ready() const {
@@ -663,115 +629,19 @@ namespace dal {
 }
 
 
-// TextureManager
+// SamplerManager
 namespace dal {
 
-    void TextureManager::init(
-        dal::TaskManager& task_man,
-        dal::Filesystem& filesys,
+    void SamplerManager::init(
         const bool enable_anisotropy,
-        const uint32_t queue_family_index,
-        const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->m_task_man = &task_man;
-        this->m_filesys = &filesys;
-        this->m_graphics_queue = graphics_queue;
-        this->m_phys_device = phys_device;
-        this->m_logi_device = logi_device;
-
-        this->m_tex_sampler.init_for_color_map(enable_anisotropy, this->m_phys_device, this->m_logi_device);
-        this->m_cmd_pool.init(queue_family_index, logi_device);
+        this->m_tex_sampler.init_for_color_map(enable_anisotropy, phys_device, logi_device);
     }
 
-    void TextureManager::destroy(const VkDevice logi_device) {
-        for (auto& x : this->m_textures)
-            x.second.destroy(logi_device);
-        this->m_textures.clear();
-
+    void SamplerManager::destroy(const VkDevice logi_device) {
         this->m_tex_sampler.destroy(logi_device);
-        this->m_cmd_pool.destroy(logi_device);
-    }
-
-    void TextureManager::update() {
-        if (!this->m_finalize_q.empty()) {
-            auto& task = this->m_finalize_q.front();
-            const auto iter = this->m_sent_task.find(task.get());
-
-            if (this->m_sent_task.end() != iter) {
-                const auto task_load = reinterpret_cast<::Task_LoadImage*>(task.get());
-
-                iter->second->init(
-                    this->m_cmd_pool,
-                    task_load->out_image_data.value(),
-                    this->m_graphics_queue,
-                    this->m_phys_device,
-                    this->m_logi_device
-                );
-
-                this->m_sent_task.erase(iter);
-            }
-
-            this->m_finalize_q.pop();
-        }
-    }
-
-    void TextureManager::notify_task_done(std::unique_ptr<ITask> task) {
-        this->m_finalize_q.push(std::move(task));
-    }
-
-    const TextureUnit& TextureManager::request_asset_tex(const dal::ResPath& respath) {
-        const auto resolved_respath = this->m_filesys->resolve_respath(respath);
-        if (!resolved_respath.has_value()) {
-            dalError(fmt::format("Failed to find texture file: {}", respath.make_str()).c_str());
-            return this->get_missing_tex();
-        }
-
-        const auto path_str = resolved_respath->make_str();
-
-        const auto result = this->m_textures.find(path_str);
-        if (this->m_textures.end() != result) {
-            return result->second;
-        }
-        else {
-            this->m_textures[path_str] = TextureUnit{};
-            auto iter = this->m_textures.find(path_str);
-
-            std::unique_ptr<dal::ITask> task{ new ::Task_LoadImage(*resolved_respath, *this->m_filesys) };
-            this->m_sent_task[task.get()] = &iter->second;
-            this->m_task_man->order_task(std::move(task), this);
-
-            return iter->second;
-        }
-    };
-
-    const TextureUnit& TextureManager::get_missing_tex() {
-        const auto find_result = this->m_textures.find(::MISSING_TEX_PATH);
-
-        if (this->m_textures.end() != find_result) {
-            return find_result->second;
-        }
-        else {
-            const dal::ResPath respath{ ::MISSING_TEX_PATH };
-            auto file = this->m_filesys->open(respath);
-            dalAssert(file->is_ready());
-            const auto file_data = file->read_stl<std::vector<uint8_t>>();
-            const auto image = dal::parse_image_stb(file_data->data(), file_data->size());
-
-            this->m_textures[::MISSING_TEX_PATH] = TextureUnit{};
-            auto iter = this->m_textures.find(::MISSING_TEX_PATH);
-
-            iter->second.init(
-                this->m_cmd_pool,
-                image.value(),
-                this->m_graphics_queue,
-                this->m_phys_device,
-                this->m_logi_device
-            );
-
-            return iter->second;
-        }
     }
 
 }

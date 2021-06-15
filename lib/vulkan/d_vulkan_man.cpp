@@ -8,22 +8,11 @@
 
 #include <fmt/format.h>
 
-#include "d_logger.h"
-
-#include "d_vk_device.h"
-#include "d_shader.h"
-#include "d_command.h"
-#include "d_vert_data.h"
-#include "d_uniform.h"
-#include "d_image_parser.h"
 #include "d_timer.h"
+#include "d_logger.h"
+#include "d_vert_data.h"
+#include "d_image_parser.h"
 #include "d_model_parser.h"
-#include "d_vk_managers.h"
-
-
-#ifndef DAL_OS_ANDROID
-    #define DAL_VK_DEBUG
-#endif
 
 
 namespace {
@@ -34,94 +23,12 @@ namespace {
         return mat;
     }
 
-}
-
-
-// FbufManager
-namespace {
-
-    class FbufManager {
-
-    private:
-        std::vector<dal::Fbuf_Simple> m_fbuf_simple;
-        std::vector<dal::Fbuf_Final> m_fbuf_final;
-        std::vector<dal::Fbuf_Alpha> m_fbuf_alpha;
-
-    public:
-        void init(
-            const std::vector<dal::ImageView>& swapchain_views,
-            const dal::AttachmentManager& attach_man,
-            const VkExtent2D& swapchain_extent,
-            const VkExtent2D& gbuf_extent,
-            const dal::RenderPass_Gbuf& rp_gbuf,
-            const dal::RenderPass_Final& rp_final,
-            const dal::RenderPass_Alpha& rp_alpha,
-            const VkDevice logi_device
-        ) {
-            this->destroy(logi_device);
-
-            for (uint32_t i = 0; i < swapchain_views.size(); ++i) {
-                this->m_fbuf_simple.emplace_back().init(
-                    rp_gbuf,
-                    gbuf_extent,
-                    attach_man.color().view().get(),
-                    attach_man.depth().view().get(),
-                    attach_man.albedo().view().get(),
-                    attach_man.materials().view().get(),
-                    attach_man.normal().view().get(),
-                    logi_device
-                );
-
-                this->m_fbuf_final.emplace_back().init(
-                    rp_final,
-                    swapchain_extent,
-                    swapchain_views.at(i).get(),
-                    logi_device
-                );
-
-                this->m_fbuf_alpha.emplace_back().init(
-                    rp_alpha,
-                    gbuf_extent,
-                    attach_man.color().view().get(),
-                    attach_man.depth().view().get(),
-                    logi_device
-                );
-            }
-        }
-
-        void destroy(const VkDevice logi_device) {
-            for (auto& fbuf : this->m_fbuf_simple)
-                fbuf.destroy(logi_device);
-            this->m_fbuf_simple.clear();
-
-            for (auto& fbuf : this->m_fbuf_final)
-                fbuf.destroy(logi_device);
-            this->m_fbuf_final.clear();
-
-            for (auto& fbuf : this->m_fbuf_alpha)
-                fbuf.destroy(logi_device);
-            this->m_fbuf_alpha.clear();
-        }
-
-        std::vector<VkFramebuffer> swapchain_fbuf() const {
-            std::vector<VkFramebuffer> output;
-
-            for (auto& x : this->m_fbuf_simple) {
-                output.push_back(x.get());
-            }
-
-            return output;
-        }
-
-        auto& fbuf_final_at(const size_t index) const {
-            return this->m_fbuf_final.at(index);
-        }
-
-        auto& fbuf_alpha_at(const size_t index) const {
-            return this->m_fbuf_alpha.at(index);
-        }
-
-    };
+    VkExtent2D calc_smaller_extent(const VkExtent2D& extent, const float scale) {
+        return VkExtent2D{
+            std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<float>(extent.width) * scale)),
+            std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<float>(extent.height) * scale))
+        };
+    }
 
 }
 
@@ -284,609 +191,498 @@ namespace {
 }
 
 
-// VulkanState::Pimpl
-namespace dal {
-
-    class VulkanState::Pimpl {
-
-    private:
-        VkInstance m_instance = VK_NULL_HANDLE;
-        VkSurfaceKHR m_surface = VK_NULL_HANDLE;
-        PhysicalDevice m_phys_device;
-        PhysDeviceInfo m_phys_info;
-        LogicalDevice m_logi_device;
-
-        SwapchainManager m_swapchain;
-        PipelineManager m_pipelines;
-        AttachmentManager m_attach_man;
-        RenderPassManager m_renderpasses;
-        FbufManager m_fbuf_man;
-        CmdPoolManager m_cmd_man;
-        DescSetLayoutManager m_desc_layout_man;
-        UniformBufferArray<U_PerFrame> m_ubufs_simple;
-        UniformBufferArray<U_GlobalLight> m_ubufs_glights;
-        UniformBufferArray<U_PerFrame_Composition> m_ubufs_per_frame_composition;
-        UniformBufferArray<U_PerFrame_Alpha> m_ubufs_per_frame_alpha;
-        UniformBuffer<U_PerFrame_InFinal> m_ubuf_final;
-        DescriptorManager m_desc_man;
-
-        TextureManager m_tex_man;
-        ModelManager m_model_man;
-
-        std::vector<ModelRenderer*> m_models;
-
-        // Non-vulkan members
-        dal::Filesystem& m_filesys;
-
-#ifdef DAL_VK_DEBUG
-        VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
-#endif
-
-        FrameInFlightIndex m_flight_frame_index;
-        bool m_screen_resize_notified = false;
-        VkExtent2D m_new_extent;
-
-    public:
-        Pimpl(const Pimpl&) = delete;
-        Pimpl& operator=(const Pimpl&) = delete;
-        Pimpl(Pimpl&&) = delete;
-        Pimpl& operator=(Pimpl&&) = delete;
-
-    public:
-        Pimpl(
-            const char* const window_title,
-            const unsigned init_width,
-            const unsigned init_height,
-            dal::Filesystem& filesys,
-            dal::TaskManager& task_man,
-            const std::vector<const char*>& extensions,
-            const std::function<void*(void*)> surface_create_func
-        )
-            : m_filesys(filesys)
-            , m_new_extent(VkExtent2D{ init_width, init_height })
-        {
-#ifdef DAL_OS_ANDROID
-            dalAssert(1 == InitVulkan());
-#endif
-            this->destroy();
-
-            this->m_instance = ::create_vulkan_instance(window_title, extensions);
-            dalAssert(VK_NULL_HANDLE != this->m_instance);
-
-            this->m_surface = reinterpret_cast<VkSurfaceKHR>(surface_create_func(this->m_instance));
-            dalAssert(VK_NULL_HANDLE != this->m_surface);
-
-#ifdef DAL_VK_DEBUG
-            this->m_debug_messenger = ::create_debug_messenger(this->m_instance);
-            dalAssert(VK_NULL_HANDLE != this->m_debug_messenger);
-#endif
-
-            std::tie(this->m_phys_device, this->m_phys_info) = dal::get_best_phys_device(this->m_instance, this->m_surface, true);
-            this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
-            this->m_desc_layout_man.init(this->m_logi_device.get());
-
-            const auto result_init_swapchain = this->init_swapchain_and_dependers();
-            dalAssert(result_init_swapchain);
-
-            this->m_tex_man.init(
-                task_man,
-                this->m_filesys,
-                this->m_phys_info.does_support_anisotropic_sampling(),
-                this->m_logi_device.indices().graphics_family(),
-                this->m_logi_device.queue_graphics(),
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_model_man.init(
-                task_man,
-                this->m_filesys,
-                this->m_tex_man,
-                this->m_desc_layout_man,
-                this->m_logi_device.indices().graphics_family(),
-                this->m_logi_device.queue_graphics(),
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->populate_models();
-        }
-
-        ~Pimpl() {
-            this->destroy();
-        }
-
-        void destroy() {
-            this->m_models.clear();
-
-            this->m_model_man.destroy(this->m_logi_device.get());
-            this->m_tex_man.destroy(this->m_logi_device.get());
-            this->m_desc_man.destroy(this->m_logi_device.get());
-            this->m_ubuf_final.destroy(this->m_logi_device.get());
-            this->m_ubufs_per_frame_composition.destroy(this->m_logi_device.get());
-            this->m_ubufs_per_frame_alpha.destroy(this->m_logi_device.get());
-            this->m_ubufs_glights.destroy(this->m_logi_device.get());
-            this->m_ubufs_simple.destroy(this->m_logi_device.get());
-            this->m_cmd_man.destroy(this->m_logi_device.get());
-            this->m_pipelines.destroy(this->m_logi_device.get());
-            this->m_fbuf_man.destroy(this->m_logi_device.get());
-            this->m_renderpasses.destroy(this->m_logi_device.get());
-            this->m_attach_man.destroy(this->m_logi_device.get());
-            this->m_swapchain.destroy(this->m_logi_device.get());
-            this->m_desc_layout_man.destroy(this->m_logi_device.get());
-            this->m_logi_device.destroy();
-
-#ifdef DAL_VK_DEBUG
-            if (VK_NULL_HANDLE != this->m_debug_messenger) {
-                ::destroyDebugUtilsMessengerEXT(this->m_instance, this->m_debug_messenger, nullptr);
-                this->m_debug_messenger = VK_NULL_HANDLE;
-            }
-#endif
-
-            if (VK_NULL_HANDLE != this->m_surface) {
-                vkDestroySurfaceKHR(this->m_instance, this->m_surface, nullptr);
-                this->m_surface = VK_NULL_HANDLE;
-            }
-
-            if (VK_NULL_HANDLE != this->m_instance) {
-                vkDestroyInstance(this->m_instance, nullptr);
-                this->m_instance = VK_NULL_HANDLE;
-            }
-        }
-
-        void update(const EulerCamera& camera) {
-            if (this->m_screen_resize_notified) {
-                this->m_screen_resize_notified = this->on_recreate_swapchain();
-                return;
-            }
-
-            auto& sync_man = this->m_swapchain.sync_man();
-
-            sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index).wait(this->m_logi_device.get());
-            const auto [acquire_result, swapchain_index] = this->m_swapchain.acquire_next_img_index(this->m_flight_frame_index, this->m_logi_device.get());
-
-            if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
-                this->m_screen_resize_notified = this->on_recreate_swapchain();
-                return;
-            }
-            else if (ImgAcquireResult::success != acquire_result) {
-                dalError("Failed to acquire swapchain image");
-                return;
-            }
-
-            {
-                auto& img_fences = sync_man.fence_image_in_flight(swapchain_index);
-                if (nullptr != img_fences) {
-                    img_fences->wait(this->m_logi_device.get());
-                }
-                img_fences = &sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
-            }
-
-            //-----------------------------------------------------------------------------------------------------
-
-            this->wait_device_idle();
-            this->m_tex_man.update();
-            this->m_model_man.update();
-            this->wait_device_idle();
-
-            //-----------------------------------------------------------------------------------------------------
-
-            const auto cur_sec = dal::get_cur_sec();
-
-            {
-                U_PerFrame ubuf_data_per_frame{};
-                ubuf_data_per_frame.m_view = camera.make_view_mat();
-                ubuf_data_per_frame.m_proj = ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
-                ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.m_pos, 1 };
-                this->m_ubufs_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
-
-                U_PerFrame_Composition ubuf_data_composition{};
-                ubuf_data_composition.m_proj_inv = glm::inverse(ubuf_data_per_frame.m_proj);
-                ubuf_data_composition.m_view_inv = glm::inverse(ubuf_data_per_frame.m_view);
-                ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
-                this->m_ubufs_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
-
-                U_PerFrame_Alpha ubuf_data_alpha{};
-                ubuf_data_alpha.m_view_pos = ubuf_data_per_frame.m_view_pos;
-                this->m_ubufs_per_frame_alpha.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_alpha, this->m_logi_device.get());
-            }
-
-            {
-                U_GlobalLight ubuf_data_glight{};
-
-                const auto light_direc = glm::vec3{sin(dal::get_cur_sec()), 1, cos(dal::get_cur_sec())};
-                ubuf_data_glight.m_dlight_count = 1;
-                ubuf_data_glight.m_dlight_direc[0] = glm::vec4{glm::normalize(light_direc), 0};
-                ubuf_data_glight.m_dlight_color[0] = glm::vec4{0.2, 0.2, 0.2, 1};
-
-                ubuf_data_glight.m_plight_count = 2;
-
-                ubuf_data_glight.m_plight_pos_n_max_dist[0] = glm::vec4{ sin(dal::get_cur_sec()) * 2, 1, cos(dal::get_cur_sec()) * 2, 20 };
-                ubuf_data_glight.m_plight_color[0] = glm::vec4{ 8, 1, 1, 1 };
-
-                ubuf_data_glight.m_plight_pos_n_max_dist[1] = glm::vec4{ cos(dal::get_cur_sec()) * 2, 1, sin(dal::get_cur_sec()) * 2, 20 };
-                ubuf_data_glight.m_plight_color[1] = glm::vec4{ 1, 1, 8, 1 };
-
-                ubuf_data_glight.m_ambient_light = glm::vec4{ 0.02, 0.02, 0.02, 1 };
-
-                this->m_ubufs_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_glight, this->m_logi_device.get());
-            }
-
-            //-----------------------------------------------------------------------------------------------------
-
-            {
-                std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_img_available.at(this->m_flight_frame_index).get() };
-                std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
-
-                this->m_cmd_man.record_simple(
-                    this->m_flight_frame_index.get(),
-                    this->m_models,
-                    this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
-                    this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
-                    this->m_attach_man.color().extent(),
-                    this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
-                    this->m_pipelines.simple().pipeline(),
-                    this->m_pipelines.simple().layout(),
-                    this->m_pipelines.composition().pipeline(),
-                    this->m_pipelines.composition().layout(),
-                    this->m_renderpasses.rp_gbuf()
-                );
-
-                VkSubmitInfo submit_info{};
-                submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                submit_info.pCommandBuffers = &this->m_cmd_man.cmd_simple_at(this->m_flight_frame_index.get());
-                submit_info.commandBufferCount = 1;
-                submit_info.waitSemaphoreCount = wait_semaphores.size();
-                submit_info.pWaitSemaphores = wait_semaphores.data();
-                submit_info.pWaitDstStageMask = wait_stages.data();
-                submit_info.signalSemaphoreCount = signal_semaphores.size();
-                submit_info.pSignalSemaphores = signal_semaphores.data();
-
-                const auto submit_result = vkQueueSubmit(
-                    this->m_logi_device.queue_graphics(),
-                    1,
-                    &submit_info,
-                    VK_NULL_HANDLE
-                );
-
-                dalAssert(VK_SUCCESS == submit_result);
-            }
-
-            {
-                std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
-                std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
-
-                this->m_cmd_man.record_alpha(
-                    this->m_flight_frame_index.get(),
-                    this->m_models,
-                    this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
-                    this->m_desc_man.desc_set_per_world(this->m_flight_frame_index.get()),
-                    this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
-                    this->m_attach_man.color().extent(),
-                    this->m_fbuf_man.fbuf_alpha_at(swapchain_index.get()).get(),
-                    this->m_pipelines.alpha().pipeline(),
-                    this->m_pipelines.alpha().layout(),
-                    this->m_renderpasses.rp_alpha()
-                );
-
-                VkSubmitInfo submit_info{};
-                submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                submit_info.pCommandBuffers = &this->m_cmd_man.cmd_alpha_at(this->m_flight_frame_index.get());
-                submit_info.commandBufferCount = 1;
-                submit_info.waitSemaphoreCount = wait_semaphores.size();
-                submit_info.pWaitSemaphores = wait_semaphores.data();
-                submit_info.pWaitDstStageMask = wait_stages.data();
-                submit_info.signalSemaphoreCount = signal_semaphores.size();
-                submit_info.pSignalSemaphores = signal_semaphores.data();
-
-                const auto submit_result = vkQueueSubmit(
-                    this->m_logi_device.queue_graphics(),
-                    1,
-                    &submit_info,
-                    VK_NULL_HANDLE
-                );
-
-                dalAssert(VK_SUCCESS == submit_result);
-            }
-
-            {
-                std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
-                std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_final.at(this->m_flight_frame_index).get() };
-                auto& fence = sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
-
-                fence.wait_reset(this->m_logi_device.get());
-
-                this->m_desc_man.init_desc_sets_final(
-                    this->m_flight_frame_index.get(),
-                    this->m_ubuf_final,
-                    this->m_attach_man.color().view().get(),
-                    this->m_tex_man.sampler_tex().get(),
-                    this->m_desc_layout_man.layout_final(),
-                    this->m_logi_device.get()
-                );
-
-                this->m_cmd_man.record_final(
-                    this->m_flight_frame_index.get(),
-                    this->m_fbuf_man.fbuf_final_at(*swapchain_index),
-                    this->m_swapchain.identity_extent(),
-                    this->m_desc_man.desc_set_final_at(this->m_flight_frame_index.get()),
-                    this->m_pipelines.final().layout(),
-                    this->m_pipelines.final().pipeline(),
-                    this->m_renderpasses.rp_final()
-                );
-
-                VkSubmitInfo submit_info{};
-                submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                submit_info.pCommandBuffers = &this->m_cmd_man.cmd_final_at(this->m_flight_frame_index.get());
-                submit_info.commandBufferCount = 1;
-                submit_info.waitSemaphoreCount = wait_semaphores.size();
-                submit_info.pWaitSemaphores = wait_semaphores.data();
-                submit_info.pWaitDstStageMask = wait_stages.data();
-                submit_info.signalSemaphoreCount = signal_semaphores.size();
-                submit_info.pSignalSemaphores = signal_semaphores.data();
-
-                const auto submit_result = vkQueueSubmit(
-                    this->m_logi_device.queue_graphics(),
-                    1,
-                    &submit_info,
-                    fence.get()
-                );
-
-                dalAssert(VK_SUCCESS == submit_result);
-            }
-
-            {
-                std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_final.at(this->m_flight_frame_index).get() };
-                std::array<VkSwapchainKHR, 1> swapchains{ this->m_swapchain.swapchain() };
-
-                VkPresentInfoKHR presentInfo{};
-                presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-                presentInfo.waitSemaphoreCount = wait_semaphores.size();
-                presentInfo.pWaitSemaphores    = wait_semaphores.data();
-                presentInfo.swapchainCount     = swapchains.size();
-                presentInfo.pSwapchains        = swapchains.data();
-                presentInfo.pImageIndices      = &*swapchain_index;
-                presentInfo.pResults           = nullptr;
-
-                vkQueuePresentKHR(this->m_logi_device.queue_present(), &presentInfo);
-            }
-
-            this->m_flight_frame_index.increase();
-        }
-
-        void wait_device_idle() const {
-            vkDeviceWaitIdle(this->m_logi_device.get());
-        }
-
-        void on_screen_resize(const unsigned width, const unsigned height) {
-            this->m_screen_resize_notified = true;
-            this->m_new_extent.width = width;
-            this->m_new_extent.height = height;
-
-            dalVerbose(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
-        }
-
-    private:
-        // Returns true if recreation is still needed.
-        bool on_recreate_swapchain() {
-            if (0 == this->m_new_extent.width || 0 == this->m_new_extent.height) {
-                return true;
-            }
-            this->wait_device_idle();
-
-            return !this->init_swapchain_and_dependers();
-        }
-
-        [[nodiscard]]
-        bool init_swapchain_and_dependers() {
-            const auto result_swapchain = this->m_swapchain.init(
-                this->m_new_extent.width,
-                this->m_new_extent.height,
-                this->m_logi_device.indices(),
-                this->m_surface,
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            if (!result_swapchain)
-                return false;
-
-            this->m_attach_man.init(
-                this->calc_smaller_extent(this->m_new_extent),
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_renderpasses.init(
-                this->m_swapchain.format(),
-                this->m_attach_man.color().format(),
-                this->m_attach_man.depth().format(),
-                this->m_attach_man.albedo().format(),
-                this->m_attach_man.materials().format(),
-                this->m_attach_man.normal().format(),
-                this->m_logi_device.get()
-            );
-
-            this->m_fbuf_man.init(
-                this->m_swapchain.views(),
-                this->m_attach_man,
-                this->m_swapchain.identity_extent(),
-                this->m_attach_man.color().extent(),
-                this->m_renderpasses.rp_gbuf(),
-                this->m_renderpasses.rp_final(),
-                this->m_renderpasses.rp_alpha(),
-                this->m_logi_device.get()
-            );
-
-            this->m_pipelines.init(
-                this->m_filesys.asset_mgr(),
-                !this->m_swapchain.is_format_srgb(),
-                this->m_swapchain.identity_extent(),
-                this->m_attach_man.color().extent(),
-                this->m_desc_layout_man.layout_final(),
-                this->m_desc_layout_man.layout_simple(),
-                this->m_desc_layout_man.layout_per_material(),
-                this->m_desc_layout_man.layout_per_actor(),
-                this->m_desc_layout_man.layout_per_world(),
-                this->m_desc_layout_man.layout_composition(),
-                this->m_renderpasses.rp_gbuf(),
-                this->m_renderpasses.rp_final(),
-                this->m_renderpasses.rp_alpha(),
-                this->m_logi_device.get()
-            );
-
-            this->m_cmd_man.init(
-                MAX_FRAMES_IN_FLIGHT,
-                this->m_logi_device.indices().graphics_family(),
-                this->m_logi_device.get()
-            );
-
-            this->m_ubufs_simple.init(
-                MAX_FRAMES_IN_FLIGHT,
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_ubufs_glights.init(
-                MAX_FRAMES_IN_FLIGHT,
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_ubufs_per_frame_composition.init(
-                MAX_FRAMES_IN_FLIGHT,
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_ubufs_per_frame_alpha.init(
-                MAX_FRAMES_IN_FLIGHT,
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-
-            this->m_ubuf_final.init(this->m_phys_device.get(), this->m_logi_device.get());
-            U_PerFrame_InFinal data;
-            data.m_rotation = this->m_swapchain.pre_ratation_mat();
-            this->m_ubuf_final.copy_to_buffer(data, this->m_logi_device.get());
-
-            this->m_desc_man.init(MAX_FRAMES_IN_FLIGHT, this->m_logi_device.get());
-
-            this->m_desc_man.init_desc_sets_per_frame(
-                this->m_ubufs_simple,
-                MAX_FRAMES_IN_FLIGHT,
-                this->m_desc_layout_man.layout_simple(),
-                this->m_logi_device.get()
-            );
-
-            this->m_desc_man.init_desc_sets_per_world(
-                this->m_ubufs_glights,
-                this->m_ubufs_per_frame_alpha,
-                MAX_FRAMES_IN_FLIGHT,
-                this->m_desc_layout_man.layout_per_world(),
-                this->m_logi_device.get()
-            );
-
-            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-                this->m_desc_man.add_desc_set_composition(
-                    {
-                        this->m_attach_man.depth().view().get(),
-                        this->m_attach_man.albedo().view().get(),
-                        this->m_attach_man.materials().view().get(),
-                        this->m_attach_man.normal().view().get(),
-                    },
-                    this->m_ubufs_glights.at(i),
-                    this->m_ubufs_per_frame_composition.at(i),
-                    this->m_desc_layout_man.layout_composition(),
-                    this->m_logi_device.get()
-                );
-            }
-
-            return true;
-        }
-
-        void populate_models() {
-            // Honoka
-            {
-                auto& model = this->m_model_man.request_model("_asset/model/honoka_basic_3.dmd");
-                this->m_models.push_back(&model);
-
-                U_PerActor ubuf_data_per_actor;
-                ubuf_data_per_actor.m_model = glm::scale(glm::mat4{1}, glm::vec3{0.3});
-                model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
-            }
-
-            // Sponza
-            {
-                auto& model = this->m_model_man.request_model("_asset/model/sponza.dmd");
-                this->m_models.push_back(&model);
-
-                U_PerActor ubuf_data_per_actor;
-                ubuf_data_per_actor.m_model = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{1, 0, 0}) * glm::scale(glm::mat4{1}, glm::vec3{0.01});;
-                model.ubuf_per_actor().copy_to_buffer(ubuf_data_per_actor, this->m_logi_device.get());
-            }
-        }
-
-        static VkExtent2D calc_smaller_extent(const VkExtent2D& extent) {
-            return VkExtent2D{
-                std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<double>(extent.width) * 0.8)),
-                std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<double>(extent.height) * 0.8))
-            };
-        }
-
-    };
-
-}
-
-
 // VulkanState
 namespace dal {
 
-    VulkanState::~VulkanState() {
-        this->destroy();
-    }
-
-    void VulkanState::init(
+    VulkanState::VulkanState(
         const char* const window_title,
         const unsigned init_width,
         const unsigned init_height,
         dal::Filesystem& filesys,
         dal::TaskManager& task_man,
+        dal::ITextureManager& texture_man,
         const std::vector<const char*>& extensions,
         std::function<void*(void*)> surface_create_func
-    ) {
-        this->destroy();
-        this->m_pimpl = new Pimpl(window_title, init_width, init_height, filesys, task_man, extensions, surface_create_func);
-        dalInfo(fmt::format("Init surface size: {} x {}", init_width, init_height).c_str());
+    )
+        : m_filesys(filesys)
+        , m_texture_man(texture_man)
+        , m_new_extent(VkExtent2D{ init_width, init_height })
+    {
+#ifdef DAL_OS_ANDROID
+        dalAssert(1 == InitVulkan());
+#endif
+        this->m_instance = ::create_vulkan_instance(window_title, extensions);
+        dalAssert(VK_NULL_HANDLE != this->m_instance);
+
+        this->m_surface = reinterpret_cast<VkSurfaceKHR>(surface_create_func(this->m_instance));
+        dalAssert(VK_NULL_HANDLE != this->m_surface);
+
+#ifdef DAL_VK_DEBUG
+        this->m_debug_messenger = ::create_debug_messenger(this->m_instance);
+        dalAssert(VK_NULL_HANDLE != this->m_debug_messenger);
+#endif
+
+        std::tie(this->m_phys_device, this->m_phys_info) = dal::get_best_phys_device(this->m_instance, this->m_surface, true);
+        this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
+        this->m_desc_layout_man.init(this->m_logi_device.get());
+
+        const auto result_init_swapchain = this->init_swapchain_and_dependers();
+        dalAssert(result_init_swapchain);
+
+        this->m_sampler_man.init(
+            this->m_phys_info.does_support_anisotropic_sampling(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
+        this->m_desc_pool_actor.init(64, 64, 64, 64, this->m_logi_device.get());
     }
 
-    void VulkanState::destroy() {
-        if (nullptr != this->m_pimpl) {
-            delete this->m_pimpl;
-            this->m_pimpl = nullptr;
+    VulkanState::~VulkanState() {
+        this->wait_idle();
+
+        this->m_desc_pool_actor.destroy(this->m_logi_device.get());
+        this->m_sampler_man.destroy(this->m_logi_device.get());
+        this->m_desc_man.destroy(this->m_logi_device.get());
+        this->m_ubuf_man.destroy(this->m_logi_device.get());
+        this->m_cmd_man.destroy(this->m_logi_device.get());
+        this->m_pipelines.destroy(this->m_logi_device.get());
+        this->m_fbuf_man.destroy(this->m_logi_device.get());
+        this->m_renderpasses.destroy(this->m_logi_device.get());
+        this->m_attach_man.destroy(this->m_logi_device.get());
+        this->m_swapchain.destroy(this->m_logi_device.get());
+        this->m_desc_layout_man.destroy(this->m_logi_device.get());
+        this->m_logi_device.destroy();
+
+#ifdef DAL_VK_DEBUG
+        if (VK_NULL_HANDLE != this->m_debug_messenger) {
+            ::destroyDebugUtilsMessengerEXT(this->m_instance, this->m_debug_messenger, nullptr);
+            this->m_debug_messenger = VK_NULL_HANDLE;
+        }
+#endif
+
+        if (VK_NULL_HANDLE != this->m_surface) {
+            vkDestroySurfaceKHR(this->m_instance, this->m_surface, nullptr);
+            this->m_surface = VK_NULL_HANDLE;
+        }
+
+        if (VK_NULL_HANDLE != this->m_instance) {
+            vkDestroyInstance(this->m_instance, nullptr);
+            this->m_instance = VK_NULL_HANDLE;
         }
     }
 
-    bool VulkanState::is_ready() const {
-        return nullptr != this->m_pimpl;
+    void VulkanState::update(const ICamera& camera, const RenderList& render_list) {
+        if (this->m_screen_resize_notified) {
+            this->m_screen_resize_notified = this->on_recreate_swapchain();
+            return;
+        }
+
+        auto& sync_man = this->m_swapchain.sync_man();
+
+        sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index).wait(this->m_logi_device.get());
+        const auto [acquire_result, swapchain_index] = this->m_swapchain.acquire_next_img_index(this->m_flight_frame_index, this->m_logi_device.get());
+
+        if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
+            this->m_screen_resize_notified = this->on_recreate_swapchain();
+            return;
+        }
+        else if (ImgAcquireResult::success != acquire_result) {
+            dalError("Failed to acquire swapchain image");
+            return;
+        }
+
+        {
+            auto& img_fences = sync_man.fence_image_in_flight(swapchain_index);
+            if (nullptr != img_fences) {
+                img_fences->wait(this->m_logi_device.get());
+            }
+            img_fences = &sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
+        }
+
+        //-----------------------------------------------------------------------------------------------------
+
+        const auto cur_sec = dal::get_cur_sec();
+
+        {
+            U_PerFrame ubuf_data_per_frame{};
+            ubuf_data_per_frame.m_view = camera.make_view_mat();
+            ubuf_data_per_frame.m_proj = ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
+            ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
+            this->m_ubuf_man.m_ub_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
+
+            U_PerFrame_Composition ubuf_data_composition{};
+            ubuf_data_composition.m_proj_inv = glm::inverse(ubuf_data_per_frame.m_proj);
+            ubuf_data_composition.m_view_inv = glm::inverse(ubuf_data_per_frame.m_view);
+            ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
+            this->m_ubuf_man.m_ub_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
+
+            U_PerFrame_Alpha ubuf_data_alpha{};
+            ubuf_data_alpha.m_view_pos = ubuf_data_per_frame.m_view_pos;
+            this->m_ubuf_man.m_ub_per_frame_alpha.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_alpha, this->m_logi_device.get());
+        }
+
+        {
+            U_GlobalLight ubuf_data_glight{};
+
+            const auto light_direc = glm::vec3{1, 1, 1};
+            ubuf_data_glight.m_dlight_count = 1;
+            ubuf_data_glight.m_dlight_direc[0] = glm::vec4{glm::normalize(light_direc), 0};
+            ubuf_data_glight.m_dlight_color[0] = glm::vec4{0.2, 0.2, 0.4, 1};
+
+            ubuf_data_glight.m_plight_count = 1;
+
+            ubuf_data_glight.m_plight_pos_n_max_dist[0] = glm::vec4{ sin(dal::get_cur_sec()) * 3, 1, cos(dal::get_cur_sec()) * 3, 20 };
+            ubuf_data_glight.m_plight_color[0] = glm::vec4{ glm::vec3{0.2}, 1 };
+
+            ubuf_data_glight.m_plight_pos_n_max_dist[1] = glm::vec4{ cos(dal::get_cur_sec()) * 2, 1, sin(dal::get_cur_sec()) * 2, 20 };
+            ubuf_data_glight.m_plight_color[1] = glm::vec4{ 1, 1, 1, 1 };
+
+            ubuf_data_glight.m_ambient_light = glm::vec4{ 0.01, 0.01, 0.01, 1 };
+
+            this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_glight, this->m_logi_device.get());
+        }
+
+        //-----------------------------------------------------------------------------------------------------
+
+        {
+            std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+            std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_img_available.at(this->m_flight_frame_index).get() };
+            std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
+
+            this->m_cmd_man.record_simple(
+                this->m_flight_frame_index.get(),
+                render_list,
+                this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
+                this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
+                this->m_attach_man.color().extent(),
+                this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
+                this->m_pipelines.simple().pipeline(),
+                this->m_pipelines.simple().layout(),
+                this->m_pipelines.composition().pipeline(),
+                this->m_pipelines.composition().layout(),
+                this->m_renderpasses.rp_gbuf()
+            );
+
+            VkSubmitInfo submit_info{};
+            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info.pCommandBuffers = &this->m_cmd_man.cmd_simple_at(this->m_flight_frame_index.get());
+            submit_info.commandBufferCount = 1;
+            submit_info.waitSemaphoreCount = wait_semaphores.size();
+            submit_info.pWaitSemaphores = wait_semaphores.data();
+            submit_info.pWaitDstStageMask = wait_stages.data();
+            submit_info.signalSemaphoreCount = signal_semaphores.size();
+            submit_info.pSignalSemaphores = signal_semaphores.data();
+
+            const auto submit_result = vkQueueSubmit(
+                this->m_logi_device.queue_graphics(),
+                1,
+                &submit_info,
+                VK_NULL_HANDLE
+            );
+
+            dalAssert(VK_SUCCESS == submit_result);
+        }
+
+        {
+            std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+            std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
+            std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
+
+            this->m_cmd_man.record_alpha(
+                this->m_flight_frame_index.get(),
+                camera.view_pos(),
+                render_list,
+                this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
+                this->m_desc_man.desc_set_per_world(this->m_flight_frame_index.get()),
+                this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
+                this->m_attach_man.color().extent(),
+                this->m_fbuf_man.fbuf_alpha_at(swapchain_index).get(),
+                this->m_pipelines.alpha().pipeline(),
+                this->m_pipelines.alpha().layout(),
+                this->m_renderpasses.rp_alpha()
+            );
+
+            VkSubmitInfo submit_info{};
+            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info.pCommandBuffers = &this->m_cmd_man.cmd_alpha_at(this->m_flight_frame_index.get());
+            submit_info.commandBufferCount = 1;
+            submit_info.waitSemaphoreCount = wait_semaphores.size();
+            submit_info.pWaitSemaphores = wait_semaphores.data();
+            submit_info.pWaitDstStageMask = wait_stages.data();
+            submit_info.signalSemaphoreCount = signal_semaphores.size();
+            submit_info.pSignalSemaphores = signal_semaphores.data();
+
+            const auto submit_result = vkQueueSubmit(
+                this->m_logi_device.queue_graphics(),
+                1,
+                &submit_info,
+                VK_NULL_HANDLE
+            );
+
+            dalAssert(VK_SUCCESS == submit_result);
+        }
+
+        {
+            std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+            std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
+            std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_final.at(this->m_flight_frame_index).get() };
+            auto& fence = sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
+
+            fence.wait_reset(this->m_logi_device.get());
+
+            this->m_desc_man.init_desc_sets_final(
+                this->m_flight_frame_index.get(),
+                this->m_ubuf_man.m_ub_final,
+                this->m_attach_man.color().view().get(),
+                this->m_sampler_man.sampler_tex().get(),
+                this->m_desc_layout_man.layout_final(),
+                this->m_logi_device.get()
+            );
+
+            this->m_cmd_man.record_final(
+                this->m_flight_frame_index.get(),
+                this->m_fbuf_man.fbuf_final_at(swapchain_index),
+                this->m_swapchain.identity_extent(),
+                this->m_desc_man.desc_set_final_at(this->m_flight_frame_index.get()),
+                this->m_pipelines.final().layout(),
+                this->m_pipelines.final().pipeline(),
+                this->m_renderpasses.rp_final()
+            );
+
+            VkSubmitInfo submit_info{};
+            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info.pCommandBuffers = &this->m_cmd_man.cmd_final_at(this->m_flight_frame_index.get());
+            submit_info.commandBufferCount = 1;
+            submit_info.waitSemaphoreCount = wait_semaphores.size();
+            submit_info.pWaitSemaphores = wait_semaphores.data();
+            submit_info.pWaitDstStageMask = wait_stages.data();
+            submit_info.signalSemaphoreCount = signal_semaphores.size();
+            submit_info.pSignalSemaphores = signal_semaphores.data();
+
+            const auto submit_result = vkQueueSubmit(
+                this->m_logi_device.queue_graphics(),
+                1,
+                &submit_info,
+                fence.get()
+            );
+
+            dalAssert(VK_SUCCESS == submit_result);
+        }
+
+        {
+            std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_final.at(this->m_flight_frame_index).get() };
+            std::array<VkSwapchainKHR, 1> swapchains{ this->m_swapchain.swapchain() };
+
+            VkPresentInfoKHR presentInfo{};
+            presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+            presentInfo.waitSemaphoreCount = wait_semaphores.size();
+            presentInfo.pWaitSemaphores    = wait_semaphores.data();
+            presentInfo.swapchainCount     = swapchains.size();
+            presentInfo.pSwapchains        = swapchains.data();
+            presentInfo.pImageIndices      = &*swapchain_index;
+            presentInfo.pResults           = nullptr;
+
+            vkQueuePresentKHR(this->m_logi_device.queue_present(), &presentInfo);
+        }
+
+        this->m_flight_frame_index.increase();
     }
 
-    void VulkanState::update(const EulerCamera& camera) {
-        dalAssert(this->is_ready());
-        this->m_pimpl->update(camera);
-    }
-
-    void VulkanState::wait_device_idle() const {
-        dalAssert(this->is_ready());
-        this->m_pimpl->wait_device_idle();
+    void VulkanState::wait_idle() {
+        vkDeviceWaitIdle(this->m_logi_device.get());
     }
 
     void VulkanState::on_screen_resize(const unsigned width, const unsigned height) {
-        dalAssert(this->is_ready());
-        this->m_pimpl->on_screen_resize(width, height);
+        this->m_screen_resize_notified = true;
+        this->m_new_extent.width = width;
+        this->m_new_extent.height = height;
+
+        dalVerbose(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
+    }
+
+    HTexture VulkanState::create_texture() {
+        return std::make_shared<TextureUnit>();
+    }
+
+    HRenModel VulkanState::create_model() {
+        return std::make_shared<ModelRenderer>();
+    }
+
+    HActor VulkanState::create_actor() {
+        return std::make_shared<ActorVK>();
+    }
+
+    bool VulkanState::init(ITexture& h_tex, const ImageData& img_data) {
+        auto& tex = reinterpret_cast<TextureUnit&>(h_tex);
+
+        return tex.init(
+            this->m_cmd_man.general_pool(),
+            img_data,
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
+
+    bool VulkanState::init(IRenModel& h_model, const dal::ModelStatic& model_data, const char* const fallback_namespace) {
+        auto& model = reinterpret_cast<ModelRenderer&>(h_model);
+
+        model.init(this->m_phys_device.get(), this->m_logi_device.get());
+
+        model.upload_meshes(
+            model_data,
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            fallback_namespace,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
+        return true;
+    }
+
+    bool VulkanState::init(IActor& actor) {
+        auto& a = reinterpret_cast<ActorVK&>(actor);
+
+        a.init(
+            this->m_desc_pool_actor,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
+        return true;
+    }
+
+    bool VulkanState::prepare(IRenModel& h_model) {
+        auto& model = reinterpret_cast<ModelRenderer&>(h_model);
+
+        return model.fetch_one_resource(
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex().get(),
+            this->m_logi_device.get()
+        );
+    }
+
+    // Private
+    //---------------------------------------------------------------------------------------
+
+    bool VulkanState::on_recreate_swapchain() {
+        if (0 == this->m_new_extent.width || 0 == this->m_new_extent.height) {
+            return true;
+        }
+        this->wait_idle();
+
+        return !this->init_swapchain_and_dependers();
+    }
+
+    [[nodiscard]]
+    bool VulkanState::init_swapchain_and_dependers() {
+        const auto result_swapchain = this->m_swapchain.init(
+            this->m_new_extent.width,
+            this->m_new_extent.height,
+            this->m_logi_device.indices(),
+            this->m_surface,
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
+        if (!result_swapchain)
+            return false;
+
+        this->m_attach_man.init(
+            ::calc_smaller_extent(this->m_new_extent, 0.9),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
+        this->m_renderpasses.init(
+            this->m_swapchain.format(),
+            this->m_attach_man.color().format(),
+            this->m_attach_man.depth().format(),
+            this->m_attach_man.albedo().format(),
+            this->m_attach_man.materials().format(),
+            this->m_attach_man.normal().format(),
+            this->m_logi_device.get()
+        );
+
+        this->m_fbuf_man.init(
+            this->m_swapchain.views(),
+            this->m_attach_man,
+            this->m_swapchain.identity_extent(),
+            this->m_attach_man.color().extent(),
+            this->m_renderpasses.rp_gbuf(),
+            this->m_renderpasses.rp_final(),
+            this->m_renderpasses.rp_alpha(),
+            this->m_logi_device.get()
+        );
+
+        this->m_pipelines.init(
+            this->m_filesys.asset_mgr(),
+            !this->m_swapchain.is_format_srgb(),
+            this->m_swapchain.identity_extent(),
+            this->m_attach_man.color().extent(),
+            this->m_desc_layout_man.layout_final(),
+            this->m_desc_layout_man.layout_simple(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_world(),
+            this->m_desc_layout_man.layout_composition(),
+            this->m_renderpasses.rp_gbuf(),
+            this->m_renderpasses.rp_final(),
+            this->m_renderpasses.rp_alpha(),
+            this->m_logi_device.get()
+        );
+
+        this->m_cmd_man.init(
+            MAX_FRAMES_IN_FLIGHT,
+            this->m_logi_device.indices().graphics_family(),
+            this->m_logi_device.get()
+        );
+
+        this->m_ubuf_man.init(this->m_phys_device.get(), this->m_logi_device.get());
+
+        U_PerFrame_InFinal data;
+        data.m_rotation = this->m_swapchain.pre_ratation_mat();
+        this->m_ubuf_man.m_ub_final.copy_to_buffer(data, this->m_logi_device.get());
+
+        this->m_desc_man.init(MAX_FRAMES_IN_FLIGHT, this->m_logi_device.get());
+
+        this->m_desc_man.init_desc_sets_per_frame(
+            this->m_ubuf_man.m_ub_simple,
+            MAX_FRAMES_IN_FLIGHT,
+            this->m_desc_layout_man.layout_simple(),
+            this->m_logi_device.get()
+        );
+
+        this->m_desc_man.init_desc_sets_per_world(
+            this->m_ubuf_man.m_ub_glights,
+            this->m_ubuf_man.m_ub_per_frame_alpha,
+            MAX_FRAMES_IN_FLIGHT,
+            this->m_desc_layout_man.layout_per_world(),
+            this->m_logi_device.get()
+        );
+
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+            this->m_desc_man.add_desc_set_composition(
+                {
+                    this->m_attach_man.depth().view().get(),
+                    this->m_attach_man.albedo().view().get(),
+                    this->m_attach_man.materials().view().get(),
+                    this->m_attach_man.normal().view().get(),
+                },
+                this->m_ubuf_man.m_ub_glights.at(i),
+                this->m_ubuf_man.m_ub_per_frame_composition.at(i),
+                this->m_desc_layout_man.layout_composition(),
+                this->m_logi_device.get()
+            );
+        }
+
+        return true;
     }
 
 }

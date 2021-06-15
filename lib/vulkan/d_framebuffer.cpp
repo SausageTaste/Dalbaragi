@@ -138,7 +138,7 @@ namespace dal {
             this->m_extent.width,
             this->m_extent.height,
             dal::FbufAttachment::Usage::color_attachment,
-            VK_FORMAT_R8G8B8A8_UNORM,
+            VK_FORMAT_R16G16B16A16_SFLOAT,
             phys_device,
             logi_device
         );

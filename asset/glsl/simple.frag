@@ -17,17 +17,6 @@ layout(set = 1, binding = 0) uniform U_PerMaterial {
 layout(set = 1, binding = 1) uniform sampler2D u_albedo_map;
 
 
-vec3 fix_color(const vec3 color) {
-    const float GAMMA = 2.2;
-    const float EXPOSURE = 1;
-
-    vec3 mapped = vec3(1.0) - exp(-color * EXPOSURE);
-    //vec3 mapped = color / (color + 1.0);
-    mapped = pow(mapped, vec3(1.0 / GAMMA));
-    return mapped;
-}
-
-
 void main() {
     out_albedo = texture(u_albedo_map, v_uv_coord);
 
@@ -36,10 +25,6 @@ void main() {
         discard;
 #endif
 
-#ifdef DAL_GAMMA_CORRECT
-    out_albedo.xyz = fix_color(out_albedo.xyz);
-#endif
-
     out_material = vec4(u_per_material.m_roughness, u_per_material.m_metallic, 0, 1);
-    out_normal = vec4(v_normal, 0);
+    out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, 0);
 }

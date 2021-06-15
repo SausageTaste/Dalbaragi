@@ -132,43 +132,39 @@ namespace dal {
     };
 
 
+    struct GamepadState {
+
+    public:
+        std::string m_name;
+        glm::vec2 m_axis_left{ 0 };
+        glm::vec2 m_axis_right{ 0 };
+        glm::vec2 m_dpad{ 0 };
+        float m_trigger_left = 0;
+        float m_trigger_right = 0;
+
+    public:
+        void apply_dead_zone();
+
+    };
+
+
     class GamepadInputManager {
 
     private:
-        struct GamepadState {
-            std::string m_name;
-
-            glm::vec2 m_axis_left{ 0 };
-            glm::vec2 m_axis_right{ 0 };
-            glm::vec2 m_dpad{ 0 };
-            float m_trigger_left = 0;
-            float m_trigger_right = 0;
-        };
-
-    private:
         std::unordered_map<int, GamepadState> m_gamepads;
+        using iterator_t = std::unordered_map<int, GamepadState>::iterator;
 
     public:
         void notify_connection_change(const GamepadConnectionEvent& e);
 
         GamepadState& get_gamepad_state(const int id);
 
-        void remove_gamepad(const int id);
-
-        auto begin() {
-            return this->m_gamepads.begin();
+        auto& pad_list() {
+            return this->m_gamepads;
         }
 
-        auto begin() const {
-            return this->m_gamepads.begin();
-        }
-
-        auto end() {
-            return this->m_gamepads.end();
-        }
-
-        auto end() const {
-            return this->m_gamepads.end();
+        auto& pad_list() const {
+            return this->m_gamepads;
         }
 
     };

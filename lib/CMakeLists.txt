@@ -32,6 +32,12 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
+    fetch_entt
+    GIT_REPOSITORY https://github.com/skypjack/entt
+    GIT_TAG        v3.7.1
+)
+
+FetchContent_Declare(
     fetch_dal_blender
     GIT_REPOSITORY https://github.com/SausageTaste/io_scene_dalbaragi
     GIT_TAG        main
@@ -41,6 +47,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(fetch_fmt)
 FetchContent_MakeAvailable(fetch_glm)
 FetchContent_MakeAvailable(fetch_stb)
+FetchContent_MakeAvailable(fetch_entt)
 FetchContent_MakeAvailable(fetch_dal_blender)
 
 if (WIN32)
@@ -57,6 +64,8 @@ endif()
 
 
 add_subdirectory(./util)
+add_subdirectory(./scene)
+add_subdirectory(./renderer)
 add_subdirectory(./vulkan)
 add_subdirectory(./engine)
 

@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 
+#include "d_renderer.h"
 #include "d_vulkan_header.h"
 #include "d_image_parser.h"
 #include "d_command.h"
@@ -133,13 +134,16 @@ namespace dal {
     };
 
 
-    class TextureUnit {
+    class TextureUnit : public ITexture {
 
     private:
         TextureImage m_image;
         ImageView m_view;
+        VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
+        ~TextureUnit() override;
+
         bool init(
             dal::CommandPool& cmd_pool,
             const dal::ImageData& img_data,
@@ -148,9 +152,9 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy(const VkDevice logi_device);
+        void destroy() override;
 
-        bool is_ready() const;
+        bool is_ready() const override;
 
         auto& view() const {
             return this->m_view;
@@ -159,41 +163,19 @@ namespace dal {
     };
 
 
-    class TextureManager : public ITaskListener {
+    class SamplerManager {
 
     private:
-        std::unordered_map<std::string, TextureUnit> m_textures;
-        std::unordered_map<void*, TextureUnit*> m_sent_task;
-        std::queue<std::unique_ptr<ITask>> m_finalize_q;
         Sampler m_tex_sampler;
-        CommandPool m_cmd_pool;
-
-        dal::TaskManager* m_task_man = nullptr;
-        Filesystem* m_filesys = nullptr;
-        VkQueue m_graphics_queue = VK_NULL_HANDLE;
-        VkPhysicalDevice m_phys_device = VK_NULL_HANDLE;
-        VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
         void init(
-            dal::TaskManager& task_man,
-            dal::Filesystem& filesys,
             const bool enable_anisotropy,
-            const uint32_t queue_family_index,
-            const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
 
         void destroy(const VkDevice logi_device);
-
-        void update();
-
-        void notify_task_done(std::unique_ptr<ITask> task) override;
-
-        const TextureUnit& request_asset_tex(const dal::ResPath& path);
-
-        const TextureUnit& get_missing_tex();
 
         auto& sampler_tex() const {
             return this->m_tex_sampler;

@@ -116,9 +116,33 @@ namespace {
         return glm::transpose(::make_rotation_zxy<_Mat>(-v));
     }
 
+
+    glm::quat rotate_quat(const glm::quat& q, const float radians, const glm::vec3& selector) {
+        return glm::normalize(glm::angleAxis(radians, selector) * q);
+    }
+
 }
 
 
+// Transform
+namespace dal {
+
+    glm::mat4 Transform::make_mat4() const {
+        const auto identity = glm::mat4{ 1 };
+        const auto scale_mat = glm::scale(identity, glm::vec3{ this->m_scale, this->m_scale , this->m_scale });
+        const auto translate_mat = glm::translate(identity, this->m_pos);
+
+        return translate_mat * glm::mat4_cast(this->m_quat) * scale_mat;
+    }
+
+    void Transform::rotate(const float v, const glm::vec3& selector) {
+        this->m_quat = ::rotate_quat(this->m_quat, v, selector);
+    }
+
+}
+
+
+// EulerCamera
 namespace dal {
 
     glm::mat4 EulerCamera::make_view_mat() const {

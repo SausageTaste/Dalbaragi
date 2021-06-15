@@ -1,10 +1,10 @@
 #pragma once
 
-#include "d_vulkan_man.h"
+#include "d_resource_man.h"
 #include "d_inputs.h"
-#include "d_actor.h"
 #include "d_timer.h"
 #include "d_input_consumer.h"
+#include "d_scene.h"
 
 
 namespace dal {
@@ -24,20 +24,20 @@ namespace dal {
     private:
         EngineCreateInfo m_create_info;
 
-        dal::TaskManager m_task_man;
-        dal::VulkanState m_vulkan_man;
         InputManager m_input_man;
+        TaskManager m_task_man;
+        ResourceManager m_res_man;
+
+        Scene m_scene;
+        std::unique_ptr<IRenderer> m_renderer;
 
         std::vector<IInputListener*> m_input_listeners;
         InputDispatcher m_input_dispatch;
         unsigned m_screen_width, m_screen_height;
 
-        EulerCamera m_camera;
         Timer m_timer;
 
     public:
-        Engine();
-
         Engine(const EngineCreateInfo& create_info);
 
         ~Engine();

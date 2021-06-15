@@ -10,14 +10,23 @@
 namespace {
 
     glm::vec3 calc_weight_center(const std::vector<dal::VertexStatic>& vertices) {
-        const auto vert_size_inv = static_cast<float>(1.0 / static_cast<double>(vertices.size()));
-        glm::vec3 sum{0};
+        double x_sum = 0.0;
+        double y_sum = 0.0;
+        double z_sum = 0.0;
 
-        for (const auto& x : vertices) {
-            sum += x.m_pos * vert_size_inv;
+        for (const auto& v : vertices) {
+            x_sum += v.m_pos.x;
+            y_sum += v.m_pos.y;
+            z_sum += v.m_pos.z;
         }
 
-        return sum;
+        const double vert_count = static_cast<double>(vertices.size());
+
+        return glm::vec3{
+            x_sum / vert_count,
+            y_sum / vert_count,
+            z_sum / vert_count,
+        };
     }
 
 }

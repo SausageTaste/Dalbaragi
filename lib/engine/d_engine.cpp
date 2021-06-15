@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include "d_logger.h"
+#include "d_renderer_create.h"
 
 
 namespace {
@@ -36,7 +37,7 @@ namespace {
     auto make_move_direc(const dal::GamepadInputManager& gm) {
         glm::vec3 result{ 0, 0, 0 };
 
-        for (const auto& [id, state] : gm) {
+        for (const auto& [id, state] : gm.pad_list()) {
             result.x += state.m_axis_left.x;
             result.z -= state.m_axis_left.y;
         }
@@ -72,7 +73,7 @@ namespace {
     glm::vec3 make_rotation_angles(const dal::GamepadInputManager& m) {
         glm::vec3 result{0};
 
-        for (const auto& [id, state] : m) {
+        for (const auto& [id, state] : m.pad_list()) {
             result.x += state.m_axis_right.y;
             result.y -= state.m_axis_right.x;
         }
@@ -211,6 +212,52 @@ namespace {
 }
 
 
+namespace {
+
+    void populate_models(dal::Scene& scene, dal::ResourceManager& res_man) {
+        // Honoka
+        {
+            const auto entity = scene.m_registry.create();
+            auto model = res_man.request_model("_asset/model/honoka_basic_3.dmd");
+
+            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::Model>(entity);
+            cpnt_model.m_model = model;
+
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
+
+            cpnt_actor.m_actors.push_back(res_man.request_actor());
+            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
+            cpnt_actor.m_actors.back()->apply_changes();
+
+            cpnt_actor.m_actors.push_back(res_man.request_actor());
+            cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
+            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
+            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
+            cpnt_actor.m_actors.back()->apply_changes();
+        }
+
+        // Sponza
+        {
+            const auto entity = scene.m_registry.create();
+            auto model = res_man.request_model("_asset/model/sponza.dmd");
+
+            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::Model>(entity);
+            cpnt_model.m_model = model;
+
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
+
+            cpnt_actor.m_actors.push_back(res_man.request_actor());
+            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.01;
+            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
+            cpnt_actor.m_actors.back()->apply_changes();
+        }
+
+        dalInfo("Scene populated");
+    }
+
+}
+
+
 namespace dal {
 
     bool EngineCreateInfo::check_validity() const {
@@ -227,11 +274,9 @@ namespace dal {
 
 namespace dal {
 
-    Engine::Engine() {
-        this->m_task_man.init(2);
-    }
-
-    Engine::Engine(const EngineCreateInfo& create_info) {
+    Engine::Engine(const EngineCreateInfo& create_info)
+        : m_res_man(this->m_task_man, *create_info.m_filesystem)
+    {
         this->m_task_man.init(2);
         this->init(create_info);
     }
@@ -243,6 +288,7 @@ namespace dal {
 
     void Engine::init(const EngineCreateInfo& create_info) {
         this->destroy();
+        this->m_renderer = dal::create_renderer_null();
 
         dalAssert(create_info.check_validity());
         this->m_create_info = create_info;
@@ -250,9 +296,6 @@ namespace dal {
         this->m_input_listeners.clear();
         this->m_input_listeners.push_back(&g_touch_dpad); g_touch_dpad.reset();
         this->m_input_listeners.push_back(&g_touch_view); g_touch_view.reset();
-
-        this->m_camera.m_pos = {2.68, 1.91, 0};
-        this->m_camera.m_rotations = {-0.22, glm::radians<float>(90), 0};
 
         this->m_timer.check();
     }
@@ -287,10 +330,10 @@ namespace dal {
                 ::make_move_direc(this->input_manager().gamepad_manager()) +
                 g_touch_dpad.make_move_vec(this->m_screen_width, this->m_screen_height)
             );
-            this->m_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
-            this->m_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
+            this->m_scene.m_euler_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
+            this->m_scene.m_euler_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
 
-            this->m_camera.m_rotations += (
+            this->m_scene.m_euler_camera.m_rotations += (
                 ::make_rotation_angles(this->input_manager().key_manager()) * delta_time_f +
                 ::make_rotation_angles(this->input_manager().gamepad_manager()) * delta_time_f +
                 g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height) * 0.02f
@@ -298,9 +341,9 @@ namespace dal {
         }
 
         this->m_task_man.update();
+        this->m_res_man.update();
 
-        if (this->m_vulkan_man.is_ready())
-            this->m_vulkan_man.update(this->m_camera);
+        this->m_renderer->update(this->m_scene.m_euler_camera, this->m_scene.make_render_list());
     }
 
     void Engine::init_vulkan(const unsigned win_width, const unsigned win_height) {
@@ -312,29 +355,36 @@ namespace dal {
             extensions.push_back(x.c_str());
         }
 
-        this->m_vulkan_man.init(
+        this->m_renderer = dal::create_renderer_vulkan(
             this->m_create_info.m_window_title.c_str(),
             win_width,
             win_height,
             *this->m_create_info.m_filesystem,
             this->m_task_man,
+            this->m_res_man,
             extensions,
             this->m_create_info.m_surface_create_func
         );
+
+        this->m_res_man.set_renderer(*this->m_renderer.get());
+
+        if (this->m_scene.m_registry.empty())
+            ::populate_models(this->m_scene, this->m_res_man);
     }
 
     void Engine::destory_vulkan() {
-        this->m_vulkan_man.destroy();
+        this->m_res_man.invalidate_renderer();
+        this->m_renderer = dal::create_renderer_null();
     }
 
     void Engine::wait_device_idle() const {
-        this->m_vulkan_man.wait_device_idle();
+        this->m_renderer->wait_idle();
     }
 
     void Engine::on_screen_resize(const unsigned width, const unsigned height) {
         this->m_screen_width = width;
         this->m_screen_height = height;
-        this->m_vulkan_man.on_screen_resize(width, height);
+        this->m_renderer->on_screen_resize(width, height);
     }
 
 }

@@ -297,23 +297,38 @@ namespace dal {
     }
 
     void WindowGLFW::update_input_gamepad(GamepadInputManager& gamepad_manager) const {
-        for (auto& [id, game_pad] : gamepad_manager) {
-            const bool is_present = GLFW_TRUE == glfwJoystickPresent(id);
-            if (!is_present) {
-                gamepad_manager.remove_gamepad(id);
-                continue;
+        auto iter = gamepad_manager.pad_list().begin();
+
+        while (true) {
+            const auto end = gamepad_manager.pad_list().end();
+            if (iter == end)
+                break;
+
+            if (GLFW_TRUE != glfwJoystickPresent(iter->first)) {
+                if (gamepad_manager.pad_list().size() <= 1) {
+                    gamepad_manager.pad_list().clear();
+                    break;
+                }
+                else {
+                    iter = gamepad_manager.pad_list().erase(iter);
+                }
             }
+            else {
+                GLFWgamepadstate state;
+                if (GLFW_TRUE == glfwGetGamepadState(iter->first, &state)) {
+                    iter->second.m_axis_left.x = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X];
+                    iter->second.m_axis_left.y = -state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y];
 
-            GLFWgamepadstate state;
-            if (GLFW_TRUE == glfwGetGamepadState(id, &state)) {
-                game_pad.m_axis_left.x = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X];
-                game_pad.m_axis_left.y = -state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y];
+                    iter->second.m_axis_right.x = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X];
+                    iter->second.m_axis_right.y = -state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y];
 
-                game_pad.m_axis_right.x = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X];
-                game_pad.m_axis_right.y = -state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y];
+                    iter->second.m_trigger_left = state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER];
+                    iter->second.m_trigger_right = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER];
 
-                game_pad.m_trigger_left = state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER];
-                game_pad.m_trigger_right = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER];
+                    iter->second.apply_dead_zone();
+                }
+
+                ++iter;
             }
         }
     }
