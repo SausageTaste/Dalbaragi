@@ -295,6 +295,9 @@ namespace dal {
             actor->apply_changes();
         }
 
+        for (auto& actor : this->m_skinned_actors)
+            this->m_renderer->init(*actor.get());
+
         this->m_missing_tex = this->request_texture(::MISSING_TEX_PATH);
     }
 
@@ -318,6 +321,9 @@ namespace dal {
             x.second->destroy();
 
         for (auto& x : this->m_actors)
+            x->destroy();
+
+        for (auto& x : this->m_skinned_actors)
             x->destroy();
 
         this->m_renderer = nullptr;
@@ -390,6 +396,12 @@ namespace dal {
         this->m_actors.push_back(this->m_renderer->create_actor());
         this->m_renderer->init(*this->m_actors.back().get());
         return this->m_actors.back();
+    }
+
+    HActorSkinned ResourceManager::request_actor_skinned() {
+        this->m_skinned_actors.push_back(this->m_renderer->create_actor_skinned());
+        this->m_renderer->init(*this->m_skinned_actors.back());
+        return this->m_skinned_actors.back();
     }
 
 }

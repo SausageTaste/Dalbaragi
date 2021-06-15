@@ -246,13 +246,13 @@ namespace {
 
             auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
 
-            cpnt_actor.m_actors.push_back(res_man.request_actor());
+            cpnt_actor.m_actors.push_back(res_man.request_actor_skinned());
             cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ 2, 0, 0 };
             cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
             cpnt_actor.m_actors.back()->m_transform.m_scale = 0.15;
-            cpnt_actor.m_actors.back()->apply_changes();
+            cpnt_actor.m_actors.back()->apply_transform(dal::FrameInFlightIndex{0});
 
-            cpnt_actor.m_anim_state.setSelectedAnimeIndex(1);
+            cpnt_actor.m_actors.back()->m_anim_state.setSelectedAnimeIndex(1);
         }
 
         // Sponza

@@ -130,6 +130,10 @@ namespace dal {
             return this->m_array.size();
         }
 
+        auto& list() const {
+            return this->m_array;
+        }
+
     };
 
 

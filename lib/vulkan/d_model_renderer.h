@@ -39,6 +39,41 @@ namespace dal {
     };
 
 
+    class ActorSkinnedVK : public IActorSkinned {
+
+    private:
+        std::vector<DescSet> m_desc_per_actor;
+        std::vector<DescSet> m_desc_animation;
+        dal::UniformBufferArray<dal::U_PerActor> m_ubuf_per_actor;
+        dal::UniformBufferArray<dal::U_AnimTransform> m_ubuf_anim;
+        VkDevice m_logi_device = VK_NULL_HANDLE;
+
+    public:
+        ~ActorSkinnedVK();
+
+        void init(
+            DescPool& desc_pool,
+            const VkDescriptorSetLayout layout_per_actor,
+            const VkDescriptorSetLayout layout_anim,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destroy() override;
+
+        bool is_ready() const;
+
+        void apply_transform(const FrameInFlightIndex& index) override;
+
+        void apply_animation(const FrameInFlightIndex& index) override;
+
+        auto& desc_set_raw(const FrameInFlightIndex& index) const {
+            return this->m_desc_per_actor.at(index.get()).get();
+        }
+
+    };
+
+
     class RenderUnit {
 
     private:

@@ -79,7 +79,7 @@ namespace dal {
     }
 
     void CmdPoolManager::record_simple(
-        const size_t flight_frame_index,
+        const FrameInFlightIndex& flight_frame_index,
         const RenderList& render_list,
         const VkDescriptorSet desc_set_per_frame,
         const VkDescriptorSet desc_set_composition,
@@ -90,7 +90,7 @@ namespace dal {
         const ShaderPipeline& pipeline_composition,
         const RenderPass_Gbuf& render_pass
     ) {
-        auto& cmd_buf = this->m_cmd_simple.at(flight_frame_index);
+        auto& cmd_buf = this->m_cmd_simple.at(flight_frame_index.get());
 
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -195,7 +195,7 @@ namespace dal {
                 if (!render_pair.m_model->is_ready())
                     continue;
 
-                auto& model = *reinterpret_cast<ModelRenderer*>(render_pair.m_model.get());
+                auto& model = *reinterpret_cast<ModelSkinnedRenderer*>(render_pair.m_model.get());
 
                 for (auto& unit : model.render_units()) {
                     dalAssert(!unit.m_material.m_alpha_blend);
@@ -214,13 +214,17 @@ namespace dal {
                     );
 
                     for (auto& h_actor : render_pair.m_actors) {
-                        auto& actor = *reinterpret_cast<ActorVK*>(h_actor.get());
+                        auto& actor = *reinterpret_cast<ActorSkinnedVK*>(h_actor.get());
+
+                        actor.apply_transform(flight_frame_index);
+                        actor.apply_animation(flight_frame_index);
+
                         vkCmdBindDescriptorSets(
                             cmd_buf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline.layout(),
                             2,
-                            1, &actor.desc_set_raw(),
+                            1, &actor.desc_set_raw(flight_frame_index),
                             0, nullptr
                         );
 
@@ -310,7 +314,7 @@ namespace dal {
     }
 
     void CmdPoolManager::record_alpha(
-        const size_t flight_frame_index,
+        const FrameInFlightIndex& flight_frame_index,
         const glm::vec3& view_pos,
         const RenderList& render_list,
         const VkDescriptorSet desc_set_per_frame,
@@ -322,7 +326,7 @@ namespace dal {
         const VkPipelineLayout pipe_layout_alpha,
         const RenderPass_Alpha& render_pass
     ) {
-        auto& cmd_buf = this->m_cmd_alpha.at(flight_frame_index);
+        auto& cmd_buf = this->m_cmd_alpha.at(flight_frame_index.get());
 
         const auto sorted = ::sort_transparent_meshes(view_pos, render_list);
 

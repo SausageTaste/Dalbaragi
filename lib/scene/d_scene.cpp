@@ -12,7 +12,8 @@ namespace dal {
         {
             auto view = this->m_registry.view<cpnt::ModelSkinned, cpnt::ActorAnimated>();
             view.each([](cpnt::ModelSkinned& model, cpnt::ActorAnimated& actor) {
-                updateAnimeState(actor.m_anim_state, model.m_model->animations(), model.m_model->skeleton());
+                for (auto& a : actor.m_actors)
+                    updateAnimeState(a->m_anim_state, model.m_model->animations(), model.m_model->skeleton());
             });
         }
     }

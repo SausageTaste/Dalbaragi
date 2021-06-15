@@ -351,7 +351,7 @@ namespace dal {
             std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
 
             this->m_cmd_man.record_simple(
-                this->m_flight_frame_index.get(),
+                this->m_flight_frame_index,
                 render_list,
                 this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
@@ -389,7 +389,7 @@ namespace dal {
             std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
 
             this->m_cmd_man.record_alpha(
-                this->m_flight_frame_index.get(),
+                this->m_flight_frame_index,
                 camera.view_pos(),
                 render_list,
                 this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
@@ -516,6 +516,10 @@ namespace dal {
         return std::make_shared<ActorVK>();
     }
 
+    HActorSkinned VulkanState::create_actor_skinned() {
+        return std::make_shared<ActorSkinnedVK>();
+    }
+
     bool VulkanState::init(ITexture& h_tex, const ImageData& img_data) {
         auto& tex = reinterpret_cast<TextureUnit&>(h_tex);
 
@@ -574,6 +578,20 @@ namespace dal {
         a.init(
             this->m_desc_pool_actor,
             this->m_desc_layout_man.layout_per_actor(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
+        return true;
+    }
+
+    bool VulkanState::init(IActorSkinned& actor) {
+        auto& a = reinterpret_cast<ActorSkinnedVK&>(actor);
+
+        a.init(
+            this->m_desc_pool_actor,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_animation(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );

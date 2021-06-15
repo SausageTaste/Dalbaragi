@@ -4,6 +4,7 @@
 
 #include "d_konsts.h"
 #include "d_shader.h"
+#include "d_indices.h"
 #include "d_command.h"
 #include "d_swapchain.h"
 #include "d_render_pass.h"
@@ -28,7 +29,7 @@ namespace dal {
         void destroy(const VkDevice logi_device);
 
         void record_simple(
-            const size_t flight_frame_index,
+            const FrameInFlightIndex& flight_frame_index,
             const RenderList& render_list,
             const VkDescriptorSet desc_set_per_frame,
             const VkDescriptorSet desc_set_composition,
@@ -51,7 +52,7 @@ namespace dal {
         );
 
         void record_alpha(
-            const size_t flight_frame_index,
+            const FrameInFlightIndex& flight_frame_index,
             const glm::vec3& view_pos,
             const RenderList& render_list,
             const VkDescriptorSet desc_set_per_frame,

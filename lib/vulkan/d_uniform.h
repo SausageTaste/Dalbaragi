@@ -53,7 +53,8 @@ namespace dal {
     };
 
     struct U_AnimTransform {
-        glm::mat4 m_transforms[128];
+        static constexpr int MAX_JOINT_SIZE = 128;
+        glm::mat4 m_transforms[MAX_JOINT_SIZE];
     };
 
     static_assert(sizeof(U_AnimTransform) < 16 * 1024);

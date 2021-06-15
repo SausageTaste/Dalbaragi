@@ -81,6 +81,8 @@ namespace dal {
 
         HActor create_actor() override;
 
+        HActorSkinned create_actor_skinned() override;
+
         bool init(ITexture& tex, const ImageData& img_data) override;
 
         bool init(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) override;
@@ -88,6 +90,8 @@ namespace dal {
         bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) override;
 
         bool init(IActor& actor) override;
+
+        bool init(IActorSkinned& actor) override;
 
         bool prepare(IRenModel& model) override;
 

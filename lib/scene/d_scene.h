@@ -26,8 +26,7 @@ namespace dal {
         };
 
         struct ActorAnimated {
-            std::vector<HActor> m_actors;
-            AnimationState m_anim_state;
+            std::vector<HActorSkinned> m_actors;
         };
 
     }

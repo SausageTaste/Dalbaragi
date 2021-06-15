@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+#include "d_indices.h"
+
 
 // ActorVK
 namespace dal {
@@ -39,6 +41,75 @@ namespace dal {
             ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
             this->m_ubuf_per_actor.copy_to_buffer(ubuf_data_per_actor, this->m_logi_device);
         }
+    }
+
+}
+
+
+// ActorSkinnedVK
+namespace dal {
+
+    ActorSkinnedVK::~ActorSkinnedVK() {
+        this->destroy();
+    }
+
+    void ActorSkinnedVK::init(
+        DescPool& desc_pool,
+        const VkDescriptorSetLayout layout_per_actor,
+        const VkDescriptorSetLayout layout_anim,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->destroy();
+
+        this->m_logi_device = logi_device;
+
+        this->m_ubuf_per_actor.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
+        for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
+            this->m_desc_per_actor.push_back(desc_pool.allocate(layout_per_actor, logi_device));
+            this->m_desc_per_actor.back().record_per_actor(this->m_ubuf_per_actor.at(i), logi_device);
+        }
+
+        this->m_ubuf_anim.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
+        for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
+            this->m_desc_animation.push_back(desc_pool.allocate(layout_anim, logi_device));
+            this->m_desc_animation.back().record_animation(this->m_ubuf_anim.at(i), logi_device);
+        }
+    }
+
+    void ActorSkinnedVK::destroy() {
+        this->m_ubuf_per_actor.destroy(this->m_logi_device);
+        this->m_ubuf_anim.destroy(this->m_logi_device);
+        this->m_logi_device = VK_NULL_HANDLE;
+    }
+
+    bool ActorSkinnedVK::is_ready() const {
+        return VK_NULL_HANDLE != this->m_logi_device;
+    }
+
+    void ActorSkinnedVK::apply_transform(const FrameInFlightIndex& index) {
+        if (!this->is_ready())
+            return;
+
+        U_PerActor ubuf_data_per_actor;
+        ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
+        this->m_ubuf_per_actor.copy_to_buffer(index.get(), ubuf_data_per_actor, this->m_logi_device);
+    }
+
+    void ActorSkinnedVK::apply_animation(const FrameInFlightIndex& index) {
+        if (!this->is_ready())
+            return;
+
+        U_AnimTransform ubuf_data;
+
+        const auto size = std::min<uint32_t>(U_AnimTransform::MAX_JOINT_SIZE, this->m_anim_state.getTransformArray().getSize());
+        for (uint32_t i = 0; i < size; ++i)
+            ubuf_data.m_transforms[i] = this->m_anim_state.getTransformArray().list().at(i);
+
+        for (uint32_t i = 0; i < U_AnimTransform::MAX_JOINT_SIZE; ++i)
+            ubuf_data.m_transforms[i] = glm::mat4{1};
+
+        this->m_ubuf_anim.copy_to_buffer(index.get(), ubuf_data, this->m_logi_device);
     }
 
 }
