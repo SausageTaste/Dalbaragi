@@ -27,8 +27,17 @@ namespace dal {
         uint32_t m_index_size = 0;
 
     public:
-        void init(
+        void init_static(
             const std::vector<VertexStatic>& vertices,
+            const std::vector<index_data_t>& indices,
+            dal::CommandPool& cmd_pool,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void init_skinned(
+            const std::vector<VertexSkinned>& vertices,
             const std::vector<index_data_t>& indices,
             dal::CommandPool& cmd_pool,
             const VkQueue graphics_queue,
@@ -42,16 +51,10 @@ namespace dal {
             return this->m_index_size;
         }
 
-        auto vertex_buffer()  {
-            return this->m_vertices.buffer();
-        }
         auto vertex_buffer() const {
             return this->m_vertices.buffer();
         }
 
-        auto index_buffer()  {
-            return this->m_indices.buffer();
-        }
         auto index_buffer() const {
             return this->m_indices.buffer();
         }

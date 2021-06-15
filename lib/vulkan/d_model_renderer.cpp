@@ -60,7 +60,7 @@ namespace dal {
 
         unit.m_weight_center = unit_data.m_weight_center;
 
-        unit.m_vert_buffer.init(
+        unit.m_vert_buffer.init_static(
             unit_data.m_vertices,
             unit_data.m_indices,
             cmd_pool,

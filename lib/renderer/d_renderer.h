@@ -35,6 +35,18 @@ namespace dal {
     };
 
 
+    class IRenModelSkineed {
+
+    public:
+        virtual ~IRenModelSkineed() = default;
+
+        virtual void destroy() = 0;
+
+        virtual bool is_ready() const = 0;
+
+    };
+
+
     class IActor {
 
     public:

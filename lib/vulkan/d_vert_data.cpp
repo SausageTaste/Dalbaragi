@@ -3,6 +3,81 @@
 #include "d_logger.h"
 
 
+namespace {
+
+    template <typename _VertType>
+    std::pair<dal::BufferMemory, dal::BufferMemory> build_vertex_buffer(
+        const std::vector<_VertType>& vertices,
+        const std::vector<dal::index_data_t>& indices,
+        dal::CommandPool& cmd_pool,
+        const VkQueue graphics_queue,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        dal::BufferMemory vert_buffer, indices_buffer;
+
+        // Build vertex buffer
+        {
+            const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+
+            dal::BufferMemory staging_buffer;
+            const auto result_staging = staging_buffer.init(
+                buffer_size,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                phys_device,
+                logi_device
+            );
+            dalAssert(result_staging);
+            staging_buffer.copy_from_mem(vertices.data(), buffer_size, logi_device);
+
+            const auto result_this = vert_buffer.init(
+                buffer_size,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                phys_device,
+                logi_device
+            );
+            dalAssert(result_this);
+
+            vert_buffer.copy_from_buf(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
+            staging_buffer.destroy(logi_device);
+        }
+
+        // Build index buffer
+        {
+            const VkDeviceSize buffer_size = sizeof(indices[0]) * indices.size();
+
+            dal::BufferMemory staging_buffer;
+            const auto result_staging = staging_buffer.init(
+                buffer_size,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                phys_device,
+                logi_device
+            );
+            dalAssert(result_staging);
+            staging_buffer.copy_from_mem(indices.data(), buffer_size, logi_device);
+
+            const auto result_this = indices_buffer.init(
+                buffer_size,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                phys_device,
+                logi_device
+            );
+            dalAssert(result_this);
+
+            indices_buffer.copy_from_buf(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
+            staging_buffer.destroy(logi_device);
+        }
+
+        return std::make_pair(std::move(vert_buffer), std::move(indices_buffer));
+    }
+
+}
+
+
 namespace dal {
 
     VkVertexInputBindingDescription make_vert_binding_desc_static() {
@@ -83,7 +158,7 @@ namespace dal {
 // VertexBuffer
 namespace dal {
 
-    void VertexBuffer::init(
+    void VertexBuffer::init_static(
         const std::vector<VertexStatic>& vertices,
         const std::vector<index_data_t>& indices,
         dal::CommandPool& cmd_pool,
@@ -92,66 +167,37 @@ namespace dal {
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
-
         this->m_index_size = indices.size();
 
-        // Build vertex buffer
-        // -----------------------------------------------------------------------------
-        {
-            const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+        std::tie(this->m_vertices, this->m_indices) = ::build_vertex_buffer(
+            vertices,
+            indices,
+            cmd_pool,
+            graphics_queue,
+            phys_device,
+            logi_device
+        );
+    }
 
-            BufferMemory staging_buffer;
-            const auto result_staging = staging_buffer.init(
-                buffer_size,
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                phys_device,
-                logi_device
-            );
-            dalAssert(result_staging);
-            staging_buffer.copy_from_mem(vertices.data(), buffer_size, logi_device);
+    void VertexBuffer::init_skinned(
+        const std::vector<VertexSkinned>& vertices,
+        const std::vector<index_data_t>& indices,
+        dal::CommandPool& cmd_pool,
+        const VkQueue graphics_queue,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->destroy(logi_device);
+        this->m_index_size = indices.size();
 
-            const auto result_this = this->m_vertices.init(
-                buffer_size,
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                phys_device,
-                logi_device
-            );
-            dalAssert(result_this);
-
-            this->m_vertices.copy_from_buf(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
-            staging_buffer.destroy(logi_device);
-        }
-
-        // Build index buffer
-        // -----------------------------------------------------------------------------
-        {
-            const VkDeviceSize buffer_size = sizeof(indices[0]) * indices.size();
-
-            BufferMemory staging_buffer;
-            const auto result_staging = staging_buffer.init(
-                buffer_size,
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                phys_device,
-                logi_device
-            );
-            dalAssert(result_staging);
-            staging_buffer.copy_from_mem(indices.data(), buffer_size, logi_device);
-
-            const auto result_this = this->m_indices.init(
-                buffer_size,
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                phys_device,
-                logi_device
-            );
-            dalAssert(result_this);
-
-            this->m_indices.copy_from_buf(staging_buffer, buffer_size, cmd_pool, graphics_queue, logi_device);
-            staging_buffer.destroy(logi_device);
-        }
+        std::tie(this->m_vertices, this->m_indices) = ::build_vertex_buffer(
+            vertices,
+            indices,
+            cmd_pool,
+            graphics_queue,
+            phys_device,
+            logi_device
+        );
     }
 
     void VertexBuffer::destroy(const VkDevice logi_device) {
