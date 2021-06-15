@@ -37,7 +37,7 @@ namespace {
     auto make_move_direc(const dal::GamepadInputManager& gm) {
         glm::vec3 result{ 0, 0, 0 };
 
-        for (const auto& [id, state] : gm) {
+        for (const auto& [id, state] : gm.pad_list()) {
             result.x += state.m_axis_left.x;
             result.z -= state.m_axis_left.y;
         }
@@ -73,7 +73,7 @@ namespace {
     glm::vec3 make_rotation_angles(const dal::GamepadInputManager& m) {
         glm::vec3 result{0};
 
-        for (const auto& [id, state] : m) {
+        for (const auto& [id, state] : m.pad_list()) {
             result.x += state.m_axis_right.y;
             result.y -= state.m_axis_right.x;
         }

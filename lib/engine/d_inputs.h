@@ -147,28 +147,19 @@ namespace dal {
 
     private:
         std::unordered_map<int, GamepadState> m_gamepads;
+        using iterator_t = std::unordered_map<int, GamepadState>::iterator;
 
     public:
         void notify_connection_change(const GamepadConnectionEvent& e);
 
         GamepadState& get_gamepad_state(const int id);
 
-        void remove_gamepad(const int id);
-
-        auto begin() {
-            return this->m_gamepads.begin();
+        auto& pad_list() {
+            return this->m_gamepads;
         }
 
-        auto begin() const {
-            return this->m_gamepads.begin();
-        }
-
-        auto end() {
-            return this->m_gamepads.end();
-        }
-
-        auto end() const {
-            return this->m_gamepads.end();
+        auto& pad_list() const {
+            return this->m_gamepads;
         }
 
     };

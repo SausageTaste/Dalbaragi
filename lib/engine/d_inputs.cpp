@@ -64,8 +64,8 @@ namespace dal {
 namespace dal {
 
     void GamepadInputManager::notify_connection_change(const GamepadConnectionEvent& e) {
-        this->remove_gamepad(e.m_id);
-        if (!e.m_connected)
+        this->pad_list().erase(e.m_id);
+        if (e.m_name.empty())
             return;
 
         auto [iter, success] = this->m_gamepads.emplace(e.m_id, GamepadState{});
@@ -85,14 +85,6 @@ namespace dal {
         }
         else {
             return found->second;
-        }
-    }
-
-    void GamepadInputManager::remove_gamepad(const int id) {
-        auto iter = this->m_gamepads.find(id);
-        if (this->m_gamepads.end() != iter) {
-            dalInfo(fmt::format("Gamepad removed {{ id={}, name='{}' }}", iter->first, iter->second.m_name).c_str());
-            this->m_gamepads.erase(iter);
         }
     }
 
