@@ -122,6 +122,8 @@ namespace dal {
 
         virtual void update(const ICamera& camera, const RenderList& render_list) = 0;
 
+        virtual const FrameInFlightIndex& in_flight_index() const = 0;
+
         virtual void wait_idle() {}
 
         virtual void on_screen_resize(const unsigned width, const unsigned height) {}

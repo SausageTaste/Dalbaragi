@@ -363,6 +363,14 @@ namespace dal {
         this->m_res_man.update();
         this->m_scene.update();
 
+        auto render_list = this->m_scene.make_render_list();
+        for (auto& x : render_list.m_skinned_models) {
+            for (auto& actor : x.m_actors) {
+                actor->apply_animation(this->m_renderer->in_flight_index());
+                actor->apply_transform(this->m_renderer->in_flight_index());
+            }
+        }
+
         this->m_renderer->update(this->m_scene.m_euler_camera, this->m_scene.make_render_list());
     }
 

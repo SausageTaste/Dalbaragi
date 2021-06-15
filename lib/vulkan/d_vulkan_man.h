@@ -69,6 +69,10 @@ namespace dal {
 
         void update(const ICamera& camera, const RenderList& render_list) override;
 
+        const FrameInFlightIndex& in_flight_index() const override {
+            return this->m_flight_frame_index;
+        }
+
         void wait_idle() override;
 
         void on_screen_resize(const unsigned width, const unsigned height) override;

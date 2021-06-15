@@ -216,9 +216,6 @@ namespace dal {
                     for (auto& h_actor : render_pair.m_actors) {
                         auto& actor = *reinterpret_cast<ActorSkinnedVK*>(h_actor.get());
 
-                        actor.apply_transform(flight_frame_index);
-                        actor.apply_animation(flight_frame_index);
-
                         vkCmdBindDescriptorSets(
                             cmd_buf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
