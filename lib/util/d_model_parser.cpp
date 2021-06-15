@@ -29,6 +29,26 @@ namespace {
         };
     }
 
+    glm::vec3 calc_weight_center(const std::vector<dal::VertexSkinned>& vertices) {
+        double x_sum = 0.0;
+        double y_sum = 0.0;
+        double z_sum = 0.0;
+
+        for (const auto& v : vertices) {
+            x_sum += v.m_pos.x;
+            y_sum += v.m_pos.y;
+            z_sum += v.m_pos.z;
+        }
+
+        const double vert_count = static_cast<double>(vertices.size());
+
+        return glm::vec3{
+            x_sum / vert_count,
+            y_sum / vert_count,
+            z_sum / vert_count,
+        };
+    }
+
 }
 
 
@@ -99,6 +119,81 @@ namespace dal {
         else {
             return output;
         }
+    }
+
+    bool parse_model_skinned_dmd(ModelSkinned& output, const uint8_t* const data, const size_t data_size) {
+        const auto unzipped = parser::unzip_dmd(data, data_size);
+        if (!unzipped)
+            return false;
+
+        const auto model_data = parser::parse_dmd(unzipped->data(), unzipped->size());
+        if (!model_data)
+            return false;
+
+        for (const auto& unit : model_data->m_units_indexed) {
+            auto& output_render_unit = output.m_units.emplace_back();
+
+            output_render_unit.m_vertices.resize(unit.m_mesh.m_vertices.size());
+            for (size_t i = 0; i < output_render_unit.m_vertices.size(); ++i) {
+                auto& out_vert = output_render_unit.m_vertices[i];
+                auto& in_vert = unit.m_mesh.m_vertices[i];
+
+                out_vert.m_joint_ids     = glm::ivec4{-1, -1, -1, -1};
+                out_vert.m_joint_weights = glm::vec4{0, 0, 0, 0};
+                out_vert.m_pos           = in_vert.m_position;
+                out_vert.m_normal        = in_vert.m_normal;
+                out_vert.m_uv_coord      = in_vert.m_uv_coords;
+            }
+
+            output_render_unit.m_indices.assign(unit.m_mesh.m_indices.begin(), unit.m_mesh.m_indices.end());
+
+            output_render_unit.m_material.m_albedo_map = unit.m_material.m_albedo_map;
+            output_render_unit.m_material.m_roughness = unit.m_material.m_roughness;
+            output_render_unit.m_material.m_metallic = unit.m_material.m_metallic;
+            output_render_unit.m_material.m_alpha_blending = unit.m_material.alpha_blend;
+
+            output_render_unit.m_weight_center = ::calc_weight_center(output_render_unit.m_vertices);
+        }
+
+        for (const auto& unit : model_data->m_units_indexed_joint) {
+            auto& output_render_unit = output.m_units.emplace_back();
+
+            output_render_unit.m_vertices.resize(unit.m_mesh.m_vertices.size());
+            for (size_t i = 0; i < output_render_unit.m_vertices.size(); ++i) {
+                auto& out_vert = output_render_unit.m_vertices[i];
+                auto& in_vert = unit.m_mesh.m_vertices[i];
+
+                out_vert.m_joint_ids     = in_vert.m_joint_indices;
+                out_vert.m_joint_weights = in_vert.m_joint_weights;
+                out_vert.m_pos           = in_vert.m_position;
+                out_vert.m_normal        = in_vert.m_normal;
+                out_vert.m_uv_coord      = in_vert.m_uv_coords;
+            }
+
+            output_render_unit.m_indices.assign(unit.m_mesh.m_indices.begin(), unit.m_mesh.m_indices.end());
+
+            output_render_unit.m_material.m_albedo_map = unit.m_material.m_albedo_map;
+            output_render_unit.m_material.m_roughness = unit.m_material.m_roughness;
+            output_render_unit.m_material.m_metallic = unit.m_material.m_metallic;
+            output_render_unit.m_material.m_alpha_blending = unit.m_material.alpha_blend;
+
+            output_render_unit.m_weight_center = ::calc_weight_center(output_render_unit.m_vertices);
+        }
+
+        if (!model_data->m_units_straight.empty())
+            dalWarn("Not supported vertex data: straight");
+        if (!model_data->m_units_straight_joint.empty())
+            dalWarn("Not supported vertex data: straight joint");
+
+        return true;
+    }
+
+    std::optional<ModelSkinned> parse_model_skinned_dmd(const uint8_t* const data, const size_t data_size) {
+        ModelSkinned output;
+        if (true != parse_model_skinned_dmd(output, data, data_size))
+            return std::nullopt;
+        else
+            return output;
     }
 
 }
