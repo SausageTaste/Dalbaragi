@@ -120,14 +120,16 @@ namespace dal {
 
         // Gbuf of static models
         {
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_gbuf.pipeline());
+            auto& pipeline = pipeline_gbuf;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
             vkCmdBindDescriptorSets(
                 cmd_buf,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipeline_gbuf.layout(),
+                pipeline.layout(),
                 0,
                 1, &desc_set_per_frame,
                 0, nullptr
@@ -149,7 +151,7 @@ namespace dal {
                     vkCmdBindDescriptorSets(
                         cmd_buf,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipeline_gbuf.layout(),
+                        pipeline.layout(),
                         1,
                         1, &unit.m_material.m_descset.get(),
                         0, nullptr
@@ -160,7 +162,7 @@ namespace dal {
                         vkCmdBindDescriptorSets(
                             cmd_buf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipeline_gbuf.layout(),
+                            pipeline.layout(),
                             2,
                             1, &actor.desc_set_raw(),
                             0, nullptr
@@ -174,14 +176,16 @@ namespace dal {
 
         // Gbuf of animated models
         {
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_gbuf_animated.pipeline());
+            auto& pipeline = pipeline_gbuf_animated;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
             vkCmdBindDescriptorSets(
                 cmd_buf,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipeline_gbuf.layout(),
+                pipeline.layout(),
                 0,
                 1, &desc_set_per_frame,
                 0, nullptr
@@ -203,7 +207,7 @@ namespace dal {
                     vkCmdBindDescriptorSets(
                         cmd_buf,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipeline_gbuf.layout(),
+                        pipeline.layout(),
                         1,
                         1, &unit.m_material.m_descset.get(),
                         0, nullptr
@@ -214,7 +218,7 @@ namespace dal {
                         vkCmdBindDescriptorSets(
                             cmd_buf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipeline_gbuf.layout(),
+                            pipeline.layout(),
                             2,
                             1, &actor.desc_set_raw(),
                             0, nullptr
@@ -228,13 +232,15 @@ namespace dal {
 
         // Composition
         {
+            auto& pipeline = pipeline_composition;
+
             vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_composition.pipeline());
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
             vkCmdBindDescriptorSets(
                 cmd_buf,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipeline_composition.layout(),
+                pipeline.layout(),
                 0,
                 1, &desc_set_composition,
                 0, nullptr
@@ -408,7 +414,7 @@ namespace dal {
 }
 
 
-//
+// FbufManager
 namespace dal {
 
     void FbufManager::init(
