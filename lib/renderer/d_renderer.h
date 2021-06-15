@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "d_actor.h"
+#include "d_animation.h"
 #include "d_filesystem.h"
 #include "d_model_data.h"
 #include "d_image_parser.h"
@@ -43,6 +44,10 @@ namespace dal {
         virtual void destroy() = 0;
 
         virtual bool is_ready() const = 0;
+
+        virtual const std::vector<Animation>& animations() const = 0;
+
+        virtual const SkeletonInterface& skeleton() const = 0;
 
     };
 

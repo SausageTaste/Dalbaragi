@@ -289,6 +289,9 @@ namespace dal {
                 logi_device
             );
         }
+
+        this->m_animations = model_data.m_animations;
+        this->m_skeleton_interf = model_data.m_skeleton;
     }
 
     void ModelSkinnedRenderer::destroy() {

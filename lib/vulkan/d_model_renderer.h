@@ -143,6 +143,8 @@ namespace dal {
     private:
         std::vector<RenderUnit> m_units;
         std::vector<RenderUnit> m_units_alpha;
+        std::vector<Animation> m_animations;
+        SkeletonInterface m_skeleton_interf;
         DescPool m_desc_pool;
 
         VkDevice m_logi_device = VK_NULL_HANDLE;
@@ -174,6 +176,14 @@ namespace dal {
         bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device);
 
         bool is_ready() const override;
+
+        const std::vector<Animation>& animations() const override {
+            return this->m_animations;
+        }
+
+        const SkeletonInterface& skeleton() const override {
+            return this->m_skeleton_interf;
+        }
 
         auto& render_units() const {
             return this->m_units;

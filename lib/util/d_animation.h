@@ -83,8 +83,8 @@ namespace dal {
         jointID_t m_lastMadeIndex = -1;
 
     public:
-        SkeletonInterface(const SkeletonInterface&) = delete;
-        SkeletonInterface& operator=(const SkeletonInterface&) = delete;
+        SkeletonInterface(const SkeletonInterface&) = default;
+        SkeletonInterface& operator=(const SkeletonInterface&) = default;
         SkeletonInterface(SkeletonInterface&&) = default;
         SkeletonInterface& operator=(SkeletonInterface&&) = default;
 
@@ -157,8 +157,8 @@ namespace dal {
             std::vector<std::pair<float, float>> m_scales;
 
         public:
-            JointNode(const JointNode&) = delete;
-            JointNode& operator=(const JointNode&) = delete;
+            JointNode(const JointNode&) = default;
+            JointNode& operator=(const JointNode&) = default;
             JointNode(JointNode&&) = default;
             JointNode& operator=(JointNode&&) = default;
 
@@ -202,8 +202,8 @@ namespace dal {
         float m_tickPerSec, m_durationInTick;
 
     public:
-        Animation(const Animation&) = delete;
-        Animation& operator=(const Animation&) = delete;
+        Animation(const Animation&) = default;
+        Animation& operator=(const Animation&) = default;
         Animation(Animation&&) = default;
         Animation& operator=(Animation&&) = default;
 

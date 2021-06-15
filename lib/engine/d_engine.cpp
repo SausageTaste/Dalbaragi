@@ -244,13 +244,15 @@ namespace {
             auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::ModelSkinned>(entity);
             cpnt_model.m_model = model;
 
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
 
             cpnt_actor.m_actors.push_back(res_man.request_actor());
             cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ 2, 0, 0 };
             cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
             cpnt_actor.m_actors.back()->m_transform.m_scale = 0.15;
             cpnt_actor.m_actors.back()->apply_changes();
+
+            cpnt_actor.m_anim_state.setSelectedAnimeIndex(1);
         }
 
         // Sponza
@@ -359,6 +361,7 @@ namespace dal {
 
         this->m_task_man.update();
         this->m_res_man.update();
+        this->m_scene.update();
 
         this->m_renderer->update(this->m_scene.m_euler_camera, this->m_scene.make_render_list());
     }
