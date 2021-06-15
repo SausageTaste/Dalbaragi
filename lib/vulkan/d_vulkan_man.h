@@ -76,7 +76,7 @@ namespace dal {
 
         HTexture create_texture() override;
 
-        HRenModel create_model();
+        HRenModel create_model() override;
 
         HActor create_actor() override;
 
