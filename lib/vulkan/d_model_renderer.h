@@ -67,8 +67,12 @@ namespace dal {
 
         void apply_animation(const FrameInFlightIndex& index) override;
 
-        auto& desc_set_raw(const FrameInFlightIndex& index) const {
+        auto& desc_per_actor(const FrameInFlightIndex& index) const {
             return this->m_desc_per_actor.at(index.get()).get();
+        }
+
+        auto& desc_animation(const FrameInFlightIndex& index) const {
+            return this->m_desc_animation.at(index.get()).get();
         }
 
     };

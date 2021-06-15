@@ -148,7 +148,7 @@ namespace {
         bindings.back().binding = bindings.size() - 1;
         bindings.back().descriptorCount = 1;
         bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings.back().stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
         //----------------------------------------------------------------------------------
 

@@ -102,12 +102,9 @@ namespace dal {
 
         U_AnimTransform ubuf_data;
 
-        const auto size = std::min<uint32_t>(U_AnimTransform::MAX_JOINT_SIZE, this->m_anim_state.getTransformArray().getSize());
+        const auto size = std::min<uint32_t>(MAX_JOINT_SIZE, this->m_anim_state.getTransformArray().getSize());
         for (uint32_t i = 0; i < size; ++i)
             ubuf_data.m_transforms[i] = this->m_anim_state.getTransformArray().list().at(i);
-
-        for (uint32_t i = 0; i < U_AnimTransform::MAX_JOINT_SIZE; ++i)
-            ubuf_data.m_transforms[i] = glm::mat4{1};
 
         this->m_ubuf_anim.copy_to_buffer(index.get(), ubuf_data, this->m_logi_device);
     }

@@ -421,6 +421,7 @@ namespace {
         const VkDescriptorSetLayout desc_layout_simple,
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
+        const VkDescriptorSetLayout desc_layout_animation,
         const VkRenderPass renderpass,
         const uint32_t subpass_index,
         const VkDevice logi_device
@@ -469,7 +470,7 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 3> desc_layouts{ desc_layout_simple, desc_layout_per_material, desc_layout_per_actor };
+        const std::array<VkDescriptorSetLayout, 4> desc_layouts{ desc_layout_simple, desc_layout_per_material, desc_layout_per_actor, desc_layout_animation };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
@@ -766,6 +767,7 @@ namespace dal {
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
         const VkDescriptorSetLayout desc_layout_per_world,
+        const VkDescriptorSetLayout desc_layout_animation,
         const VkDescriptorSetLayout desc_layout_composition,
         const RenderPass_Gbuf& rp_gbuf,
         const RenderPass_Final& rp_final,
@@ -792,6 +794,7 @@ namespace dal {
             desc_layout_simple,
             desc_layout_per_material,
             desc_layout_per_actor,
+            desc_layout_animation,
             rp_gbuf.get(), 0,
             logi_device
         );

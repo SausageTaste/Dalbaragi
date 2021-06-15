@@ -224,7 +224,16 @@ namespace dal {
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline.layout(),
                             2,
-                            1, &actor.desc_set_raw(flight_frame_index),
+                            1, &actor.desc_per_actor(flight_frame_index),
+                            0, nullptr
+                        );
+
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            3,
+                            1, &actor.desc_animation(flight_frame_index),
                             0, nullptr
                         );
 

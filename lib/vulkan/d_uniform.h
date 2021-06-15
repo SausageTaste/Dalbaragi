@@ -52,8 +52,9 @@ namespace dal {
         uint32_t m_plight_count = 0;
     };
 
+    constexpr int MAX_JOINT_SIZE = 128;
+
     struct U_AnimTransform {
-        static constexpr int MAX_JOINT_SIZE = 128;
         glm::mat4 m_transforms[MAX_JOINT_SIZE];
     };
 
