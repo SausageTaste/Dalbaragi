@@ -140,6 +140,31 @@ namespace {
         return result;
     }
 
+    VkDescriptorSetLayout create_layout_animation(const VkDevice logi_device) {
+        std::vector<VkDescriptorSetLayoutBinding> bindings{};
+
+        // U_AnimTransform
+        bindings.emplace_back();
+        bindings.back().binding = bindings.size() - 1;
+        bindings.back().descriptorCount = 1;
+        bindings.back().descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.back().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        //----------------------------------------------------------------------------------
+
+        VkDescriptorSetLayoutCreateInfo layout_info{};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.bindingCount = bindings.size();
+        layout_info.pBindings = bindings.data();
+
+        VkDescriptorSetLayout result = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &result)) {
+            dalAbort("failed to create descriptor set layout!");
+        }
+
+        return result;
+    }
+
     VkDescriptorSetLayout create_layout_composition(const VkDevice logiDevice) {
         std::vector<VkDescriptorSetLayoutBinding> bindings{};
 
@@ -210,6 +235,8 @@ namespace dal {
         this->m_layout_per_actor = ::create_layout_per_actor(logiDevice);
         this->m_layout_per_world = ::create_layout_per_world(logiDevice);
 
+        this->m_layout_animation = ::create_layout_animation(logiDevice);
+
         this->m_layout_composition = ::create_layout_composition(logiDevice);
     }
 
@@ -237,6 +264,11 @@ namespace dal {
         if (VK_NULL_HANDLE != this->m_layout_per_world) {
             vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_world, nullptr);
             this->m_layout_per_world = VK_NULL_HANDLE;
+        }
+
+        if (VK_NULL_HANDLE != this->m_layout_animation) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_animation, nullptr);
+            this->m_layout_animation = VK_NULL_HANDLE;
         }
 
         if (VK_NULL_HANDLE != this->m_layout_composition) {
@@ -412,6 +444,17 @@ namespace dal {
 
         desc_writes.add_buffer(ubuf_global_light);
         desc_writes.add_buffer(ubuf_per_frame_alpha);
+
+        vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
+    }
+
+    void DescSet::record_animation(
+        const UniformBuffer<U_AnimTransform>& ubuf_animation,
+        const VkDevice logi_device
+    ) {
+        ::WriteDescBuilder desc_writes{ this->m_handle };
+
+        desc_writes.add_buffer(ubuf_animation);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }

@@ -52,6 +52,12 @@ namespace dal {
         uint32_t m_plight_count = 0;
     };
 
+    struct U_AnimTransform {
+        glm::mat4 m_transforms[128];
+    };
+
+    static_assert(sizeof(U_AnimTransform) < 16 * 1024);
+
 
     template <typename _DataStruct>
     class UniformBuffer {
@@ -149,6 +155,8 @@ namespace dal {
         VkDescriptorSetLayout m_layout_per_actor = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_world = VK_NULL_HANDLE;
 
+        VkDescriptorSetLayout m_layout_animation = VK_NULL_HANDLE;
+
         VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
 
     public:
@@ -174,6 +182,10 @@ namespace dal {
 
         auto layout_per_world() const {
             return this->m_layout_per_world;
+        }
+
+        auto layout_animation() const {
+            return this->m_layout_animation;
         }
 
         auto layout_composition() const {
@@ -226,6 +238,11 @@ namespace dal {
         void record_per_world(
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const UniformBuffer<U_PerFrame_Alpha>& ubuf_per_frame_alpha,
+            const VkDevice logi_device
+        );
+
+        void record_animation(
+            const UniformBuffer<U_AnimTransform>& ubuf_animation,
             const VkDevice logi_device
         );
 
