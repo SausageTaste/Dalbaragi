@@ -97,9 +97,8 @@ namespace dal {
         begin_info.flags = 0;
         begin_info.pInheritanceInfo = nullptr;
 
-        if (vkBeginCommandBuffer(cmd_buf, &begin_info) != VK_SUCCESS) {
+        if (vkBeginCommandBuffer(cmd_buf, &begin_info) != VK_SUCCESS)
             dalAbort("failed to begin recording command buffer!");
-        }
 
         std::array<VkClearValue, 5> clear_colors{};
         clear_colors[0].color = { 0, 0, 0, 1 };
@@ -118,6 +117,8 @@ namespace dal {
         render_pass_info.pClearValues = clear_colors.data();
 
         vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        // Gbuf of static models
         {
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_gbuf.pipeline());
 
@@ -170,6 +171,62 @@ namespace dal {
                 }
             }
         }
+
+        // Gbuf of animated models
+        {
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_gbuf_animated.pipeline());
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline_gbuf.layout(),
+                0,
+                1, &desc_set_per_frame,
+                0, nullptr
+            );
+
+            for (auto& render_pair : render_list.m_skinned_models) {
+                if (!render_pair.m_model->is_ready())
+                    continue;
+
+                auto& model = *reinterpret_cast<ModelRenderer*>(render_pair.m_model.get());
+
+                for (auto& unit : model.render_units()) {
+                    dalAssert(!unit.m_material.m_alpha_blend);
+
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipeline_gbuf.layout(),
+                        1,
+                        1, &unit.m_material.m_descset.get(),
+                        0, nullptr
+                    );
+
+                    for (auto& h_actor : render_pair.m_actors) {
+                        auto& actor = *reinterpret_cast<ActorVK*>(h_actor.get());
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline_gbuf.layout(),
+                            2,
+                            1, &actor.desc_set_raw(),
+                            0, nullptr
+                        );
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        // Composition
         {
             vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_composition.pipeline());
@@ -185,12 +242,10 @@ namespace dal {
 
             vkCmdDraw(cmd_buf, 6, 1, 0, 0);
         }
+
         vkCmdEndRenderPass(cmd_buf);
-
-        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS) {
+        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS)
             dalAbort("failed to record command buffer!");
-        }
-
     }
 
     void CmdPoolManager::record_final(
