@@ -40,9 +40,9 @@ def _work_for_one(output_file_name_ext, shader_src_name_ext, macro_definitions: 
 
 
 def main():
-    _work_for_one("simple_v.spv", "simple.vert", [])
+    _work_for_one("gbuf_v.spv", "gbuf.vert", [])
 
-    _work_for_one("simple_f.spv", "simple.frag", [])
+    _work_for_one("gbuf_f.spv", "gbuf.frag", [])
 
     _work_for_one("fill_screen_v.spv", "fill_screen.vert", [])
 

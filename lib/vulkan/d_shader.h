@@ -76,7 +76,7 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        auto& simple() const {
+        auto& gbuf() const {
             return this->m_gbuf;
         }
 

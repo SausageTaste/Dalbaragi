@@ -329,7 +329,7 @@ namespace {
     }
 
 
-    dal::ShaderPipeline make_pipeline_simple(
+    dal::ShaderPipeline make_pipeline_gbuf(
         dal::filesystem::AssetManager& asset_mgr,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -340,13 +340,13 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/simple_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = asset_mgr.open("_asset/spv/gbuf_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
-            dalAbort("Vertex shader 'simple_v.spv' not found");
+            dalAbort("Vertex shader 'gbuf_v.spv' not found");
         }
-        const auto frag_src = asset_mgr.open("_asset/spv/simple_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = asset_mgr.open("_asset/spv/gbuf_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
-            dalAbort("Fragment shader 'simple_f.spv' not found");
+            dalAbort("Fragment shader 'gbuf_f.spv' not found");
         }
 
         // Shaders
@@ -425,13 +425,13 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/simple_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = asset_mgr.open("_asset/spv/gbuf_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
-            dalAbort("Vertex shader 'simple_v.spv' not found");
+            dalAbort("Vertex shader 'gbuf_v.spv' not found");
         }
-        const auto frag_src = asset_mgr.open("_asset/spv/simple_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = asset_mgr.open("_asset/spv/gbuf_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
-            dalAbort("Fragment shader 'simple_f.spv' not found");
+            dalAbort("Fragment shader 'gbuf_f.spv' not found");
         }
 
         // Shaders
@@ -774,7 +774,7 @@ namespace dal {
     ) {
         this->destroy(logi_device);
 
-        this->m_gbuf = ::make_pipeline_simple(
+        this->m_gbuf = ::make_pipeline_gbuf(
             asset_mgr,
             need_gamma_correction,
             gbuf_extent,
