@@ -147,21 +147,6 @@ namespace dal {
 
 namespace dal {
 
-    void JointTransformArray::setSize(const jointID_t size) {
-        this->m_array.resize(size);
-    }
-
-    void JointTransformArray::setTransform(const jointID_t index, const glm::mat4& mat) {
-        dalAssert(index >= 0);
-        dalAssert(static_cast<size_t>(index) < this->m_array.size());
-        this->m_array[index] = mat;
-    }
-
-}
-
-
-namespace dal {
-
     glm::mat4 Animation::JointNode::makeTransform(const float animTick) const {
         const auto pos = this->makePosInterp(animTick);
         const auto rotate = this->makeRotateInterp(animTick);
@@ -212,12 +197,12 @@ namespace dal {
     }
 
     void Animation::sample2(const float elapsed, const float animTick, const SkeletonInterface& interf,
-        JointTransformArray& transformArr, const jointModifierRegistry_t& modifiers) const {
+        TransformArray& transformArr, const jointModifierRegistry_t& modifiers) const {
         static const auto k_spaceAnim2Model = glm::rotate(glm::mat4{ 1.f }, glm::radians(-90.f), glm::vec3{ 1.f, 0.f, 0.f });
         static const auto k_spaceModel2Anim = glm::inverse(k_spaceAnim2Model);
 
         const auto numBones = interf.size();
-        transformArr.setSize(numBones);
+        transformArr.resize(numBones);
 
         std::vector<glm::mat4> boneTransforms(numBones);
         dalAssert(numBones == this->m_joints.size());
@@ -238,7 +223,7 @@ namespace dal {
                 totalTrans = interf.at(curBone).to_parent_mat() * boneTransforms[curBone] * totalTrans;
                 curBone = interf.at(curBone).parent_index();
             }
-            transformArr.setTransform(i, k_spaceAnim2Model * totalTrans * k_spaceModel2Anim);
+            transformArr.at(i) = k_spaceAnim2Model * totalTrans * k_spaceModel2Anim;
         }
 
         return;
@@ -262,7 +247,7 @@ namespace dal {
         return this->m_localTimeAccumulator;
     }
 
-    JointTransformArray& AnimationState::getTransformArray(void) {
+    TransformArray& AnimationState::getTransformArray(void) {
         return this->m_finalTransform;
     }
 

@@ -113,32 +113,7 @@ namespace dal {
     };
 
 
-    class JointTransformArray {
-
-    private:
-        std::vector<glm::mat4> m_array;
-
-    public:
-        JointTransformArray(const JointTransformArray&) = delete;
-        JointTransformArray& operator=(const JointTransformArray&) = delete;
-        JointTransformArray(JointTransformArray&&) = default;
-        JointTransformArray& operator=(JointTransformArray&&) = default;
-
-        JointTransformArray(void) = default;
-
-    public:
-        void setSize(const jointID_t size);
-        void setTransform(const jointID_t index, const glm::mat4& mat);
-
-        jointID_t getSize(void) const {
-            return this->m_array.size();
-        }
-
-        auto& list() const {
-            return this->m_array;
-        }
-
-    };
+    using TransformArray = std::vector<glm::mat4>;
 
 
     class IJointModifier {
@@ -233,7 +208,7 @@ namespace dal {
         }
 
         void sample2(const float elapsed, const float animTick, const SkeletonInterface& interf,
-            JointTransformArray& transformArr, const jointModifierRegistry_t& modifiers) const;
+            TransformArray& transformArr, const jointModifierRegistry_t& modifiers) const;
         float calcAnimTick(const float seconds) const;
 
     };
@@ -243,7 +218,7 @@ namespace dal {
 
     private:
         Timer m_localTimer;
-        JointTransformArray m_finalTransform;
+        TransformArray m_finalTransform;
         jointModifierRegistry_t m_modifiers;
         unsigned int m_selectedAnimIndex = 0;
         float m_timeScale = 1.0f;
@@ -251,7 +226,7 @@ namespace dal {
 
     public:
         float getElapsed(void);
-        JointTransformArray& getTransformArray(void);
+        TransformArray& getTransformArray(void);
         unsigned int getSelectedAnimeIndex(void) const;
 
         void setSelectedAnimeIndex(const unsigned int index);
