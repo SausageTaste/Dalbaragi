@@ -5,6 +5,7 @@
 #include <dal_modifier.h>
 
 #include "d_logger.h"
+#include "d_konsts.h"
 
 
 namespace {
@@ -152,11 +153,14 @@ namespace dal {
             out_unit.m_weight_center = ::calc_weight_center(out_unit.m_vertices);
         }
 
-        for (auto& out_anim : model_data->m_animations) {
-            auto& in_anim = output.m_animations.emplace_back(out_anim.m_name, out_anim.m_ticks_par_sec, out_anim.m_duration_tick);
+        for (auto& src_anim : model_data->m_animations) {
+            if (src_anim.m_joints.size() > dal::MAX_JOINT_COUNT) {
+                dalWarn(fmt::format("Joint count {} is bigger than limit {}", src_anim.m_joints.size(), dal::MAX_JOINT_COUNT).c_str());
+            }
 
-            for (auto& out_joint : out_anim.m_joints) {
-                in_anim.new_joint().m_data = out_joint;
+            auto& dst_anim = output.m_animations.emplace_back(src_anim.m_name, src_anim.m_ticks_par_sec, src_anim.m_duration_tick);
+            for (auto& out_joint : src_anim.m_joints) {
+                dst_anim.new_joint().m_data = out_joint;
             }
         }
 
