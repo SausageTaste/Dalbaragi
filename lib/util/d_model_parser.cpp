@@ -57,33 +57,33 @@ namespace dal {
         if (!model_data)
             return false;
 
-        for (const auto& unit : model_data->m_units_indexed) {
-            auto& out_unit = output.m_units.emplace_back();
+        for (const auto& src_unit : model_data->m_units_indexed) {
+            auto& dst_unit = output.m_units.emplace_back();
 
-            out_unit.m_vertices.resize(unit.m_mesh.m_vertices.size());
-            memcpy(out_unit.m_vertices.data(), unit.m_mesh.m_vertices.data(), out_unit.m_vertices.size() * sizeof(dal::VertexStatic));
+            dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+            memcpy(dst_unit.m_vertices.data(), src_unit.m_mesh.m_vertices.data(), dst_unit.m_vertices.size() * sizeof(dal::VertexStatic));
 
-            out_unit.m_indices.assign(unit.m_mesh.m_indices.begin(), unit.m_mesh.m_indices.end());
-            ::copy_material(out_unit.m_material, unit.m_material);
-            out_unit.m_weight_center = ::calc_weight_center(out_unit.m_vertices);
+            dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
+            ::copy_material(dst_unit.m_material, src_unit.m_material);
+            dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
         }
 
-        for (const auto& unit : model_data->m_units_indexed_joint) {
-            auto& out_unit = output.m_units.emplace_back();
+        for (const auto& src_unit : model_data->m_units_indexed_joint) {
+            auto& dst_unit = output.m_units.emplace_back();
 
-            out_unit.m_vertices.resize(unit.m_mesh.m_vertices.size());
-            for (size_t i = 0; i < out_unit.m_vertices.size(); ++i) {
-                auto& out_vert = out_unit.m_vertices[i];
-                auto& in_vert = unit.m_mesh.m_vertices[i];
+            dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+            for (size_t i = 0; i < dst_unit.m_vertices.size(); ++i) {
+                auto& out_vert = dst_unit.m_vertices[i];
+                auto& in_vert = src_unit.m_mesh.m_vertices[i];
 
                 out_vert.m_pos = in_vert.m_position;
                 out_vert.m_normal = in_vert.m_normal;
                 out_vert.m_uv_coord = in_vert.m_uv_coords;
             }
 
-            out_unit.m_indices.assign(unit.m_mesh.m_indices.begin(), unit.m_mesh.m_indices.end());
-            ::copy_material(out_unit.m_material, unit.m_material);
-            out_unit.m_weight_center = ::calc_weight_center(out_unit.m_vertices);
+            dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
+            ::copy_material(dst_unit.m_material, src_unit.m_material);
+            dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
         }
 
         if (!model_data->m_units_straight.empty())
@@ -113,44 +113,44 @@ namespace dal {
         if (!model_data)
             return false;
 
-        for (const auto& unit : model_data->m_units_indexed) {
-            auto& out_unit = output.m_units.emplace_back();
+        for (const auto& src_unit : model_data->m_units_indexed) {
+            auto& dst_unit = output.m_units.emplace_back();
 
-            out_unit.m_vertices.resize(unit.m_mesh.m_vertices.size());
-            for (size_t i = 0; i < out_unit.m_vertices.size(); ++i) {
-                auto& out_vert = out_unit.m_vertices[i];
-                auto& in_vert = unit.m_mesh.m_vertices[i];
+            dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+            for (size_t i = 0; i < dst_unit.m_vertices.size(); ++i) {
+                auto& dst_vert = dst_unit.m_vertices[i];
+                auto& src_vert = src_unit.m_mesh.m_vertices[i];
 
-                out_vert.m_joint_ids     = glm::ivec4{-1, -1, -1, -1};
-                out_vert.m_joint_weights = glm::vec4{0, 0, 0, 0};
-                out_vert.m_pos           = in_vert.m_position;
-                out_vert.m_normal        = in_vert.m_normal;
-                out_vert.m_uv_coord      = in_vert.m_uv_coords;
+                dst_vert.m_joint_ids     = glm::ivec4{-1, -1, -1, -1};
+                dst_vert.m_joint_weights = glm::vec4{0, 0, 0, 0};
+                dst_vert.m_pos           = src_vert.m_position;
+                dst_vert.m_normal        = src_vert.m_normal;
+                dst_vert.m_uv_coord      = src_vert.m_uv_coords;
             }
 
-            out_unit.m_indices.assign(unit.m_mesh.m_indices.begin(), unit.m_mesh.m_indices.end());
-            ::copy_material(out_unit.m_material, unit.m_material);
-            out_unit.m_weight_center = ::calc_weight_center(out_unit.m_vertices);
+            dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
+            ::copy_material(dst_unit.m_material, src_unit.m_material);
+            dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
         }
 
-        for (const auto& unit : model_data->m_units_indexed_joint) {
-            auto& out_unit = output.m_units.emplace_back();
+        for (const auto& src_unit : model_data->m_units_indexed_joint) {
+            auto& dst_unit = output.m_units.emplace_back();
 
-            out_unit.m_vertices.resize(unit.m_mesh.m_vertices.size());
-            for (size_t i = 0; i < out_unit.m_vertices.size(); ++i) {
-                auto& out_vert = out_unit.m_vertices[i];
-                auto& in_vert = unit.m_mesh.m_vertices[i];
+            dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+            for (size_t i = 0; i < dst_unit.m_vertices.size(); ++i) {
+                auto& dst_vert = dst_unit.m_vertices[i];
+                auto& src_vert = src_unit.m_mesh.m_vertices[i];
 
-                out_vert.m_joint_ids     = in_vert.m_joint_indices;
-                out_vert.m_joint_weights = in_vert.m_joint_weights;
-                out_vert.m_pos           = in_vert.m_position;
-                out_vert.m_normal        = in_vert.m_normal;
-                out_vert.m_uv_coord      = in_vert.m_uv_coords;
+                dst_vert.m_joint_ids     = src_vert.m_joint_indices;
+                dst_vert.m_joint_weights = src_vert.m_joint_weights;
+                dst_vert.m_pos           = src_vert.m_position;
+                dst_vert.m_normal        = src_vert.m_normal;
+                dst_vert.m_uv_coord      = src_vert.m_uv_coords;
             }
 
-            out_unit.m_indices.assign(unit.m_mesh.m_indices.begin(), unit.m_mesh.m_indices.end());
-            ::copy_material(out_unit.m_material, unit.m_material);
-            out_unit.m_weight_center = ::calc_weight_center(out_unit.m_vertices);
+            dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
+            ::copy_material(dst_unit.m_material, src_unit.m_material);
+            dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
         }
 
         for (auto& src_anim : model_data->m_animations) {
