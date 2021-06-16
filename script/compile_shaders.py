@@ -60,6 +60,8 @@ def main():
 
     _work_for_one("alpha_v.spv", "alpha.vert", [])
 
+    _work_for_one("alpha_animated_v.spv", "alpha_animated.vert", [])
+
     _work_for_one("alpha_f.spv", "alpha.frag", [])
 
     _work_for_one("alpha_gamma_f.spv", "alpha.frag", ["DAL_GAMMA_CORRECT"])

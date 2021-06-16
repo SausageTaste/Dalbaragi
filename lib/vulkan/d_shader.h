@@ -55,6 +55,7 @@ namespace dal {
         ShaderPipeline m_composition;
         ShaderPipeline m_final;
         ShaderPipeline m_alpha;
+        ShaderPipeline m_alpha_animated;
 
     public:
         void init(
@@ -95,6 +96,10 @@ namespace dal {
 
         auto& alpha() const {
             return this->m_alpha;
+        }
+
+        auto& alpha_animated() const {
+            return this->m_alpha_animated;
         }
 
     };
