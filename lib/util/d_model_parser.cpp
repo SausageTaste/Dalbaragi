@@ -172,16 +172,16 @@ namespace dal {
         }
 
         for (auto& src_joint : model_data->m_skeleton.m_joints) {
-            const auto jid = output.m_skeleton.getOrMakeIndexOf(src_joint.m_name);
+            const auto jid = output.m_skeleton.get_or_make_index_of(src_joint.m_name);
             auto& dst_joint = output.m_skeleton.at(jid);
             dst_joint.set(src_joint);
         }
 
-        if (output.m_skeleton.getSize() > 0) {
+        if (output.m_skeleton.size() > 0) {
             // Character lies on ground without this line.
             output.m_skeleton.at(0).set_parent_mat(output.m_skeleton.at(0).offset());
 
-            for ( int i = 1; i < output.m_skeleton.getSize(); ++i ) {
+            for ( int i = 1; i < output.m_skeleton.size(); ++i ) {
                 auto& thisInfo = output.m_skeleton.at(i);
                 const auto& parentInfo = output.m_skeleton.at(thisInfo.parent_index());
                 thisInfo.set_parent_mat(parentInfo);

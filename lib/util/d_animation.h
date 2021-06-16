@@ -78,33 +78,37 @@ namespace dal {
     class SkeletonInterface {
 
     private:
-        std::map<std::string, jointID_t> m_map;
-        std::vector<JointSkel> m_boneInfo;
-        jointID_t m_lastMadeIndex = -1;
+        std::map<std::string, jointID_t> m_name_joint_map;
+        std::vector<JointSkel> m_joints;
 
     public:
-        SkeletonInterface(const SkeletonInterface&) = default;
-        SkeletonInterface& operator=(const SkeletonInterface&) = default;
-        SkeletonInterface(SkeletonInterface&&) = default;
-        SkeletonInterface& operator=(SkeletonInterface&&) = default;
+        jointID_t get_index_of(const std::string& joint_mame) const;
 
-        SkeletonInterface(void) = default;
+        jointID_t get_or_make_index_of(const std::string& joint_mame);
 
-    public:
-        jointID_t getIndexOf(const std::string& jointName) const;
-        jointID_t getOrMakeIndexOf(const std::string& jointName);
+        auto& at(const jointID_t index) {
+            return this->m_joints.at(index);
+        }
 
-        JointSkel& at(const jointID_t index);
-        const JointSkel& at(const jointID_t index) const;
+        auto& at(const jointID_t index) const {
+            return this->m_joints.at(index);
+        }
 
-        jointID_t getSize(void) const;
-        bool isEmpty(void) const;
+        jointID_t size() const {
+            return static_cast<jointID_t>(this->m_joints.size());
+        }
 
-        void clear(void);
+        bool is_empty() const {
+            return this->m_joints.empty();
+        }
+
+        void clear() {
+            this->m_name_joint_map.clear();
+            this->m_joints.clear();
+        }
 
     private:
-        jointID_t upsizeAndGetIndex(void);
-        bool isIndexValid(const jointID_t index) const;
+        jointID_t upsize_and_get_index(void);
 
     };
 

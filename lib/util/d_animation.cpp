@@ -117,71 +117,29 @@ namespace dal {
 
 namespace dal {
 
-    jointID_t SkeletonInterface::getIndexOf(const std::string& jointName) const {
-        auto iter = this->m_map.find(jointName);
-        if ( this->m_map.end() == iter ) {
-            return -1;
-        }
-        else {
-            return iter->second;
-        }
+    jointID_t SkeletonInterface::get_index_of(const std::string& joint_mame) const {
+        auto iter = this->m_name_joint_map.find(joint_mame);
+        return this->m_name_joint_map.end() != iter ? iter->second : -1;
     }
 
-    jointID_t SkeletonInterface::getOrMakeIndexOf(const std::string& jointName) {
-        const auto index = this->getIndexOf(jointName);
+    jointID_t SkeletonInterface::get_or_make_index_of(const std::string& joint_mame) {
+        const auto index = this->get_index_of(joint_mame);
 
-        if ( -1 == index ) {
-            const auto newIndex = this->upsizeAndGetIndex();
-            this->m_map.emplace(jointName, newIndex);
-            return newIndex;
+        if (-1 == index) {
+            const auto new_index = this->upsize_and_get_index();
+            this->m_name_joint_map.emplace(joint_mame, new_index);
+            return new_index;
         }
         else {
             return index;
         }
     }
 
-    JointSkel& SkeletonInterface::at(const jointID_t index) {
-        dalAssert(this->isIndexValid(index));
-        return this->m_boneInfo[index];
-    }
-
-    const JointSkel& SkeletonInterface::at(const jointID_t index) const {
-        dalAssert(this->isIndexValid(index));
-        return this->m_boneInfo[index];
-    }
-
-    jointID_t SkeletonInterface::getSize(void) const {
-        return static_cast<int32_t>(this->m_boneInfo.size());
-    }
-
-    bool SkeletonInterface::isEmpty(void) const {
-        return this->m_map.empty();
-    }
-
-    void SkeletonInterface::clear(void) {
-        this->m_map.clear();
-        this->m_boneInfo.clear();
-        this->m_lastMadeIndex = -1;
-    }
-
     // Private
 
-    jointID_t SkeletonInterface::upsizeAndGetIndex(void) {
-        this->m_lastMadeIndex++;
-        this->m_boneInfo.emplace_back();
-        return this->m_lastMadeIndex;
-    }
-
-    bool SkeletonInterface::isIndexValid(const jointID_t index) const {
-        if ( index < 0 ) {
-            return false;
-        }
-        else if ( static_cast<unsigned int>(index) >= this->m_boneInfo.size() ) {
-            return false;
-        }
-        else {
-            return true;
-        }
+    jointID_t SkeletonInterface::upsize_and_get_index(void) {
+        this->m_joints.emplace_back();
+        return this->m_joints.size() - 1;
     }
 
 }  // namespace dal
@@ -258,7 +216,7 @@ namespace dal {
         static const auto k_spaceAnim2Model = glm::rotate(glm::mat4{ 1.f }, glm::radians(-90.f), glm::vec3{ 1.f, 0.f, 0.f });
         static const auto k_spaceModel2Anim = glm::inverse(k_spaceAnim2Model);
 
-        const auto numBones = interf.getSize();
+        const auto numBones = interf.size();
         transformArr.setSize(numBones);
 
         std::vector<glm::mat4> boneTransforms(numBones);
