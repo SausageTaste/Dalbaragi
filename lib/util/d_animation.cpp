@@ -23,69 +23,65 @@ namespace {
     }
 
     // Pass it container with size 0 and iterator to index of unsigned{ -1 }.
-    // WTF such a broken Engilsh that even I can't understand!!
+    // WTF such a broken Engilsh that even I, the writer, can't understand!!
     template <typename T>
     size_t find_index_to_start_interp(const std::vector<std::pair<float, T>>& container, const float criteria) {
         dalAssert(0 != container.size());
 
-        for ( size_t i = 0; i < container.size() - 1; i++ ) {
-            if ( criteria < container[i + 1].first ) {
+        for (size_t i = 0; i < container.size() - 1; i++)
+            if (criteria < container[i + 1].first)
                 return i;
-            }
-        }
 
         return container.size() - 1;
     }
 
     template <typename T>
-    T make_interp_value(const float animTick, const std::vector<std::pair<float, T>>& container) {
+    T make_interp_value(const float anim_tick, const std::vector<std::pair<float, T>>& container) {
         dalAssert(0 != container.size());
 
         if ( 1 == container.size() ) {
             return container[0].second;
         }
 
-        const auto startIndex = find_index_to_start_interp(container, animTick);
-        const auto nextIndex = startIndex + 1;
-        if ( nextIndex >= container.size() ) {
+        const auto start_index = find_index_to_start_interp(container, anim_tick);
+        const auto next_index = start_index + 1;
+        if (next_index >= container.size()) {
             return container.back().second;
         }
 
-        const auto deltaTime = container[nextIndex].first - container[startIndex].first;
-        auto factor = (animTick - container[startIndex].first) / deltaTime;
-        if ( 0.0f <= factor && factor <= 1.0f ) {
-            const auto start = container[startIndex].second;
-            const auto end = container[nextIndex].second;
+        const auto delta_time = container[next_index].first - container[start_index].first;
+        auto factor = (anim_tick - container[start_index].first) / delta_time;
+        if (0.f <= factor && factor <= 1.f) {
+            const auto start = container[start_index].second;
+            const auto end = container[next_index].second;
             return interpolate(start, end, factor);
         }
         else {
-            const auto start = container[startIndex].second;
-            const auto end = container[nextIndex].second;
-            return interpolate(start, end, 0.0f);
+            const auto start = container[start_index].second;
+            const auto end = container[next_index].second;
+            return interpolate(start, end, 0.f);
         }
     }
 
-    std::vector<dal::jointID_t> makeParentList(const dal::jointID_t id, const dal::SkeletonInterface& interf) {
+
+    std::vector<dal::jointID_t> make_parent_list(const dal::jointID_t id, const dal::SkeletonInterface& interf) {
         std::vector<dal::jointID_t> result;
 
-        dal::jointID_t currentID = id;
-        while ( true ) {
-            const auto parentID = interf.at(currentID).parent_index();
-            if ( parentID < 0 ) {
+        dal::jointID_t current_id = id;
+        while (true) {
+            const auto parent_id = interf.at(current_id).parent_index();
+            if (parent_id < 0) {
                 return result;
             }
             else {
-                result.push_back(parentID);
-                currentID = parentID;
+                result.push_back(parent_id);
+                current_id = parent_id;
             }
         }
     }
 
-    std::pair<glm::vec3, glm::quat> decomposeTransform(const glm::mat4& mat) {
-        return std::pair<glm::vec3, glm::quat>{
-            glm::vec3(mat[3]),
-                glm::quat_cast(mat)
-        };
+    std::pair<glm::vec3, glm::quat> decompose_transform(const glm::mat4& mat) {
+        return std::make_pair(glm::vec3(mat[3]), glm::quat_cast(mat));
     }
 
 }
@@ -103,7 +99,7 @@ namespace dal {
     }
 
     glm::vec3 JointSkel::local_pos(void) const {
-        const auto result = decomposeTransform(this->offset());
+        const auto result = decompose_transform(this->offset());
         return result.first;
     }
 
@@ -115,6 +111,7 @@ namespace dal {
 }
 
 
+// SkeletonInterface
 namespace dal {
 
     jointID_t SkeletonInterface::get_index_of(const std::string& joint_mame) const {
@@ -142,16 +139,16 @@ namespace dal {
         return this->m_joints.size() - 1;
     }
 
-}  // namespace dal
+}
 
 
 // JointAnim
 namespace dal {
 
-    glm::mat4 JointAnim::make_transform(const float animTick) const {
-        const auto translate = this->interpolate_translate(animTick);
-        const auto rotate = this->interpolate_rotation(animTick);
-        const auto scale = this->interpolate_scale(animTick);
+    glm::mat4 JointAnim::make_transform(const float anim_tick) const {
+        const auto translate = this->interpolate_translate(anim_tick);
+        const auto rotate = this->interpolate_rotation(anim_tick);
+        const auto scale = this->interpolate_scale(anim_tick);
 
         const glm::mat4 identity{1};
         const auto translate_mat = glm::translate(identity, translate);
@@ -274,17 +271,17 @@ namespace dal {
 // Functions
 namespace dal {
 
-    void updateAnimeState(AnimationState& state, const std::vector<Animation>& anims, const SkeletonInterface& skeletonInterf) {
-        const auto selectedAnimIndex = state.selected_anim_index();
-        if ( selectedAnimIndex >= anims.size() ) {
-            //dalError(fmt::format("Selected animation's index is out of range: {}", selectedAnimIndex).c_str());
+    void update_anime_state(AnimationState& state, const std::vector<Animation>& anims, const SkeletonInterface& skeletonInterf) {
+        const auto selected_anim_index = state.selected_anim_index();
+        if (selected_anim_index >= anims.size()) {
+            //dalError(fmt::format("Selected animation's index is out of range: {}", selected_anim_index).c_str());
             return;
         }
 
-        const auto& anim = anims[selectedAnimIndex];
-        const auto elapsed = state.elapsed();
-        const auto animTick = anim.convert_sec_to_tick(elapsed);
-        anim.sample(elapsed, animTick, skeletonInterf, state.transform_array(), state.joint_modifiers());
+        const auto& anim = anims[selected_anim_index];
+        const auto elapsed = static_cast<float>(state.elapsed());
+        const auto anim_tick = anim.convert_sec_to_tick(elapsed);
+        anim.sample(elapsed, anim_tick, skeletonInterf, state.transform_array(), state.joint_modifiers());
     }
 
 }

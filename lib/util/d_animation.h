@@ -220,6 +220,6 @@ namespace dal {
     };
 
 
-    void updateAnimeState(AnimationState& state, const std::vector<Animation>& anims, const SkeletonInterface& skeletonInterf);
+    void update_anime_state(AnimationState& state, const std::vector<Animation>& anims, const SkeletonInterface& skeletonInterf);
 
 }
