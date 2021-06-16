@@ -6,6 +6,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
+#include "d_konsts.h"
 #include "d_vulkan_header.h"
 #include "d_buffer_memory.h"
 
@@ -52,13 +53,11 @@ namespace dal {
         uint32_t m_plight_count = 0;
     };
 
-    constexpr int MAX_JOINT_SIZE = 128;
-
     struct U_AnimTransform {
-        glm::mat4 m_transforms[MAX_JOINT_SIZE];
+        glm::mat4 m_transforms[dal::MAX_JOINT_COUNT];
     };
 
-    static_assert(sizeof(U_AnimTransform) < 16 * 1024);
+    static_assert(sizeof(U_AnimTransform) <= 16 * 1024);
 
 
     template <typename _DataStruct>
