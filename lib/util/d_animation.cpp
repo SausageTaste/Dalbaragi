@@ -182,62 +182,67 @@ namespace dal {
 }
 
 
+// Animation
 namespace dal {
 
-    Animation::Animation(const std::string& name, const float tickPerSec, const float durationTick)
+    Animation::Animation(const std::string& name, const float tick_per_sec, const float duration_tick)
         : m_name(name)
-        , m_tickPerSec(tickPerSec)
-        , m_durationInTick(durationTick)
+        , m_tick_per_sec(tick_per_sec)
+        , m_duration_in_tick(duration_tick)
     {
-        if ( 0.0f == this->m_durationInTick ) {
-            this->m_durationInTick = 1.0f;
-        }
-        if ( 0.0f == this->m_tickPerSec ) {
-            this->m_tickPerSec = 25.0f;
-        }
+        if (0.0f == this->m_duration_in_tick)
+            this->m_duration_in_tick = 1;
+
+        if (0.0f == this->m_tick_per_sec)
+            this->m_tick_per_sec = 25;
     }
 
-    void Animation::sample2(const float elapsed, const float animTick, const SkeletonInterface& interf,
-        TransformArray& transformArr, const jointModifierRegistry_t& modifiers) const {
-        static const auto k_spaceAnim2Model = glm::rotate(glm::mat4{ 1.f }, glm::radians(-90.f), glm::vec3{ 1.f, 0.f, 0.f });
-        static const auto k_spaceModel2Anim = glm::inverse(k_spaceAnim2Model);
+    void Animation::sample(
+        const float elapsed,
+        const float anim_tick,
+        const SkeletonInterface& interf,
+        TransformArray& trans_array,
+        const jointModifierRegistry_t& modifiers
+    ) const {
+        static const auto SPACE_ANIM_TO_MODEL = glm::rotate(glm::mat4{ 1.f }, glm::radians(-90.f), glm::vec3{ 1.f, 0.f, 0.f });
+        static const auto SPACE_MODEL_TO_ANIM = glm::inverse(SPACE_ANIM_TO_MODEL);
 
-        const auto numBones = interf.size();
-        transformArr.resize(numBones);
+        const auto num_joints = interf.size();
+        dalAssert(num_joints == this->m_joints.size());
 
-        std::vector<glm::mat4> boneTransforms(numBones);
-        dalAssert(numBones == this->m_joints.size());
-        for ( int i = 0; i < numBones; ++i ) {
+        trans_array.resize(num_joints);
+        std::vector<glm::mat4> joint_transforms(num_joints);
+
+        for (int i = 0; i < num_joints; ++i) {
             const auto found = modifiers.find(i);
-            if ( modifiers.end() != found ) {
-                boneTransforms[i] = found->second->makeTransform(elapsed, i, interf);
-            }
-            else {
-                boneTransforms[i] = this->m_joints[i].make_transform(animTick);
-            }
+            if (modifiers.end() != found)
+                joint_transforms[i] = found->second->makeTransform(elapsed, i, interf);
+            else
+                joint_transforms[i] = this->m_joints[i].make_transform(anim_tick);
         }
 
-        for ( dal::jointID_t i = 0; i < numBones; ++i ) {
-            dal::jointID_t curBone = i;
-            glm::mat4 totalTrans = interf.at(i).offset_inv();
-            while ( curBone != -1 ) {
-                totalTrans = interf.at(curBone).to_parent_mat() * boneTransforms[curBone] * totalTrans;
-                curBone = interf.at(curBone).parent_index();
+        for (int i = 0; i < num_joints; ++i) {
+            dal::jointID_t cur_jid = i;
+            glm::mat4 total_trans = interf.at(i).offset_inv();
+
+            while (-1 != cur_jid) {
+                total_trans = interf.at(cur_jid).to_parent_mat() * joint_transforms[cur_jid] * total_trans;
+                cur_jid = interf.at(cur_jid).parent_index();
             }
-            transformArr.at(i) = k_spaceAnim2Model * totalTrans * k_spaceModel2Anim;
+
+            trans_array.at(i) = SPACE_ANIM_TO_MODEL * total_trans * SPACE_MODEL_TO_ANIM;
         }
 
         return;
     }
 
-    float Animation::calcAnimTick(const float seconds) const {
-        const auto animDuration = this->getDurationInTick();
-        const auto animTickPerSec = this->getTickPerSec();
-        float TimeInTicks = seconds * animTickPerSec;
-        return fmod(TimeInTicks, animDuration);
+    float Animation::convert_sec_to_tick(const float seconds) const {
+        const auto anim_duration = this->duration_in_tick();
+        const auto time_in_ticks = seconds * this->tick_per_sec();
+        return std::fmod(time_in_ticks, anim_duration);
     }
 
-}  // namespace dal
+}
 
 
 namespace dal {
@@ -286,8 +291,8 @@ namespace dal {
 
         const auto& anim = anims[selectedAnimIndex];
         const auto elapsed = state.getElapsed();
-        const auto animTick = anim.calcAnimTick(elapsed);
-        anim.sample2(elapsed, animTick, skeletonInterf, state.getTransformArray(), state.getModifiers());
+        const auto animTick = anim.convert_sec_to_tick(elapsed);
+        anim.sample(elapsed, animTick, skeletonInterf, state.getTransformArray(), state.getModifiers());
     }
 
 }

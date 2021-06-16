@@ -156,7 +156,7 @@ namespace dal {
             auto& in_anim = output.m_animations.emplace_back(out_anim.m_name, out_anim.m_ticks_par_sec, out_anim.m_duration_tick);
 
             for (auto& out_joint : out_anim.m_joints) {
-                in_anim.newJoint().m_data = out_joint;
+                in_anim.new_joint().m_data = out_joint;
             }
         }
 

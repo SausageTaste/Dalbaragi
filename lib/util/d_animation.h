@@ -151,34 +151,37 @@ namespace dal {
     private:
         std::string m_name;
         std::vector<JointAnim> m_joints;
-        float m_tickPerSec, m_durationInTick;
+        float m_tick_per_sec;
+        float m_duration_in_tick;
 
     public:
-        Animation(const Animation&) = default;
-        Animation& operator=(const Animation&) = default;
-        Animation(Animation&&) = default;
-        Animation& operator=(Animation&&) = default;
+        Animation(const std::string& name, const float tick_per_sec, const float duration_tick);
 
-    public:
-        Animation(const std::string& name, const float tickPerSec, const float durationTick);
-
-        JointAnim& newJoint(void) {
+        auto& new_joint() {
             return this->m_joints.emplace_back();
         }
 
-        const std::string& getName(void) const {
+        auto& name() const {
             return this->m_name;
         }
-        float getTickPerSec(void) const {
-            return this->m_tickPerSec;
-        }
-        float getDurationInTick(void) const {
-            return this->m_durationInTick;
+
+        float tick_per_sec() const {
+            return this->m_tick_per_sec;
         }
 
-        void sample2(const float elapsed, const float animTick, const SkeletonInterface& interf,
-            TransformArray& transformArr, const jointModifierRegistry_t& modifiers) const;
-        float calcAnimTick(const float seconds) const;
+        float duration_in_tick() const {
+            return this->m_duration_in_tick;
+        }
+
+        void sample(
+            const float elapsed,
+            const float anim_tick,
+            const SkeletonInterface& interf,
+            TransformArray& trans_array,
+            const jointModifierRegistry_t& modifiers
+        ) const;
+
+        float convert_sec_to_tick(const float seconds) const;
 
     };
 
