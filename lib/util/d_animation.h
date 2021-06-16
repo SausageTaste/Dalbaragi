@@ -12,74 +12,74 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "d_timer.h"
+#include "dal_struct.h"
 
 
 namespace dal {
 
     using jointID_t = int32_t;
 
+    using JointType = dal::parser::JointType;
 
-    enum class JointType { basic = 0, hair_root = 1, skirt_root = 2 };
 
-    class JointInfo {
+    class JointSkel {
 
     private:
         std::string m_name;
-        glm::mat4 m_jointOffset;
-        glm::mat4 m_jointOffsetInv;
-        glm::mat4 m_spaceToParent;
-        jointID_t m_parentIndex = -1;
-        JointType m_jointType = JointType::basic;
+        glm::mat4 m_joint_offset;
+        glm::mat4 m_joint_offset_inv;
+        glm::mat4 m_space_to_parent;
+        jointID_t m_parent_index = -1;
+        JointType m_joint_type = JointType::basic;
 
     public:
-        const std::string& name(void) const {
+        void set(const dal::parser::SkelJoint& dst_joint);
+
+        void set_parent_mat(const glm::mat4& mat) {
+            this->m_space_to_parent = mat;
+        }
+
+        void set_parent_mat(const JointSkel& parent) {
+            this->m_space_to_parent = parent.offset_inv() * this->offset();
+        }
+
+        const std::string& name() const {
             return this->m_name;
         }
-        const glm::mat4& offset(void) const {
-            return this->m_jointOffset;
-        }
-        const glm::mat4& offsetInv(void) const {
-            return this->m_jointOffsetInv;
-        }
-        const glm::mat4& toParent(void) const {
-            return this->m_spaceToParent;
-        }
-        jointID_t parentIndex(void) const {
-            return this->m_parentIndex;
-        }
-        JointType jointType(void) const {
-            return this->m_jointType;
+
+        const glm::mat4& offset() const {
+            return this->m_joint_offset;
         }
 
-        glm::vec3 localPos(void) const;
+        const glm::mat4& offset_inv() const {
+            return this->m_joint_offset_inv;
+        }
 
-        void setName(const std::string& name) {
-            this->m_name = name;
+        const glm::mat4& to_parent_mat() const {
+            return this->m_space_to_parent;
         }
-        void setName(std::string&& name) {
-            this->m_name = std::move(name);
+
+        jointID_t parent_index() const {
+            return this->m_parent_index;
         }
-        void setOffset(const glm::mat4& mat);
-        void setParentMat(const glm::mat4& mat) {
-            this->m_spaceToParent = mat;
+
+        JointType join_type() const {
+            return this->m_joint_type;
         }
-        void setParentMat(const JointInfo& parent) {
-            this->setParentMat(parent.offsetInv() * this->offset());
-        }
-        void setParentIndex(const jointID_t id) {
-            this->m_parentIndex = id;
-        }
-        void setType(const JointType type) {
-            this->m_jointType = type;
-        }
+
+        glm::vec3 local_pos() const;
+
+    private:
+        void set_offset_mat(const glm::mat4& mat);
 
     };
+
 
     class SkeletonInterface {
 
     private:
         std::map<std::string, jointID_t> m_map;
-        std::vector<JointInfo> m_boneInfo;
+        std::vector<JointSkel> m_boneInfo;
         jointID_t m_lastMadeIndex = -1;
 
     public:
@@ -94,8 +94,8 @@ namespace dal {
         jointID_t getIndexOf(const std::string& jointName) const;
         jointID_t getOrMakeIndexOf(const std::string& jointName);
 
-        JointInfo& at(const jointID_t index);
-        const JointInfo& at(const jointID_t index) const;
+        JointSkel& at(const jointID_t index);
+        const JointSkel& at(const jointID_t index) const;
 
         jointID_t getSize(void) const;
         bool isEmpty(void) const;

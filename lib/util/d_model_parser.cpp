@@ -174,33 +174,17 @@ namespace dal {
         for (auto& src_joint : model_data->m_skeleton.m_joints) {
             const auto jid = output.m_skeleton.getOrMakeIndexOf(src_joint.m_name);
             auto& dst_joint = output.m_skeleton.at(jid);
-
-            dst_joint.setParentIndex(src_joint.m_parent_index);
-            dst_joint.setOffset(src_joint.m_offset_mat);
-
-            switch (src_joint.m_joint_type) {
-                case dal::parser::JointType::basic:
-                    dst_joint.setType(dal::JointType::basic);
-                    break;
-                case dal::parser::JointType::hair_root:
-                    dst_joint.setType(dal::JointType::hair_root);
-                    break;
-                case dal::parser::JointType::skirt_root:
-                    dst_joint.setType(dal::JointType::skirt_root);
-                    break;
-                default:
-                    dalAbort("Unknown joint type");
-            }
+            dst_joint.set(src_joint);
         }
 
         if (output.m_skeleton.getSize() > 0) {
             // Character lies on ground without this line.
-            output.m_skeleton.at(0).setParentMat(output.m_skeleton.at(0).offset());
+            output.m_skeleton.at(0).set_parent_mat(output.m_skeleton.at(0).offset());
 
             for ( int i = 1; i < output.m_skeleton.getSize(); ++i ) {
                 auto& thisInfo = output.m_skeleton.at(i);
-                const auto& parentInfo = output.m_skeleton.at(thisInfo.parentIndex());
-                thisInfo.setParentMat(parentInfo);
+                const auto& parentInfo = output.m_skeleton.at(thisInfo.parent_index());
+                thisInfo.set_parent_mat(parentInfo);
             }
         }
 

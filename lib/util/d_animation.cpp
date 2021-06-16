@@ -70,7 +70,7 @@ namespace {
 
         dal::jointID_t currentID = id;
         while ( true ) {
-            const auto parentID = interf.at(currentID).parentIndex();
+            const auto parentID = interf.at(currentID).parent_index();
             if ( parentID < 0 ) {
                 return result;
             }
@@ -91,17 +91,25 @@ namespace {
 }
 
 
-// JointInfo
+// JointSkel
 namespace dal {
 
-    glm::vec3 JointInfo::localPos(void) const {
+    void JointSkel::set(const dal::parser::SkelJoint& src_joint) {
+        this->m_name = src_joint.m_name;
+
+        this->m_parent_index = src_joint.m_parent_index;
+        this->set_offset_mat(src_joint.m_offset_mat);
+        this->m_joint_type = src_joint.m_joint_type;
+    }
+
+    glm::vec3 JointSkel::local_pos(void) const {
         const auto result = decomposeTransform(this->offset());
         return result.first;
     }
 
-    void JointInfo::setOffset(const glm::mat4& mat) {
-        this->m_jointOffset = mat;
-        this->m_jointOffsetInv = glm::inverse(this->m_jointOffset);
+    void JointSkel::set_offset_mat(const glm::mat4& mat) {
+        this->m_joint_offset = mat;
+        this->m_joint_offset_inv = glm::inverse(this->m_joint_offset);
     }
 
 }
@@ -125,7 +133,6 @@ namespace dal {
         if ( -1 == index ) {
             const auto newIndex = this->upsizeAndGetIndex();
             this->m_map.emplace(jointName, newIndex);
-            this->m_boneInfo[newIndex].setName(jointName);
             return newIndex;
         }
         else {
@@ -133,12 +140,12 @@ namespace dal {
         }
     }
 
-    JointInfo& SkeletonInterface::at(const jointID_t index) {
+    JointSkel& SkeletonInterface::at(const jointID_t index) {
         dalAssert(this->isIndexValid(index));
         return this->m_boneInfo[index];
     }
 
-    const JointInfo& SkeletonInterface::at(const jointID_t index) const {
+    const JointSkel& SkeletonInterface::at(const jointID_t index) const {
         dalAssert(this->isIndexValid(index));
         return this->m_boneInfo[index];
     }
@@ -268,10 +275,10 @@ namespace dal {
 
         for ( dal::jointID_t i = 0; i < numBones; ++i ) {
             dal::jointID_t curBone = i;
-            glm::mat4 totalTrans = interf.at(i).offsetInv();
+            glm::mat4 totalTrans = interf.at(i).offset_inv();
             while ( curBone != -1 ) {
-                totalTrans = interf.at(curBone).toParent() * boneTransforms[curBone] * totalTrans;
-                curBone = interf.at(curBone).parentIndex();
+                totalTrans = interf.at(curBone).to_parent_mat() * boneTransforms[curBone] * totalTrans;
+                curBone = interf.at(curBone).parent_index();
             }
             transformArr.setTransform(i, k_spaceAnim2Model * totalTrans * k_spaceModel2Anim);
         }
