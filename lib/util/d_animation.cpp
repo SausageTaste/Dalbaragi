@@ -247,32 +247,24 @@ namespace dal {
 
 namespace dal {
 
-    float AnimationState::getElapsed(void) {
-        const auto deltaTime = this->m_localTimer.check_get_elapsed();
-        this->m_localTimeAccumulator += deltaTime * this->m_timeScale;
-        return this->m_localTimeAccumulator;
+    double AnimationState::elapsed() {
+        const auto delta_time = this->m_local_timer.check_get_elapsed();
+        this->m_local_time_accumulator += delta_time * this->m_time_scale;
+        return this->m_local_time_accumulator;
     }
 
-    TransformArray& AnimationState::getTransformArray(void) {
-        return this->m_finalTransform;
-    }
-
-    unsigned int AnimationState::getSelectedAnimeIndex(void) const {
-        return this->m_selectedAnimIndex;
-    }
-
-    void AnimationState::setSelectedAnimeIndex(const unsigned int index) {
-        if ( this->m_selectedAnimIndex != index ) {
-            this->m_selectedAnimIndex = index;
-            this->m_localTimeAccumulator = 0.0f;
+    void AnimationState::set_anim_index(const size_t index) {
+        if (index != this->m_selected_anim_index) {
+            this->m_selected_anim_index = index;
+            this->m_local_time_accumulator = 0;
         }
     }
 
-    void AnimationState::setTimeScale(const float scale) {
-        this->m_timeScale = scale;
+    void AnimationState::set_time_scale(const double scale) {
+        this->m_time_scale = scale;
     }
 
-    void AnimationState::addModifier(const jointID_t jid, std::shared_ptr<IJointModifier> mod) {
+    void AnimationState::add_modifier(const jointID_t jid, std::shared_ptr<IJointModifier>& mod) {
         this->m_modifiers.emplace(jid, std::move(mod));
     }
 
@@ -283,16 +275,16 @@ namespace dal {
 namespace dal {
 
     void updateAnimeState(AnimationState& state, const std::vector<Animation>& anims, const SkeletonInterface& skeletonInterf) {
-        const auto selectedAnimIndex = state.getSelectedAnimeIndex();
+        const auto selectedAnimIndex = state.selected_anim_index();
         if ( selectedAnimIndex >= anims.size() ) {
             //dalError(fmt::format("Selected animation's index is out of range: {}", selectedAnimIndex).c_str());
             return;
         }
 
         const auto& anim = anims[selectedAnimIndex];
-        const auto elapsed = state.getElapsed();
+        const auto elapsed = state.elapsed();
         const auto animTick = anim.convert_sec_to_tick(elapsed);
-        anim.sample(elapsed, animTick, skeletonInterf, state.getTransformArray(), state.getModifiers());
+        anim.sample(elapsed, animTick, skeletonInterf, state.transform_array(), state.joint_modifiers());
     }
 
 }

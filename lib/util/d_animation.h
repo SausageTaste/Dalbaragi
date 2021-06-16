@@ -189,25 +189,33 @@ namespace dal {
     class AnimationState {
 
     private:
-        Timer m_localTimer;
-        TransformArray m_finalTransform;
+        Timer m_local_timer;
+        TransformArray m_final_transforms;
         jointModifierRegistry_t m_modifiers;
-        unsigned int m_selectedAnimIndex = 0;
-        float m_timeScale = 1.0f;
-        float m_localTimeAccumulator = 0.0f;
+        size_t m_selected_anim_index = 0;
+        double m_time_scale = 1;
+        double m_local_time_accumulator = 0;
 
     public:
-        float getElapsed(void);
-        TransformArray& getTransformArray(void);
-        unsigned int getSelectedAnimeIndex(void) const;
+        double elapsed();
 
-        void setSelectedAnimeIndex(const unsigned int index);
-        void setTimeScale(const float scale);
+        auto& transform_array() {
+            return this->m_final_transforms;
+        }
 
-        void addModifier(const jointID_t jid, std::shared_ptr<IJointModifier> mod);
-        const jointModifierRegistry_t& getModifiers(void) const {
+        auto selected_anim_index() const {
+            return this->m_selected_anim_index;
+        }
+
+        auto& joint_modifiers() const {
             return this->m_modifiers;
         }
+
+        void set_anim_index(const size_t index);
+
+        void set_time_scale(const double scale);
+
+        void add_modifier(const jointID_t jid, std::shared_ptr<IJointModifier>& mod);
 
     };
 

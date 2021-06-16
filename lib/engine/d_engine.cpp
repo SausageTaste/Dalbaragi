@@ -252,7 +252,7 @@ namespace {
             cpnt_actor.m_actors.back()->m_transform.m_scale = 1;
             cpnt_actor.m_actors.back()->apply_transform(dal::FrameInFlightIndex{0});
 
-            cpnt_actor.m_actors.back()->m_anim_state.setSelectedAnimeIndex(0);
+            cpnt_actor.m_actors.back()->m_anim_state.set_anim_index(0);
         }
 
         // Sponza
