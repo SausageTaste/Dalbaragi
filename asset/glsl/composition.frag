@@ -5,13 +5,13 @@
 
 layout(location = 0) in vec2 v_device_coord;
 
-layout (location = 0) out vec4 out_color;
+layout(location = 0) out vec4 out_color;
 
 
-layout (input_attachment_index = 0, binding = 0) uniform subpassInput input_depth;
-layout (input_attachment_index = 1, binding = 1) uniform subpassInput input_albedo;
-layout (input_attachment_index = 2, binding = 2) uniform subpassInput input_material;
-layout (input_attachment_index = 3, binding = 3) uniform subpassInput input_normal;
+layout(input_attachment_index = 0, binding = 0) uniform subpassInput input_depth;
+layout(input_attachment_index = 1, binding = 1) uniform subpassInput input_albedo;
+layout(input_attachment_index = 2, binding = 2) uniform subpassInput input_material;
+layout(input_attachment_index = 3, binding = 3) uniform subpassInput input_normal;
 
 layout(set = 0, binding = 4) uniform U_GlobalLight {
     vec4 m_dlight_direc[2];

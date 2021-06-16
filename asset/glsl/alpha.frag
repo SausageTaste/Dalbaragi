@@ -17,7 +17,7 @@ layout(set = 1, binding = 0) uniform U_PerMaterial {
 
 layout(set = 1, binding = 1) uniform sampler2D u_albedo_map;
 
-layout(set=3, binding=0) uniform U_GlobalLight {
+layout(set = 3, binding = 0) uniform U_GlobalLight {
     vec4 m_dlight_direc[2];
     vec4 m_dlight_color[2];
 
@@ -30,7 +30,7 @@ layout(set=3, binding=0) uniform U_GlobalLight {
     uint m_plight_count;
 } u_global_light;
 
-layout(set=3, binding=1) uniform U_PerFrame_Alpha {
+layout(set = 3, binding = 1) uniform U_PerFrame_Alpha {
     vec4 m_view_pos;
 } u_per_frame_alpha;
 
@@ -47,7 +47,7 @@ vec3 fix_color(const vec3 color) {
 
 
 void main() {
-    vec4 color_texture = texture(u_albedo_map, v_uv_coord);
+    const vec4 color_texture = texture(u_albedo_map, v_uv_coord);
     const vec3 albedo = color_texture.xyz;
     const float alpha = color_texture.w;
 
