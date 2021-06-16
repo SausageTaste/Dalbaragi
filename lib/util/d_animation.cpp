@@ -25,7 +25,7 @@ namespace {
     // Pass it container with size 0 and iterator to index of unsigned{ -1 }.
     // WTF such a broken Engilsh that even I can't understand!!
     template <typename T>
-    size_t findIndexToStartInterp(const std::vector<std::pair<float, T>>& container, const float criteria) {
+    size_t find_index_to_start_interp(const std::vector<std::pair<float, T>>& container, const float criteria) {
         dalAssert(0 != container.size());
 
         for ( size_t i = 0; i < container.size() - 1; i++ ) {
@@ -38,14 +38,14 @@ namespace {
     }
 
     template <typename T>
-    T makeInterpValue(const float animTick, const std::vector<std::pair<float, T>>& container) {
+    T make_interp_value(const float animTick, const std::vector<std::pair<float, T>>& container) {
         dalAssert(0 != container.size());
 
         if ( 1 == container.size() ) {
             return container[0].second;
         }
 
-        const auto startIndex = findIndexToStartInterp(container, animTick);
+        const auto startIndex = find_index_to_start_interp(container, animTick);
         const auto nextIndex = startIndex + 1;
         if ( nextIndex >= container.size() ) {
             return container.back().second;
@@ -145,40 +145,41 @@ namespace dal {
 }  // namespace dal
 
 
+// JointAnim
 namespace dal {
 
-    glm::mat4 Animation::JointNode::makeTransform(const float animTick) const {
-        const auto pos = this->makePosInterp(animTick);
-        const auto rotate = this->makeRotateInterp(animTick);
-        const auto scale = this->makeScaleInterp(animTick);
+    glm::mat4 JointAnim::make_transform(const float animTick) const {
+        const auto translate = this->interpolate_translate(animTick);
+        const auto rotate = this->interpolate_rotation(animTick);
+        const auto scale = this->interpolate_scale(animTick);
 
-        const glm::mat4 identity{ 1.0f };
-        const auto posMat = glm::translate(identity, pos);
-        const auto rotateMat = glm::mat4_cast(rotate);
-        const auto scaleMat = glm::scale(identity, glm::vec3{ scale });
+        const glm::mat4 identity{1};
+        const auto translate_mat = glm::translate(identity, translate);
+        const auto rotate_mat = glm::mat4_cast(rotate);
+        const auto scale_mat = glm::scale(identity, glm::vec3{ scale });
 
-        return posMat * rotateMat * scaleMat;
+        return translate_mat * rotate_mat * scale_mat;
     }
 
     // Private
 
-    bool Animation::JointNode::hasKeyframes(void) const {
-        return (this->m_poses.size() + this->m_rotates.size() + this->m_scales.size()) != 0;
+    bool JointAnim::has_key_frames() const {
+        return (this->m_data.m_translates.size() + this->m_data.m_rotations.size() + this->m_data.m_scales.size()) != 0;
     }
 
-    glm::vec3 Animation::JointNode::makePosInterp(const float animTick) const {
-        return this->m_poses.empty() ? glm::vec3{} : makeInterpValue(animTick, this->m_poses);
+    glm::vec3 JointAnim::interpolate_translate(const float anim_tick) const {
+        return this->m_data.m_translates.empty() ? glm::vec3{0} : ::make_interp_value(anim_tick, this->m_data.m_translates);
     }
 
-    glm::quat Animation::JointNode::makeRotateInterp(const float animTick) const {
-        return this->m_rotates.empty() ? glm::quat{} : makeInterpValue(animTick, this->m_rotates);
+    glm::quat JointAnim::interpolate_rotation(const float anim_tick) const {
+        return this->m_data.m_rotations.empty() ? glm::quat{} : ::make_interp_value(anim_tick, this->m_data.m_rotations);
     }
 
-    float Animation::JointNode::makeScaleInterp(const float animTick) const {
-        return this->m_scales.empty() ? 1.f : makeInterpValue(animTick, this->m_scales);
+    float JointAnim::interpolate_scale(const float anim_tick) const {
+        return this->m_data.m_scales.empty() ? 1 : ::make_interp_value(anim_tick, this->m_data.m_scales);
     }
 
-}  // namespace dal
+}
 
 
 namespace dal {
@@ -212,7 +213,7 @@ namespace dal {
                 boneTransforms[i] = found->second->makeTransform(elapsed, i, interf);
             }
             else {
-                boneTransforms[i] = this->m_joints[i].makeTransform(animTick);
+                boneTransforms[i] = this->m_joints[i].make_transform(animTick);
             }
         }
 

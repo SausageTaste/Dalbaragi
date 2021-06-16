@@ -127,61 +127,30 @@ namespace dal {
     using jointModifierRegistry_t = std::unordered_map<jointID_t, std::shared_ptr<IJointModifier>>;
 
 
-    class Animation {
+    class JointAnim {
 
     public:
-        class JointNode {
+        dal::parser::AnimJoint m_data;
 
-        private:
-            std::string m_name;
+        glm::mat4 make_transform(const float anim_tick) const;
 
-            std::vector<std::pair<float, glm::vec3>> m_poses;
-            std::vector<std::pair<float, glm::quat>> m_rotates;
-            std::vector<std::pair<float, float>> m_scales;
+    private:
+        bool has_key_frames() const;
 
-        public:
-            JointNode(const JointNode&) = default;
-            JointNode& operator=(const JointNode&) = default;
-            JointNode(JointNode&&) = default;
-            JointNode& operator=(JointNode&&) = default;
+        glm::vec3 interpolate_translate(const float anim_tick) const;
 
-        public:
-            JointNode(void) = default;;
+        glm::quat interpolate_rotation(const float anim_tick) const;
 
-            void setName(const std::string& name) {
-                this->m_name = name;
-            }
-            void addPos(const float timepoint, const glm::vec3& pos) {
-                const std::pair<float, glm::vec3> input{ timepoint, pos };
-                this->m_poses.push_back(input);
-            }
-            void addRotation(const float timepoint, const glm::quat& rot) {
-                const std::pair<float, glm::quat> input{ timepoint, rot };
-                this->m_rotates.push_back(input);
-            }
-            void addScale(const float timepoint, const float scale) {
-                const std::pair<float, float> input{ timepoint, scale };
-                this->m_scales.push_back(input);
-            }
+        float interpolate_scale(const float anim_tick) const;
 
-            const std::string& name(void) const {
-                return this->m_name;
-            }
+    };
 
-            glm::mat4 makeTransform(const float animTick) const;
 
-        private:
-            bool hasKeyframes(void) const;
-
-            glm::vec3 makePosInterp(const float animTick) const;
-            glm::quat makeRotateInterp(const float animTick) const;
-            float makeScaleInterp(const float animTick) const;
-
-        };
+    class Animation {
 
     private:
         std::string m_name;
-        std::vector<JointNode> m_joints;
+        std::vector<JointAnim> m_joints;
         float m_tickPerSec, m_durationInTick;
 
     public:
@@ -193,7 +162,7 @@ namespace dal {
     public:
         Animation(const std::string& name, const float tickPerSec, const float durationTick);
 
-        JointNode& newJoint(void) {
+        JointAnim& newJoint(void) {
             return this->m_joints.emplace_back();
         }
 

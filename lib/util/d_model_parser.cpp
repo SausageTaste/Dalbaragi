@@ -156,18 +156,7 @@ namespace dal {
             auto& in_anim = output.m_animations.emplace_back(out_anim.m_name, out_anim.m_ticks_par_sec, out_anim.m_duration_tick);
 
             for (auto& out_joint : out_anim.m_joints) {
-                auto& in_joint = in_anim.newJoint();
-
-                in_joint.setName(out_joint.m_name);
-
-                for (auto& out_translate : out_joint.m_translates)
-                    in_joint.addPos(out_translate.first, out_translate.second);
-
-                for (auto& out_rotation : out_joint.m_rotations)
-                    in_joint.addRotation(out_rotation.first, out_rotation.second);
-
-                for (auto& out_scale : out_joint.m_scales)
-                    in_joint.addScale(out_scale.first, out_scale.second);
+                in_anim.newJoint().m_data = out_joint;
             }
         }
 
