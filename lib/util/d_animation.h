@@ -183,6 +183,11 @@ namespace dal {
 
         float convert_sec_to_tick(const float seconds) const;
 
+        Animation make_compatible_with(const dal::SkeletonInterface& skeleton) const;
+
+    private:
+        const JointAnim* find_by_name(const std::string& name) const;
+
     };
 
 

@@ -216,6 +216,10 @@ namespace dal {
 
         bool is_ready() const override;
 
+        std::vector<Animation>& animations() override {
+            return this->m_animations;
+        }
+
         const std::vector<Animation>& animations() const override {
             return this->m_animations;
         }

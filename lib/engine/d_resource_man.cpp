@@ -246,6 +246,10 @@ namespace dal {
                 task_result.m_respath.dir_list().front().c_str()
             );
 
+            for (auto& anim : found->second->animations()) {
+                anim = anim.make_compatible_with(found->second->skeleton());
+            }
+
             this->m_waiting_prepare.push_back(found->second);
             this->m_waiting_file.erase(found);
         }

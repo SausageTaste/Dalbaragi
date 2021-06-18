@@ -239,6 +239,35 @@ namespace dal {
         return std::fmod(time_in_ticks, anim_duration);
     }
 
+    Animation Animation::make_compatible_with(const dal::SkeletonInterface& skeleton) const {
+        Animation output{ this->name(), this->tick_per_sec(), this->duration_in_tick() };
+        output.m_joints.resize(skeleton.size());
+
+        for (size_t i = 0; i < skeleton.size(); ++i) {
+            const auto src_joint = this->find_by_name(skeleton.at(i).name());
+            if (nullptr != src_joint) {
+                output.m_joints[i] = *src_joint;
+            }
+            else {
+                output.m_joints[i].m_data.m_name = skeleton.at(i).name();
+            }
+        }
+
+        return output;
+    }
+
+    // Private
+
+    const JointAnim* Animation::find_by_name(const std::string& name) const {
+        for (auto& joint : this->m_joints) {
+            if (joint.m_data.m_name == name) {
+                return &joint;
+            }
+        }
+
+        return nullptr;
+    }
+
 }
 
 
