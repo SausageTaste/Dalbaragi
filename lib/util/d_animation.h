@@ -17,7 +17,7 @@
 
 namespace dal {
 
-    using jointID_t = int32_t;
+    using jointID_t = dal::parser::jointID_t;
 
     using JointType = dal::parser::JointType;
 
