@@ -60,8 +60,8 @@ namespace dal {
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
             const VkFramebuffer swapchain_fbuf,
-            const VkPipeline pipeline_alpha,
-            const VkPipelineLayout pipe_layout_alpha,
+            const ShaderPipeline& pipeline_alpha,
+            const ShaderPipeline& pipeline_alpha_animated,
             const RenderPass_Alpha& render_pass
         );
 
