@@ -780,8 +780,8 @@ namespace {
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
-        const auto binding_desc = dal::make_vert_binding_desc_static();
-        const auto attrib_desc = dal::make_vert_attrib_desc_static();
+        const auto binding_desc = dal::make_vert_binding_desc_skinned();
+        const auto attrib_desc = dal::make_vert_attrib_desc_skinned();
         auto vertex_input_state = ::create_vertex_input_state(&binding_desc, 1, attrib_desc.data(), attrib_desc.size());
 
         // Input assembly
