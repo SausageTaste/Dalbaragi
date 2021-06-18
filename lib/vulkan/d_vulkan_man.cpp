@@ -167,9 +167,8 @@ namespace {
         createInfo.ppEnabledExtensionNames = extensions.data();
 
 #ifdef DAL_VK_DEBUG
-        if (!::check_validation_layer_support()) {
-            return nullptr;
-        }
+        const auto result_layer_support_check = ::check_validation_layer_support();
+        dalAssert(result_layer_support_check);
 
         const auto debug_info = ::make_info_debug_messenger();
         createInfo.enabledLayerCount = dal::VAL_LAYERS_TO_USE.size();
@@ -179,13 +178,9 @@ namespace {
 
         VkInstance instance = VK_NULL_HANDLE;
         const auto create_result = vkCreateInstance(&createInfo, nullptr, &instance);
+        dalAssert(VK_SUCCESS == create_result);
 
-        if (VK_SUCCESS == create_result) {
-            return instance;
-        }
-        else {
-            return VK_NULL_HANDLE;
-        }
+        return instance;
     }
 
 }
@@ -212,8 +207,6 @@ namespace dal {
         dalAssert(1 == InitVulkan());
 #endif
         this->m_instance = ::create_vulkan_instance(window_title, extensions);
-        dalAssert(VK_NULL_HANDLE != this->m_instance);
-
         this->m_surface = reinterpret_cast<VkSurfaceKHR>(surface_create_func(this->m_instance));
         dalAssert(VK_NULL_HANDLE != this->m_surface);
 
