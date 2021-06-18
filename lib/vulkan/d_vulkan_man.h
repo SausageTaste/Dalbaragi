@@ -11,9 +11,7 @@
 #include "d_vk_managers.h"
 
 
-#ifndef DAL_OS_ANDROID
-    #define DAL_VK_DEBUG
-#endif
+#define DAL_VK_DEBUG
 
 
 namespace dal {

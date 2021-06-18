@@ -169,11 +169,14 @@ namespace {
 #ifdef DAL_VK_DEBUG
         const auto result_layer_support_check = ::check_validation_layer_support();
         dalAssert(result_layer_support_check);
-
-        const auto debug_info = ::make_info_debug_messenger();
         createInfo.enabledLayerCount = dal::VAL_LAYERS_TO_USE.size();
         createInfo.ppEnabledLayerNames = dal::VAL_LAYERS_TO_USE.data();
+
+    #ifndef DAL_OS_ANDROID
+        const auto debug_info = ::make_info_debug_messenger();
         createInfo.pNext = reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(&debug_info);
+    #endif
+
 #endif
 
         VkInstance instance = VK_NULL_HANDLE;
