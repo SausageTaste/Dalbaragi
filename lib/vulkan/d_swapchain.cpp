@@ -318,7 +318,7 @@ namespace dal {
             }
 
             create_info_swapchain.preTransform = swapchain_support.m_capabilities.currentTransform;
-            create_info_swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+            create_info_swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
             create_info_swapchain.presentMode = present_mode;
             create_info_swapchain.clipped = VK_TRUE;
             create_info_swapchain.oldSwapchain = this->m_swapChain;
