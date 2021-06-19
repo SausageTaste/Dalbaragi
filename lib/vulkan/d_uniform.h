@@ -39,11 +39,11 @@ namespace dal {
     };
 
     struct U_GlobalLight {
-        glm::vec4 m_dlight_direc[2];
-        glm::vec4 m_dlight_color[2];
+        glm::vec4 m_dlight_direc[dal::MAX_DLIGHT_COUNT];
+        glm::vec4 m_dlight_color[dal::MAX_DLIGHT_COUNT];
 
-        glm::vec4 m_plight_pos_n_max_dist[3];
-        glm::vec4 m_plight_color[3];
+        glm::vec4 m_plight_pos_n_max_dist[dal::MAX_PLIGHT_COUNT];
+        glm::vec4 m_plight_color[dal::MAX_PLIGHT_COUNT];
 
         glm::vec4 m_ambient_light;
 
