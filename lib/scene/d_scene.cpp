@@ -43,7 +43,7 @@ namespace dal {
 
         {
             auto& light = output.m_dlights.emplace_back();
-            light.set_to_light_direc(1, 1, 1);
+            light.set_direc_to_light(1, 1, 1);
             light.m_color = glm::vec3{0.2, 0.2, 0.4};
         }
 
