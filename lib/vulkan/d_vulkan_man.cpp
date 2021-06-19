@@ -194,6 +194,7 @@ namespace dal {
     void ShadowMapFbuf::record_cmd_buf(
         const FrameInFlightIndex& flight_frame_index,
         const RenderList& render_list,
+        const glm::mat4& light_mat,
         const ShaderPipeline& pipeline_shadow,
         const RenderPass_ShadowMap& render_pass
     ) {
@@ -238,6 +239,9 @@ namespace dal {
 
                     for (auto& actor : render_tuple.m_actors) {
                         U_PC_Shadow pc_data;
+                        pc_data.m_model_mat = actor->m_transform.make_mat4();
+                        pc_data.m_light_mat = light_mat;
+
                         vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Shadow), &pc_data);
                         vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
                     }
@@ -423,6 +427,7 @@ namespace dal {
             this->m_shadow_map.record_cmd_buf(
                 this->m_flight_frame_index,
                 render_list,
+                render_list.m_dlights.front().make_light_mat(5),
                 this->m_pipelines.shadow(),
                 this->m_renderpasses.rp_shadow()
             );

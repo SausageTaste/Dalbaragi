@@ -32,6 +32,8 @@ namespace dal {
             this->set_direc_to_light(glm::vec3{x, y, z});
         }
 
+        glm::mat4 make_light_mat(const float half_proj_box_edge_length) const;
+
     };
 
 

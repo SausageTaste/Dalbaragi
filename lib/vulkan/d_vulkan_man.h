@@ -51,6 +51,7 @@ namespace dal {
         void record_cmd_buf(
             const FrameInFlightIndex& flight_frame_index,
             const RenderList& render_list,
+            const glm::mat4& light_mat,
             const ShaderPipeline& pipeline_shadow,
             const RenderPass_ShadowMap& render_pass
         );
