@@ -35,6 +35,10 @@ namespace dal {
 
         std::vector<VkCommandBuffer> allocate(const uint32_t alloc_count, const VkDevice logi_device) const;
 
+        void free(const VkCommandBuffer cmd_buf, const VkDevice logi_device) const;
+
+        void free(const std::vector<VkCommandBuffer>& cmd_buf, const VkDevice logi_device) const;
+
         VkCommandBuffer begin_single_time_cmd(const VkDevice logi_device);
 
         void end_single_time_cmd(

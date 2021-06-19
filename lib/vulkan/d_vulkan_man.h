@@ -16,6 +16,41 @@
 
 namespace dal {
 
+    class ShadowMapFbuf {
+
+    private:
+        CommandPool m_cmd_pool;
+        FbufAttachment m_depth_attach;
+        Fbuf_Shadow m_fbuf;
+        std::vector<VkCommandBuffer> m_cmd_buf;
+
+    public:
+        void init(
+            const uint32_t width,
+            const uint32_t height,
+            const uint32_t max_in_flight_count,
+            const uint32_t queue_fam_index,
+            const RenderPass_ShadowMap& rp_shadow,
+            const VkFormat depth_format,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        ) {
+            this->m_depth_attach.init(width, height, dal::FbufAttachment::Usage::depth_attachment, depth_format, phys_device, logi_device);
+            this->m_fbuf.init(rp_shadow, VkExtent2D{width, height}, this->m_depth_attach.view().get(), logi_device);
+            this->m_cmd_pool.init(queue_fam_index, logi_device);
+            this->m_cmd_buf = this->m_cmd_pool.allocate(max_in_flight_count, logi_device);
+        }
+
+        void destroy(const VkDevice logi_device) {
+            this->m_cmd_pool.free(this->m_cmd_buf, logi_device);
+            this->m_cmd_pool.destroy(logi_device);
+            this->m_fbuf.destroy(logi_device);
+            this->m_depth_attach.destroy(logi_device);
+        }
+
+    };
+
+
     class VulkanState : public IRenderer {
 
     private:

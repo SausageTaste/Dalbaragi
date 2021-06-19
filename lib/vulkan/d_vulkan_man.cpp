@@ -234,6 +234,8 @@ namespace dal {
         this->m_desc_allocator.init(64, 64, 64, 64, this->m_logi_device.get());
         this->m_shadow_map.init(
             512, 512,
+            dal::MAX_FRAMES_IN_FLIGHT,
+            this->m_logi_device.indices().graphics_family(),
             this->m_renderpasses.rp_shadow(),
             this->m_phys_device.find_depth_format(),
             this->m_phys_device.get(),
