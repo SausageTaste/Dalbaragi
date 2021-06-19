@@ -231,13 +231,13 @@ namespace dal {
             this->m_logi_device.get()
         );
 
-        this->m_desc_pool_actor.init(64, 64, 64, 64, this->m_logi_device.get());
+        this->m_desc_allocator.init(64, 64, 64, 64, this->m_logi_device.get());
     }
 
     VulkanState::~VulkanState() {
         this->wait_idle();
 
-        this->m_desc_pool_actor.destroy(this->m_logi_device.get());
+        this->m_desc_allocator.destroy(this->m_logi_device.get());
         this->m_sampler_man.destroy(this->m_logi_device.get());
         this->m_desc_man.destroy(this->m_logi_device.get());
         this->m_ubuf_man.destroy(this->m_logi_device.get());
@@ -567,7 +567,7 @@ namespace dal {
         auto& a = reinterpret_cast<ActorVK&>(actor);
 
         a.init(
-            this->m_desc_pool_actor,
+            this->m_desc_allocator,
             this->m_desc_layout_man.layout_per_actor(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
@@ -580,7 +580,7 @@ namespace dal {
         auto& a = reinterpret_cast<ActorSkinnedVK&>(actor);
 
         a.init(
-            this->m_desc_pool_actor,
+            this->m_desc_allocator,
             this->m_desc_layout_man.layout_per_actor(),
             this->m_desc_layout_man.layout_animation(),
             this->m_phys_device.get(),

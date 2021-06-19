@@ -14,13 +14,14 @@ namespace dal {
     private:
         DescSet m_desc_per_actor;
         dal::UniformBuffer<dal::U_PerActor> m_ubuf_per_actor;
+        DescAllocator* m_desc_allocator = nullptr;
         VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
         ~ActorVK();
 
         void init(
-            DescPool& desc_pool,
+            DescAllocator& desc_allocator,
             const VkDescriptorSetLayout layout_per_actor,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
@@ -46,13 +47,14 @@ namespace dal {
         std::vector<DescSet> m_desc_animation;
         dal::UniformBufferArray<dal::U_PerActor> m_ubuf_per_actor;
         dal::UniformBufferArray<dal::U_AnimTransform> m_ubuf_anim;
+        DescAllocator* m_desc_allocator = nullptr;
         VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
         ~ActorSkinnedVK();
 
         void init(
-            DescPool& desc_pool,
+            DescAllocator& desc_allocator,
             const VkDescriptorSetLayout layout_per_actor,
             const VkDescriptorSetLayout layout_anim,
             const VkPhysicalDevice phys_device,

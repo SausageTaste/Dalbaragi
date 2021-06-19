@@ -36,7 +36,7 @@ namespace dal {
         DescriptorManager m_desc_man;
 
         SamplerManager m_sampler_man;
-        DescPool m_desc_pool_actor;
+        DescAllocator m_desc_allocator;
 
     private:
         // Non-vulkan members

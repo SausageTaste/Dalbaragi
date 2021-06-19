@@ -13,7 +13,7 @@ namespace dal {
     }
 
     void ActorVK::init(
-        DescPool& desc_pool,
+        DescAllocator& desc_allocator,
         const VkDescriptorSetLayout layout_per_actor,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
@@ -21,14 +21,23 @@ namespace dal {
         this->destroy();
 
         this->m_logi_device = logi_device;
+        this->m_desc_allocator = &desc_allocator;
+
         this->m_ubuf_per_actor.init(phys_device, logi_device);
-        this->m_desc_per_actor = desc_pool.allocate(layout_per_actor, logi_device);
+        this->m_desc_per_actor = this->m_desc_allocator->allocate(layout_per_actor, logi_device);
         this->m_desc_per_actor.record_per_actor(this->m_ubuf_per_actor, logi_device);
     }
 
     void ActorVK::destroy() {
-        this->m_ubuf_per_actor.destroy(this->m_logi_device);
-        this->m_logi_device = VK_NULL_HANDLE;
+        if (nullptr != this->m_desc_allocator) {
+            this->m_desc_allocator->free(this->m_desc_per_actor);
+            this->m_desc_allocator = nullptr;
+        }
+
+        if (VK_NULL_HANDLE != this->m_logi_device) {
+            this->m_ubuf_per_actor.destroy(this->m_logi_device);
+            this->m_logi_device = VK_NULL_HANDLE;
+        }
     }
 
     bool ActorVK::is_ready() const {
@@ -54,7 +63,7 @@ namespace dal {
     }
 
     void ActorSkinnedVK::init(
-        DescPool& desc_pool,
+        DescAllocator& desc_allocator,
         const VkDescriptorSetLayout layout_per_actor,
         const VkDescriptorSetLayout layout_anim,
         const VkPhysicalDevice phys_device,
@@ -63,26 +72,36 @@ namespace dal {
         this->destroy();
 
         this->m_logi_device = logi_device;
+        this->m_desc_allocator = &desc_allocator;
 
         this->m_ubuf_per_actor.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
         for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
-            this->m_desc_per_actor.push_back(desc_pool.allocate(layout_per_actor, logi_device));
+            this->m_desc_per_actor.push_back(this->m_desc_allocator->allocate(layout_per_actor, logi_device));
             this->m_desc_per_actor.back().record_per_actor(this->m_ubuf_per_actor.at(i), logi_device);
         }
 
         this->m_ubuf_anim.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
         for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
-            this->m_desc_animation.push_back(desc_pool.allocate(layout_anim, logi_device));
+            this->m_desc_animation.push_back(this->m_desc_allocator->allocate(layout_anim, logi_device));
             this->m_desc_animation.back().record_animation(this->m_ubuf_anim.at(i), logi_device);
         }
     }
 
     void ActorSkinnedVK::destroy() {
+        if (nullptr != this->m_desc_allocator) {
+            this->m_desc_allocator->free(this->m_desc_per_actor);
+            this->m_desc_allocator->free(this->m_desc_animation);
+            this->m_desc_allocator = nullptr;
+        }
+
         this->m_desc_per_actor.clear();
         this->m_desc_animation.clear();
-        this->m_ubuf_per_actor.destroy(this->m_logi_device);
-        this->m_ubuf_anim.destroy(this->m_logi_device);
-        this->m_logi_device = VK_NULL_HANDLE;
+
+        if (VK_NULL_HANDLE != this->m_logi_device) {
+            this->m_ubuf_per_actor.destroy(this->m_logi_device);
+            this->m_ubuf_anim.destroy(this->m_logi_device);
+            this->m_logi_device = VK_NULL_HANDLE;
+        }
     }
 
     bool ActorSkinnedVK::is_ready() const {
