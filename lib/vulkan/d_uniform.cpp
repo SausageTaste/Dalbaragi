@@ -150,6 +150,7 @@ namespace {
 
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_GlobalLight
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_PerFrame_Composition
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);  // Dlight shadow map 1
 
         //----------------------------------------------------------------------------------
 
@@ -401,6 +402,8 @@ namespace dal {
         const std::vector<VkImageView>& attachment_views,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
+        const VkImageView dlight_shadow_map_1,
+        const VkSampler sampler,
         const VkDevice logi_device
     ) {
         ::WriteDescBuilder desc_writes{ this->m_handle };
@@ -412,6 +415,7 @@ namespace dal {
         dalAssert(4 == global_light_index);
 
         desc_writes.add_buffer(ubuf_per_frame);
+        desc_writes.add_img_sampler(dlight_shadow_map_1, sampler);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -648,12 +652,14 @@ namespace dal {
         const std::vector<VkImageView>& attachment_views,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
+        const VkImageView dlight_shadow_map_1,
+        const VkSampler sampler,
         const VkDescriptorSetLayout desc_layout_composition,
         const VkDevice logi_device
     ) {
         auto& new_desc = this->m_descset_composition.emplace_back();
         new_desc = this->m_pool_composition.allocate(desc_layout_composition, logi_device);
-        new_desc.record_composition(attachment_views, ubuf_global_light, ubuf_per_frame, logi_device);
+        new_desc.record_composition(attachment_views, ubuf_global_light, ubuf_per_frame, dlight_shadow_map_1, sampler, logi_device);
     }
 
 }

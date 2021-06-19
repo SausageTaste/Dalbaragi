@@ -291,25 +291,16 @@ namespace dal {
         this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
         this->m_desc_layout_man.init(this->m_logi_device.get());
 
-        const auto result_init_swapchain = this->init_swapchain_and_dependers();
-        dalAssert(result_init_swapchain);
-
         this->m_sampler_man.init(
             this->m_phys_info.does_support_anisotropic_sampling(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
 
+        const auto result_init_swapchain = this->init_swapchain_and_dependers();
+        dalAssert(result_init_swapchain);
+
         this->m_desc_allocator.init(64, 64, 64, 64, this->m_logi_device.get());
-        this->m_shadow_map.init(
-            512, 512,
-            dal::MAX_FRAMES_IN_FLIGHT,
-            this->m_logi_device.indices().graphics_family(),
-            this->m_renderpasses.rp_shadow(),
-            this->m_phys_device.find_depth_format(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
     }
 
     VulkanState::~VulkanState() {
@@ -768,6 +759,16 @@ namespace dal {
             this->m_logi_device.get()
         );
 
+        this->m_shadow_map.init(
+            512, 512,
+            dal::MAX_FRAMES_IN_FLIGHT,
+            this->m_logi_device.indices().graphics_family(),
+            this->m_renderpasses.rp_shadow(),
+            this->m_phys_device.find_depth_format(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
         this->m_fbuf_man.init(
             this->m_swapchain.views(),
             this->m_attach_man,
@@ -829,6 +830,8 @@ namespace dal {
                 },
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_ubuf_man.m_ub_per_frame_composition.at(i),
+                this->m_shadow_map.shadow_map_view(),
+                this->m_sampler_man.sampler_tex().get(),
                 this->m_desc_layout_man.layout_composition(),
                 this->m_logi_device.get()
             );

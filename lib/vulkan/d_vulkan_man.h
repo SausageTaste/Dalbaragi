@@ -35,14 +35,19 @@ namespace dal {
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         ) {
-            this->m_depth_attach.init(width, height, dal::FbufAttachment::Usage::depth_attachment, depth_format, phys_device, logi_device);
+            this->destroy(logi_device);
+
+            this->m_depth_attach.init(width, height, dal::FbufAttachment::Usage::depth_map, depth_format, phys_device, logi_device);
             this->m_fbuf.init(rp_shadow, VkExtent2D{width, height}, this->m_depth_attach.view().get(), logi_device);
             this->m_cmd_pool.init(queue_fam_index, logi_device);
             this->m_cmd_buf = this->m_cmd_pool.allocate(max_in_flight_count, logi_device);
         }
 
         void destroy(const VkDevice logi_device) {
-            this->m_cmd_pool.free(this->m_cmd_buf, logi_device);
+            if (!this->m_cmd_buf.empty()) {
+                this->m_cmd_pool.free(this->m_cmd_buf, logi_device);
+                this->m_cmd_buf.clear();
+            }
             this->m_cmd_pool.destroy(logi_device);
             this->m_fbuf.destroy(logi_device);
             this->m_depth_attach.destroy(logi_device);
@@ -58,6 +63,10 @@ namespace dal {
 
         auto& cmd_buf_at(const size_t index) const {
             return this->m_cmd_buf.at(index);
+        }
+
+        auto shadow_map_view() const {
+            return this->m_depth_attach.view().get();
         }
 
     };

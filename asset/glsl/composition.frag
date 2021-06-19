@@ -33,6 +33,8 @@ layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
     vec4 m_view_pos;
 } u_per_frame_composition;
 
+layout(set = 0, binding = 6) uniform sampler2D u_dlight_shadow_map;
+
 
 vec3 calc_world_pos(const float z) {
     const vec4 clipSpacePosition = vec4(v_device_coord, z, 1);
@@ -61,6 +63,8 @@ void main() {
     const vec3 normal = subpassLoad(input_normal).xyz * 2.0 - 1.0;
     const vec3 albedo = subpassLoad(input_albedo).xyz;
     const vec2 material = subpassLoad(input_material).xy;
+
+    const float a = texture(u_dlight_shadow_map, v_device_coord).r;
 
     const vec3 world_pos = calc_world_pos(depth);
     const vec3 view_direc = normalize(u_per_frame_composition.m_view_pos.xyz - world_pos);
@@ -98,7 +102,7 @@ void main() {
         );
     }
 
-    out_color = vec4(light, 1);
+    out_color = vec4(light * a, 1);
 
 #ifdef DAL_GAMMA_CORRECT
     out_color.xyz = fix_color(out_color.xyz);
