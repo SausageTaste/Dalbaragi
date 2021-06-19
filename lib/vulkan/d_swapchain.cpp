@@ -298,23 +298,21 @@ namespace dal {
         this->destroy_except_swapchain(logi_device);
 
         const SwapChainSupportDetails swapchain_support{ surface, phys_device };
+
         const auto surface_format = ::choose_surface_format(swapchain_support.m_formats);
         const auto present_mode = ::choose_present_mode(swapchain_support.m_present_modes, ::PresentMode::fifo);
-
         this->m_image_format = surface_format.format;
         //this->m_extent = ::choose_extent(swapchain_support.m_capabilities, desired_width, desired_height);
         this->m_screen_extent = swapchain_support.m_capabilities.currentExtent;
         this->m_identity_extent = ::get_identity_screen_resoultion(swapchain_support.m_capabilities);
         this->m_transform = swapchain_support.m_capabilities.currentTransform;
 
-        const auto needed_images_count = ::choose_image_count(swapchain_support);
-
         // Create swap chain
         {
             VkSwapchainCreateInfoKHR create_info_swapchain{};
             create_info_swapchain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
             create_info_swapchain.surface = surface;
-            create_info_swapchain.minImageCount = needed_images_count;
+            create_info_swapchain.minImageCount = ::choose_image_count(swapchain_support);
             create_info_swapchain.imageFormat = surface_format.format;
             create_info_swapchain.imageColorSpace = surface_format.colorSpace;
             create_info_swapchain.imageExtent = this->m_identity_extent;
