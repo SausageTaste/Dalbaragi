@@ -4,7 +4,6 @@
 #include <functional>
 
 #include "d_actor.h"
-#include "d_shader.h"
 #include "d_renderer.h"
 #include "d_vk_device.h"
 #include "d_filesystem.h"
@@ -12,9 +11,7 @@
 #include "d_vk_managers.h"
 
 
-#ifndef DAL_OS_ANDROID
-    #define DAL_VK_DEBUG
-#endif
+#define DAL_VK_DEBUG
 
 
 namespace dal {
@@ -39,7 +36,7 @@ namespace dal {
         DescriptorManager m_desc_man;
 
         SamplerManager m_sampler_man;
-        DescPool m_desc_pool_actor;
+        DescAllocator m_desc_allocator;
 
     private:
         // Non-vulkan members
@@ -70,6 +67,10 @@ namespace dal {
 
         void update(const ICamera& camera, const RenderList& render_list) override;
 
+        const FrameInFlightIndex& in_flight_index() const override {
+            return this->m_flight_frame_index;
+        }
+
         void wait_idle() override;
 
         void on_screen_resize(const unsigned width, const unsigned height) override;
@@ -78,15 +79,25 @@ namespace dal {
 
         HRenModel create_model() override;
 
+        HRenModelSkinned create_model_skinned() override;
+
         HActor create_actor() override;
+
+        HActorSkinned create_actor_skinned() override;
 
         bool init(ITexture& tex, const ImageData& img_data) override;
 
         bool init(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) override;
 
+        bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) override;
+
         bool init(IActor& actor) override;
 
+        bool init(IActorSkinned& actor) override;
+
         bool prepare(IRenModel& model) override;
+
+        bool prepare(IRenModelSkineed& model) override;
 
     private:
         // Returns true if recreation is still needed.

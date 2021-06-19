@@ -10,14 +10,13 @@ layout(location = 2) in vec3 v_world_pos;
 layout(location = 0) out vec4 out_color;
 
 
-layout(set = 1, binding = 0) uniform U_PerMaterial {
-    float m_roughness;
-    float m_metallic;
-} u_per_material;
+layout(set = 0, binding = 0) uniform U_PerFrame {
+    mat4 m_view;
+    mat4 m_proj;
+    vec4 m_view_pos;
+} u_per_frame;
 
-layout(set = 1, binding = 1) uniform sampler2D u_albedo_map;
-
-layout(set=3, binding=0) uniform U_GlobalLight {
+layout(set = 0, binding = 1) uniform U_GlobalLight {
     vec4 m_dlight_direc[2];
     vec4 m_dlight_color[2];
 
@@ -30,9 +29,12 @@ layout(set=3, binding=0) uniform U_GlobalLight {
     uint m_plight_count;
 } u_global_light;
 
-layout(set=3, binding=1) uniform U_PerFrame_Alpha {
-    vec4 m_view_pos;
-} u_per_frame_alpha;
+layout(set = 1, binding = 0) uniform U_PerMaterial {
+    float m_roughness;
+    float m_metallic;
+} u_per_material;
+
+layout(set = 1, binding = 1) uniform sampler2D u_albedo_map;
 
 
 vec3 fix_color(const vec3 color) {
@@ -47,11 +49,11 @@ vec3 fix_color(const vec3 color) {
 
 
 void main() {
-    vec4 color_texture = texture(u_albedo_map, v_uv_coord);
+    const vec4 color_texture = texture(u_albedo_map, v_uv_coord);
     const vec3 albedo = color_texture.xyz;
     const float alpha = color_texture.w;
 
-    const vec3 view_direc = normalize(u_per_frame_alpha.m_view_pos.xyz - v_world_pos);
+    const vec3 view_direc = normalize(u_per_frame.m_view_pos.xyz - v_world_pos);
     const vec3 F0 = mix(vec3(0.04), albedo, u_per_material.m_metallic);
 
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;

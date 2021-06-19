@@ -51,9 +51,11 @@ namespace dal {
 
     private:
         ShaderPipeline m_gbuf;
+        ShaderPipeline m_gbuf_animated;
         ShaderPipeline m_composition;
         ShaderPipeline m_final;
         ShaderPipeline m_alpha;
+        ShaderPipeline m_alpha_animated;
 
     public:
         void init(
@@ -62,10 +64,10 @@ namespace dal {
             const VkExtent2D& swapchain_extent,
             const VkExtent2D& gbuf_extent,
             const VkDescriptorSetLayout desc_layout_final,
-            const VkDescriptorSetLayout desc_layout_simple,
+            const VkDescriptorSetLayout desc_layout_per_global,
             const VkDescriptorSetLayout desc_layout_per_material,
             const VkDescriptorSetLayout desc_layout_per_actor,
-            const VkDescriptorSetLayout desc_layout_per_world,
+            const VkDescriptorSetLayout desc_layout_animation,
             const VkDescriptorSetLayout desc_layout_composition,
             const RenderPass_Gbuf& rp_gbuf,
             const RenderPass_Final& rp_final,
@@ -75,8 +77,12 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        auto& simple() const {
+        auto& gbuf() const {
             return this->m_gbuf;
+        }
+
+        auto& gbuf_animated() const {
+            return this->m_gbuf_animated;
         }
 
         auto& composition() const {
@@ -89,6 +95,10 @@ namespace dal {
 
         auto& alpha() const {
             return this->m_alpha;
+        }
+
+        auto& alpha_animated() const {
+            return this->m_alpha_animated;
         }
 
     };

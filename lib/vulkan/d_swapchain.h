@@ -9,9 +9,9 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
+#include "d_indices.h"
 #include "d_image_obj.h"
 #include "d_sync_primitives.h"
-#include "d_konsts.h"
 
 
 namespace dal {
@@ -62,83 +62,6 @@ namespace dal {
         }
 
         void init(const VkSurfaceKHR surface, const VkPhysicalDevice phys_device);
-
-    };
-
-
-    template <typename T>
-    class IIndex {
-
-    private:
-        T m_value = 0;
-
-    public:
-        IIndex()
-            : m_value(0)
-        {
-
-        }
-
-        explicit
-        IIndex(const T v) noexcept
-            : m_value(v)
-        {
-
-        }
-
-        IIndex& operator=(const T v) {
-            this->set(v);
-            return *this;
-        }
-
-        T& operator*() noexcept {
-            return this->m_value;
-        }
-
-        const T& operator*() const noexcept {
-            return this->m_value;
-        }
-
-        const T& get() const noexcept {
-            return this->m_value;
-        }
-
-        void set(const T v) noexcept {
-            this->m_value = v;
-        }
-
-        void set_max_value() noexcept {
-            this->m_value = (std::numeric_limits<T>::max)();
-        }
-
-    };
-
-
-    class FrameInFlightIndex : public IIndex<uint32_t> {
-
-    public:
-        using IIndex::IIndex;
-        using IIndex::operator=;
-
-        void increase() noexcept {
-            this->set( (this->get() + 1) % MAX_FRAMES_IN_FLIGHT );
-        }
-
-    };
-
-
-    class SwapchainIndex : public IIndex<uint32_t> {
-
-    public:
-        using IIndex::IIndex;
-        using IIndex::operator=;
-
-        [[nodiscard]]
-        static SwapchainIndex max_value() noexcept {
-            SwapchainIndex output;
-            output.set_max_value();
-            return output;
-        }
 
     };
 

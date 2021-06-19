@@ -30,6 +30,11 @@ namespace {
                 dal::get_log_level_str(level),
                 str
             );
+
+            if (static_cast<int>(level) >= static_cast<int>(dal::LogLevel::warning))
+                return;
+            else
+                return;
         }
 
     private:
@@ -88,13 +93,8 @@ namespace {
         engine_info.m_extensions = instanceExt;
         engine_info.m_surface_create_func = surface_creator;
 
-        if (nullptr != state->userData) {
-            auto& engine = *reinterpret_cast<dal::Engine*>(state->userData);
-            engine.init(engine_info);
-        }
-        else {
-            state->userData = new dal::Engine(engine_info);
-        }
+        dalAssert(nullptr == state->userData);
+        state->userData = new dal::Engine(engine_info);
     }
 
     void on_content_rect_changed(android_app* const state) {

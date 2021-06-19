@@ -14,13 +14,14 @@ namespace dal {
     private:
         DescSet m_desc_per_actor;
         dal::UniformBuffer<dal::U_PerActor> m_ubuf_per_actor;
+        DescAllocator* m_desc_allocator = nullptr;
         VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
         ~ActorVK();
 
         void init(
-            DescPool& desc_pool,
+            DescAllocator& desc_allocator,
             const VkDescriptorSetLayout layout_per_actor,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
@@ -34,6 +35,46 @@ namespace dal {
 
         auto& desc_set_raw() const {
             return this->m_desc_per_actor.get();
+        }
+
+    };
+
+
+    class ActorSkinnedVK : public IActorSkinned {
+
+    private:
+        std::vector<DescSet> m_desc_per_actor;
+        std::vector<DescSet> m_desc_animation;
+        dal::UniformBufferArray<dal::U_PerActor> m_ubuf_per_actor;
+        dal::UniformBufferArray<dal::U_AnimTransform> m_ubuf_anim;
+        DescAllocator* m_desc_allocator = nullptr;
+        VkDevice m_logi_device = VK_NULL_HANDLE;
+
+    public:
+        ~ActorSkinnedVK();
+
+        void init(
+            DescAllocator& desc_allocator,
+            const VkDescriptorSetLayout layout_per_actor,
+            const VkDescriptorSetLayout layout_anim,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destroy() override;
+
+        bool is_ready() const;
+
+        void apply_transform(const FrameInFlightIndex& index) override;
+
+        void apply_animation(const FrameInFlightIndex& index) override;
+
+        auto& desc_per_actor(const FrameInFlightIndex& index) const {
+            return this->m_desc_per_actor.at(index.get()).get();
+        }
+
+        auto& desc_animation(const FrameInFlightIndex& index) const {
+            return this->m_desc_animation.at(index.get()).get();
         }
 
     };
@@ -56,8 +97,18 @@ namespace dal {
         glm::vec3 m_weight_center{ 0 };
 
     public:
-        void init(
+        void init_static(
             const dal::RenderUnitStatic& unit_data,
+            dal::CommandPool& cmd_pool,
+            ITextureManager& tex_man,
+            const char* const fallback_file_namespace,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void init_skinned(
+            const dal::RenderUnitSkinned& unit_data,
             dal::CommandPool& cmd_pool,
             ITextureManager& tex_man,
             const char* const fallback_file_namespace,
@@ -116,6 +167,68 @@ namespace dal {
         bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device);
 
         bool is_ready() const override;
+
+        auto& render_units() const {
+            return this->m_units;
+        }
+
+        auto& render_units_alpha() const {
+            return this->m_units_alpha;
+        }
+
+    };
+
+
+    class ModelSkinnedRenderer : public IRenModelSkineed {
+
+    private:
+        std::vector<RenderUnit> m_units;
+        std::vector<RenderUnit> m_units_alpha;
+        std::vector<Animation> m_animations;
+        SkeletonInterface m_skeleton_interf;
+        DescPool m_desc_pool;
+
+        VkDevice m_logi_device = VK_NULL_HANDLE;
+
+    public:
+        ~ModelSkinnedRenderer() override {
+            this->destroy();
+        }
+
+        void init(
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void upload_meshes(
+            const dal::ModelSkinned& model_data,
+            dal::CommandPool& cmd_pool,
+            ITextureManager& tex_man,
+            const char* const fallback_file_namespace,
+            const VkDescriptorSetLayout layout_per_actor,
+            const VkDescriptorSetLayout layout_per_material,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destroy() override;
+
+        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device);
+
+        bool is_ready() const override;
+
+        std::vector<Animation>& animations() override {
+            return this->m_animations;
+        }
+
+        const std::vector<Animation>& animations() const override {
+            return this->m_animations;
+        }
+
+        const SkeletonInterface& skeleton() const override {
+            return this->m_skeleton_interf;
+        }
 
         auto& render_units() const {
             return this->m_units;

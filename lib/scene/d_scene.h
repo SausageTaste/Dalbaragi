@@ -6,6 +6,7 @@
 
 #include "d_actor.h"
 #include "d_renderer.h"
+#include "d_animation.h"
 
 
 namespace dal {
@@ -16,8 +17,16 @@ namespace dal {
             HRenModel m_model;
         };
 
+        struct ModelSkinned {
+            HRenModelSkinned m_model;
+        };
+
         struct Actor {
             std::vector<HActor> m_actors;
+        };
+
+        struct ActorAnimated {
+            std::vector<HActorSkinned> m_actors;
         };
 
     }
@@ -32,6 +41,8 @@ namespace dal {
 
     public:
         Scene();
+
+        void update();
 
         RenderList make_render_list();
 

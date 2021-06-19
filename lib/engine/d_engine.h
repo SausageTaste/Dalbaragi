@@ -42,10 +42,6 @@ namespace dal {
 
         ~Engine();
 
-        void init(const EngineCreateInfo& create_info);
-
-        void destroy();
-
         void update();
 
         void init_vulkan(const unsigned win_width, const unsigned win_height);
@@ -59,6 +55,11 @@ namespace dal {
         auto& input_manager() {
             return this->m_input_man;
         }
+
+    private:
+        void init(const EngineCreateInfo& create_info);
+
+        void destroy();
 
     };
 

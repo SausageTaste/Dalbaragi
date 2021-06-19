@@ -16,6 +16,8 @@ add_library(libdal_util STATIC
     d_input_def.h           d_input_def.cpp
     d_static_list.h         d_static_list.cpp
     d_konsts.h
+    d_animation.h           d_animation.cpp
+    d_indices.h             d_indices.cpp
 )
 target_compile_features(libdal_util PUBLIC cxx_std_17)
 target_include_directories(libdal_util PUBLIC ./)

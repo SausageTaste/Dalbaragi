@@ -167,25 +167,23 @@ namespace {
         createInfo.ppEnabledExtensionNames = extensions.data();
 
 #ifdef DAL_VK_DEBUG
-        if (!::check_validation_layer_support()) {
-            return nullptr;
-        }
-
-        const auto debug_info = ::make_info_debug_messenger();
+        const auto result_layer_support_check = ::check_validation_layer_support();
+        dalAssert(result_layer_support_check);
         createInfo.enabledLayerCount = dal::VAL_LAYERS_TO_USE.size();
         createInfo.ppEnabledLayerNames = dal::VAL_LAYERS_TO_USE.data();
+
+    #ifndef DAL_OS_ANDROID
+        const auto debug_info = ::make_info_debug_messenger();
         createInfo.pNext = reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(&debug_info);
+    #endif
+
 #endif
 
         VkInstance instance = VK_NULL_HANDLE;
         const auto create_result = vkCreateInstance(&createInfo, nullptr, &instance);
+        dalAssert(VK_SUCCESS == create_result);
 
-        if (VK_SUCCESS == create_result) {
-            return instance;
-        }
-        else {
-            return VK_NULL_HANDLE;
-        }
+        return instance;
     }
 
 }
@@ -212,8 +210,6 @@ namespace dal {
         dalAssert(1 == InitVulkan());
 #endif
         this->m_instance = ::create_vulkan_instance(window_title, extensions);
-        dalAssert(VK_NULL_HANDLE != this->m_instance);
-
         this->m_surface = reinterpret_cast<VkSurfaceKHR>(surface_create_func(this->m_instance));
         dalAssert(VK_NULL_HANDLE != this->m_surface);
 
@@ -235,13 +231,13 @@ namespace dal {
             this->m_logi_device.get()
         );
 
-        this->m_desc_pool_actor.init(64, 64, 64, 64, this->m_logi_device.get());
+        this->m_desc_allocator.init(64, 64, 64, 64, this->m_logi_device.get());
     }
 
     VulkanState::~VulkanState() {
         this->wait_idle();
 
-        this->m_desc_pool_actor.destroy(this->m_logi_device.get());
+        this->m_desc_allocator.destroy(this->m_logi_device.get());
         this->m_sampler_man.destroy(this->m_logi_device.get());
         this->m_desc_man.destroy(this->m_logi_device.get());
         this->m_ubuf_man.destroy(this->m_logi_device.get());
@@ -316,10 +312,6 @@ namespace dal {
             ubuf_data_composition.m_view_inv = glm::inverse(ubuf_data_per_frame.m_view);
             ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
             this->m_ubuf_man.m_ub_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
-
-            U_PerFrame_Alpha ubuf_data_alpha{};
-            ubuf_data_alpha.m_view_pos = ubuf_data_per_frame.m_view_pos;
-            this->m_ubuf_man.m_ub_per_frame_alpha.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_alpha, this->m_logi_device.get());
         }
 
         {
@@ -332,8 +324,8 @@ namespace dal {
 
             ubuf_data_glight.m_plight_count = 1;
 
-            ubuf_data_glight.m_plight_pos_n_max_dist[0] = glm::vec4{ sin(dal::get_cur_sec()) * 3, 1, cos(dal::get_cur_sec()) * 3, 20 };
-            ubuf_data_glight.m_plight_color[0] = glm::vec4{ glm::vec3{0.2}, 1 };
+            ubuf_data_glight.m_plight_pos_n_max_dist[0] = glm::vec4{ sin(dal::get_cur_sec()) * 3, 1, cos(dal::get_cur_sec()) * 2, 20 };
+            ubuf_data_glight.m_plight_color[0] = glm::vec4{ glm::vec3{1.5}, 1 };
 
             ubuf_data_glight.m_plight_pos_n_max_dist[1] = glm::vec4{ cos(dal::get_cur_sec()) * 2, 1, sin(dal::get_cur_sec()) * 2, 20 };
             ubuf_data_glight.m_plight_color[1] = glm::vec4{ 1, 1, 1, 1 };
@@ -351,16 +343,15 @@ namespace dal {
             std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
 
             this->m_cmd_man.record_simple(
-                this->m_flight_frame_index.get(),
+                this->m_flight_frame_index,
                 render_list,
-                this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
+                this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_attach_man.color().extent(),
                 this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
-                this->m_pipelines.simple().pipeline(),
-                this->m_pipelines.simple().layout(),
-                this->m_pipelines.composition().pipeline(),
-                this->m_pipelines.composition().layout(),
+                this->m_pipelines.gbuf(),
+                this->m_pipelines.gbuf_animated(),
+                this->m_pipelines.composition(),
                 this->m_renderpasses.rp_gbuf()
             );
 
@@ -390,16 +381,15 @@ namespace dal {
             std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
 
             this->m_cmd_man.record_alpha(
-                this->m_flight_frame_index.get(),
+                this->m_flight_frame_index,
                 camera.view_pos(),
                 render_list,
-                this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
-                this->m_desc_man.desc_set_per_world(this->m_flight_frame_index.get()),
+                this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_attach_man.color().extent(),
                 this->m_fbuf_man.fbuf_alpha_at(swapchain_index).get(),
-                this->m_pipelines.alpha().pipeline(),
-                this->m_pipelines.alpha().layout(),
+                this->m_pipelines.alpha(),
+                this->m_pipelines.alpha_animated(),
                 this->m_renderpasses.rp_alpha()
             );
 
@@ -509,8 +499,16 @@ namespace dal {
         return std::make_shared<ModelRenderer>();
     }
 
+    HRenModelSkinned VulkanState::create_model_skinned() {
+        return std::make_shared<ModelSkinnedRenderer>();
+    }
+
     HActor VulkanState::create_actor() {
         return std::make_shared<ActorVK>();
+    }
+
+    HActorSkinned VulkanState::create_actor_skinned() {
+        return std::make_shared<ActorSkinnedVK>();
     }
 
     bool VulkanState::init(ITexture& h_tex, const ImageData& img_data) {
@@ -545,12 +543,46 @@ namespace dal {
         return true;
     }
 
+    bool VulkanState::init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) {
+        auto& m = reinterpret_cast<ModelSkinnedRenderer&>(model);
+
+        m.init(this->m_phys_device.get(), this->m_logi_device.get());
+
+        m.upload_meshes(
+            model_data,
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            fallback_namespace,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
+        return true;
+    }
+
     bool VulkanState::init(IActor& actor) {
         auto& a = reinterpret_cast<ActorVK&>(actor);
 
         a.init(
-            this->m_desc_pool_actor,
+            this->m_desc_allocator,
             this->m_desc_layout_man.layout_per_actor(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+
+        return true;
+    }
+
+    bool VulkanState::init(IActorSkinned& actor) {
+        auto& a = reinterpret_cast<ActorSkinnedVK&>(actor);
+
+        a.init(
+            this->m_desc_allocator,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_animation(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
@@ -562,6 +594,16 @@ namespace dal {
         auto& model = reinterpret_cast<ModelRenderer&>(h_model);
 
         return model.fetch_one_resource(
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex().get(),
+            this->m_logi_device.get()
+        );
+    }
+
+    bool VulkanState::prepare(IRenModelSkineed& model) {
+        auto& m = reinterpret_cast<ModelSkinnedRenderer&>(model);
+
+        return m.fetch_one_resource(
             this->m_desc_layout_man.layout_per_material(),
             this->m_sampler_man.sampler_tex().get(),
             this->m_logi_device.get()
@@ -627,10 +669,10 @@ namespace dal {
             this->m_swapchain.identity_extent(),
             this->m_attach_man.color().extent(),
             this->m_desc_layout_man.layout_final(),
-            this->m_desc_layout_man.layout_simple(),
+            this->m_desc_layout_man.layout_per_global(),
             this->m_desc_layout_man.layout_per_material(),
             this->m_desc_layout_man.layout_per_actor(),
-            this->m_desc_layout_man.layout_per_world(),
+            this->m_desc_layout_man.layout_animation(),
             this->m_desc_layout_man.layout_composition(),
             this->m_renderpasses.rp_gbuf(),
             this->m_renderpasses.rp_final(),
@@ -652,18 +694,11 @@ namespace dal {
 
         this->m_desc_man.init(MAX_FRAMES_IN_FLIGHT, this->m_logi_device.get());
 
-        this->m_desc_man.init_desc_sets_per_frame(
+        this->m_desc_man.init_desc_sets_per_global(
             this->m_ubuf_man.m_ub_simple,
-            MAX_FRAMES_IN_FLIGHT,
-            this->m_desc_layout_man.layout_simple(),
-            this->m_logi_device.get()
-        );
-
-        this->m_desc_man.init_desc_sets_per_world(
             this->m_ubuf_man.m_ub_glights,
-            this->m_ubuf_man.m_ub_per_frame_alpha,
             MAX_FRAMES_IN_FLIGHT,
-            this->m_desc_layout_man.layout_per_world(),
+            this->m_desc_layout_man.layout_per_global(),
             this->m_logi_device.get()
         );
 

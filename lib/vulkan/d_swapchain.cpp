@@ -54,6 +54,21 @@ namespace {
         }
     }
 
+    VkCompositeAlphaFlagBitsKHR choose_composite_alpha(const VkSurfaceCapabilitiesKHR& capabilities) {
+        const std::vector<VkCompositeAlphaFlagBitsKHR> CANDIDATES = {
+            VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+        };
+
+        for (auto c : CANDIDATES) {
+            if (capabilities.supportedCompositeAlpha & c) {
+                return c;
+            }
+        }
+
+        dalAssert(false);
+    }
+
     uint32_t choose_image_count(const dal::SwapChainSupportDetails& swapchain_support) {
         uint32_t image_count = swapchain_support.m_capabilities.minImageCount + 1;
 
@@ -283,23 +298,21 @@ namespace dal {
         this->destroy_except_swapchain(logi_device);
 
         const SwapChainSupportDetails swapchain_support{ surface, phys_device };
+
         const auto surface_format = ::choose_surface_format(swapchain_support.m_formats);
         const auto present_mode = ::choose_present_mode(swapchain_support.m_present_modes, ::PresentMode::fifo);
-
         this->m_image_format = surface_format.format;
         //this->m_extent = ::choose_extent(swapchain_support.m_capabilities, desired_width, desired_height);
         this->m_screen_extent = swapchain_support.m_capabilities.currentExtent;
         this->m_identity_extent = ::get_identity_screen_resoultion(swapchain_support.m_capabilities);
         this->m_transform = swapchain_support.m_capabilities.currentTransform;
 
-        const auto needed_images_count = ::choose_image_count(swapchain_support);
-
         // Create swap chain
         {
             VkSwapchainCreateInfoKHR create_info_swapchain{};
             create_info_swapchain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
             create_info_swapchain.surface = surface;
-            create_info_swapchain.minImageCount = needed_images_count;
+            create_info_swapchain.minImageCount = ::choose_image_count(swapchain_support);
             create_info_swapchain.imageFormat = surface_format.format;
             create_info_swapchain.imageColorSpace = surface_format.colorSpace;
             create_info_swapchain.imageExtent = this->m_identity_extent;
@@ -318,7 +331,7 @@ namespace dal {
             }
 
             create_info_swapchain.preTransform = swapchain_support.m_capabilities.currentTransform;
-            create_info_swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+            create_info_swapchain.compositeAlpha = ::choose_composite_alpha(swapchain_support.m_capabilities);
             create_info_swapchain.presentMode = present_mode;
             create_info_swapchain.clipped = VK_TRUE;
             create_info_swapchain.oldSwapchain = this->m_swapChain;

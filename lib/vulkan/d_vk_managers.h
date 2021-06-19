@@ -3,6 +3,8 @@
 #include <vector>
 
 #include "d_konsts.h"
+#include "d_shader.h"
+#include "d_indices.h"
 #include "d_command.h"
 #include "d_swapchain.h"
 #include "d_render_pass.h"
@@ -27,16 +29,15 @@ namespace dal {
         void destroy(const VkDevice logi_device);
 
         void record_simple(
-            const size_t flight_frame_index,
+            const FrameInFlightIndex& flight_frame_index,
             const RenderList& render_list,
             const VkDescriptorSet desc_set_per_frame,
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
             const VkFramebuffer swapchain_fbuf,
-            const VkPipeline pipeline_gbuf,
-            const VkPipelineLayout pipe_layout_gbuf,
-            const VkPipeline pipeline_composition,
-            const VkPipelineLayout pipe_layout_composition,
+            const ShaderPipeline& pipeline_gbuf,
+            const ShaderPipeline& pipeline_gbuf_animated,
+            const ShaderPipeline& pipeline_composition,
             const RenderPass_Gbuf& render_pass
         );
 
@@ -51,16 +52,15 @@ namespace dal {
         );
 
         void record_alpha(
-            const size_t flight_frame_index,
+            const FrameInFlightIndex& flight_frame_index,
             const glm::vec3& view_pos,
             const RenderList& render_list,
-            const VkDescriptorSet desc_set_per_frame,
-            const VkDescriptorSet desc_set_per_world,
+            const VkDescriptorSet desc_set_per_global,
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
             const VkFramebuffer swapchain_fbuf,
-            const VkPipeline pipeline_alpha,
-            const VkPipelineLayout pipe_layout_alpha,
+            const ShaderPipeline& pipeline_alpha,
+            const ShaderPipeline& pipeline_alpha_animated,
             const RenderPass_Alpha& render_pass
         );
 
@@ -123,7 +123,6 @@ namespace dal {
         UniformBufferArray<U_PerFrame> m_ub_simple;
         UniformBufferArray<U_GlobalLight> m_ub_glights;
         UniformBufferArray<U_PerFrame_Composition> m_ub_per_frame_composition;
-        UniformBufferArray<U_PerFrame_Alpha> m_ub_per_frame_alpha;
         UniformBuffer<U_PerFrame_InFinal> m_ub_final;
 
     public:

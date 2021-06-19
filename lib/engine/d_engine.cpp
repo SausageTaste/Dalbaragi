@@ -218,22 +218,39 @@ namespace {
         // Honoka
         {
             const auto entity = scene.m_registry.create();
-            auto model = res_man.request_model("_asset/model/honoka_basic_3.dmd");
+            auto model = res_man.request_model_skinned("_asset/model/honoka_basic_3.dmd");
 
-            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::Model>(entity);
+            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::ModelSkinned>(entity);
             cpnt_model.m_model = model;
 
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
 
-            cpnt_actor.m_actors.push_back(res_man.request_actor());
+            cpnt_actor.m_actors.push_back(res_man.request_actor_skinned());
             cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
-            cpnt_actor.m_actors.back()->apply_changes();
 
-            cpnt_actor.m_actors.push_back(res_man.request_actor());
+            cpnt_actor.m_actors.push_back(res_man.request_actor_skinned());
             cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
             cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
             cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
-            cpnt_actor.m_actors.back()->apply_changes();
+        }
+
+        // Character Running
+        {
+            const auto entity = scene.m_registry.create();
+            auto model = res_man.request_model_skinned("_asset/model/Character Running.dmd");
+
+            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::ModelSkinned>(entity);
+            cpnt_model.m_model = model;
+
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
+
+            cpnt_actor.m_actors.push_back(res_man.request_actor_skinned());
+            cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ 2, 0, 0 };
+            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
+            cpnt_actor.m_actors.back()->m_transform.m_scale = 1;
+            cpnt_actor.m_actors.back()->apply_transform(dal::FrameInFlightIndex{0});
+
+            cpnt_actor.m_actors.back()->m_anim_state.set_anim_index(0);
         }
 
         // Sponza
@@ -342,6 +359,15 @@ namespace dal {
 
         this->m_task_man.update();
         this->m_res_man.update();
+        this->m_scene.update();
+
+        auto render_list = this->m_scene.make_render_list();
+        for (auto& x : render_list.m_skinned_models) {
+            for (auto& actor : x.m_actors) {
+                actor->apply_animation(this->m_renderer->in_flight_index());
+                actor->apply_transform(this->m_renderer->in_flight_index());
+            }
+        }
 
         this->m_renderer->update(this->m_scene.m_euler_camera, this->m_scene.make_render_list());
     }

@@ -1,11 +1,14 @@
 #pragma once
 
+#include <deque>
 #include <vector>
+#include <unordered_map>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
+#include "d_konsts.h"
 #include "d_vulkan_header.h"
 #include "d_buffer_memory.h"
 
@@ -19,10 +22,6 @@ namespace dal {
     struct U_PerFrame_Composition {
         glm::mat4 m_view_inv{1}, m_proj_inv{1};
         glm::vec4 m_view_pos{};
-    };
-
-    struct U_PerFrame_Alpha {
-        glm::vec4 m_view_pos{0};
     };
 
     struct U_PerFrame {
@@ -51,6 +50,12 @@ namespace dal {
         uint32_t m_dlight_count = 0;
         uint32_t m_plight_count = 0;
     };
+
+    struct U_AnimTransform {
+        glm::mat4 m_transforms[dal::MAX_JOINT_COUNT];
+    };
+
+    static_assert(sizeof(U_AnimTransform) <= 16 * 1024);
 
 
     template <typename _DataStruct>
@@ -144,10 +149,11 @@ namespace dal {
     private:
         VkDescriptorSetLayout m_layout_final = VK_NULL_HANDLE;
 
-        VkDescriptorSetLayout m_layout_per_frame = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_per_global = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_material = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_per_actor = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_layout_per_world = VK_NULL_HANDLE;
+
+        VkDescriptorSetLayout m_layout_animation = VK_NULL_HANDLE;
 
         VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
 
@@ -160,8 +166,8 @@ namespace dal {
             return this->m_layout_final;
         }
 
-        auto& layout_simple() const {
-            return this->m_layout_per_frame;
+        auto& layout_per_global() const {
+            return this->m_layout_per_global;
         }
 
         auto layout_per_material() const {
@@ -172,8 +178,8 @@ namespace dal {
             return this->m_layout_per_actor;
         }
 
-        auto layout_per_world() const {
-            return this->m_layout_per_world;
+        auto layout_animation() const {
+            return this->m_layout_animation;
         }
 
         auto layout_composition() const {
@@ -187,16 +193,32 @@ namespace dal {
 
     private:
         VkDescriptorSet m_handle = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout;
 
     public:
-        void set(const VkDescriptorSet desc_set) {
+        DescSet(const DescSet&) = delete;
+        DescSet& operator=(const DescSet&) = delete;
+
+    public:
+        DescSet() = default;
+
+        DescSet(DescSet&&);
+
+        DescSet& operator=(DescSet&&);
+
+        void set(const VkDescriptorSet desc_set, const VkDescriptorSetLayout layout) {
             this->m_handle = desc_set;
+            this->m_layout = layout;
         }
 
         bool is_ready() const;
 
         auto& get() const {
             return this->m_handle;
+        }
+
+        auto& layout() const {
+            return this->m_layout;
         }
 
         void record_final(
@@ -206,8 +228,9 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void record_per_frame(
+        void record_per_global(
             const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+            const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const VkDevice logi_device
         );
 
@@ -223,9 +246,8 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void record_per_world(
-            const UniformBuffer<U_GlobalLight>& ubuf_global_light,
-            const UniformBuffer<U_PerFrame_Alpha>& ubuf_per_frame_alpha,
+        void record_animation(
+            const UniformBuffer<U_AnimTransform>& ubuf_animation,
             const VkDevice logi_device
         );
 
@@ -271,15 +293,46 @@ namespace dal {
     };
 
 
+    class DescAllocator {
+
+    private:
+        DescPool m_pool;
+        std::unordered_map<VkDescriptorSetLayout, std::deque<DescSet>> m_waiting_queue;
+        size_t m_allocated_outside = 0;
+
+    public:
+        void init(
+            const uint32_t uniform_buf_count,
+            const uint32_t image_sampler_count,
+            const uint32_t input_attachment_count,
+            const uint32_t desc_set_count,
+            const VkDevice logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+        void reset(const VkDevice logi_device);
+
+        DescSet allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device);
+
+        std::vector<DescSet> allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device);
+
+        void free(DescSet&& desc_set);
+
+    private:
+        std::deque<DescSet>& get_queue(const VkDescriptorSetLayout layout);
+
+    };
+
+
     class DescriptorManager {
 
     private:
         DescPool m_pool_simple, m_pool_composition;
         std::vector<DescPool> m_pool_final;
-        std::vector<DescSet> m_descset_per_frame;
+        std::vector<DescSet> m_descset_per_global;
         std::vector<DescSet> m_descset_final;
-        std::vector<DescSet> m_descset_per_world;
-        std::vector<DescSet> m_descset_composition;  // Per frame
+        std::vector<DescSet> m_descset_composition;
 
     public:
         void init(const uint32_t swapchain_count, const VkDevice logi_device);
@@ -290,18 +343,11 @@ namespace dal {
             return this->m_pool_simple;
         }
 
-        void init_desc_sets_per_frame(
-            const dal::UniformBufferArray<U_PerFrame>& ubufs_simple,
+        void init_desc_sets_per_global(
+            const UniformBufferArray<U_PerFrame>& ubufs_simple,
+            const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
             const uint32_t swapchain_count,
             const VkDescriptorSetLayout desc_layout_simple,
-            const VkDevice logi_device
-        );
-
-        void init_desc_sets_per_world(
-            const UniformBufferArray<U_GlobalLight>& ubuf_global_light,
-            const UniformBufferArray<U_PerFrame_Alpha>& ubufs_per_frame_alpha,
-            const uint32_t swapchain_count,
-            const VkDescriptorSetLayout desc_layout_world,
             const VkDevice logi_device
         );
 
@@ -322,12 +368,8 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        auto& desc_set_per_frame_at(const size_t index) const {
-            return this->m_descset_per_frame.at(index).get();
-        }
-
-        auto& desc_set_per_world(const size_t index) const {
-            return this->m_descset_per_world.at(index).get();
+        auto& desc_set_per_global_at(const size_t index) const {
+            return this->m_descset_per_global.at(index).get();
         }
 
         auto& desc_set_final_at(const size_t index) const {

@@ -40,9 +40,13 @@ def _work_for_one(output_file_name_ext, shader_src_name_ext, macro_definitions: 
 
 
 def main():
-    _work_for_one("simple_v.spv", "simple.vert", [])
+    _work_for_one("gbuf_v.spv", "gbuf.vert", [])
 
-    _work_for_one("simple_f.spv", "simple.frag", [])
+    _work_for_one("gbuf_f.spv", "gbuf.frag", [])
+
+    _work_for_one("gbuf_animated_v.spv", "gbuf_animated.vert", [])
+
+    _work_for_one("gbuf_animated_f.spv", "gbuf_animated.frag", [])
 
     _work_for_one("fill_screen_v.spv", "fill_screen.vert", [])
 
@@ -55,6 +59,8 @@ def main():
     _work_for_one("composition_gamma_f.spv", "composition.frag", ["DAL_GAMMA_CORRECT"])
 
     _work_for_one("alpha_v.spv", "alpha.vert", [])
+
+    _work_for_one("alpha_animated_v.spv", "alpha_animated.vert", [])
 
     _work_for_one("alpha_f.spv", "alpha.frag", [])
 

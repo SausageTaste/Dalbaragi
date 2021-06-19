@@ -11,7 +11,7 @@ const vec2 positions[6] = vec2[](
 );
 
 
-layout (location = 0) out vec2 v_device_coord;
+layout(location = 0) out vec2 v_device_coord;
 
 
 void main() {

@@ -15,10 +15,21 @@ namespace {
         }
     };
 
+    struct AnimatedAlphaMeshTuple {
+        const dal::RenderUnit* m_unit;
+        const dal::ActorSkinnedVK* m_actor;
+        float m_dist_spr;
+
+        bool operator<(const AnimatedAlphaMeshTuple& other) const {
+            return this->m_dist_spr > other.m_dist_spr;
+        }
+    };
+
     auto sort_transparent_meshes(const glm::vec3& view_pos, const dal::RenderList& render_list) {
         std::vector<AlphaMeshTuple> sort_vec;
+        std::vector<AnimatedAlphaMeshTuple> sort_vec_animated;
 
-        for (auto& pair : render_list) {
+        for (auto& pair : render_list.m_static_models) {
             auto& model = *reinterpret_cast<dal::ModelRenderer*>(pair.m_model.get());
 
             for (auto& h_actor : pair.m_actors) {
@@ -37,8 +48,28 @@ namespace {
             }
         }
 
+        for (auto& pair : render_list.m_skinned_models) {
+            auto& model = *reinterpret_cast<dal::ModelSkinnedRenderer*>(pair.m_model.get());
+
+            for (auto& h_actor : pair.m_actors) {
+                auto& actor = *reinterpret_cast<dal::ActorSkinnedVK*>(h_actor.get());
+                const auto actor_transform = actor.m_transform.make_mat4();
+
+                for (auto& unit : model.render_units_alpha()) {
+                    auto& sort_element = sort_vec_animated.emplace_back();
+                    const auto unit_world_pos = actor_transform * glm::vec4(unit.m_weight_center, 1);
+                    const auto to_view = view_pos - glm::vec3(unit_world_pos);
+
+                    sort_element.m_unit = &unit;
+                    sort_element.m_actor = &actor;
+                    sort_element.m_dist_spr = glm::dot(to_view, to_view);
+                }
+            }
+        }
+
         std::sort(sort_vec.begin(), sort_vec.end());
-        return sort_vec;
+        std::sort(sort_vec_animated.begin(), sort_vec_animated.end());
+        return std::make_pair(sort_vec, sort_vec_animated);
     }
 
 }
@@ -79,28 +110,26 @@ namespace dal {
     }
 
     void CmdPoolManager::record_simple(
-        const size_t flight_frame_index,
+        const FrameInFlightIndex& flight_frame_index,
         const RenderList& render_list,
         const VkDescriptorSet desc_set_per_frame,
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
         const VkFramebuffer swapchain_fbuf,
-        const VkPipeline pipeline_gbuf,
-        const VkPipelineLayout pipe_layout_gbuf,
-        const VkPipeline pipeline_composition,
-        const VkPipelineLayout pipe_layout_composition,
+        const ShaderPipeline& pipeline_gbuf,
+        const ShaderPipeline& pipeline_gbuf_animated,
+        const ShaderPipeline& pipeline_composition,
         const RenderPass_Gbuf& render_pass
     ) {
-        auto& cmd_buf = this->m_cmd_simple.at(flight_frame_index);
+        auto& cmd_buf = this->m_cmd_simple.at(flight_frame_index.get());
 
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         begin_info.flags = 0;
         begin_info.pInheritanceInfo = nullptr;
 
-        if (vkBeginCommandBuffer(cmd_buf, &begin_info) != VK_SUCCESS) {
+        if (vkBeginCommandBuffer(cmd_buf, &begin_info) != VK_SUCCESS)
             dalAbort("failed to begin recording command buffer!");
-        }
 
         std::array<VkClearValue, 5> clear_colors{};
         clear_colors[0].color = { 0, 0, 0, 1 };
@@ -119,21 +148,25 @@ namespace dal {
         render_pass_info.pClearValues = clear_colors.data();
 
         vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        // Gbuf of static models
         {
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_gbuf);
+            auto& pipeline = pipeline_gbuf;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
             vkCmdBindDescriptorSets(
                 cmd_buf,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipe_layout_gbuf,
+                pipeline.layout(),
                 0,
                 1, &desc_set_per_frame,
                 0, nullptr
             );
 
-            for (auto& render_pair : render_list) {
+            for (auto& render_pair : render_list.m_static_models) {
                 if (!render_pair.m_model->is_ready())
                     continue;
 
@@ -149,7 +182,7 @@ namespace dal {
                     vkCmdBindDescriptorSets(
                         cmd_buf,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipe_layout_gbuf,
+                        pipeline.layout(),
                         1,
                         1, &unit.m_material.m_descset.get(),
                         0, nullptr
@@ -160,7 +193,7 @@ namespace dal {
                         vkCmdBindDescriptorSets(
                             cmd_buf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipe_layout_gbuf,
+                            pipeline.layout(),
                             2,
                             1, &actor.desc_set_raw(),
                             0, nullptr
@@ -171,14 +204,84 @@ namespace dal {
                 }
             }
         }
+
+        // Gbuf of animated models
         {
-            vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_composition);
+            auto& pipeline = pipeline_gbuf_animated;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
             vkCmdBindDescriptorSets(
                 cmd_buf,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipe_layout_composition,
+                pipeline.layout(),
+                0,
+                1, &desc_set_per_frame,
+                0, nullptr
+            );
+
+            for (auto& render_pair : render_list.m_skinned_models) {
+                if (!render_pair.m_model->is_ready())
+                    continue;
+
+                auto& model = *reinterpret_cast<ModelSkinnedRenderer*>(render_pair.m_model.get());
+
+                for (auto& unit : model.render_units()) {
+                    dalAssert(!unit.m_material.m_alpha_blend);
+
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipeline.layout(),
+                        1,
+                        1, &unit.m_material.m_descset.get(),
+                        0, nullptr
+                    );
+
+                    for (auto& h_actor : render_pair.m_actors) {
+                        auto& actor = *reinterpret_cast<ActorSkinnedVK*>(h_actor.get());
+
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            2,
+                            1, &actor.desc_per_actor(flight_frame_index),
+                            0, nullptr
+                        );
+
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            3,
+                            1, &actor.desc_animation(flight_frame_index),
+                            0, nullptr
+                        );
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        // Composition
+        {
+            auto& pipeline = pipeline_composition;
+
+            vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline.layout(),
                 0,
                 1, &desc_set_composition,
                 0, nullptr
@@ -186,12 +289,10 @@ namespace dal {
 
             vkCmdDraw(cmd_buf, 6, 1, 0, 0);
         }
+
         vkCmdEndRenderPass(cmd_buf);
-
-        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS) {
+        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS)
             dalAbort("failed to record command buffer!");
-        }
-
     }
 
     void CmdPoolManager::record_final(
@@ -250,21 +351,20 @@ namespace dal {
     }
 
     void CmdPoolManager::record_alpha(
-        const size_t flight_frame_index,
+        const FrameInFlightIndex& flight_frame_index,
         const glm::vec3& view_pos,
         const RenderList& render_list,
-        const VkDescriptorSet desc_set_per_frame,
-        const VkDescriptorSet desc_set_per_world,
+        const VkDescriptorSet desc_set_per_global,
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
         const VkFramebuffer swapchain_fbuf,
-        const VkPipeline pipeline_alpha,
-        const VkPipelineLayout pipe_layout_alpha,
+        const ShaderPipeline& pipeline_alpha,
+        const ShaderPipeline& pipeline_alpha_animated,
         const RenderPass_Alpha& render_pass
     ) {
-        auto& cmd_buf = this->m_cmd_alpha.at(flight_frame_index);
+        auto& cmd_buf = this->m_cmd_alpha.at(flight_frame_index.get());
 
-        const auto sorted = ::sort_transparent_meshes(view_pos, render_list);
+        const auto [sorted, sorted_animated] = ::sort_transparent_meshes(view_pos, render_list);
 
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -292,26 +392,20 @@ namespace dal {
         render_pass_info.pClearValues = clear_colors.data();
 
         vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
         {
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_alpha);
+            auto& pipeline = pipeline_alpha;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
             vkCmdBindDescriptorSets(
                 cmd_buf,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipe_layout_alpha,
+                pipeline.layout(),
                 0,
-                1, &desc_set_per_frame,
-                0, nullptr
-            );
-
-            vkCmdBindDescriptorSets(
-                cmd_buf,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipe_layout_alpha,
-                3,
-                1, &desc_set_per_world,
+                1, &desc_set_per_global,
                 0, nullptr
             );
 
@@ -326,7 +420,7 @@ namespace dal {
                 vkCmdBindDescriptorSets(
                     cmd_buf,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    pipe_layout_alpha,
+                    pipeline.layout(),
                     1,
                     1, &render_tuple.m_unit->m_material.m_descset.get(),
                     0, nullptr
@@ -335,7 +429,7 @@ namespace dal {
                 vkCmdBindDescriptorSets(
                     cmd_buf,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    pipe_layout_alpha,
+                    pipeline.layout(),
                     2,
                     1, &render_tuple.m_actor->desc_set_raw(),
                     0, nullptr
@@ -344,6 +438,62 @@ namespace dal {
                 vkCmdDrawIndexed(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_size(), 1, 0, 0, 0);
             }
         }
+
+        {
+            auto& pipeline = pipeline_alpha_animated;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline.layout(),
+                0,
+                1, &desc_set_per_global,
+                0, nullptr
+            );
+
+            for (auto& render_tuple : sorted_animated) {
+                if (!render_tuple.m_unit->is_ready())
+                    continue;
+
+                std::array<VkBuffer, 1> vert_bufs{ render_tuple.m_unit->m_vert_buffer.vertex_buffer() };
+                vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                vkCmdBindIndexBuffer(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.layout(),
+                    1,
+                    1, &render_tuple.m_unit->m_material.m_descset.get(),
+                    0, nullptr
+                );
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.layout(),
+                    2,
+                    1, &render_tuple.m_actor->desc_per_actor(flight_frame_index),
+                    0, nullptr
+                );
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.layout(),
+                    3,
+                    1, &render_tuple.m_actor->desc_animation(flight_frame_index),
+                    0, nullptr
+                );
+
+                vkCmdDrawIndexed(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_size(), 1, 0, 0, 0);
+            }
+        }
+
         vkCmdEndRenderPass(cmd_buf);
 
         if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS) {
@@ -354,7 +504,7 @@ namespace dal {
 }
 
 
-//
+// FbufManager
 namespace dal {
 
     void FbufManager::init(
@@ -450,12 +600,6 @@ namespace dal {
             logi_device
         );
 
-        this->m_ub_per_frame_alpha.init(
-            MAX_FRAMES_IN_FLIGHT,
-            phys_device,
-            logi_device
-        );
-
         this->m_ub_final.init(phys_device, logi_device);
     }
 
@@ -463,7 +607,6 @@ namespace dal {
         this->m_ub_simple.destroy(logi_device);
         this->m_ub_glights.destroy(logi_device);
         this->m_ub_per_frame_composition.destroy(logi_device);
-        this->m_ub_per_frame_alpha.destroy(logi_device);
         this->m_ub_final.destroy(logi_device);
     }
 
