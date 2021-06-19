@@ -196,6 +196,16 @@ namespace dal {
         VkDescriptorSetLayout m_layout;
 
     public:
+        DescSet(const DescSet&) = delete;
+        DescSet& operator=(const DescSet&) = delete;
+
+    public:
+        DescSet() = default;
+
+        DescSet(DescSet&&);
+
+        DescSet& operator=(DescSet&&);
+
         void set(const VkDescriptorSet desc_set, const VkDescriptorSetLayout layout) {
             this->m_handle = desc_set;
             this->m_layout = layout;
@@ -307,9 +317,7 @@ namespace dal {
 
         std::vector<DescSet> allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device);
 
-        void free(const DescSet& desc_set);
-
-        void free(const std::vector<DescSet>& desc_sets);
+        void free(DescSet&& desc_set);
 
     private:
         std::deque<DescSet>& get_queue(const VkDescriptorSetLayout layout);

@@ -318,6 +318,18 @@ namespace {
 // DescSet
 namespace dal {
 
+    DescSet::DescSet(DescSet&& other) {
+        std::swap(this->m_handle, other.m_handle);
+        std::swap(this->m_layout, other.m_layout);
+    }
+
+    DescSet& DescSet::operator=(DescSet&& other) {
+        std::swap(this->m_handle, other.m_handle);
+        std::swap(this->m_layout, other.m_layout);
+
+        return *this;
+    }
+
     bool DescSet::is_ready() const {
         return VK_NULL_HANDLE != this->m_handle;
     }
@@ -452,7 +464,7 @@ namespace dal {
     }
 
     DescSet DescPool::allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device) {
-        return this->allocate(1, layout, logi_device).at(0);
+        return std::move(this->allocate(1, layout, logi_device).at(0));
     }
 
     std::vector<DescSet> DescPool::allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device) {
@@ -472,8 +484,8 @@ namespace dal {
         }
 
         result.reserve(count);
-        for (const auto x : desc_sets) {
-            result.emplace_back().set(x, layout);
+        for (auto& x : desc_sets) {
+            result.emplace_back().set(std::move(x), layout);
         }
 
         return result;
@@ -518,7 +530,7 @@ namespace dal {
             return this->m_pool.allocate(layout, logi_device);
         }
         else {
-            auto output = queue.front();
+            auto output = std::move(queue.front());
             queue.pop_front();
             return output;
         }
@@ -533,15 +545,9 @@ namespace dal {
         return output;
     }
 
-    void DescAllocator::free(const DescSet& desc_set) {
+    void DescAllocator::free(DescSet&& desc_set) {
         --this->m_allocated_outside;
-        this->get_queue(desc_set.layout()).push_back(desc_set);
-    }
-
-    void DescAllocator::free(const std::vector<DescSet>& desc_sets) {
-        for (auto& set : desc_sets) {
-            this->free(set);
-        }
+        this->get_queue(desc_set.layout()).push_back(std::move(desc_set));
     }
 
     // Private

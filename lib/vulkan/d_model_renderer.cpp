@@ -30,7 +30,7 @@ namespace dal {
 
     void ActorVK::destroy() {
         if (nullptr != this->m_desc_allocator) {
-            this->m_desc_allocator->free(this->m_desc_per_actor);
+            this->m_desc_allocator->free(std::move(this->m_desc_per_actor));
             this->m_desc_allocator = nullptr;
         }
 
@@ -89,8 +89,10 @@ namespace dal {
 
     void ActorSkinnedVK::destroy() {
         if (nullptr != this->m_desc_allocator) {
-            this->m_desc_allocator->free(this->m_desc_per_actor);
-            this->m_desc_allocator->free(this->m_desc_animation);
+            for (auto& d : this->m_desc_per_actor)
+                this->m_desc_allocator->free(std::move(d));
+            for (auto& d : this->m_desc_animation)
+                this->m_desc_allocator->free(std::move(d));
             this->m_desc_allocator = nullptr;
         }
 
