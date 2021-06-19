@@ -78,6 +78,8 @@ namespace dal {
     }
 
     void ActorSkinnedVK::destroy() {
+        this->m_desc_per_actor.clear();
+        this->m_desc_animation.clear();
         this->m_ubuf_per_actor.destroy(this->m_logi_device);
         this->m_ubuf_anim.destroy(this->m_logi_device);
         this->m_logi_device = VK_NULL_HANDLE;
