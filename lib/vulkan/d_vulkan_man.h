@@ -48,6 +48,17 @@ namespace dal {
             this->m_depth_attach.destroy(logi_device);
         }
 
+        void record_cmd_buf(
+            const FrameInFlightIndex& flight_frame_index,
+            const RenderList& render_list,
+            const ShaderPipeline& pipeline_shadow,
+            const RenderPass_ShadowMap& render_pass
+        );
+
+        auto& cmd_buf_at(const size_t index) const {
+            return this->m_cmd_buf.at(index);
+        }
+
     };
 
 

@@ -189,6 +189,71 @@ namespace {
 }
 
 
+namespace dal {
+
+    void ShadowMapFbuf::record_cmd_buf(
+        const FrameInFlightIndex& flight_frame_index,
+        const RenderList& render_list,
+        const ShaderPipeline& pipeline_shadow,
+        const RenderPass_ShadowMap& render_pass
+    ) {
+        auto& cmd_buf = this->m_cmd_buf.at(flight_frame_index.get());
+
+        VkCommandBufferBeginInfo begin_info{};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags = 0;
+        begin_info.pInheritanceInfo = nullptr;
+
+        if (VK_SUCCESS != vkBeginCommandBuffer(cmd_buf, &begin_info))
+            dalAbort("failed to begin recording command buffer!");
+
+        std::array<VkClearValue, 5> clear_colors{};
+        clear_colors[0].depthStencil = { 1, 0 };
+
+        VkRenderPassBeginInfo render_pass_info{};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_info.renderPass = render_pass.get();
+        render_pass_info.framebuffer = this->m_fbuf.get();
+        render_pass_info.renderArea.offset = {0, 0};
+        render_pass_info.renderArea.extent = {512, 512};
+        render_pass_info.clearValueCount = clear_colors.size();
+        render_pass_info.pClearValues = clear_colors.data();
+
+        vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        {
+            auto& pipeline = pipeline_shadow;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            for (auto& render_tuple : render_list.m_static_models) {
+                auto& model = *reinterpret_cast<ModelRenderer*>(render_tuple.m_model.get());
+
+                for (auto& unit : model.render_units()) {
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    for (auto& actor : render_tuple.m_actors) {
+                        U_PC_Shadow pc_data;
+                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Shadow), &pc_data);
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        vkCmdEndRenderPass(cmd_buf);
+
+        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS)
+            dalAbort("failed to record command buffer!");
+    }
+
+}
+
+
 // VulkanState
 namespace dal {
 
@@ -349,6 +414,38 @@ namespace dal {
         }
 
         //-----------------------------------------------------------------------------------------------------
+
+        {
+            std::array<VkPipelineStageFlags, 0> wait_stages{};
+            std::array<VkSemaphore, 0> wait_semaphores{};
+            std::array<VkSemaphore, 0> signal_semaphores{};
+
+            this->m_shadow_map.record_cmd_buf(
+                this->m_flight_frame_index,
+                render_list,
+                this->m_pipelines.shadow(),
+                this->m_renderpasses.rp_shadow()
+            );
+
+            VkSubmitInfo submit_info{};
+            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info.pCommandBuffers = &this->m_shadow_map.cmd_buf_at(this->m_flight_frame_index.get());
+            submit_info.commandBufferCount = 1;
+            submit_info.waitSemaphoreCount = wait_semaphores.size();
+            submit_info.pWaitSemaphores = wait_semaphores.data();
+            submit_info.pWaitDstStageMask = wait_stages.data();
+            submit_info.signalSemaphoreCount = signal_semaphores.size();
+            submit_info.pSignalSemaphores = signal_semaphores.data();
+
+            const auto submit_result = vkQueueSubmit(
+                this->m_logi_device.queue_graphics(),
+                1,
+                &submit_info,
+                VK_NULL_HANDLE
+            );
+
+            dalAssert(VK_SUCCESS == submit_result);
+        }
 
         {
             std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };

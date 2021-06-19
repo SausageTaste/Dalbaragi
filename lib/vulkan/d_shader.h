@@ -103,6 +103,10 @@ namespace dal {
             return this->m_alpha_animated;
         }
 
+        auto& shadow() const {
+            return this->m_shadow;
+        }
+
     };
 
 }
