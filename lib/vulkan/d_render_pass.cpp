@@ -292,6 +292,58 @@ namespace {
         return renderpass;
     }
 
+    VkRenderPass create_renderpass_shadow_map(
+        const VkFormat format_shadow_map,
+        const VkDevice logi_device
+    ) {
+        std::vector<VkAttachmentDescription> attachments{};
+        {
+            attachments.emplace_back();
+            attachments.back().format = format_shadow_map;
+            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        }
+
+        VkAttachmentReference depth_attachment_ref{};
+        depth_attachment_ref.attachment = 0;
+        depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        std::vector<VkSubpassDescription> subpasses;
+        subpasses.emplace_back();
+        subpasses.back().pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpasses.back().colorAttachmentCount    = 0;
+        subpasses.back().pColorAttachments       = nullptr;
+        subpasses.back().pDepthStencilAttachment = &depth_attachment_ref;
+
+        // Dependencies
+        // ---------------------------------------------------------------------------------
+
+        std::vector<VkSubpassDependency> dependencies;
+
+        // Create render pass
+        // ---------------------------------------------------------------------------------
+
+        VkRenderPassCreateInfo renderpass_info{};
+        renderpass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderpass_info.attachmentCount = attachments.size();
+        renderpass_info.pAttachments    = attachments.data();
+        renderpass_info.subpassCount    = subpasses.size();
+        renderpass_info.pSubpasses      = subpasses.data();
+        renderpass_info.dependencyCount = dependencies.size();
+        renderpass_info.pDependencies   = dependencies.data();
+
+        VkRenderPass renderpass = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateRenderPass(logi_device, &renderpass_info, nullptr, &renderpass))
+            dalAbort("failed to create render pass");
+
+        return renderpass;
+    }
+
 }
 
 
@@ -358,6 +410,14 @@ namespace dal {
         this->m_handle = ::create_renderpass_alpha(format_color, format_depth, logi_device);
     }
 
+    void RenderPass_ShadowMap::init(
+        const VkFormat format_shadow_map,
+        const VkDevice logi_device
+    ) {
+        this->destroy(logi_device);
+        this->m_handle = ::create_renderpass_shadow_map(format_shadow_map, logi_device);
+    }
+
 }
 
 
@@ -375,12 +435,14 @@ namespace dal {
         this->m_rp_gbuf.init(format_color, format_depth, format_albedo, format_materials, format_normal, logi_device);
         this->m_rp_final.init(format_swapchain, logi_device);
         this->m_rp_alpha.init(format_color, format_depth, logi_device);
+        this->m_rp_shadow.init(format_depth, logi_device);
     }
 
     void RenderPassManager::destroy(const VkDevice logi_device) {
         this->m_rp_gbuf.destroy(logi_device);
         this->m_rp_final.destroy(logi_device);
         this->m_rp_alpha.destroy(logi_device);
+        this->m_rp_shadow.destroy(logi_device);
     }
 
 }
