@@ -328,7 +328,9 @@ namespace dal {
     VulkanState::~VulkanState() {
         this->wait_idle();
 
-        this->m_shadow_map.destroy(this->m_logi_device.get());
+        for (auto& x : this->m_dlight_shadow_maps)
+            x.destroy(this->m_logi_device.get());
+
         this->m_desc_allocator.destroy(this->m_logi_device.get());
         this->m_sampler_man.destroy(this->m_logi_device.get());
         this->m_desc_man.destroy(this->m_logi_device.get());
@@ -438,32 +440,34 @@ namespace dal {
             std::array<VkSemaphore, 0> wait_semaphores{};
             std::array<VkSemaphore, 0> signal_semaphores{};
 
-            this->m_shadow_map.record_cmd_buf(
-                this->m_flight_frame_index,
-                render_list,
-                render_list.m_dlights.front().make_light_mat(::DLIGHT_HALF_BOX_SIZE),
-                this->m_pipelines.shadow(),
-                this->m_renderpasses.rp_shadow()
-            );
+            for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
+                this->m_dlight_shadow_maps[i].record_cmd_buf(
+                    this->m_flight_frame_index,
+                    render_list,
+                    render_list.m_dlights.front().make_light_mat(::DLIGHT_HALF_BOX_SIZE),
+                    this->m_pipelines.shadow(),
+                    this->m_renderpasses.rp_shadow()
+                );
 
-            VkSubmitInfo submit_info{};
-            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submit_info.pCommandBuffers = &this->m_shadow_map.cmd_buf_at(this->m_flight_frame_index.get());
-            submit_info.commandBufferCount = 1;
-            submit_info.waitSemaphoreCount = wait_semaphores.size();
-            submit_info.pWaitSemaphores = wait_semaphores.data();
-            submit_info.pWaitDstStageMask = wait_stages.data();
-            submit_info.signalSemaphoreCount = signal_semaphores.size();
-            submit_info.pSignalSemaphores = signal_semaphores.data();
+                VkSubmitInfo submit_info{};
+                submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submit_info.pCommandBuffers = &this->m_dlight_shadow_maps[i].cmd_buf_at(this->m_flight_frame_index.get());
+                submit_info.commandBufferCount = 1;
+                submit_info.waitSemaphoreCount = wait_semaphores.size();
+                submit_info.pWaitSemaphores = wait_semaphores.data();
+                submit_info.pWaitDstStageMask = wait_stages.data();
+                submit_info.signalSemaphoreCount = signal_semaphores.size();
+                submit_info.pSignalSemaphores = signal_semaphores.data();
 
-            const auto submit_result = vkQueueSubmit(
-                this->m_logi_device.queue_graphics(),
-                1,
-                &submit_info,
-                VK_NULL_HANDLE
-            );
+                const auto submit_result = vkQueueSubmit(
+                    this->m_logi_device.queue_graphics(),
+                    1,
+                    &submit_info,
+                    VK_NULL_HANDLE
+                );
 
-            dalAssert(VK_SUCCESS == submit_result);
+                dalAssert(VK_SUCCESS == submit_result);
+            }
         }
 
         {
@@ -782,15 +786,17 @@ namespace dal {
             this->m_logi_device.get()
         );
 
-        this->m_shadow_map.init(
-            2048*2, 2048*2,
-            dal::MAX_FRAMES_IN_FLIGHT,
-            this->m_logi_device.indices().graphics_family(),
-            this->m_renderpasses.rp_shadow(),
-            this->m_phys_device.find_depth_format(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
+        for (auto& x : this->m_dlight_shadow_maps) {
+            x.init(
+                2048*2, 2048*2,
+                dal::MAX_FRAMES_IN_FLIGHT,
+                this->m_logi_device.indices().graphics_family(),
+                this->m_renderpasses.rp_shadow(),
+                this->m_phys_device.find_depth_format(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+        }
 
         this->m_fbuf_man.init(
             this->m_swapchain.views(),
@@ -853,7 +859,7 @@ namespace dal {
                 },
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_ubuf_man.m_ub_per_frame_composition.at(i),
-                this->m_shadow_map.shadow_map_view(),
+                this->m_dlight_shadow_maps[0].shadow_map_view(),
                 this->m_sampler_man.sampler_tex().get(),
                 this->m_desc_layout_man.layout_composition(),
                 this->m_logi_device.get()

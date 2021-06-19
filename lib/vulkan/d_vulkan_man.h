@@ -93,7 +93,7 @@ namespace dal {
 
         SamplerManager m_sampler_man;
         DescAllocator m_desc_allocator;
-        ShadowMapFbuf m_shadow_map;
+        std::array<ShadowMapFbuf, dal::MAX_DLIGHT_COUNT> m_dlight_shadow_maps;
 
     private:
         // Non-vulkan members
