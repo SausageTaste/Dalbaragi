@@ -234,7 +234,7 @@ namespace dal {
         render_pass_info.renderPass = render_pass.get();
         render_pass_info.framebuffer = this->m_fbuf.get();
         render_pass_info.renderArea.offset = {0, 0};
-        render_pass_info.renderArea.extent = {2048, 2048};
+        render_pass_info.renderArea.extent = this->m_depth_attach.extent();
         render_pass_info.clearValueCount = clear_colors.size();
         render_pass_info.pClearValues = clear_colors.data();
 

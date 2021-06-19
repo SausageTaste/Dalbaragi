@@ -11,7 +11,7 @@ namespace dal {
         auto proj_mat = glm::ortho<float>(
             -half_proj_box_edge_length, half_proj_box_edge_length,
             -half_proj_box_edge_length, half_proj_box_edge_length,
-            -half_proj_box_edge_length, half_proj_box_edge_length
+            -half_proj_box_edge_length * 10, half_proj_box_edge_length - 10
         );
         proj_mat[1][1] *= -1;
 
