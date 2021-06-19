@@ -892,8 +892,8 @@ namespace {
         const auto depth_stencil = ::create_info_depth_stencil(true);
 
         // Dynamic state
-        //constexpr std::array<VkDynamicState, 0> dynamic_states{};
-        //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
+        const std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+        const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
         const std::vector<VkDescriptorSetLayout> desc_layouts;
@@ -912,7 +912,7 @@ namespace {
         pipeline_info.pMultisampleState = &multisampling;
         pipeline_info.pDepthStencilState = &depth_stencil;
         pipeline_info.pColorBlendState = &color_blending;
-        pipeline_info.pDynamicState = nullptr;
+        pipeline_info.pDynamicState = &dynamic_state_info;
         pipeline_info.layout = pipeline_layout;
         pipeline_info.renderPass = renderpass;
         pipeline_info.subpass = 0;

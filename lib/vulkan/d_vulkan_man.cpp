@@ -17,6 +17,8 @@
 
 namespace {
 
+    constexpr float DLIGHT_HALF_BOX_SIZE = 30;
+
     glm::mat4 make_perspective_proj_mat(const float ratio, const float fov) {
         auto mat = glm::perspective<float>(glm::radians(fov), ratio, 0.1f, 100.0f);
         mat[1][1] *= -1;
@@ -186,6 +188,22 @@ namespace {
         return instance;
     }
 
+    auto create_info_viewport_scissor(const VkExtent2D& extent) {
+        VkViewport viewport{};
+        viewport.x = 0;
+        viewport.y = 0;
+        viewport.width = static_cast<float>(extent.width);
+        viewport.height = static_cast<float>(extent.height);
+        viewport.minDepth = 0;
+        viewport.maxDepth = 1;
+
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = extent;
+
+        return std::make_pair(viewport, scissor);
+    }
+
 }
 
 
@@ -216,7 +234,7 @@ namespace dal {
         render_pass_info.renderPass = render_pass.get();
         render_pass_info.framebuffer = this->m_fbuf.get();
         render_pass_info.renderArea.offset = {0, 0};
-        render_pass_info.renderArea.extent = {512, 512};
+        render_pass_info.renderArea.extent = {2048, 2048};
         render_pass_info.clearValueCount = clear_colors.size();
         render_pass_info.pClearValues = clear_colors.data();
 
@@ -226,6 +244,10 @@ namespace dal {
             auto& pipeline = pipeline_shadow;
 
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            const auto [viewport, scissor] = ::create_info_viewport_scissor(this->m_depth_attach.extent());
+            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
@@ -392,6 +414,7 @@ namespace dal {
             {
                 data_glight.m_dlight_count = render_list.m_dlights.size();
                 for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
+                    data_glight.m_dlight_mat[i]   = render_list.m_dlights[i].make_light_mat(::DLIGHT_HALF_BOX_SIZE);
                     data_glight.m_dlight_direc[i] = glm::vec4{ render_list.m_dlights[i].to_light_direc(), 0 };
                     data_glight.m_dlight_color[i] = glm::vec4{ render_list.m_dlights[i].m_color, 1 };
                 }
@@ -418,7 +441,7 @@ namespace dal {
             this->m_shadow_map.record_cmd_buf(
                 this->m_flight_frame_index,
                 render_list,
-                render_list.m_dlights.front().make_light_mat(5),
+                render_list.m_dlights.front().make_light_mat(::DLIGHT_HALF_BOX_SIZE),
                 this->m_pipelines.shadow(),
                 this->m_renderpasses.rp_shadow()
             );
@@ -760,7 +783,7 @@ namespace dal {
         );
 
         this->m_shadow_map.init(
-            512, 512,
+            2048*2, 2048*2,
             dal::MAX_FRAMES_IN_FLIGHT,
             this->m_logi_device.indices().graphics_family(),
             this->m_renderpasses.rp_shadow(),

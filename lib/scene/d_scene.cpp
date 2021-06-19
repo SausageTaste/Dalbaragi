@@ -43,14 +43,15 @@ namespace dal {
 
         {
             auto& light = output.m_dlights.emplace_back();
-            light.set_direc_to_light(1, 1, 1);
-            light.m_color = glm::vec3{0.2, 0.2, 0.4};
+            light.m_pos = glm::vec3{5, 0, 0};
+            light.set_direc_to_light(1, 5, 1);
+            light.m_color = glm::vec3{1};
         }
 
         {
             auto& light = output.m_plights.emplace_back();
             light.m_pos = glm::vec3{sin(dal::get_cur_sec()) * 3, 1, cos(dal::get_cur_sec()) * 2};
-            light.m_color = glm::vec3{1.5};
+            light.m_color = glm::vec3{0.5};
         }
 
         output.m_ambient_color = glm::vec3{0.01};

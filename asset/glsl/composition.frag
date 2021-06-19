@@ -15,6 +15,7 @@ layout(input_attachment_index = 3, binding = 3) uniform subpassInput input_norma
 
 
 layout(set = 0, binding = 4) uniform U_GlobalLight {
+    mat4 m_dlight_mat[2];
     vec4 m_dlight_direc[2];
     vec4 m_dlight_color[2];
 
@@ -35,6 +36,26 @@ layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
 
 layout(set = 0, binding = 6) uniform sampler2D u_dlight_shadow_map;
 
+
+float _sample_dlight_depth(vec2 coord) {
+    if (coord.x > 1.0 || coord.x < 0.0) return 1.0;
+    if (coord.y > 1.0 || coord.y < 0.0) return 1.0;
+    return texture(u_dlight_shadow_map, coord).r;
+}
+
+bool is_frag_in_dlight_shadow(vec3 frag_pos) {
+    const vec4 frag_pos_in_dlight = u_global_light.m_dlight_mat[0] * vec4(frag_pos, 1);
+    const vec3 projCoords = frag_pos_in_dlight.xyz / frag_pos_in_dlight.w;
+
+    if (projCoords.z > 1.0)
+        return false;
+
+    const vec2 sample_coord = projCoords.xy * 0.5 + 0.5;
+    const float closestDepth = _sample_dlight_depth(sample_coord);
+    const float currentDepth = projCoords.z;
+
+    return currentDepth > closestDepth;
+}
 
 vec3 calc_world_pos(const float z) {
     const vec4 clipSpacePosition = vec4(v_device_coord, z, 1);
@@ -73,6 +94,9 @@ void main() {
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;
 
     for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
+        if (is_frag_in_dlight_shadow(world_pos))
+            continue;
+
         light += calc_pbr_illumination(
             material.x,
             material.y,
@@ -102,7 +126,7 @@ void main() {
         );
     }
 
-    out_color = vec4(light * a, 1);
+    out_color = vec4(light, 1);
 
 #ifdef DAL_GAMMA_CORRECT
     out_color.xyz = fix_color(out_color.xyz);

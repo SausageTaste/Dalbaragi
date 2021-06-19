@@ -39,6 +39,7 @@ namespace dal {
     };
 
     struct U_GlobalLight {
+        glm::mat4 m_dlight_mat[dal::MAX_DLIGHT_COUNT];
         glm::vec4 m_dlight_direc[dal::MAX_DLIGHT_COUNT];
         glm::vec4 m_dlight_color[dal::MAX_DLIGHT_COUNT];
 
