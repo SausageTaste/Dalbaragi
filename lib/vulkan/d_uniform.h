@@ -1,6 +1,8 @@
 #pragma once
 
+#include <deque>
 #include <vector>
+#include <unordered_map>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -191,16 +193,22 @@ namespace dal {
 
     private:
         VkDescriptorSet m_handle = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout;
 
     public:
-        void set(const VkDescriptorSet desc_set) {
+        void set(const VkDescriptorSet desc_set, const VkDescriptorSetLayout layout) {
             this->m_handle = desc_set;
+            this->m_layout = layout;
         }
 
         bool is_ready() const;
 
         auto& get() const {
             return this->m_handle;
+        }
+
+        auto& layout() const {
+            return this->m_layout;
         }
 
         void record_final(
@@ -271,6 +279,40 @@ namespace dal {
         auto get() const {
             return this->m_handle;
         }
+
+    };
+
+
+    class DescAllocator {
+
+    private:
+        DescPool m_pool;
+        std::unordered_map<VkDescriptorSetLayout, std::deque<DescSet>> m_waiting_queue;
+        size_t m_allocated_outside = 0;
+
+    public:
+        void init(
+            const uint32_t uniform_buf_count,
+            const uint32_t image_sampler_count,
+            const uint32_t input_attachment_count,
+            const uint32_t desc_set_count,
+            const VkDevice logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+        void reset(const VkDevice logi_device);
+
+        DescSet allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device);
+
+        std::vector<DescSet> allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device);
+
+        void free(const DescSet& desc_set);
+
+        void free(const std::vector<DescSet>& desc_sets);
+
+    private:
+        std::deque<DescSet>& get_queue(const VkDescriptorSetLayout layout);
 
     };
 

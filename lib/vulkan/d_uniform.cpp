@@ -473,10 +473,87 @@ namespace dal {
 
         result.reserve(count);
         for (const auto x : desc_sets) {
-            result.emplace_back().set(x);
+            result.emplace_back().set(x, layout);
         }
 
         return result;
+    }
+
+}
+
+
+// DescAllocator
+namespace dal {
+
+    void DescAllocator::init(
+        const uint32_t uniform_buf_count,
+        const uint32_t image_sampler_count,
+        const uint32_t input_attachment_count,
+        const uint32_t desc_set_count,
+        const VkDevice logi_device
+    ) {
+        this->m_pool.init(
+            uniform_buf_count,
+            image_sampler_count,
+            input_attachment_count,
+            desc_set_count,
+            logi_device
+        );
+    }
+
+    void DescAllocator::destroy(const VkDevice logi_device) {
+        this->m_waiting_queue.clear();
+        this->m_pool.destroy(logi_device);
+    }
+
+    void DescAllocator::reset(const VkDevice logi_device) {
+        this->m_pool.reset(logi_device);
+    }
+
+    DescSet DescAllocator::allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+        ++this->m_allocated_outside;
+        auto& queue = this->get_queue(layout);
+
+        if (queue.empty()) {
+            return this->m_pool.allocate(layout, logi_device);
+        }
+        else {
+            auto output = queue.front();
+            queue.pop_front();
+            return output;
+        }
+    }
+
+    std::vector<DescSet> DescAllocator::allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+        std::vector<DescSet> output;
+
+        for (uint32_t i = 0; i < count; ++i)
+            output.push_back(this->allocate(layout, logi_device));
+
+        return output;
+    }
+
+    void DescAllocator::free(const DescSet& desc_set) {
+        --this->m_allocated_outside;
+        this->get_queue(desc_set.layout()).push_back(desc_set);
+    }
+
+    void DescAllocator::free(const std::vector<DescSet>& desc_sets) {
+        for (auto& set : desc_sets) {
+            this->free(set);
+        }
+    }
+
+    // Private
+
+    std::deque<DescSet>& DescAllocator::get_queue(const VkDescriptorSetLayout layout) {
+        auto iter = this->m_waiting_queue.find(layout);
+        if (this->m_waiting_queue.end() != iter) {
+            return iter->second;
+        }
+        else {
+            return this->m_waiting_queue.emplace(layout, std::deque<DescSet>{}).first->second;
+        }
     }
 
 }
