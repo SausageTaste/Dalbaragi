@@ -22,7 +22,7 @@ layout(set = 2, binding = 0) uniform U_PerActor {
     mat4 m_model;
 } u_per_actor;
 
-layout(set = 4, binding = 0) uniform U_AnimTransform {
+layout(set = 3, binding = 0) uniform U_AnimTransform {
     mat4 m_transforms[128];
 } u_anim_transform;
 

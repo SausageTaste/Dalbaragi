@@ -55,8 +55,7 @@ namespace dal {
             const FrameInFlightIndex& flight_frame_index,
             const glm::vec3& view_pos,
             const RenderList& render_list,
-            const VkDescriptorSet desc_set_per_frame,
-            const VkDescriptorSet desc_set_per_world,
+            const VkDescriptorSet desc_set_per_global,
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
             const VkFramebuffer swapchain_fbuf,
@@ -124,7 +123,6 @@ namespace dal {
         UniformBufferArray<U_PerFrame> m_ub_simple;
         UniformBufferArray<U_GlobalLight> m_ub_glights;
         UniformBufferArray<U_PerFrame_Composition> m_ub_per_frame_composition;
-        UniformBufferArray<U_PerFrame_Alpha> m_ub_per_frame_alpha;
         UniformBuffer<U_PerFrame_InFinal> m_ub_final;
 
     public:

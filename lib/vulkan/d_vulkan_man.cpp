@@ -312,10 +312,6 @@ namespace dal {
             ubuf_data_composition.m_view_inv = glm::inverse(ubuf_data_per_frame.m_view);
             ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
             this->m_ubuf_man.m_ub_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
-
-            U_PerFrame_Alpha ubuf_data_alpha{};
-            ubuf_data_alpha.m_view_pos = ubuf_data_per_frame.m_view_pos;
-            this->m_ubuf_man.m_ub_per_frame_alpha.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_alpha, this->m_logi_device.get());
         }
 
         {
@@ -349,7 +345,7 @@ namespace dal {
             this->m_cmd_man.record_simple(
                 this->m_flight_frame_index,
                 render_list,
-                this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
+                this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_attach_man.color().extent(),
                 this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
@@ -388,8 +384,7 @@ namespace dal {
                 this->m_flight_frame_index,
                 camera.view_pos(),
                 render_list,
-                this->m_desc_man.desc_set_per_frame_at(this->m_flight_frame_index.get()),
-                this->m_desc_man.desc_set_per_world(this->m_flight_frame_index.get()),
+                this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_attach_man.color().extent(),
                 this->m_fbuf_man.fbuf_alpha_at(swapchain_index).get(),
@@ -674,10 +669,9 @@ namespace dal {
             this->m_swapchain.identity_extent(),
             this->m_attach_man.color().extent(),
             this->m_desc_layout_man.layout_final(),
-            this->m_desc_layout_man.layout_simple(),
+            this->m_desc_layout_man.layout_per_global(),
             this->m_desc_layout_man.layout_per_material(),
             this->m_desc_layout_man.layout_per_actor(),
-            this->m_desc_layout_man.layout_per_world(),
             this->m_desc_layout_man.layout_animation(),
             this->m_desc_layout_man.layout_composition(),
             this->m_renderpasses.rp_gbuf(),
@@ -700,18 +694,11 @@ namespace dal {
 
         this->m_desc_man.init(MAX_FRAMES_IN_FLIGHT, this->m_logi_device.get());
 
-        this->m_desc_man.init_desc_sets_per_frame(
+        this->m_desc_man.init_desc_sets_per_global(
             this->m_ubuf_man.m_ub_simple,
-            MAX_FRAMES_IN_FLIGHT,
-            this->m_desc_layout_man.layout_simple(),
-            this->m_logi_device.get()
-        );
-
-        this->m_desc_man.init_desc_sets_per_world(
             this->m_ubuf_man.m_ub_glights,
-            this->m_ubuf_man.m_ub_per_frame_alpha,
             MAX_FRAMES_IN_FLIGHT,
-            this->m_desc_layout_man.layout_per_world(),
+            this->m_desc_layout_man.layout_per_global(),
             this->m_logi_device.get()
         );
 

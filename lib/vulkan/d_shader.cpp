@@ -664,10 +664,9 @@ namespace {
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout desc_layout_simple,
+        const VkDescriptorSetLayout desc_layout_global,
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
-        const VkDescriptorSetLayout desc_layout_per_world,
         const VkDevice logi_device
     ) {
         const auto vert_src = asset_mgr.open("_asset/spv/alpha_v.spv")->read_stl<std::vector<char>>();
@@ -716,11 +715,10 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 4> desc_layouts{
-            desc_layout_simple,
+        const std::vector<VkDescriptorSetLayout> desc_layouts{
+            desc_layout_global,
             desc_layout_per_material,
             desc_layout_per_actor,
-            desc_layout_per_world,
         };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
@@ -756,10 +754,9 @@ namespace {
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout desc_layout_simple,
+        const VkDescriptorSetLayout desc_layout_per_global,
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
-        const VkDescriptorSetLayout desc_layout_per_world,
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDevice logi_device
     ) {
@@ -809,11 +806,10 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 5> desc_layouts{
-            desc_layout_simple,
+        const std::vector<VkDescriptorSetLayout> desc_layouts{
+            desc_layout_per_global,
             desc_layout_per_material,
             desc_layout_per_actor,
-            desc_layout_per_world,
             desc_layout_animation,
         };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
@@ -857,10 +853,9 @@ namespace dal {
         const VkExtent2D& swapchain_extent,
         const VkExtent2D& gbuf_extent,
         const VkDescriptorSetLayout desc_layout_final,
-        const VkDescriptorSetLayout desc_layout_simple,
+        const VkDescriptorSetLayout desc_layout_per_global,
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
-        const VkDescriptorSetLayout desc_layout_per_world,
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDescriptorSetLayout desc_layout_composition,
         const RenderPass_Gbuf& rp_gbuf,
@@ -874,7 +869,7 @@ namespace dal {
             asset_mgr,
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_simple,
+            desc_layout_per_global,
             desc_layout_per_material,
             desc_layout_per_actor,
             rp_gbuf.get(), 0,
@@ -885,7 +880,7 @@ namespace dal {
             asset_mgr,
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_simple,
+            desc_layout_per_global,
             desc_layout_per_material,
             desc_layout_per_actor,
             desc_layout_animation,
@@ -916,10 +911,9 @@ namespace dal {
             rp_alpha,
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_simple,
+            desc_layout_per_global,
             desc_layout_per_material,
             desc_layout_per_actor,
-            desc_layout_per_world,
             logi_device
         );
 
@@ -928,10 +922,9 @@ namespace dal {
             rp_alpha,
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_simple,
+            desc_layout_per_global,
             desc_layout_per_material,
             desc_layout_per_actor,
-            desc_layout_per_world,
             desc_layout_animation,
             logi_device
         );

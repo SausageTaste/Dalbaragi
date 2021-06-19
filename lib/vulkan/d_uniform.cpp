@@ -75,15 +75,15 @@ namespace {
         return output;
     }
 
-    VkDescriptorSetLayout create_layout_per_frame(const VkDevice logiDevice) {
+    VkDescriptorSetLayout create_layout_per_global(const VkDevice logiDevice) {
         ::DescLayoutBuilder bindings;
 
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
 
         //----------------------------------------------------------------------------------
 
         const auto layout_info = bindings.make_create_info();
-
         VkDescriptorSetLayout output = VK_NULL_HANDLE;
         if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layout_info, nullptr, &output))
             dalAbort("failed to create descriptor set layout!");
@@ -122,24 +122,6 @@ namespace {
             dalAbort("failed to create descriptor set layout!");
 
         return output;
-    }
-
-    VkDescriptorSetLayout create_layout_per_world(const VkDevice logi_device) {
-        ::DescLayoutBuilder bindings;
-
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame_Alpha
-
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout result = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &result)) {
-            dalAbort("failed to create descriptor set layout!");
-        }
-
-        return result;
     }
 
     VkDescriptorSetLayout create_layout_animation(const VkDevice logi_device) {
@@ -191,10 +173,9 @@ namespace dal {
 
         this->m_layout_final = ::create_layout_final(logiDevice);
 
-        this->m_layout_per_frame = ::create_layout_per_frame(logiDevice);
+        this->m_layout_per_global = ::create_layout_per_global(logiDevice);
         this->m_layout_per_material = ::create_layout_per_material(logiDevice);
         this->m_layout_per_actor = ::create_layout_per_actor(logiDevice);
-        this->m_layout_per_world = ::create_layout_per_world(logiDevice);
 
         this->m_layout_animation = ::create_layout_animation(logiDevice);
 
@@ -207,9 +188,9 @@ namespace dal {
             this->m_layout_final = VK_NULL_HANDLE;
         }
 
-        if (VK_NULL_HANDLE != this->m_layout_per_frame) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_frame, nullptr);
-            this->m_layout_per_frame = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->m_layout_per_global) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_global, nullptr);
+            this->m_layout_per_global = VK_NULL_HANDLE;
         }
 
         if (VK_NULL_HANDLE != this->m_layout_per_material) {
@@ -220,11 +201,6 @@ namespace dal {
         if (VK_NULL_HANDLE != this->m_layout_per_actor) {
             vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_actor, nullptr);
             this->m_layout_per_actor = VK_NULL_HANDLE;
-        }
-
-        if (VK_NULL_HANDLE != this->m_layout_per_world) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_world, nullptr);
-            this->m_layout_per_world = VK_NULL_HANDLE;
         }
 
         if (VK_NULL_HANDLE != this->m_layout_animation) {
@@ -360,13 +336,15 @@ namespace dal {
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
 
-    void DescSet::record_per_frame(
+    void DescSet::record_per_global(
         const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+        const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const VkDevice logi_device
     ) {
         ::WriteDescBuilder desc_writes{ this->m_handle };
 
         desc_writes.add_buffer(ubuf_per_frame);
+        desc_writes.add_buffer(ubuf_global_light);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -392,19 +370,6 @@ namespace dal {
         ::WriteDescBuilder desc_writes{ this->m_handle };
 
         desc_writes.add_buffer(ubuf_per_actor);
-
-        vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
-    }
-
-    void DescSet::record_per_world(
-        const UniformBuffer<U_GlobalLight>& ubuf_global_light,
-        const UniformBuffer<U_PerFrame_Alpha>& ubuf_per_frame_alpha,
-        const VkDevice logi_device
-    ) {
-        ::WriteDescBuilder desc_writes{ this->m_handle };
-
-        desc_writes.add_buffer(ubuf_global_light);
-        desc_writes.add_buffer(ubuf_per_frame_alpha);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -564,36 +529,22 @@ namespace dal {
         }
         this->m_pool_final.clear();
 
-        this->m_descset_per_frame.clear();
+        this->m_descset_per_global.clear();
         this->m_descset_composition.clear();
     }
 
-    void DescriptorManager::init_desc_sets_per_frame(
-        const dal::UniformBufferArray<U_PerFrame>& ubufs_simple,
+    void DescriptorManager::init_desc_sets_per_global(
+        const UniformBufferArray<U_PerFrame>& ubufs_simple,
+        const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
         const uint32_t swapchain_count,
         const VkDescriptorSetLayout desc_layout_simple,
         const VkDevice logi_device
     ) {
-        this->m_descset_per_frame = this->m_pool_simple.allocate(swapchain_count, desc_layout_simple, logi_device);
+        this->m_descset_per_global = this->m_pool_simple.allocate(swapchain_count, desc_layout_simple, logi_device);
 
-        for (size_t i = 0; i < this->m_descset_per_frame.size(); ++i) {
-            auto& desc_set = this->m_descset_per_frame.at(i);
-            desc_set.record_per_frame(ubufs_simple.at(i), logi_device);
-        }
-    }
-
-    void DescriptorManager::init_desc_sets_per_world(
-        const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
-        const UniformBufferArray<U_PerFrame_Alpha>& ubufs_per_frame_alpha,
-        const uint32_t swapchain_count,
-        const VkDescriptorSetLayout desc_layout_world,
-        const VkDevice logi_device
-    ) {
-        this->m_descset_per_world = this->m_pool_simple.allocate(swapchain_count, desc_layout_world, logi_device);
-
-        for (size_t i = 0; i < this->m_descset_per_world.size(); ++i) {
-            auto& desc_set = this->m_descset_per_world.at(i);
-            desc_set.record_per_world(ubufs_global_light.at(i), ubufs_per_frame_alpha.at(i), logi_device);
+        for (size_t i = 0; i < this->m_descset_per_global.size(); ++i) {
+            auto& desc_set = this->m_descset_per_global.at(i);
+            desc_set.record_per_global(ubufs_simple.at(i), ubufs_global_light.at(i), logi_device);
         }
     }
 

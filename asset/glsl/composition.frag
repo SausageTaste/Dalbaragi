@@ -13,6 +13,7 @@ layout(input_attachment_index = 1, binding = 1) uniform subpassInput input_albed
 layout(input_attachment_index = 2, binding = 2) uniform subpassInput input_material;
 layout(input_attachment_index = 3, binding = 3) uniform subpassInput input_normal;
 
+
 layout(set = 0, binding = 4) uniform U_GlobalLight {
     vec4 m_dlight_direc[2];
     vec4 m_dlight_color[2];

@@ -354,8 +354,7 @@ namespace dal {
         const FrameInFlightIndex& flight_frame_index,
         const glm::vec3& view_pos,
         const RenderList& render_list,
-        const VkDescriptorSet desc_set_per_frame,
-        const VkDescriptorSet desc_set_per_world,
+        const VkDescriptorSet desc_set_per_global,
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
         const VkFramebuffer swapchain_fbuf,
@@ -406,16 +405,7 @@ namespace dal {
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                 pipeline.layout(),
                 0,
-                1, &desc_set_per_frame,
-                0, nullptr
-            );
-
-            vkCmdBindDescriptorSets(
-                cmd_buf,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipeline.layout(),
-                3,
-                1, &desc_set_per_world,
+                1, &desc_set_per_global,
                 0, nullptr
             );
 
@@ -461,16 +451,7 @@ namespace dal {
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                 pipeline.layout(),
                 0,
-                1, &desc_set_per_frame,
-                0, nullptr
-            );
-
-            vkCmdBindDescriptorSets(
-                cmd_buf,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipeline.layout(),
-                3,
-                1, &desc_set_per_world,
+                1, &desc_set_per_global,
                 0, nullptr
             );
 
@@ -504,7 +485,7 @@ namespace dal {
                     cmd_buf,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                     pipeline.layout(),
-                    4,
+                    3,
                     1, &render_tuple.m_actor->desc_animation(flight_frame_index),
                     0, nullptr
                 );
@@ -619,12 +600,6 @@ namespace dal {
             logi_device
         );
 
-        this->m_ub_per_frame_alpha.init(
-            MAX_FRAMES_IN_FLIGHT,
-            phys_device,
-            logi_device
-        );
-
         this->m_ub_final.init(phys_device, logi_device);
     }
 
@@ -632,7 +607,6 @@ namespace dal {
         this->m_ub_simple.destroy(logi_device);
         this->m_ub_glights.destroy(logi_device);
         this->m_ub_per_frame_composition.destroy(logi_device);
-        this->m_ub_per_frame_alpha.destroy(logi_device);
         this->m_ub_final.destroy(logi_device);
     }
 
