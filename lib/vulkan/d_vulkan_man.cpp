@@ -232,11 +232,19 @@ namespace dal {
         );
 
         this->m_desc_allocator.init(64, 64, 64, 64, this->m_logi_device.get());
+        this->m_shadow_map.init(
+            512, 512,
+            this->m_renderpasses.rp_shadow(),
+            this->m_phys_device.find_depth_format(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
     }
 
     VulkanState::~VulkanState() {
         this->wait_idle();
 
+        this->m_shadow_map.destroy(this->m_logi_device.get());
         this->m_desc_allocator.destroy(this->m_logi_device.get());
         this->m_sampler_man.destroy(this->m_logi_device.get());
         this->m_desc_man.destroy(this->m_logi_device.get());
@@ -641,6 +649,7 @@ namespace dal {
 
         this->m_attach_man.init(
             ::calc_smaller_extent(this->m_new_extent, 0.9),
+            this->m_phys_device.find_depth_format(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );

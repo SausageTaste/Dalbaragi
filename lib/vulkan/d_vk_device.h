@@ -81,6 +81,8 @@ namespace dal {
 
         PhysDeviceInfo make_info(const VkSurfaceKHR surface) const;
 
+        VkFormat find_depth_format() const;
+
     };
 
 

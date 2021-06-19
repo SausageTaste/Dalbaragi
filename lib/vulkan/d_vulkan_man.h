@@ -37,6 +37,7 @@ namespace dal {
 
         SamplerManager m_sampler_man;
         DescAllocator m_desc_allocator;
+        ShadowMapFbuf m_shadow_map;
 
     private:
         // Non-vulkan members

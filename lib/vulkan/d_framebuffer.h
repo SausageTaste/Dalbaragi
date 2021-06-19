@@ -68,6 +68,7 @@ namespace dal {
     public:
         void init(
             const VkExtent2D& extent,
+            const VkFormat depth_format,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
@@ -75,10 +76,11 @@ namespace dal {
         void init(
             const uint32_t width,
             const uint32_t height,
+            const VkFormat depth_format,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         ) {
-            this->init(VkExtent2D{ width, height }, phys_device, logi_device);
+            this->init(VkExtent2D{ width, height }, depth_format, phys_device, logi_device);
         }
 
         void destroy(const VkDevice logi_device);
@@ -184,6 +186,45 @@ namespace dal {
             const VkImageView depth_view,
             const VkDevice logi_device
         );
+
+    };
+
+    class Fbuf_Shadow : public Framebuffer {
+
+    public:
+        void init(
+            const dal::RenderPass_ShadowMap& renderpass,
+            const VkExtent2D& extent,
+            const VkImageView shadow_map_view,
+            const VkDevice logi_device
+        );
+
+    };
+
+
+    class ShadowMapFbuf {
+
+    private:
+        FbufAttachment m_depth_attach;
+        Fbuf_Shadow m_fbuf;
+
+    public:
+        void init(
+            const uint32_t width,
+            const uint32_t height,
+            const RenderPass_ShadowMap& rp_shadow,
+            const VkFormat depth_format,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        ) {
+            this->m_depth_attach.init(width, height, dal::FbufAttachment::Usage::depth_attachment, depth_format, phys_device, logi_device);
+            this->m_fbuf.init(rp_shadow, VkExtent2D{width, height}, this->m_depth_attach.view().get(), logi_device);
+        }
+
+        void destroy(const VkDevice logi_device) {
+            this->m_fbuf.destroy(logi_device);
+            this->m_depth_attach.destroy(logi_device);
+        }
 
     };
 

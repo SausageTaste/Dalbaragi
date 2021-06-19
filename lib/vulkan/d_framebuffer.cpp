@@ -8,35 +8,6 @@
 
 namespace {
 
-    VkFormat find_supported_format(
-        const std::initializer_list<VkFormat>& candidates,
-        const VkImageTiling tiling,
-        const VkFormatFeatureFlags features,
-        const VkPhysicalDevice phys_device
-    ) {
-        for (const VkFormat format : candidates) {
-            VkFormatProperties props;
-            vkGetPhysicalDeviceFormatProperties(phys_device, format, &props);
-
-            if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-                return format;
-            } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-                return format;
-            }
-        }
-
-        dalAbort("failed to find supported format!");
-    }
-
-    VkFormat find_depth_format(const VkPhysicalDevice phys_device) {
-        return ::find_supported_format(
-            { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
-            phys_device
-        );
-    }
-
     auto interpret_usage(const dal::FbufAttachment::Usage usage) {
         VkImageAspectFlags aspect_mask;
         VkImageLayout image_layout;
@@ -127,6 +98,7 @@ namespace dal {
 
     void AttachmentManager::init(
         const VkExtent2D& extent,
+        const VkFormat depth_format,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
@@ -147,7 +119,7 @@ namespace dal {
             this->m_extent.width,
             this->m_extent.height,
             dal::FbufAttachment::Usage::depth_attachment,
-            ::find_depth_format(phys_device),
+            depth_format,
             phys_device,
             logi_device
         );
@@ -300,6 +272,27 @@ namespace dal {
         const std::array<VkImageView, 2> attachments{
             color_view,
             depth_view,
+        };
+
+        const auto result = this->create(
+            attachments.data(),
+            attachments.size(),
+            extent.width,
+            extent.height,
+            renderpass.get(),
+            logi_device
+        );
+        dalAssert(result);
+    }
+
+    void Fbuf_Shadow::init(
+        const dal::RenderPass_ShadowMap& renderpass,
+        const VkExtent2D& extent,
+        const VkImageView shadow_map_view,
+        const VkDevice logi_device
+    ) {
+        const std::array<VkImageView, 1> attachments{
+            shadow_map_view,
         };
 
         const auto result = this->create(
