@@ -30,6 +30,11 @@ namespace {
                 dal::get_log_level_str(level),
                 str
             );
+
+            if (static_cast<int>(level) >= static_cast<int>(dal::LogLevel::warning))
+                return;
+            else
+                return;
         }
 
     private:
