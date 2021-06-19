@@ -8,6 +8,7 @@
 #include "d_animation.h"
 #include "d_filesystem.h"
 #include "d_model_data.h"
+#include "d_render_cpnt.h"
 #include "d_image_parser.h"
 
 
@@ -104,6 +105,9 @@ namespace dal {
     struct RenderList {
         std::vector<RenderPair<HRenModel, HActor>> m_static_models;
         std::vector<RenderPair<HRenModelSkinned, HActorSkinned>> m_skinned_models;
+        std::vector<DLight> m_dlights;
+        std::vector<PLight> m_plights;
+        glm::vec3 m_ambient_color;
     };
 
 

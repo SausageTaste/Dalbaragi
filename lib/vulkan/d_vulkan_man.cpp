@@ -315,24 +315,27 @@ namespace dal {
         }
 
         {
-            U_GlobalLight ubuf_data_glight{};
+            dalAssert(render_list.m_dlights.size() <= dal::MAX_DLIGHT_COUNT);
+            dalAssert(render_list.m_plights.size() <= dal::MAX_PLIGHT_COUNT);
 
-            const auto light_direc = glm::vec3{1, 1, 1};
-            ubuf_data_glight.m_dlight_count = 1;
-            ubuf_data_glight.m_dlight_direc[0] = glm::vec4{glm::normalize(light_direc), 0};
-            ubuf_data_glight.m_dlight_color[0] = glm::vec4{0.2, 0.2, 0.4, 1};
+            U_GlobalLight data_glight{};
+            {
+                data_glight.m_dlight_count = render_list.m_dlights.size();
+                for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
+                    data_glight.m_dlight_direc[i] = glm::vec4{ render_list.m_dlights[i].to_light_direc(), 0 };
+                    data_glight.m_dlight_color[i] = glm::vec4{ render_list.m_dlights[i].m_color, 1 };
+                }
 
-            ubuf_data_glight.m_plight_count = 1;
+                data_glight.m_plight_count = render_list.m_plights.size();
+                for (size_t i = 0; i < render_list.m_plights.size(); ++i) {
+                    data_glight.m_plight_pos_n_max_dist[i] = glm::vec4{ render_list.m_plights[i].m_pos, 0 };
+                    data_glight.m_plight_color[i]          = glm::vec4{ render_list.m_plights[i].m_color, 0 };
+                }
 
-            ubuf_data_glight.m_plight_pos_n_max_dist[0] = glm::vec4{ sin(dal::get_cur_sec()) * 3, 1, cos(dal::get_cur_sec()) * 2, 20 };
-            ubuf_data_glight.m_plight_color[0] = glm::vec4{ glm::vec3{1.5}, 1 };
+                data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };
+            }
 
-            ubuf_data_glight.m_plight_pos_n_max_dist[1] = glm::vec4{ cos(dal::get_cur_sec()) * 2, 1, sin(dal::get_cur_sec()) * 2, 20 };
-            ubuf_data_glight.m_plight_color[1] = glm::vec4{ 1, 1, 1, 1 };
-
-            ubuf_data_glight.m_ambient_light = glm::vec4{ 0.01, 0.01, 0.01, 1 };
-
-            this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_glight, this->m_logi_device.get());
+            this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(data_glight, this->m_logi_device.get());
         }
 
         //-----------------------------------------------------------------------------------------------------
