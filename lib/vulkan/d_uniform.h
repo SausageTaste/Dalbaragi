@@ -57,6 +57,11 @@ namespace dal {
 
     static_assert(sizeof(U_AnimTransform) <= 16 * 1024);
 
+    struct U_PC_Shadow {
+        glm::mat4 m_model_mat;
+        glm::mat4 m_light_mat;
+    };
+
 
     template <typename _DataStruct>
     class UniformBuffer {

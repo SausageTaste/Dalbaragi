@@ -689,6 +689,7 @@ namespace dal {
             this->m_renderpasses.rp_gbuf(),
             this->m_renderpasses.rp_final(),
             this->m_renderpasses.rp_alpha(),
+            this->m_renderpasses.rp_shadow(),
             this->m_logi_device.get()
         );
 

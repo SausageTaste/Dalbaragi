@@ -66,6 +66,10 @@ def main():
 
     _work_for_one("alpha_gamma_f.spv", "alpha.frag", ["DAL_GAMMA_CORRECT"])
 
+    _work_for_one("shadow_v.spv", "shadow.vert", [])
+
+    _work_for_one("shadow_f.spv", "shadow.frag", [])
+
 
 if "__main__" == __name__:
     main()

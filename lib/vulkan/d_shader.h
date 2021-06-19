@@ -56,6 +56,7 @@ namespace dal {
         ShaderPipeline m_final;
         ShaderPipeline m_alpha;
         ShaderPipeline m_alpha_animated;
+        ShaderPipeline m_shadow;
 
     public:
         void init(
@@ -72,6 +73,7 @@ namespace dal {
             const RenderPass_Gbuf& rp_gbuf,
             const RenderPass_Final& rp_final,
             const RenderPass_Alpha& rp_alpha,
+            const RenderPass_ShadowMap& rp_shadow,
             const VkDevice logi_device
         );
 
