@@ -142,6 +142,35 @@ namespace dal {
 }
 
 
+// ICamera
+namespace dal {
+
+    std::array<glm::vec3, 8> ICamera::make_frustum_vertices(const float fov, const float ratio, const float near, const float far) const {
+        static const std::array<glm::vec3, 8> vertices_in_device_space{
+            glm::vec3{-1, -1, -1},
+            glm::vec3{-1, -1,  1},
+            glm::vec3{-1,  1, -1},
+            glm::vec3{-1,  1,  1},
+            glm::vec3{ 1, -1, -1},
+            glm::vec3{ 1, -1,  1},
+            glm::vec3{ 1,  1, -1},
+            glm::vec3{ 1,  1,  1},
+        };
+
+        const auto transform = make_perspective_proj_mat(fov, ratio, near, far) * this->make_view_mat();
+        const auto transform_inv = glm::inverse(transform);
+        std::array<glm::vec3, 8> output;
+
+        for (size_t i = 0; i < 8; ++i) {
+            output[i] = transform_inv * glm::vec4{ vertices_in_device_space[i], 1 };
+        }
+
+        return output;
+    }
+
+}
+
+
 // EulerCamera
 namespace dal {
 
@@ -161,6 +190,18 @@ namespace dal {
 
     void EulerCamera::move_forward(const glm::vec3& v) {
         this->m_pos += ::make_rotation_yxz<glm::mat3>(this->m_rotations) * v;
+    }
+
+}
+
+
+// Functions
+namespace dal {
+
+    glm::mat4 make_perspective_proj_mat(const float fov, const float ratio, const float near, const float far) {
+        auto mat = glm::perspective<float>(fov, ratio, near, far);
+        mat[1][1] *= -1;
+        return mat;
     }
 
 }

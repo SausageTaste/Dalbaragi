@@ -19,12 +19,6 @@ namespace {
 
     constexpr float DLIGHT_HALF_BOX_SIZE = 30;
 
-    glm::mat4 make_perspective_proj_mat(const float ratio, const float fov) {
-        auto mat = glm::perspective<float>(glm::radians(fov), ratio, 0.1f, 100.0f);
-        mat[1][1] *= -1;
-        return mat;
-    }
-
     VkExtent2D calc_smaller_extent(const VkExtent2D& extent, const float scale) {
         return VkExtent2D{
             std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<float>(extent.width) * scale)),
@@ -306,7 +300,7 @@ namespace dal {
         {
             U_PerFrame ubuf_data_per_frame{};
             ubuf_data_per_frame.m_view = camera.make_view_mat();
-            ubuf_data_per_frame.m_proj = ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
+            ubuf_data_per_frame.m_proj = make_perspective_proj_mat(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), 0.1, 100);
             ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
             this->m_ubuf_man.m_ub_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
