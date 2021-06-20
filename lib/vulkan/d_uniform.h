@@ -162,6 +162,7 @@ namespace dal {
         VkDescriptorSetLayout m_layout_animation = VK_NULL_HANDLE;
 
         VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_alpha = VK_NULL_HANDLE;
 
     public:
         void init(const VkDevice logiDevice);
@@ -190,6 +191,10 @@ namespace dal {
 
         auto layout_composition() const {
             return this->m_layout_composition;
+        }
+
+        auto layout_alpha() const {
+            return this->m_layout_alpha;
         }
 
     };
@@ -261,6 +266,14 @@ namespace dal {
             const std::vector<VkImageView>& attachment_views,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
+            const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
+            const VkSampler sampler,
+            const VkDevice logi_device
+        );
+
+        void record_alpha(
+            const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+            const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
             const VkSampler sampler,
             const VkDevice logi_device
@@ -341,6 +354,7 @@ namespace dal {
         std::vector<DescSet> m_descset_per_global;
         std::vector<DescSet> m_descset_final;
         std::vector<DescSet> m_descset_composition;
+        std::vector<DescSet> m_descset_alpha;
 
     public:
         void init(const uint32_t swapchain_count, const VkDevice logi_device);
@@ -378,6 +392,16 @@ namespace dal {
             const VkDevice logi_device
         );
 
+        void init_desc_sets_alpha(
+            const UniformBufferArray<U_PerFrame>& ubufs_per_frame,
+            const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
+            const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
+            const VkSampler sampler,
+            const uint32_t swapchain_count,
+            const VkDescriptorSetLayout desc_layout_alpha,
+            const VkDevice logi_device
+        );
+
         auto& desc_set_per_global_at(const size_t index) const {
             return this->m_descset_per_global.at(index).get();
         }
@@ -388,6 +412,10 @@ namespace dal {
 
         auto& desc_set_composition_at(const size_t index) const {
             return this->m_descset_composition.at(index);
+        }
+
+        auto& desc_set_alpha_at(const size_t index) const {
+            return this->m_descset_alpha.at(index).get();
         }
 
     };

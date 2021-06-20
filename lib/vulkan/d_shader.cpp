@@ -669,7 +669,7 @@ namespace {
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout desc_layout_global,
+        const VkDescriptorSetLayout desc_layout_alpha,
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
         const VkDevice logi_device
@@ -721,7 +721,7 @@ namespace {
 
         // Pipeline layout
         const std::vector<VkDescriptorSetLayout> desc_layouts{
-            desc_layout_global,
+            desc_layout_alpha,
             desc_layout_per_material,
             desc_layout_per_actor,
         };
@@ -759,7 +759,7 @@ namespace {
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout desc_layout_per_global,
+        const VkDescriptorSetLayout desc_layout_alpha,
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
         const VkDescriptorSetLayout desc_layout_animation,
@@ -812,7 +812,7 @@ namespace {
 
         // Pipeline layout
         const std::vector<VkDescriptorSetLayout> desc_layouts{
-            desc_layout_per_global,
+            desc_layout_alpha,
             desc_layout_per_material,
             desc_layout_per_actor,
             desc_layout_animation,
@@ -943,6 +943,7 @@ namespace dal {
         const VkDescriptorSetLayout desc_layout_per_actor,
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDescriptorSetLayout desc_layout_composition,
+        const VkDescriptorSetLayout desc_layout_alpha,
         const RenderPass_Gbuf& rp_gbuf,
         const RenderPass_Final& rp_final,
         const RenderPass_Alpha& rp_alpha,
@@ -997,7 +998,7 @@ namespace dal {
             rp_alpha,
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_per_global,
+            desc_layout_alpha,
             desc_layout_per_material,
             desc_layout_per_actor,
             logi_device
@@ -1008,7 +1009,7 @@ namespace dal {
             rp_alpha,
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_per_global,
+            desc_layout_alpha,
             desc_layout_per_material,
             desc_layout_per_actor,
             desc_layout_animation,

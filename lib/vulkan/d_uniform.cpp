@@ -163,6 +163,23 @@ namespace {
         return result;
     }
 
+    VkDescriptorSetLayout create_layout_alpha(const VkDevice logiDevice) {
+        ::DescLayoutBuilder bindings;
+
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
+
+        //----------------------------------------------------------------------------------
+
+        const auto layout_info = bindings.make_create_info();
+        VkDescriptorSetLayout output = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layout_info, nullptr, &output))
+            dalAbort("failed to create descriptor set layout!");
+
+        return output;
+    }
+
 }
 
 
@@ -181,6 +198,7 @@ namespace dal {
         this->m_layout_animation = ::create_layout_animation(logiDevice);
 
         this->m_layout_composition = ::create_layout_composition(logiDevice);
+        this->m_layout_alpha = ::create_layout_alpha(logiDevice);
     }
 
     void DescSetLayoutManager::destroy(const VkDevice logiDevice) {
@@ -212,6 +230,11 @@ namespace dal {
         if (VK_NULL_HANDLE != this->m_layout_composition) {
             vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_composition, nullptr);
             this->m_layout_composition = VK_NULL_HANDLE;
+        }
+
+        if (VK_NULL_HANDLE != this->m_layout_alpha) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_alpha, nullptr);
+            this->m_layout_alpha = VK_NULL_HANDLE;
         }
     }
 
@@ -443,6 +466,22 @@ namespace dal {
         dalAssert(4 == global_light_index);
 
         desc_writes.add_buffer(ubuf_per_frame);
+        desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler);
+
+        vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
+    }
+
+    void DescSet::record_alpha(
+        const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+        const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+        const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
+        const VkSampler sampler,
+        const VkDevice logi_device
+    ) {
+        ::WriteDescBuilder desc_writes{ this->m_handle };
+
+        desc_writes.add_buffer(ubuf_per_frame);
+        desc_writes.add_buffer(ubuf_global_light);
         desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
@@ -688,6 +727,23 @@ namespace dal {
         auto& new_desc = this->m_descset_composition.emplace_back();
         new_desc = this->m_pool_composition.allocate(desc_layout_composition, logi_device);
         new_desc.record_composition(attachment_views, ubuf_global_light, ubuf_per_frame, dlight_shadow_maps, sampler, logi_device);
+    }
+
+    void DescriptorManager::init_desc_sets_alpha(
+        const UniformBufferArray<U_PerFrame>& ubufs_per_frame,
+        const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
+        const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
+        const VkSampler sampler,
+        const uint32_t swapchain_count,
+        const VkDescriptorSetLayout desc_layout_alpha,
+        const VkDevice logi_device
+    ) {
+        this->m_descset_alpha = this->m_pool_simple.allocate(swapchain_count, desc_layout_alpha, logi_device);
+
+        for (size_t i = 0; i < this->m_descset_alpha.size(); ++i) {
+            auto& desc_set = this->m_descset_alpha.at(i);
+            desc_set.record_alpha(ubufs_per_frame.at(i), ubufs_global_light.at(i), dlight_shadow_maps, sampler, logi_device);
+        }
     }
 
 }

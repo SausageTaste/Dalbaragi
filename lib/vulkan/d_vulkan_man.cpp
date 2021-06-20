@@ -517,7 +517,7 @@ namespace dal {
                 this->m_flight_frame_index,
                 camera.view_pos(),
                 render_list,
-                this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
+                this->m_desc_man.desc_set_alpha_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_attach_man.color().extent(),
                 this->m_fbuf_man.fbuf_alpha_at(swapchain_index).get(),
@@ -820,6 +820,7 @@ namespace dal {
             this->m_desc_layout_man.layout_per_actor(),
             this->m_desc_layout_man.layout_animation(),
             this->m_desc_layout_man.layout_composition(),
+            this->m_desc_layout_man.layout_alpha(),
             this->m_renderpasses.rp_gbuf(),
             this->m_renderpasses.rp_final(),
             this->m_renderpasses.rp_alpha(),
@@ -849,6 +850,21 @@ namespace dal {
             this->m_logi_device.get()
         );
 
+        std::array<VkImageView, dal::MAX_DLIGHT_COUNT> dlight_views{
+            this->m_dlight_shadow_maps[0].shadow_map_view(),
+            this->m_dlight_shadow_maps[1].shadow_map_view(),
+        };
+
+        this->m_desc_man.init_desc_sets_alpha(
+            this->m_ubuf_man.m_ub_simple,
+            this->m_ubuf_man.m_ub_glights,
+            dlight_views,
+            this->m_sampler_man.sampler_tex().get(),
+            MAX_FRAMES_IN_FLIGHT,
+            this->m_desc_layout_man.layout_alpha(),
+            this->m_logi_device.get()
+        );
+
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
             this->m_desc_man.add_desc_set_composition(
                 {
@@ -859,10 +875,7 @@ namespace dal {
                 },
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_ubuf_man.m_ub_per_frame_composition.at(i),
-                {
-                    this->m_dlight_shadow_maps[0].shadow_map_view(),
-                    this->m_dlight_shadow_maps[1].shadow_map_view(),
-                },
+                dlight_views,
                 this->m_sampler_man.sampler_tex().get(),
                 this->m_desc_layout_man.layout_composition(),
                 this->m_logi_device.get()
