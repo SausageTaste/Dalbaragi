@@ -188,95 +188,6 @@ namespace {
         return instance;
     }
 
-    auto create_info_viewport_scissor(const VkExtent2D& extent) {
-        VkViewport viewport{};
-        viewport.x = 0;
-        viewport.y = 0;
-        viewport.width = static_cast<float>(extent.width);
-        viewport.height = static_cast<float>(extent.height);
-        viewport.minDepth = 0;
-        viewport.maxDepth = 1;
-
-        VkRect2D scissor{};
-        scissor.offset = { 0, 0 };
-        scissor.extent = extent;
-
-        return std::make_pair(viewport, scissor);
-    }
-
-}
-
-
-namespace dal {
-
-    void ShadowMapFbuf::record_cmd_buf(
-        const FrameInFlightIndex& flight_frame_index,
-        const RenderList& render_list,
-        const glm::mat4& light_mat,
-        const ShaderPipeline& pipeline_shadow,
-        const RenderPass_ShadowMap& render_pass
-    ) {
-        auto& cmd_buf = this->m_cmd_buf.at(flight_frame_index.get());
-
-        VkCommandBufferBeginInfo begin_info{};
-        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        begin_info.flags = 0;
-        begin_info.pInheritanceInfo = nullptr;
-
-        if (VK_SUCCESS != vkBeginCommandBuffer(cmd_buf, &begin_info))
-            dalAbort("failed to begin recording command buffer!");
-
-        std::array<VkClearValue, 5> clear_colors{};
-        clear_colors[0].depthStencil = { 1, 0 };
-
-        VkRenderPassBeginInfo render_pass_info{};
-        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        render_pass_info.renderPass = render_pass.get();
-        render_pass_info.framebuffer = this->m_fbuf.get();
-        render_pass_info.renderArea.offset = {0, 0};
-        render_pass_info.renderArea.extent = this->m_depth_attach.extent();
-        render_pass_info.clearValueCount = clear_colors.size();
-        render_pass_info.pClearValues = clear_colors.data();
-
-        vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-
-        {
-            auto& pipeline = pipeline_shadow;
-
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
-
-            const auto [viewport, scissor] = ::create_info_viewport_scissor(this->m_depth_attach.extent());
-            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
-            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
-
-            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
-
-            for (auto& render_tuple : render_list.m_static_models) {
-                auto& model = *reinterpret_cast<ModelRenderer*>(render_tuple.m_model.get());
-
-                for (auto& unit : model.render_units()) {
-                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
-                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
-                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
-
-                    for (auto& actor : render_tuple.m_actors) {
-                        U_PC_Shadow pc_data;
-                        pc_data.m_model_mat = actor->m_transform.make_mat4();
-                        pc_data.m_light_mat = light_mat;
-
-                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Shadow), &pc_data);
-                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
-                    }
-                }
-            }
-        }
-
-        vkCmdEndRenderPass(cmd_buf);
-
-        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS)
-            dalAbort("failed to record command buffer!");
-    }
-
 }
 
 
@@ -328,9 +239,7 @@ namespace dal {
     VulkanState::~VulkanState() {
         this->wait_idle();
 
-        for (auto& x : this->m_dlight_shadow_maps)
-            x.destroy(this->m_logi_device.get());
-
+        this->m_shadow_maps.destroy(this->m_logi_device.get());
         this->m_desc_allocator.destroy(this->m_logi_device.get());
         this->m_sampler_man.destroy(this->m_logi_device.get());
         this->m_desc_man.destroy(this->m_logi_device.get());
@@ -452,7 +361,7 @@ namespace dal {
             std::array<VkSemaphore, 0> signal_semaphores{};
 
             for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
-                this->m_dlight_shadow_maps[i].record_cmd_buf(
+                this->m_shadow_maps.m_dlights[i].record_cmd_buf(
                     this->m_flight_frame_index,
                     render_list,
                     render_list.m_dlights[i].make_light_mat(::DLIGHT_HALF_BOX_SIZE),
@@ -462,7 +371,7 @@ namespace dal {
 
                 VkSubmitInfo submit_info{};
                 submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                submit_info.pCommandBuffers = &this->m_dlight_shadow_maps[i].cmd_buf_at(this->m_flight_frame_index.get());
+                submit_info.pCommandBuffers = &this->m_shadow_maps.m_dlights[i].cmd_buf_at(this->m_flight_frame_index.get());
                 submit_info.commandBufferCount = 1;
                 submit_info.waitSemaphoreCount = wait_semaphores.size();
                 submit_info.pWaitSemaphores = wait_semaphores.data();
@@ -797,17 +706,7 @@ namespace dal {
             this->m_logi_device.get()
         );
 
-        for (auto& x : this->m_dlight_shadow_maps) {
-            x.init(
-                2048*2, 2048*2,
-                dal::MAX_FRAMES_IN_FLIGHT,
-                this->m_logi_device.indices().graphics_family(),
-                this->m_renderpasses.rp_shadow(),
-                this->m_phys_device.find_depth_format(),
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-        }
+        this->m_shadow_maps.init(this->m_renderpasses.rp_shadow(), this->m_phys_device, this->m_logi_device);
 
         this->m_fbuf_man.init(
             this->m_swapchain.views(),
@@ -861,15 +760,10 @@ namespace dal {
             this->m_logi_device.get()
         );
 
-        std::array<VkImageView, dal::MAX_DLIGHT_COUNT> dlight_views{
-            this->m_dlight_shadow_maps[0].shadow_map_view(),
-            this->m_dlight_shadow_maps[1].shadow_map_view(),
-        };
-
         this->m_desc_man.init_desc_sets_alpha(
             this->m_ubuf_man.m_ub_simple,
             this->m_ubuf_man.m_ub_glights,
-            dlight_views,
+            this->m_shadow_maps.dlight_views(),
             this->m_sampler_man.sampler_depth(),
             MAX_FRAMES_IN_FLIGHT,
             this->m_desc_layout_man.layout_alpha(),
@@ -886,7 +780,7 @@ namespace dal {
                 },
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_ubuf_man.m_ub_per_frame_composition.at(i),
-                dlight_views,
+                this->m_shadow_maps.dlight_views(),
                 this->m_sampler_man.sampler_depth(),
                 this->m_desc_layout_man.layout_composition(),
                 this->m_logi_device.get()

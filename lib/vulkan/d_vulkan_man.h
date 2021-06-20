@@ -5,7 +5,6 @@
 
 #include "d_actor.h"
 #include "d_renderer.h"
-#include "d_vk_device.h"
 #include "d_filesystem.h"
 #include "d_task_thread.h"
 #include "d_vk_managers.h"
@@ -15,62 +14,6 @@
 
 
 namespace dal {
-
-    class ShadowMapFbuf {
-
-    private:
-        CommandPool m_cmd_pool;
-        FbufAttachment m_depth_attach;
-        Fbuf_Shadow m_fbuf;
-        std::vector<VkCommandBuffer> m_cmd_buf;
-
-    public:
-        void init(
-            const uint32_t width,
-            const uint32_t height,
-            const uint32_t max_in_flight_count,
-            const uint32_t queue_fam_index,
-            const RenderPass_ShadowMap& rp_shadow,
-            const VkFormat depth_format,
-            const VkPhysicalDevice phys_device,
-            const VkDevice logi_device
-        ) {
-            this->destroy(logi_device);
-
-            this->m_depth_attach.init(width, height, dal::FbufAttachment::Usage::depth_map, depth_format, phys_device, logi_device);
-            this->m_fbuf.init(rp_shadow, VkExtent2D{width, height}, this->m_depth_attach.view().get(), logi_device);
-            this->m_cmd_pool.init(queue_fam_index, logi_device);
-            this->m_cmd_buf = this->m_cmd_pool.allocate(max_in_flight_count, logi_device);
-        }
-
-        void destroy(const VkDevice logi_device) {
-            if (!this->m_cmd_buf.empty()) {
-                this->m_cmd_pool.free(this->m_cmd_buf, logi_device);
-                this->m_cmd_buf.clear();
-            }
-            this->m_cmd_pool.destroy(logi_device);
-            this->m_fbuf.destroy(logi_device);
-            this->m_depth_attach.destroy(logi_device);
-        }
-
-        void record_cmd_buf(
-            const FrameInFlightIndex& flight_frame_index,
-            const RenderList& render_list,
-            const glm::mat4& light_mat,
-            const ShaderPipeline& pipeline_shadow,
-            const RenderPass_ShadowMap& render_pass
-        );
-
-        auto& cmd_buf_at(const size_t index) const {
-            return this->m_cmd_buf.at(index);
-        }
-
-        auto shadow_map_view() const {
-            return this->m_depth_attach.view().get();
-        }
-
-    };
-
 
     class VulkanState : public IRenderer {
 
@@ -93,7 +36,7 @@ namespace dal {
 
         SamplerManager m_sampler_man;
         DescAllocator m_desc_allocator;
-        std::array<ShadowMapFbuf, dal::MAX_DLIGHT_COUNT> m_dlight_shadow_maps;
+        ShadowMapManager m_shadow_maps;
 
     private:
         // Non-vulkan members
