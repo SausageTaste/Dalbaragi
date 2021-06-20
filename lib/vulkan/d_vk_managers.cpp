@@ -664,6 +664,7 @@ namespace dal {
         const RenderList& render_list,
         const glm::mat4& light_mat,
         const ShaderPipeline& pipeline_shadow,
+        const ShaderPipeline& pipeline_shadow_animated,
         const RenderPass_ShadowMap& render_pass
     ) {
         auto& cmd_buf = this->m_cmd_buf.at(flight_frame_index.get());
@@ -692,7 +693,6 @@ namespace dal {
 
         {
             auto& pipeline = pipeline_shadow;
-
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
             const auto [viewport, scissor] = ::create_info_viewport_scissor(this->m_depth_attach.extent());
@@ -713,8 +713,49 @@ namespace dal {
                         U_PC_Shadow pc_data;
                         pc_data.m_model_mat = actor->m_transform.make_mat4();
                         pc_data.m_light_mat = light_mat;
-
                         vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Shadow), &pc_data);
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        {
+            auto& pipeline = pipeline_shadow_animated;
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            const auto [viewport, scissor] = ::create_info_viewport_scissor(this->m_depth_attach.extent());
+            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            for (auto& render_tuple : render_list.m_skinned_models) {
+                auto& model = *reinterpret_cast<ModelSkinnedRenderer*>(render_tuple.m_model.get());
+
+                for (auto& unit : model.render_units()) {
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    for (auto& h_actor : render_tuple.m_actors) {
+                        auto& actor = *reinterpret_cast<ActorSkinnedVK*>(h_actor.get());
+
+                        U_PC_Shadow pc_data;
+                        pc_data.m_model_mat = actor.m_transform.make_mat4();
+                        pc_data.m_light_mat = light_mat;
+                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Shadow), &pc_data);
+
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            0,
+                            1, &actor.desc_animation(flight_frame_index),
+                            0, nullptr
+                        );
+
                         vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
                     }
                 }
@@ -776,7 +817,7 @@ namespace dal {
     }
 
     void ShadowMapManager::render_empty_for_all(
-        const ShaderPipeline& pipeline_shadow,
+        const PipelineManager& pipelines,
         const RenderPass_ShadowMap& render_pass,
         const LogicalDevice& logi_device
     ) {
@@ -792,7 +833,8 @@ namespace dal {
                 index0,
                 render_list,
                 glm::mat4{1},
-                pipeline_shadow,
+                pipelines.shadow(),
+                pipelines.shadow_animated(),
                 render_pass
             );
 
@@ -823,7 +865,8 @@ namespace dal {
                 index0,
                 render_list,
                 glm::mat4{1},
-                pipeline_shadow,
+                pipelines.shadow(),
+                pipelines.shadow_animated(),
                 render_pass
             );
 

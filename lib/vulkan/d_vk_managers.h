@@ -163,6 +163,7 @@ namespace dal {
             const RenderList& render_list,
             const glm::mat4& light_mat,
             const ShaderPipeline& pipeline_shadow,
+            const ShaderPipeline& pipeline_shadow_animated,
             const RenderPass_ShadowMap& render_pass
         );
 
@@ -198,7 +199,7 @@ namespace dal {
         void destroy(const VkDevice logi_device);
 
         void render_empty_for_all(
-            const ShaderPipeline& pipeline_shadow,
+            const PipelineManager& pipelines,
             const RenderPass_ShadowMap& render_pass,
             const LogicalDevice& logi_device
         );

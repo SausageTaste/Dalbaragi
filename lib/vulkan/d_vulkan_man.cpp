@@ -366,6 +366,7 @@ namespace dal {
                     render_list,
                     render_list.m_dlights[i].make_light_mat(::DLIGHT_HALF_BOX_SIZE),
                     this->m_pipelines.shadow(),
+                    this->m_pipelines.shadow_animated(),
                     this->m_renderpasses.rp_shadow()
                 );
 
@@ -397,6 +398,7 @@ namespace dal {
                     render_list,
                     render_list.m_slights[i].make_light_mat(),
                     this->m_pipelines.shadow(),
+                    this->m_pipelines.shadow_animated(),
                     this->m_renderpasses.rp_shadow()
                 );
 
@@ -836,7 +838,7 @@ namespace dal {
         }
 
         this->m_shadow_maps.render_empty_for_all(
-            this->m_pipelines.shadow(),
+            this->m_pipelines,
             this->m_renderpasses.rp_shadow(),
             this->m_logi_device
         );
