@@ -57,6 +57,7 @@ namespace dal {
         ShaderPipeline m_alpha;
         ShaderPipeline m_alpha_animated;
         ShaderPipeline m_shadow;
+        ShaderPipeline m_shadow_animated;
 
     public:
         void init(
@@ -106,6 +107,10 @@ namespace dal {
 
         auto& shadow() const {
             return this->m_shadow;
+        }
+
+        auto& shadow_animated() const {
+            return this->m_shadow_animated;
         }
 
     };

@@ -68,6 +68,8 @@ def main():
 
     _work_for_one("shadow_f.spv", "shadow.frag", [])
 
+    _work_for_one("shadow_animated_v.spv", "shadow_animated.vert", [])
+
 
 if "__main__" == __name__:
     main()
