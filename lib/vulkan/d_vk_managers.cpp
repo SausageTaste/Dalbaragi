@@ -745,7 +745,7 @@ namespace dal {
 
         for (auto& x : this->m_dlights) {
             x.init(
-                2048*2, 2048*2,
+                2048, 2048,
                 dal::MAX_FRAMES_IN_FLIGHT,
                 this->m_cmd_pool,
                 renderpass,
@@ -757,7 +757,7 @@ namespace dal {
 
         for (auto& x : this->m_slights) {
             x.init(
-                2048*2, 2048*2,
+                512, 512,
                 dal::MAX_FRAMES_IN_FLIGHT,
                 this->m_cmd_pool,
                 renderpass,

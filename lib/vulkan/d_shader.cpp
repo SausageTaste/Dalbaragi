@@ -879,7 +879,7 @@ namespace {
         const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
-        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_BACK_BIT, true, 4, 1.5);
+        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_BACK_BIT, true, 80, 8);
 
         // Multisampling
         const auto multisampling = ::create_info_multisampling();

@@ -44,10 +44,13 @@ namespace dal {
         const auto s = sin(dal::get_cur_sec());
         const auto c = cos(dal::get_cur_sec());
 
+        const auto s_slow = sin(dal::get_cur_sec() * 0.3);
+        const auto c_slow = cos(dal::get_cur_sec() * 0.3);
+
         {
             auto& light = output.m_dlights.emplace_back();
             light.m_pos = this->m_euler_camera.m_pos;
-            light.set_direc_to_light(1, c * 5, s * 1);
+            light.set_direc_to_light(1, c_slow * 5, s_slow * 1);
             light.m_color = glm::vec3{2};
         }
 
@@ -67,8 +70,26 @@ namespace dal {
         {
             auto& light = output.m_slights.emplace_back();
             light.set_direc_to_light(s, 1, c);
-            light.m_pos = glm::vec3{3, 2, 0};
-            light.m_color = glm::vec3{10};
+            light.m_pos = glm::vec3{10, 2, 0};
+            light.m_color = glm::vec3{3};
+            light.set_fade_start_degree(0);
+            light.set_fade_end_degree(35);
+        }
+
+        {
+            auto& light = output.m_slights.emplace_back();
+            light.set_direc_to_light(0, 0, -1);
+            light.m_pos = glm::vec3{c_slow * 10, 7, 0};
+            light.m_color = glm::vec3{3};
+            light.set_fade_start_degree(0);
+            light.set_fade_end_degree(35);
+        }
+
+        {
+            auto& light = output.m_slights.emplace_back();
+            light.set_direc_to_light(0, 0, 1);
+            light.m_pos = glm::vec3{c_slow * 3, 1, 5};
+            light.m_color = glm::vec3{3};
             light.set_fade_start_degree(0);
             light.set_fade_end_degree(35);
         }

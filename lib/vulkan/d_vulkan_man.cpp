@@ -791,16 +791,19 @@ namespace dal {
                 this->m_logi_device.get()
             );
 
+            const std::vector<VkImageView> color_attachments{
+                this->m_attach_man.depth().view().get(),
+                this->m_attach_man.albedo().view().get(),
+                this->m_attach_man.materials().view().get(),
+                this->m_attach_man.normal().view().get(),
+            };
+
             desc_composition.record_composition(
-                {
-                    this->m_attach_man.depth().view().get(),
-                    this->m_attach_man.albedo().view().get(),
-                    this->m_attach_man.materials().view().get(),
-                    this->m_attach_man.normal().view().get(),
-                },
+                color_attachments,
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_ubuf_man.m_ub_per_frame_composition.at(i),
                 this->m_shadow_maps.dlight_views(),
+                this->m_shadow_maps.slight_views(),
                 this->m_sampler_man.sampler_depth(),
                 this->m_logi_device.get()
             );
@@ -826,6 +829,7 @@ namespace dal {
                 this->m_ubuf_man.m_ub_simple.at(i),
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_shadow_maps.dlight_views(),
+                this->m_shadow_maps.slight_views(),
                 this->m_sampler_man.sampler_depth(),
                 this->m_logi_device.get()
             );

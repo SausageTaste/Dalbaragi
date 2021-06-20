@@ -32,6 +32,8 @@ namespace dal {
             this->set_direc_to_light(glm::vec3{x, y, z});
         }
 
+        glm::mat4 make_view_mat(const glm::vec3& pos) const;
+
     };
 
 

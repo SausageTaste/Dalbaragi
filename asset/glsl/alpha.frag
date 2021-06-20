@@ -37,6 +37,7 @@ layout(set = 0, binding = 1) uniform U_GlobalLight {
 } u_global_light;
 
 layout(set = 0, binding = 2) uniform sampler2D u_dlight_shadow_maps[2];
+layout(set = 0, binding = 3) uniform sampler2D u_slight_shadow_maps[3];
 
 layout(set = 1, binding = 0) uniform U_PerMaterial {
     float m_roughness;
@@ -101,6 +102,9 @@ void main() {
     }
 
     for (uint i = 0; i < u_global_light.m_slight_count; ++i) {
+        if (is_in_shadow(v_world_pos, u_global_light.m_slight_mat[i], u_slight_shadow_maps[i]))
+            continue;
+
         const vec3 frag_to_light_direc = normalize(u_global_light.m_slight_pos_n_max_dist[i].xyz - v_world_pos);
 
         const float attenuation = calc_slight_attenuation(

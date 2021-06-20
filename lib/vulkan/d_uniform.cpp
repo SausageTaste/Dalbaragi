@@ -151,6 +151,7 @@ namespace {
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_GlobalLight
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_PerFrame_Composition
         bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);  // Slight shadow maps
 
         //----------------------------------------------------------------------------------
 
@@ -169,6 +170,7 @@ namespace {
         bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
         bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);  // Dlight shadow maps
 
         //----------------------------------------------------------------------------------
 
@@ -454,6 +456,7 @@ namespace dal {
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
         const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
+        const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
         const SamplerDepth& sampler,
         const VkDevice logi_device
     ) {
@@ -467,6 +470,7 @@ namespace dal {
 
         desc_writes.add_buffer(ubuf_per_frame);
         desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler.get());
+        desc_writes.add_img_samplers(slight_shadow_maps.begin(), slight_shadow_maps.end(), sampler.get());
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -475,6 +479,7 @@ namespace dal {
         const UniformBuffer<U_PerFrame>& ubuf_per_frame,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
+        const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
         const SamplerDepth& sampler,
         const VkDevice logi_device
     ) {
@@ -483,6 +488,7 @@ namespace dal {
         desc_writes.add_buffer(ubuf_per_frame);
         desc_writes.add_buffer(ubuf_global_light);
         desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler.get());
+        desc_writes.add_img_samplers(slight_shadow_maps.begin(), slight_shadow_maps.end(), sampler.get());
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }

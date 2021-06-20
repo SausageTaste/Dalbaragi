@@ -41,6 +41,7 @@ layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
 } u_per_frame_composition;
 
 layout(set = 0, binding = 6) uniform sampler2D u_dlight_shadow_maps[2];
+layout(set = 0, binding = 7) uniform sampler2D u_slight_shadow_maps[3];
 
 
 vec3 calc_world_pos(const float z) {
@@ -111,6 +112,9 @@ void main() {
     }
 
     for (uint i = 0; i < u_global_light.m_slight_count; ++i) {
+        if (is_in_shadow(world_pos, u_global_light.m_slight_mat[i], u_slight_shadow_maps[i]))
+            continue;
+
         const vec3 frag_to_light_direc = normalize(u_global_light.m_slight_pos_n_max_dist[i].xyz - world_pos);
 
         const float attenuation = calc_slight_attenuation(

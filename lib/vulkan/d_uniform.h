@@ -274,6 +274,7 @@ namespace dal {
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
+            const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
             const SamplerDepth& sampler,
             const VkDevice logi_device
         );
@@ -282,6 +283,7 @@ namespace dal {
             const UniformBuffer<U_PerFrame>& ubuf_per_frame,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
+            const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
             const SamplerDepth& sampler,
             const VkDevice logi_device
         );

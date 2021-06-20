@@ -5,9 +5,11 @@
 
 namespace dal {
 
-    glm::mat4 DLight::make_light_mat(const float half_proj_box_edge_length) const {
-        const auto view_mat = glm::lookAt(this->to_light_direc() + this->m_pos, this->m_pos, glm::vec3{0, 1, 0});
+    glm::mat4 IDirectionalLight::make_view_mat(const glm::vec3& pos) const {
+        return glm::lookAt(this->to_light_direc() + pos, pos, glm::vec3{0, 1, 0});
+    }
 
+    glm::mat4 DLight::make_light_mat(const float half_proj_box_edge_length) const {
         auto proj_mat = glm::ortho<float>(
             -half_proj_box_edge_length, half_proj_box_edge_length,
             -half_proj_box_edge_length, half_proj_box_edge_length,
@@ -15,16 +17,14 @@ namespace dal {
         );
         proj_mat[1][1] *= -1;
 
-        return proj_mat * view_mat;
+        return proj_mat * this->make_view_mat(this->m_pos);
     }
 
     glm::mat4 SLight::make_light_mat() const {
-        const auto view_mat = glm::lookAt(this->to_light_direc() + this->m_pos, this->m_pos, glm::vec3{0, 1, 0});
-
-        auto proj_mat = glm::perspective<float>(this->m_fade_end_radians * 2, 1, 1, 20);
+        auto proj_mat = glm::perspective<float>(this->m_fade_end_radians * 2, 1, 1, this->m_max_dist);
         proj_mat[1][1] *= -1;
 
-        return proj_mat * view_mat;
+        return proj_mat * this->make_view_mat(this->m_pos);
     }
 
 }
