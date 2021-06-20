@@ -356,8 +356,7 @@ namespace dal {
     class DescriptorManager {
 
     private:
-        DescPool m_pool_simple, m_pool_composition;
-        std::vector<DescPool> m_pool_final;
+        DescPool m_pool;
         std::vector<DescSet> m_descset_per_global;
         std::vector<DescSet> m_descset_final;
         std::vector<DescSet> m_descset_composition;
@@ -369,45 +368,16 @@ namespace dal {
         void destroy(VkDevice logiDevice);
 
         auto& pool() {
-            return this->m_pool_simple;
+            return this->m_pool;
         }
 
-        void init_desc_sets_per_global(
-            const UniformBufferArray<U_PerFrame>& ubufs_simple,
-            const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
-            const uint32_t swapchain_count,
-            const VkDescriptorSetLayout desc_layout_simple,
-            const VkDevice logi_device
-        );
+        DescSet& add_descset_per_global(const VkDescriptorSetLayout desc_layout_per_global, const VkDevice logi_device);
 
-        void init_desc_sets_final(
-            const uint32_t index,
-            const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
-            const VkImageView color_view,
-            const SamplerTexture& sampler,
-            const VkDescriptorSetLayout desc_layout_final,
-            const VkDevice logi_device
-        );
+        DescSet& add_descset_final(const VkDescriptorSetLayout desc_layout_final, const VkDevice logi_device);
 
-        void add_desc_set_composition(
-            const std::vector<VkImageView>& attachment_views,
-            const UniformBuffer<U_GlobalLight>& ubuf_global_light,
-            const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
-            const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
-            const SamplerDepth& sampler,
-            const VkDescriptorSetLayout desc_layout_composition,
-            const VkDevice logi_device
-        );
+        DescSet& add_descset_composition(const VkDescriptorSetLayout desc_layout_composition, const VkDevice logi_device);
 
-        void init_desc_sets_alpha(
-            const UniformBufferArray<U_PerFrame>& ubufs_per_frame,
-            const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
-            const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
-            const SamplerDepth& sampler,
-            const uint32_t swapchain_count,
-            const VkDescriptorSetLayout desc_layout_alpha,
-            const VkDevice logi_device
-        );
+        DescSet& add_descset_alpha(const VkDescriptorSetLayout desc_layout_alpha, const VkDevice logi_device);
 
         auto& desc_set_per_global_at(const size_t index) const {
             return this->m_descset_per_global.at(index).get();

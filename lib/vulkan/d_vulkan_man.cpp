@@ -505,15 +505,6 @@ namespace dal {
 
             fence.wait_reset(this->m_logi_device.get());
 
-            this->m_desc_man.init_desc_sets_final(
-                this->m_flight_frame_index.get(),
-                this->m_ubuf_man.m_ub_final,
-                this->m_attach_man.color().view().get(),
-                this->m_sampler_man.sampler_tex(),
-                this->m_desc_layout_man.layout_final(),
-                this->m_logi_device.get()
-            );
-
             this->m_cmd_man.record_final(
                 this->m_flight_frame_index.get(),
                 this->m_fbuf_man.fbuf_final_at(swapchain_index),
@@ -783,26 +774,24 @@ namespace dal {
 
         this->m_desc_man.init(MAX_FRAMES_IN_FLIGHT, this->m_logi_device.get());
 
-        this->m_desc_man.init_desc_sets_per_global(
-            this->m_ubuf_man.m_ub_simple,
-            this->m_ubuf_man.m_ub_glights,
-            MAX_FRAMES_IN_FLIGHT,
-            this->m_desc_layout_man.layout_per_global(),
-            this->m_logi_device.get()
-        );
+        for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
+            auto& desc_per_global = this->m_desc_man.add_descset_per_global(
+                this->m_desc_layout_man.layout_per_global(),
+                this->m_logi_device.get()
+            );
 
-        this->m_desc_man.init_desc_sets_alpha(
-            this->m_ubuf_man.m_ub_simple,
-            this->m_ubuf_man.m_ub_glights,
-            this->m_shadow_maps.dlight_views(),
-            this->m_sampler_man.sampler_depth(),
-            MAX_FRAMES_IN_FLIGHT,
-            this->m_desc_layout_man.layout_alpha(),
-            this->m_logi_device.get()
-        );
+            desc_per_global.record_per_global(
+                this->m_ubuf_man.m_ub_simple.at(i),
+                this->m_ubuf_man.m_ub_glights.at(i),
+                this->m_logi_device.get()
+            );
 
-        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            this->m_desc_man.add_desc_set_composition(
+            auto& desc_composition = this->m_desc_man.add_descset_composition(
+                this->m_desc_layout_man.layout_composition(),
+                this->m_logi_device.get()
+            );
+
+            desc_composition.record_composition(
                 {
                     this->m_attach_man.depth().view().get(),
                     this->m_attach_man.albedo().view().get(),
@@ -813,7 +802,31 @@ namespace dal {
                 this->m_ubuf_man.m_ub_per_frame_composition.at(i),
                 this->m_shadow_maps.dlight_views(),
                 this->m_sampler_man.sampler_depth(),
-                this->m_desc_layout_man.layout_composition(),
+                this->m_logi_device.get()
+            );
+
+            auto& desc_final = this->m_desc_man.add_descset_final(
+                this->m_desc_layout_man.layout_final(),
+                this->m_logi_device.get()
+            );
+
+            desc_final.record_final(
+                this->m_attach_man.color().view().get(),
+                this->m_sampler_man.sampler_tex(),
+                this->m_ubuf_man.m_ub_final,
+                this->m_logi_device.get()
+            );
+
+            auto& desc_alpha = this->m_desc_man.add_descset_alpha(
+                this->m_desc_layout_man.layout_alpha(),
+                this->m_logi_device.get()
+            );
+
+            desc_alpha.record_alpha(
+                this->m_ubuf_man.m_ub_simple.at(i),
+                this->m_ubuf_man.m_ub_glights.at(i),
+                this->m_shadow_maps.dlight_views(),
+                this->m_sampler_man.sampler_depth(),
                 this->m_logi_device.get()
             );
         }
