@@ -360,7 +360,7 @@ namespace dal {
             std::array<VkSemaphore, 0> wait_semaphores{};
             std::array<VkSemaphore, 0> signal_semaphores{};
 
-            for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
+            for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
                 this->m_shadow_maps.m_dlights[i].record_cmd_buf(
                     this->m_flight_frame_index,
                     render_list,
@@ -372,6 +372,37 @@ namespace dal {
                 VkSubmitInfo submit_info{};
                 submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
                 submit_info.pCommandBuffers = &this->m_shadow_maps.m_dlights[i].cmd_buf_at(this->m_flight_frame_index.get());
+                submit_info.commandBufferCount = 1;
+                submit_info.waitSemaphoreCount = wait_semaphores.size();
+                submit_info.pWaitSemaphores = wait_semaphores.data();
+                submit_info.pWaitDstStageMask = wait_stages.data();
+                submit_info.signalSemaphoreCount = signal_semaphores.size();
+                submit_info.pSignalSemaphores = signal_semaphores.data();
+
+                const auto submit_result = vkQueueSubmit(
+                    this->m_logi_device.queue_graphics(),
+                    1,
+                    &submit_info,
+                    VK_NULL_HANDLE
+                );
+
+                dalAssert(VK_SUCCESS == submit_result);
+            }
+
+            for (size_t i = 0; i < render_list.m_slights.size(); ++i) {
+                auto& shadow_map = this->m_shadow_maps.m_slights[i];
+
+                shadow_map.record_cmd_buf(
+                    this->m_flight_frame_index,
+                    render_list,
+                    render_list.m_slights[i].make_light_mat(),
+                    this->m_pipelines.shadow(),
+                    this->m_renderpasses.rp_shadow()
+                );
+
+                VkSubmitInfo submit_info{};
+                submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submit_info.pCommandBuffers = &shadow_map.cmd_buf_at(this->m_flight_frame_index.get());
                 submit_info.commandBufferCount = 1;
                 submit_info.waitSemaphoreCount = wait_semaphores.size();
                 submit_info.pWaitSemaphores = wait_semaphores.data();
