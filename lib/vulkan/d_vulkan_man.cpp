@@ -444,7 +444,7 @@ namespace dal {
                 this->m_dlight_shadow_maps[i].record_cmd_buf(
                     this->m_flight_frame_index,
                     render_list,
-                    render_list.m_dlights.front().make_light_mat(::DLIGHT_HALF_BOX_SIZE),
+                    render_list.m_dlights[i].make_light_mat(::DLIGHT_HALF_BOX_SIZE),
                     this->m_pipelines.shadow(),
                     this->m_renderpasses.rp_shadow()
                 );

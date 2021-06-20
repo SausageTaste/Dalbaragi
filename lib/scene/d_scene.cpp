@@ -52,6 +52,13 @@ namespace dal {
         }
 
         {
+            auto& light = output.m_dlights.emplace_back();
+            light.m_pos = this->m_euler_camera.m_pos;
+            light.set_direc_to_light(s * 1, c * 5, 1);
+            light.m_color = glm::vec3{2};
+        }
+
+        {
             auto& light = output.m_plights.emplace_back();
             light.m_pos = glm::vec3{s * 3, 1, c * 2};
             light.m_color = glm::vec3{0.5};
