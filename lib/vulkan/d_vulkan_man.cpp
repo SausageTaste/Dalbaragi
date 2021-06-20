@@ -558,7 +558,7 @@ namespace dal {
                 this->m_flight_frame_index.get(),
                 this->m_ubuf_man.m_ub_final,
                 this->m_attach_man.color().view().get(),
-                this->m_sampler_man.sampler_tex().get(),
+                this->m_sampler_man.sampler_tex(),
                 this->m_desc_layout_man.layout_final(),
                 this->m_logi_device.get()
             );
@@ -728,7 +728,7 @@ namespace dal {
 
         return model.fetch_one_resource(
             this->m_desc_layout_man.layout_per_material(),
-            this->m_sampler_man.sampler_tex().get(),
+            this->m_sampler_man.sampler_tex(),
             this->m_logi_device.get()
         );
     }
@@ -738,7 +738,7 @@ namespace dal {
 
         return m.fetch_one_resource(
             this->m_desc_layout_man.layout_per_material(),
-            this->m_sampler_man.sampler_tex().get(),
+            this->m_sampler_man.sampler_tex(),
             this->m_logi_device.get()
         );
     }
@@ -859,7 +859,7 @@ namespace dal {
             this->m_ubuf_man.m_ub_simple,
             this->m_ubuf_man.m_ub_glights,
             dlight_views,
-            this->m_sampler_man.sampler_tex().get(),
+            this->m_sampler_man.sampler_depth(),
             MAX_FRAMES_IN_FLIGHT,
             this->m_desc_layout_man.layout_alpha(),
             this->m_logi_device.get()
@@ -876,7 +876,7 @@ namespace dal {
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_ubuf_man.m_ub_per_frame_composition.at(i),
                 dlight_views,
-                this->m_sampler_man.sampler_tex().get(),
+                this->m_sampler_man.sampler_depth(),
                 this->m_desc_layout_man.layout_composition(),
                 this->m_logi_device.get()
             );

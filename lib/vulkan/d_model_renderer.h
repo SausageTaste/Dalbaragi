@@ -121,7 +121,7 @@ namespace dal {
 
         bool prepare(
             DescPool& desc_pool,
-            const VkSampler sampler,
+            const SamplerTexture& sampler,
             const VkDescriptorSetLayout layout_per_material,
             const VkDevice logi_device
         );
@@ -164,7 +164,7 @@ namespace dal {
 
         void destroy() override;
 
-        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device);
+        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
 
         bool is_ready() const override;
 
@@ -214,7 +214,7 @@ namespace dal {
 
         void destroy() override;
 
-        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device);
+        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
 
         bool is_ready() const override;
 

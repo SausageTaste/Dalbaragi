@@ -9,6 +9,7 @@
 #include <glm/glm.hpp>
 
 #include "d_konsts.h"
+#include "d_image_obj.h"
 #include "d_vulkan_header.h"
 #include "d_buffer_memory.h"
 
@@ -234,7 +235,7 @@ namespace dal {
 
         void record_final(
             const VkImageView color_view,
-            const VkSampler sampler,
+            const SamplerTexture& sampler,
             const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
             const VkDevice logi_device
         );
@@ -248,7 +249,7 @@ namespace dal {
         void record_material(
             const UniformBuffer<U_PerMaterial>& ubuf_per_material,
             const VkImageView texture_view,
-            const VkSampler sampler,
+            const SamplerTexture& sampler,
             const VkDevice logi_device
         );
 
@@ -267,7 +268,7 @@ namespace dal {
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
-            const VkSampler sampler,
+            const SamplerDepth& sampler,
             const VkDevice logi_device
         );
 
@@ -275,7 +276,7 @@ namespace dal {
             const UniformBuffer<U_PerFrame>& ubuf_per_frame,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
-            const VkSampler sampler,
+            const SamplerDepth& sampler,
             const VkDevice logi_device
         );
 
@@ -377,7 +378,7 @@ namespace dal {
             const uint32_t index,
             const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
             const VkImageView color_view,
-            const VkSampler sampler,
+            const SamplerTexture& sampler,
             const VkDescriptorSetLayout desc_layout_final,
             const VkDevice logi_device
         );
@@ -387,7 +388,7 @@ namespace dal {
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
-            const VkSampler sampler,
+            const SamplerDepth& sampler,
             const VkDescriptorSetLayout desc_layout_composition,
             const VkDevice logi_device
         );
@@ -396,7 +397,7 @@ namespace dal {
             const UniformBufferArray<U_PerFrame>& ubufs_per_frame,
             const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
-            const VkSampler sampler,
+            const SamplerDepth& sampler,
             const uint32_t swapchain_count,
             const VkDescriptorSetLayout desc_layout_alpha,
             const VkDevice logi_device

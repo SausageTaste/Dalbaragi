@@ -388,13 +388,13 @@ namespace dal {
 
     void DescSet::record_final(
         const VkImageView color_view,
-        const VkSampler sampler,
+        const SamplerTexture& sampler,
         const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
         ::WriteDescBuilder desc_writes{ this->m_handle };
 
-        desc_writes.add_img_sampler(color_view, sampler);
+        desc_writes.add_img_sampler(color_view, sampler.get());
         desc_writes.add_buffer(ubuf_per_frame);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
@@ -416,13 +416,13 @@ namespace dal {
     void DescSet::record_material(
         const UniformBuffer<U_PerMaterial>& ubuf_per_material,
         const VkImageView texture_view,
-        const VkSampler sampler,
+        const SamplerTexture& sampler,
         const VkDevice logi_device
     ) {
         ::WriteDescBuilder desc_writes{ this->m_handle };
 
         desc_writes.add_buffer(ubuf_per_material);
-        desc_writes.add_img_sampler(texture_view, sampler);
+        desc_writes.add_img_sampler(texture_view, sampler.get());
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -454,7 +454,7 @@ namespace dal {
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
         const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
-        const VkSampler sampler,
+        const SamplerDepth& sampler,
         const VkDevice logi_device
     ) {
         ::WriteDescBuilder desc_writes{ this->m_handle };
@@ -466,7 +466,7 @@ namespace dal {
         dalAssert(4 == global_light_index);
 
         desc_writes.add_buffer(ubuf_per_frame);
-        desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler);
+        desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler.get());
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -475,14 +475,14 @@ namespace dal {
         const UniformBuffer<U_PerFrame>& ubuf_per_frame,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
-        const VkSampler sampler,
+        const SamplerDepth& sampler,
         const VkDevice logi_device
     ) {
         ::WriteDescBuilder desc_writes{ this->m_handle };
 
         desc_writes.add_buffer(ubuf_per_frame);
         desc_writes.add_buffer(ubuf_global_light);
-        desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler);
+        desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler.get());
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -706,7 +706,7 @@ namespace dal {
         const uint32_t index,
         const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
         const VkImageView color_view,
-        const VkSampler sampler,
+        const SamplerTexture& sampler,
         const VkDescriptorSetLayout desc_layout_final,
         const VkDevice logi_device
     ) {
@@ -720,7 +720,7 @@ namespace dal {
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
         const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
-        const VkSampler sampler,
+        const SamplerDepth& sampler,
         const VkDescriptorSetLayout desc_layout_composition,
         const VkDevice logi_device
     ) {
@@ -733,7 +733,7 @@ namespace dal {
         const UniformBufferArray<U_PerFrame>& ubufs_per_frame,
         const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
         const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
-        const VkSampler sampler,
+        const SamplerDepth& sampler,
         const uint32_t swapchain_count,
         const VkDescriptorSetLayout desc_layout_alpha,
         const VkDevice logi_device

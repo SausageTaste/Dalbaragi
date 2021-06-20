@@ -209,7 +209,7 @@ namespace dal {
 
     bool RenderUnit::prepare(
         DescPool& desc_pool,
-        const VkSampler sampler,
+        const SamplerTexture& sampler,
         const VkDescriptorSetLayout layout_per_material,
         const VkDevice logi_device
     ) {
@@ -299,7 +299,7 @@ namespace dal {
         this->m_desc_pool.destroy(this->m_logi_device);
     }
 
-    bool ModelRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device) {
+    bool ModelRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
         for (auto& unit : this->m_units) {
             if (unit.is_ready())
                 continue;
@@ -397,7 +397,7 @@ namespace dal {
         this->m_desc_pool.destroy(this->m_logi_device);
     }
 
-    bool ModelSkinnedRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const VkSampler sampler, const VkDevice logi_device) {
+    bool ModelSkinnedRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
         for (auto& unit : this->m_units) {
             if (unit.is_ready())
                 continue;
