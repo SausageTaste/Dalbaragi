@@ -107,6 +107,7 @@ namespace dal {
         std::vector<RenderPair<HRenModelSkinned, HActorSkinned>> m_skinned_models;
         std::vector<DLight> m_dlights;
         std::vector<PLight> m_plights;
+        std::vector<SLight> m_slights;
         glm::vec3 m_ambient_color;
     };
 

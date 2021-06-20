@@ -64,6 +64,15 @@ namespace dal {
             light.m_color = glm::vec3{0.5};
         }
 
+        {
+            auto& light = output.m_slights.emplace_back();
+            light.set_direc_to_light(s, 1, c);
+            light.m_pos = glm::vec3{3, 2, 0};
+            light.m_color = glm::vec3{10};
+            light.set_fade_start_degree(0);
+            light.set_fade_end_degree(35);
+        }
+
         output.m_ambient_color = glm::vec3{0.01};
 
         return output;

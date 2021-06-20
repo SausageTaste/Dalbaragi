@@ -14,7 +14,7 @@ namespace dal {
     };
 
 
-    class DLight : public ILight {
+    class IDirectionalLight {
 
     private:
         glm::vec3 m_direc_to_light;
@@ -32,24 +32,31 @@ namespace dal {
             this->set_direc_to_light(glm::vec3{x, y, z});
         }
 
+    };
+
+
+    class IDistanceLight {
+
+    public:
+        double m_max_dist = 20;
+
+    };
+
+
+    class DLight : public ILight, public IDirectionalLight {
+
+    public:
         glm::mat4 make_light_mat(const float half_proj_box_edge_length) const;
 
     };
 
 
-    class PLight : public ILight {
-
-    public:
-        double m_max_dist = 20;
+    class PLight : public ILight, public IDistanceLight {
 
     };
 
 
-    class SLight : public DLight {
-
-    public:
-        glm::vec3 m_direc;
-        double m_max_dist = 20;
+    class SLight : public ILight, public IDirectionalLight, public IDistanceLight {
 
     private:
         double m_fade_start;
@@ -77,6 +84,8 @@ namespace dal {
             this->m_fade_end_radians = glm::radians(degree);
             this->m_fade_end = std::cos(this->m_fade_end_radians);
         }
+
+        glm::mat4 make_light_mat() const;
 
     };
 

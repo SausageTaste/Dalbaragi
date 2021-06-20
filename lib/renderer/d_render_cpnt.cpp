@@ -18,4 +18,13 @@ namespace dal {
         return proj_mat * view_mat;
     }
 
+    glm::mat4 SLight::make_light_mat() const {
+        const auto view_mat = glm::lookAt(this->to_light_direc() + this->m_pos, this->m_pos, glm::vec3{0, 1, 0});
+
+        auto proj_mat = glm::perspective<float>(this->m_fade_end_radians * 2, 1, 1, 20);
+        proj_mat[1][1] *= -1;
+
+        return proj_mat * view_mat;
+    }
+
 }

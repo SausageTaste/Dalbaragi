@@ -411,6 +411,7 @@ namespace dal {
         {
             dalAssert(render_list.m_dlights.size() <= dal::MAX_DLIGHT_COUNT);
             dalAssert(render_list.m_plights.size() <= dal::MAX_PLIGHT_COUNT);
+            dalAssert(render_list.m_slights.size() <= dal::MAX_SLIGHT_COUNT);
 
             U_GlobalLight data_glight{};
             {
@@ -425,6 +426,16 @@ namespace dal {
                 for (size_t i = 0; i < render_list.m_plights.size(); ++i) {
                     data_glight.m_plight_pos_n_max_dist[i] = glm::vec4{ render_list.m_plights[i].m_pos, 0 };
                     data_glight.m_plight_color[i]          = glm::vec4{ render_list.m_plights[i].m_color, 0 };
+                }
+
+                data_glight.m_slight_count = render_list.m_slights.size();
+                for (size_t i = 0; i < render_list.m_slights.size(); ++i) {
+                    auto& src_light = render_list.m_slights[i];
+
+                    data_glight.m_slight_mat[i]                = src_light.make_light_mat();
+                    data_glight.m_slight_pos_n_max_dist[i]     = glm::vec4{ src_light.m_pos, src_light.m_max_dist };
+                    data_glight.m_slight_direc_n_fade_start[i] = glm::vec4{ src_light.to_light_direc(), src_light.fade_start() };
+                    data_glight.m_slight_color_n_fade_end[i]   = glm::vec4{ src_light.m_color, src_light.fade_end() };
                 }
 
                 data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };

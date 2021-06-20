@@ -47,10 +47,16 @@ namespace dal {
         glm::vec4 m_plight_pos_n_max_dist[dal::MAX_PLIGHT_COUNT];
         glm::vec4 m_plight_color[dal::MAX_PLIGHT_COUNT];
 
+        glm::mat4 m_slight_mat[dal::MAX_SLIGHT_COUNT];
+        glm::vec4 m_slight_pos_n_max_dist[dal::MAX_SLIGHT_COUNT];
+        glm::vec4 m_slight_direc_n_fade_start[dal::MAX_SLIGHT_COUNT];
+        glm::vec4 m_slight_color_n_fade_end[dal::MAX_SLIGHT_COUNT];
+
         glm::vec4 m_ambient_light;
 
         uint32_t m_dlight_count = 0;
         uint32_t m_plight_count = 0;
+        uint32_t m_slight_count = 0;
     };
 
     struct U_AnimTransform {

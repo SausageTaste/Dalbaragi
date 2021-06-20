@@ -24,10 +24,16 @@ layout(set = 0, binding = 1) uniform U_GlobalLight {
     vec4 m_plight_pos_n_max_dist[3];
     vec4 m_plight_color[3];
 
+    mat4 m_slight_mat[3];
+    vec4 m_slight_pos_n_max_dist[3];
+    vec4 m_slight_direc_n_fade_start[3];
+    vec4 m_slight_color_n_fade_end[3];
+
     vec4 m_ambient_light;
 
     uint m_dlight_count;
     uint m_plight_count;
+    uint m_slight_count;
 } u_global_light;
 
 layout(set = 0, binding = 2) uniform sampler2D u_dlight_shadow_maps[2];
@@ -92,6 +98,30 @@ void main() {
             1,
             u_global_light.m_plight_color[i].xyz
         );
+    }
+
+    for (uint i = 0; i < u_global_light.m_slight_count; ++i) {
+        const vec3 frag_to_light_direc = normalize(u_global_light.m_slight_pos_n_max_dist[i].xyz - v_world_pos);
+
+        const float attenuation = calc_slight_attenuation(
+            v_world_pos,
+            u_global_light.m_slight_pos_n_max_dist[i].xyz,
+            -u_global_light.m_slight_direc_n_fade_start[i].xyz,
+            u_global_light.m_slight_direc_n_fade_start[i].w,
+            u_global_light.m_slight_color_n_fade_end[i].w
+        );
+
+        light += calc_pbr_illumination(
+            u_per_material.m_roughness,
+            u_per_material.m_metallic,
+            albedo,
+            v_normal,
+            F0,
+            view_direc,
+            frag_to_light_direc,
+            1,
+            u_global_light.m_slight_color_n_fade_end[i].xyz
+        ) * attenuation;
     }
 
     out_color = vec4(light, alpha);
