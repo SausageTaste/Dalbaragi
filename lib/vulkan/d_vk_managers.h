@@ -197,6 +197,12 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
+        void render_empty_for_all(
+            const ShaderPipeline& pipeline_shadow,
+            const RenderPass_ShadowMap& render_pass,
+            const LogicalDevice& logi_device
+        );
+
         auto& dlight_views() const {
             return this->m_dlight_views;
         }

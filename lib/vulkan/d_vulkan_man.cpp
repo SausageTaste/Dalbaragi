@@ -555,7 +555,7 @@ namespace dal {
     }
 
     void VulkanState::wait_idle() {
-        vkDeviceWaitIdle(this->m_logi_device.get());
+        this->m_logi_device.wait_idle();
     }
 
     void VulkanState::on_screen_resize(const unsigned width, const unsigned height) {
@@ -834,6 +834,12 @@ namespace dal {
                 this->m_logi_device.get()
             );
         }
+
+        this->m_shadow_maps.render_empty_for_all(
+            this->m_pipelines.shadow(),
+            this->m_renderpasses.rp_shadow(),
+            this->m_logi_device
+        );
 
         return true;
     }

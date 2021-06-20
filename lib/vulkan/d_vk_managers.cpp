@@ -772,6 +772,82 @@ namespace dal {
 
         for (size_t i = 0; i < dal::MAX_SLIGHT_COUNT; ++i)
             this->m_slight_views[i] = this->m_slights[i].shadow_map_view();
+
+    }
+
+    void ShadowMapManager::render_empty_for_all(
+        const ShaderPipeline& pipeline_shadow,
+        const RenderPass_ShadowMap& render_pass,
+        const LogicalDevice& logi_device
+    ) {
+
+        RenderList render_list;
+        FrameInFlightIndex index0{0};
+        std::array<VkPipelineStageFlags, 0> wait_stages{};
+        std::array<VkSemaphore, 0> wait_semaphores{};
+        std::array<VkSemaphore, 0> signal_semaphores{};
+
+        for (size_t i = 0; i < this->m_dlights.size(); ++i) {
+            this->m_dlights[i].record_cmd_buf(
+                index0,
+                render_list,
+                glm::mat4{1},
+                pipeline_shadow,
+                render_pass
+            );
+
+            VkSubmitInfo submit_info{};
+            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info.pCommandBuffers = &this->m_dlights[i].cmd_buf_at(index0.get());
+            submit_info.commandBufferCount = 1;
+            submit_info.waitSemaphoreCount = wait_semaphores.size();
+            submit_info.pWaitSemaphores = wait_semaphores.data();
+            submit_info.pWaitDstStageMask = wait_stages.data();
+            submit_info.signalSemaphoreCount = signal_semaphores.size();
+            submit_info.pSignalSemaphores = signal_semaphores.data();
+
+            const auto submit_result = vkQueueSubmit(
+                logi_device.queue_graphics(),
+                1,
+                &submit_info,
+                VK_NULL_HANDLE
+            );
+
+            dalAssert(VK_SUCCESS == submit_result);
+        }
+
+        for (size_t i = 0; i < this->m_slights.size(); ++i) {
+            auto& shadow_map = this->m_slights[i];
+
+            shadow_map.record_cmd_buf(
+                index0,
+                render_list,
+                glm::mat4{1},
+                pipeline_shadow,
+                render_pass
+            );
+
+            VkSubmitInfo submit_info{};
+            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info.pCommandBuffers = &shadow_map.cmd_buf_at(index0.get());
+            submit_info.commandBufferCount = 1;
+            submit_info.waitSemaphoreCount = wait_semaphores.size();
+            submit_info.pWaitSemaphores = wait_semaphores.data();
+            submit_info.pWaitDstStageMask = wait_stages.data();
+            submit_info.signalSemaphoreCount = signal_semaphores.size();
+            submit_info.pSignalSemaphores = signal_semaphores.data();
+
+            const auto submit_result = vkQueueSubmit(
+                logi_device.queue_graphics(),
+                1,
+                &submit_info,
+                VK_NULL_HANDLE
+            );
+
+            dalAssert(VK_SUCCESS == submit_result);
+        }
+
+        logi_device.wait_idle();
     }
 
     void ShadowMapManager::destroy(const VkDevice logi_device) {

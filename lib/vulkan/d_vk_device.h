@@ -116,11 +116,13 @@ namespace dal {
 
         void destroy();
 
+        void wait_idle() const;
+
         auto& get() const {
             return this->m_handle;
         }
 
-        const dal::QueueFamilyIndices& indices() const {
+        auto& indices() const {
             return this->m_queue_indices;
         }
 

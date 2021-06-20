@@ -76,14 +76,14 @@ namespace dal {
             light.set_fade_end_degree(35);
         }
 
-        {
+        /*{
             auto& light = output.m_slights.emplace_back();
             light.set_direc_to_light(0, 0, -1);
             light.m_pos = glm::vec3{c_slow * 10, 7, 0};
             light.m_color = glm::vec3{3};
             light.set_fade_start_degree(0);
             light.set_fade_end_degree(35);
-        }
+        }*/
 
         {
             auto& light = output.m_slights.emplace_back();

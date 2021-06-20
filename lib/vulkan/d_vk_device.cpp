@@ -253,4 +253,8 @@ namespace dal {
         }
     }
 
+    void LogicalDevice::wait_idle() const {
+        vkDeviceWaitIdle(this->m_handle);
+    }
+
 }
