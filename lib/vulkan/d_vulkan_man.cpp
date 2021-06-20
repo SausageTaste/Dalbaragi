@@ -859,7 +859,10 @@ namespace dal {
                 },
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_ubuf_man.m_ub_per_frame_composition.at(i),
-                this->m_dlight_shadow_maps[0].shadow_map_view(),
+                {
+                    this->m_dlight_shadow_maps[0].shadow_map_view(),
+                    this->m_dlight_shadow_maps[1].shadow_map_view(),
+                },
                 this->m_sampler_man.sampler_tex().get(),
                 this->m_desc_layout_man.layout_composition(),
                 this->m_logi_device.get()

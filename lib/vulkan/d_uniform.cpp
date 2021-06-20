@@ -150,7 +150,7 @@ namespace {
 
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_GlobalLight
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_PerFrame_Composition
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);  // Dlight shadow map 1
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
 
         //----------------------------------------------------------------------------------
 
@@ -289,6 +289,34 @@ namespace {
             return index;
         }
 
+        template <typename _ImgViewIterator>
+        size_t add_img_samplers(const _ImgViewIterator begin, const _ImgViewIterator end, const VkSampler sampler) {
+            const auto first_info_index = this->m_image_info.m_size;
+
+            for (auto iter = begin; iter != end; ++iter) {
+                auto& info = this->m_image_info.emplace_back();
+                info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                info.imageView = *iter;
+                info.sampler = sampler;
+            }
+
+            const auto info_count = this->m_image_info.m_size - first_info_index;
+            const auto index = this->m_desc_writes.size();
+
+            auto& write = this->m_desc_writes.emplace_back();
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.dstSet = this->m_desc_set;
+            write.dstBinding = index;
+            write.dstArrayElement = 0;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write.descriptorCount = info_count;
+            write.pBufferInfo = nullptr;
+            write.pImageInfo = &this->m_image_info.m_data[first_info_index];
+            write.pTexelBufferView = nullptr;
+
+            return index;
+        }
+
         size_t add_input_attachment(const VkImageView img_view) {
             auto& info = this->m_image_info.emplace_back();
             info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -402,7 +430,7 @@ namespace dal {
         const std::vector<VkImageView>& attachment_views,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
-        const VkImageView dlight_shadow_map_1,
+        const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
         const VkSampler sampler,
         const VkDevice logi_device
     ) {
@@ -415,7 +443,7 @@ namespace dal {
         dalAssert(4 == global_light_index);
 
         desc_writes.add_buffer(ubuf_per_frame);
-        desc_writes.add_img_sampler(dlight_shadow_map_1, sampler);
+        desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -652,14 +680,14 @@ namespace dal {
         const std::vector<VkImageView>& attachment_views,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
-        const VkImageView dlight_shadow_map_1,
+        const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
         const VkSampler sampler,
         const VkDescriptorSetLayout desc_layout_composition,
         const VkDevice logi_device
     ) {
         auto& new_desc = this->m_descset_composition.emplace_back();
         new_desc = this->m_pool_composition.allocate(desc_layout_composition, logi_device);
-        new_desc.record_composition(attachment_views, ubuf_global_light, ubuf_per_frame, dlight_shadow_map_1, sampler, logi_device);
+        new_desc.record_composition(attachment_views, ubuf_global_light, ubuf_per_frame, dlight_shadow_maps, sampler, logi_device);
     }
 
 }

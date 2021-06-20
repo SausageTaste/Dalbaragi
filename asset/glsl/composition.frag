@@ -34,24 +34,24 @@ layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
     vec4 m_view_pos;
 } u_per_frame_composition;
 
-layout(set = 0, binding = 6) uniform sampler2D u_dlight_shadow_map;
+layout(set = 0, binding = 6) uniform sampler2D u_dlight_shadow_maps[2];
 
 
-float _sample_dlight_depth(vec2 coord) {
+float _sample_dlight_depth(uint index, vec2 coord) {
     if (coord.x > 1.0 || coord.x < 0.0) return 1.0;
     if (coord.y > 1.0 || coord.y < 0.0) return 1.0;
-    return texture(u_dlight_shadow_map, coord).r;
+    return texture(u_dlight_shadow_maps[index], coord).r;
 }
 
-bool is_frag_in_dlight_shadow(vec3 frag_pos) {
-    const vec4 frag_pos_in_dlight = u_global_light.m_dlight_mat[0] * vec4(frag_pos, 1);
+bool is_frag_in_dlight_shadow(uint index, vec3 frag_pos) {
+    const vec4 frag_pos_in_dlight = u_global_light.m_dlight_mat[index] * vec4(frag_pos, 1);
     const vec3 projCoords = frag_pos_in_dlight.xyz / frag_pos_in_dlight.w;
 
     if (projCoords.z > 1.0)
         return false;
 
     const vec2 sample_coord = projCoords.xy * 0.5 + 0.5;
-    const float closestDepth = _sample_dlight_depth(sample_coord);
+    const float closestDepth = _sample_dlight_depth(index, sample_coord);
     const float currentDepth = projCoords.z;
 
     return currentDepth > closestDepth;
@@ -85,8 +85,6 @@ void main() {
     const vec3 albedo = subpassLoad(input_albedo).xyz;
     const vec2 material = subpassLoad(input_material).xy;
 
-    const float a = texture(u_dlight_shadow_map, v_device_coord).r;
-
     const vec3 world_pos = calc_world_pos(depth);
     const vec3 view_direc = normalize(u_per_frame_composition.m_view_pos.xyz - world_pos);
     const vec3 F0 = mix(vec3(0.04), albedo, material.y);
@@ -94,7 +92,7 @@ void main() {
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;
 
     for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
-        if (is_frag_in_dlight_shadow(world_pos))
+        if (is_frag_in_dlight_shadow(i, world_pos))
             continue;
 
         light += calc_pbr_illumination(
