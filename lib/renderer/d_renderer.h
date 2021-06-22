@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 
 #include "d_actor.h"
 #include "d_indices.h"
@@ -160,5 +161,8 @@ namespace dal {
         virtual bool prepare(IRenModelSkineed& model) { return false; }
 
     };
+
+
+    using surface_create_func_t = std::function<void*(void*)>;
 
 }

@@ -196,7 +196,7 @@ namespace dal {
         dal::TaskManager& task_man,
         dal::ITextureManager& texture_man,
         const std::vector<const char*>& extensions,
-        std::function<void*(void*)> surface_create_func
+        surface_create_func_t surface_create_func
     )
         : m_filesys(filesys)
         , m_texture_man(texture_man)

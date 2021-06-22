@@ -13,7 +13,7 @@ namespace dal {
         std::string                     m_window_title;
         dal::Filesystem*                m_filesystem = nullptr;
         std::vector<std::string>        m_extensions;
-        std::function<void*(void*)>     m_surface_create_func;
+        surface_create_func_t           m_surface_create_func;
 
         bool check_validity() const;
     };

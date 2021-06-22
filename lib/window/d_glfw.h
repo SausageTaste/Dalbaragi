@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "d_inputs.h"
+#include "d_renderer.h"
 
 
 namespace dal {
@@ -22,7 +23,7 @@ namespace dal {
         void do_frame();
         bool should_close() const;
         std::vector<std::string> get_vulkan_extensions() const;
-        std::function<void*(void*)> get_vk_surface_creator() const;
+        surface_create_func_t get_vk_surface_creator() const;
 
         void set_callback_fbuf_resize(std::function<void(int, int)> func);
         void set_callback_mouse_event(std::function<void(const dal::MouseEvent&)> func);

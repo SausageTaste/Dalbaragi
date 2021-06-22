@@ -262,7 +262,7 @@ namespace dal {
         return extensions;
     }
 
-    std::function<void*(void*)> WindowGLFW::get_vk_surface_creator() const {
+    surface_create_func_t WindowGLFW::get_vk_surface_creator() const {
         return [this](void* vk_instance) -> void* {
             return ::create_vk_surface(
                 reinterpret_cast<VkInstance>(vk_instance),
