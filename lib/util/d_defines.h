@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 
 // https://stackoverflow.com/questions/5919996/how-to-detect-reliably-mac-os-x-ios-linux-windows-in-c-preprocessor
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
@@ -21,7 +23,7 @@
     #elif TARGET_OS_MAC
         // Other kinds of Mac OS
     #else
-    #   error "Unknown Apple platform"
+        #error "Unknown Apple platform"
     #endif
 #elif __linux__
     #define DAL_OS_LINUX
@@ -30,5 +32,15 @@
 #elif defined(_POSIX_VERSION)
     // POSIX
 #else
-#   error "Unknown compiler"
+    #error "Unknown compiler"
+#endif
+
+
+// https://stackoverflow.com/questions/5272825/detecting-64bit-compile-in-c
+#if INTPTR_MAX == INT64_MAX
+    #define DAL_SYS_X64
+#elif INTPTR_MAX == INT32_MAX
+    #define DAL_SYS_X32
+#else
+    #error Unknown pointer size or missing size macros!
 #endif
