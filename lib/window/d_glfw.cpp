@@ -31,10 +31,10 @@ namespace {
         );
 
         if (VK_SUCCESS != create_result)
-            return nullptr;
+            return VK_NULL_HANDLE;
 
         if (VK_NULL_HANDLE == surface)
-            return nullptr;
+            return VK_NULL_HANDLE;
 
         return surface;
     }
