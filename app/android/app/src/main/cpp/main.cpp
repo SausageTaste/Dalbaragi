@@ -67,7 +67,7 @@ namespace {
             "VK_KHR_surface",
             "VK_KHR_android_surface",
         };
-        const auto surface_creator = [state](void* vk_instance) -> void* {
+        const auto surface_creator = [state](void* vk_instance) -> uint64_t {
             VkAndroidSurfaceCreateInfoKHR create_info{
                 .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
                 .pNext = nullptr,
@@ -84,7 +84,13 @@ namespace {
             );
             dalAssert(VK_SUCCESS == create_result);
 
-            return reinterpret_cast<void*>(surface);
+#ifdef DAL_SYS_X32
+            return surface;
+#elif defined(DAL_SYS_X64)
+            return reinterpret_cast<uint64_t>(surface);
+#else
+            #error Not supported system bis size
+#endif
         };
 
         dal::EngineCreateInfo engine_info;
