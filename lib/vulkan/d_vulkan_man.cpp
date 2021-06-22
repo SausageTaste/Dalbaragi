@@ -206,7 +206,14 @@ namespace dal {
         dalAssert(1 == InitVulkan());
 #endif
         this->m_instance = ::create_vulkan_instance(window_title, extensions);
+
+#ifdef DAL_SYS_X32
+        this->m_surface = surface_create_func(this->m_instance);
+#elif defined(DAL_SYS_X64)
         this->m_surface = reinterpret_cast<VkSurfaceKHR>(surface_create_func(this->m_instance));
+#else
+        #error Not supported system bit size
+#endif
         dalAssert(VK_NULL_HANDLE != this->m_surface);
 
 #ifdef DAL_VK_DEBUG

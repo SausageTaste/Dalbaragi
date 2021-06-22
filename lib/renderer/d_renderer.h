@@ -163,6 +163,6 @@ namespace dal {
     };
 
 
-    using surface_create_func_t = std::function<void*(void*)>;
+    using surface_create_func_t = std::function<uint64_t(void*)>;
 
 }
