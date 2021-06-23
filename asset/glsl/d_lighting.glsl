@@ -41,13 +41,13 @@ float how_much_not_in_shadow_pcf(const vec3 world_pos, const mat4 light_mat, sam
 
     float shadow = 0.0;
     const vec2 texel_size = 1.0 / textureSize(depth_map, 0);
-    for(int x = -1; x <= 1; ++x) {
-        for(int y = -1; y <= 1; ++y) {
+    for(int x = 0; x <= 1; ++x) {
+        for(int y = 0; y <= 1; ++y) {
             float pcf_depth = texture(depth_map, sample_coord + vec2(x, y) * texel_size).r;
             shadow += currentDepth > pcf_depth ? 1.0 : 0.0;
         }
     }
-    shadow /= 9.0;
+    shadow /= 4.0;
 
     return 1.0 - shadow;
 }
