@@ -26,6 +26,32 @@ bool is_in_shadow(const vec3 world_pos, const mat4 light_mat, sampler2D depth_ma
     return currentDepth > closestDepth;
 }
 
+float how_much_not_in_shadow(const vec3 world_pos, const mat4 light_mat, sampler2D depth_map) {
+    return is_in_shadow(world_pos, light_mat, depth_map) ? 0.0 : 1.0;
+}
+
+float how_much_not_in_shadow_pcf(const vec3 world_pos, const mat4 light_mat, sampler2D depth_map) {
+    const vec4 frag_pos_in_dlight = light_mat * vec4(world_pos, 1);
+    const vec3 proj_coords = frag_pos_in_dlight.xyz / frag_pos_in_dlight.w;
+    if (proj_coords.z > 1.0)
+        return 1.0;
+
+    const vec2 sample_coord = proj_coords.xy * 0.5 + 0.5;
+    const float currentDepth = proj_coords.z;
+
+    float shadow = 0.0;
+    const vec2 texel_size = 1.0 / textureSize(depth_map, 0);
+    for(int x = -1; x <= 1; ++x) {
+        for(int y = -1; y <= 1; ++y) {
+            float pcf_depth = texture(depth_map, sample_coord + vec2(x, y) * texel_size).r;
+            shadow += currentDepth > pcf_depth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;
+
+    return 1.0 - shadow;
+}
+
 
 float _distribution_GGX(const vec3 N, const vec3 H, const float roughness) {
     const float a = roughness*roughness;
