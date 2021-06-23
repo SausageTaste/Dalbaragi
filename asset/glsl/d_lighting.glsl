@@ -13,15 +13,6 @@ float calc_slight_attenuation(const vec3 frag_pos, const vec3 light_pos, const v
 }
 
 
-float _sample_shadow_map(sampler2D tex, vec2 coord) {
-    if (coord.x > 1.0 || coord.x < 0.0)
-        return 1.0;
-    if (coord.y > 1.0 || coord.y < 0.0)
-        return 1.0;
-
-    return texture(tex, coord).r;
-}
-
 bool is_in_shadow(const vec3 world_pos, const mat4 light_mat, sampler2D depth_map) {
     const vec4 frag_pos_in_dlight = light_mat * vec4(world_pos, 1);
     const vec3 proj_coords = frag_pos_in_dlight.xyz / frag_pos_in_dlight.w;
@@ -29,7 +20,7 @@ bool is_in_shadow(const vec3 world_pos, const mat4 light_mat, sampler2D depth_ma
         return false;
 
     const vec2 sample_coord = proj_coords.xy * 0.5 + 0.5;
-    const float closestDepth = _sample_shadow_map(depth_map, sample_coord);
+    const float closestDepth = texture(depth_map, sample_coord).r;
     const float currentDepth = proj_coords.z;
 
     return currentDepth > closestDepth;
