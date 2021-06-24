@@ -850,6 +850,7 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_shadow(
         dal::filesystem::AssetManager& asset_mgr,
+        const bool does_support_depth_clamp,
         const VkExtent2D& extent,
         const VkRenderPass renderpass,
         const VkDevice logi_device
@@ -881,7 +882,7 @@ namespace {
         const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
-        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, true, 80, 8, true);
+        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, true, 80, 8, does_support_depth_clamp);
 
         // Multisampling
         const auto multisampling = ::create_info_multisampling();
@@ -1016,6 +1017,7 @@ namespace dal {
     void PipelineManager::init(
         dal::filesystem::AssetManager& asset_mgr,
         const bool need_gamma_correction,
+        const bool does_support_depth_clamp,
         const VkExtent2D& swapchain_extent,
         const VkExtent2D& gbuf_extent,
         const VkDescriptorSetLayout desc_layout_final,
@@ -1099,6 +1101,7 @@ namespace dal {
 
         this->m_shadow = ::make_pipeline_shadow(
             asset_mgr,
+            does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
             rp_shadow.get(),
             logi_device

@@ -760,6 +760,7 @@ namespace dal {
         this->m_pipelines.init(
             this->m_filesys.asset_mgr(),
             !this->m_swapchain.is_format_srgb(),
+            this->m_phys_info.does_support_depth_clamp(),
             this->m_swapchain.identity_extent(),
             this->m_attach_man.color().extent(),
             this->m_desc_layout_man.layout_final(),

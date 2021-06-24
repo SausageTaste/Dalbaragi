@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "d_vk_device.h"
 #include "d_filesystem.h"
 #include "d_render_pass.h"
 
@@ -63,6 +64,7 @@ namespace dal {
         void init(
             dal::filesystem::AssetManager& asset_mgr,
             const bool need_gamma_correction,
+            const bool does_support_depth_clamp,
             const VkExtent2D& swapchain_extent,
             const VkExtent2D& gbuf_extent,
             const VkDescriptorSetLayout desc_layout_final,

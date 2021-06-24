@@ -70,6 +70,10 @@ namespace dal {
         return this->m_features.samplerAnisotropy;
     }
 
+    bool PhysDeviceInfo::does_support_depth_clamp() const {
+        return this->m_features.depthClamp;
+    }
+
     bool PhysDeviceInfo::is_usable() const {
         if (!this->does_support_all_extensions( dal::PHYS_DEVICE_EXTENSIONS.begin(), dal::PHYS_DEVICE_EXTENSIONS.end() ))
             return false;
@@ -223,6 +227,7 @@ namespace dal {
 
             VkPhysicalDeviceFeatures device_features{};
             device_features.samplerAnisotropy = phys_info.does_support_anisotropic_sampling();
+            device_features.depthClamp = phys_info.does_support_depth_clamp();
 
             VkDeviceCreateInfo create_info_device{};
             create_info_device.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

@@ -40,6 +40,8 @@ namespace dal {
 
         bool does_support_anisotropic_sampling() const ;
 
+        bool does_support_depth_clamp() const;
+
         bool is_usable() const;
 
         unsigned calc_score() const;
