@@ -19,6 +19,10 @@ namespace {
 
     constexpr float DLIGHT_HALF_BOX_SIZE = 30;
 
+    constexpr float PROJ_NEAR = 0.1;
+    constexpr float PROJ_FAR = 30;
+
+
     VkExtent2D calc_smaller_extent(const VkExtent2D& extent, const float scale) {
         return VkExtent2D{
             std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<float>(extent.width) * scale)),
@@ -307,7 +311,7 @@ namespace dal {
         {
             U_PerFrame ubuf_data_per_frame{};
             ubuf_data_per_frame.m_view = camera.make_view_mat();
-            ubuf_data_per_frame.m_proj = make_perspective_proj_mat(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), 0.1, 100);
+            ubuf_data_per_frame.m_proj = make_perspective_proj_mat(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
             ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
             this->m_ubuf_man.m_ub_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
@@ -325,11 +329,16 @@ namespace dal {
 
             U_GlobalLight data_glight{};
             {
+                const auto frustum_vertices = camera.make_frustum_vertices(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
+
                 data_glight.m_dlight_count = render_list.m_dlights.size();
                 for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
-                    data_glight.m_dlight_mat[i]   = render_list.m_dlights[i].make_light_mat(::DLIGHT_HALF_BOX_SIZE);
-                    data_glight.m_dlight_direc[i] = glm::vec4{ render_list.m_dlights[i].to_light_direc(), 0 };
-                    data_glight.m_dlight_color[i] = glm::vec4{ render_list.m_dlights[i].m_color, 1 };
+                    auto& src_light = render_list.m_dlights[i];
+                    const auto light_mat_frustum = src_light.make_light_mat(frustum_vertices.data(), frustum_vertices.data() + frustum_vertices.size());
+
+                    data_glight.m_dlight_mat[i]   = light_mat_frustum;
+                    data_glight.m_dlight_direc[i] = glm::vec4{ src_light.to_light_direc(), 0 };
+                    data_glight.m_dlight_color[i] = glm::vec4{ src_light.m_color, 1 };
                 }
 
                 data_glight.m_plight_count = render_list.m_plights.size();
@@ -361,11 +370,15 @@ namespace dal {
             std::array<VkSemaphore, 0> wait_semaphores{};
             std::array<VkSemaphore, 0> signal_semaphores{};
 
+            const auto frustum_vertices = camera.make_frustum_vertices(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
+
             for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
+                const auto light_mat_frustum = render_list.m_dlights[i].make_light_mat(frustum_vertices.data(), frustum_vertices.data() + frustum_vertices.size());
+
                 this->m_shadow_maps.m_dlights[i].record_cmd_buf(
                     this->m_flight_frame_index,
                     render_list,
-                    render_list.m_dlights[i].make_light_mat(::DLIGHT_HALF_BOX_SIZE),
+                    light_mat_frustum,
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
                     this->m_renderpasses.rp_shadow()
