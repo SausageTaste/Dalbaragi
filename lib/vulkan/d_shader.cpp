@@ -183,7 +183,8 @@ namespace {
         const VkCullModeFlags cull_mode,
         const bool enable_bias,
         const float bias_constant,
-        const float bias_slope
+        const float bias_slope,
+        const bool enable_depth_clamp = false
     ) {
         VkPipelineRasterizationStateCreateInfo rasterizer{};
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -198,10 +199,11 @@ namespace {
         rasterizer.lineWidth = 1;  // GPU feature, `wideLines` required for lines thicker than 1.
         rasterizer.cullMode = cull_mode;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        rasterizer.depthBiasEnable = enable_bias;  // Maybe this is used to deal with shadow acne?
+        rasterizer.depthBiasEnable = enable_bias ? VK_TRUE : VK_FALSE;
         rasterizer.depthBiasConstantFactor = bias_constant;
         rasterizer.depthBiasSlopeFactor = bias_slope;
         rasterizer.depthBiasClamp = 0;
+        rasterizer.depthClampEnable = enable_depth_clamp ? VK_TRUE : VK_FALSE;
 
         return rasterizer;
     }
