@@ -269,6 +269,22 @@ namespace {
             cpnt_actor.m_actors.back()->apply_changes();
         }
 
+        // Simple box
+        {
+            const auto entity = scene.m_registry.create();
+            auto model = res_man.request_model("_asset/model/simple_box.dmd");
+
+            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::Model>(entity);
+            cpnt_model.m_model = model;
+
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
+
+            cpnt_actor.m_actors.push_back(res_man.request_actor());
+            cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ 0, 0, -1 };
+            cpnt_actor.m_actors.back()->m_transform.m_scale = 1;
+            cpnt_actor.m_actors.back()->apply_changes();
+        }
+
         dalInfo("Scene populated");
     }
 
