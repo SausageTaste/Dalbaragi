@@ -113,23 +113,42 @@ namespace dal {
     };
 
 
-    class Sampler {
+    class ISampler {
 
     private:
         VkSampler m_sampler = VK_NULL_HANDLE;
 
-    public:
-        void init_for_color_map(
-            const bool enable_anisotropy,
-            const VkPhysicalDevice phys_device,
-            const VkDevice logi_device
-        );
+    protected:
+        void create(const VkSamplerCreateInfo& info, const VkDevice logi_device);
 
+    public:
         void destroy(const VkDevice logi_device);
 
         auto get() const {
             return this->m_sampler;
         }
+
+    };
+
+    class SamplerTexture : public ISampler {
+
+    public:
+        void init(
+            const bool enable_anisotropy,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+    };
+
+    class SamplerDepth : public ISampler {
+
+    public:
+        void init(
+            const bool enable_anisotropy,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
 
     };
 
@@ -166,7 +185,8 @@ namespace dal {
     class SamplerManager {
 
     private:
-        Sampler m_tex_sampler;
+        SamplerTexture m_tex_sampler;
+        SamplerDepth m_depth_sampler;
 
     public:
         void init(
@@ -179,6 +199,10 @@ namespace dal {
 
         auto& sampler_tex() const {
             return this->m_tex_sampler;
+        }
+
+        auto& sampler_depth() const {
+            return this->m_depth_sampler;
         }
 
     };

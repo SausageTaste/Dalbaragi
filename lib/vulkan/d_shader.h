@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "d_vk_device.h"
 #include "d_filesystem.h"
 #include "d_render_pass.h"
 
@@ -56,11 +57,14 @@ namespace dal {
         ShaderPipeline m_final;
         ShaderPipeline m_alpha;
         ShaderPipeline m_alpha_animated;
+        ShaderPipeline m_shadow;
+        ShaderPipeline m_shadow_animated;
 
     public:
         void init(
             dal::filesystem::AssetManager& asset_mgr,
             const bool need_gamma_correction,
+            const bool does_support_depth_clamp,
             const VkExtent2D& swapchain_extent,
             const VkExtent2D& gbuf_extent,
             const VkDescriptorSetLayout desc_layout_final,
@@ -69,9 +73,11 @@ namespace dal {
             const VkDescriptorSetLayout desc_layout_per_actor,
             const VkDescriptorSetLayout desc_layout_animation,
             const VkDescriptorSetLayout desc_layout_composition,
+            const VkDescriptorSetLayout desc_layout_alpha,
             const RenderPass_Gbuf& rp_gbuf,
             const RenderPass_Final& rp_final,
             const RenderPass_Alpha& rp_alpha,
+            const RenderPass_ShadowMap& rp_shadow,
             const VkDevice logi_device
         );
 
@@ -99,6 +105,14 @@ namespace dal {
 
         auto& alpha_animated() const {
             return this->m_alpha_animated;
+        }
+
+        auto& shadow() const {
+            return this->m_shadow;
+        }
+
+        auto& shadow_animated() const {
+            return this->m_shadow_animated;
         }
 
     };

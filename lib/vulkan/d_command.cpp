@@ -44,6 +44,14 @@ namespace dal {
         return cmd_buffers;
     }
 
+    void CommandPool::free(const VkCommandBuffer cmd_buf, const VkDevice logi_device) const {
+        vkFreeCommandBuffers(logi_device, this->m_handle, 1, &cmd_buf);
+    }
+
+    void CommandPool::free(const std::vector<VkCommandBuffer>& cmd_buf, const VkDevice logi_device) const {
+        vkFreeCommandBuffers(logi_device, this->m_handle, cmd_buf.size(), cmd_buf.data());
+    }
+
     VkCommandBuffer CommandPool::begin_single_time_cmd(const VkDevice logi_device) {
         VkCommandBuffer command_buffer = VK_NULL_HANDLE;
 

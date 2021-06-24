@@ -40,6 +40,8 @@ namespace dal {
 
         bool does_support_anisotropic_sampling() const ;
 
+        bool does_support_depth_clamp() const;
+
         bool is_usable() const;
 
         unsigned calc_score() const;
@@ -81,6 +83,8 @@ namespace dal {
 
         PhysDeviceInfo make_info(const VkSurfaceKHR surface) const;
 
+        VkFormat find_depth_format() const;
+
     };
 
 
@@ -114,11 +118,13 @@ namespace dal {
 
         void destroy();
 
+        void wait_idle() const;
+
         auto& get() const {
             return this->m_handle;
         }
 
-        const dal::QueueFamilyIndices& indices() const {
+        auto& indices() const {
             return this->m_queue_indices;
         }
 

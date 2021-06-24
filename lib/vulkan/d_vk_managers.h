@@ -6,6 +6,7 @@
 #include "d_shader.h"
 #include "d_indices.h"
 #include "d_command.h"
+#include "d_vk_device.h"
 #include "d_swapchain.h"
 #include "d_render_pass.h"
 #include "d_framebuffer.h"
@@ -132,6 +133,84 @@ namespace dal {
         );
 
         void destroy(const VkDevice logi_device);
+
+    };
+
+
+    class ShadowMap {
+
+    private:
+        FbufAttachment m_depth_attach;
+        Fbuf_Shadow m_fbuf;
+        std::vector<VkCommandBuffer> m_cmd_buf;
+
+    public:
+        void init(
+            const uint32_t width,
+            const uint32_t height,
+            const uint32_t max_in_flight_count,
+            CommandPool& cmd_pool,
+            const RenderPass_ShadowMap& rp_shadow,
+            const VkFormat depth_format,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destroy(CommandPool& cmd_pool, const VkDevice logi_device);
+
+        void record_cmd_buf(
+            const FrameInFlightIndex& flight_frame_index,
+            const RenderList& render_list,
+            const glm::mat4& light_mat,
+            const ShaderPipeline& pipeline_shadow,
+            const ShaderPipeline& pipeline_shadow_animated,
+            const RenderPass_ShadowMap& render_pass
+        );
+
+        auto& cmd_buf_at(const size_t index) const {
+            return this->m_cmd_buf.at(index);
+        }
+
+        auto shadow_map_view() const {
+            return this->m_depth_attach.view().get();
+        }
+
+    };
+
+
+    class ShadowMapManager {
+
+    public:
+        std::array<ShadowMap, dal::MAX_DLIGHT_COUNT> m_dlights;
+        std::array<ShadowMap, dal::MAX_SLIGHT_COUNT> m_slights;
+
+    private:
+        CommandPool m_cmd_pool;
+        std::array<VkImageView, dal::MAX_DLIGHT_COUNT> m_dlight_views;
+        std::array<VkImageView, dal::MAX_SLIGHT_COUNT> m_slight_views;
+
+    public:
+        void init(
+            const RenderPass_ShadowMap& renderpass,
+            const PhysicalDevice& phys_device,
+            const LogicalDevice& logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+        void render_empty_for_all(
+            const PipelineManager& pipelines,
+            const RenderPass_ShadowMap& render_pass,
+            const LogicalDevice& logi_device
+        );
+
+        auto& dlight_views() const {
+            return this->m_dlight_views;
+        }
+
+        auto& slight_views() const {
+            return this->m_slight_views;
+        }
 
     };
 

@@ -141,8 +141,8 @@ namespace dal {
         dalAssert(nullptr != this->m_renderer);
 
         auto task = std::make_unique<::Task_LoadImage>(respath, filesys);
-        task_man.order_task(std::move(task), this);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_texture);
+        task_man.order_task(std::move(task), this);
     }
 
 }
@@ -198,8 +198,8 @@ namespace dal {
         dalAssert(nullptr != this->m_renderer);
 
         auto task = std::make_unique<::Task_LoadModel>(respath, filesys);
-        task_man.order_task(std::move(task), this);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
+        task_man.order_task(std::move(task), this);
     }
 
 }
@@ -259,8 +259,8 @@ namespace dal {
         dalAssert(nullptr != this->m_renderer);
 
         auto task = std::make_unique<::Task_LoadModelSkinned>(respath, filesys);
-        task_man.order_task(std::move(task), this);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
+        task_man.order_task(std::move(task), this);
     }
 
 }

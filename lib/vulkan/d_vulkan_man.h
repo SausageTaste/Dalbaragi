@@ -5,7 +5,6 @@
 
 #include "d_actor.h"
 #include "d_renderer.h"
-#include "d_vk_device.h"
 #include "d_filesystem.h"
 #include "d_task_thread.h"
 #include "d_vk_managers.h"
@@ -37,6 +36,7 @@ namespace dal {
 
         SamplerManager m_sampler_man;
         DescAllocator m_desc_allocator;
+        ShadowMapManager m_shadow_maps;
 
     private:
         // Non-vulkan members
@@ -60,7 +60,7 @@ namespace dal {
             dal::TaskManager& task_man,
             dal::ITextureManager& texture_man,
             const std::vector<const char*>& extensions,
-            std::function<void*(void*)> surface_create_func
+            surface_create_func_t surface_create_func
         );
 
         ~VulkanState();

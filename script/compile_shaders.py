@@ -46,8 +46,6 @@ def main():
 
     _work_for_one("gbuf_animated_v.spv", "gbuf_animated.vert", [])
 
-    _work_for_one("gbuf_animated_f.spv", "gbuf_animated.frag", [])
-
     _work_for_one("fill_screen_v.spv", "fill_screen.vert", [])
 
     _work_for_one("fill_screen_f.spv", "fill_screen.frag", [])
@@ -65,6 +63,12 @@ def main():
     _work_for_one("alpha_f.spv", "alpha.frag", [])
 
     _work_for_one("alpha_gamma_f.spv", "alpha.frag", ["DAL_GAMMA_CORRECT"])
+
+    _work_for_one("shadow_v.spv", "shadow.vert", [])
+
+    _work_for_one("shadow_f.spv", "shadow.frag", [])
+
+    _work_for_one("shadow_animated_v.spv", "shadow_animated.vert", [])
 
 
 if "__main__" == __name__:

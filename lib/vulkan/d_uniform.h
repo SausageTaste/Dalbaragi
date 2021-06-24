@@ -9,6 +9,7 @@
 #include <glm/glm.hpp>
 
 #include "d_konsts.h"
+#include "d_image_obj.h"
 #include "d_vulkan_header.h"
 #include "d_buffer_memory.h"
 
@@ -39,16 +40,23 @@ namespace dal {
     };
 
     struct U_GlobalLight {
-        glm::vec4 m_dlight_direc[2];
-        glm::vec4 m_dlight_color[2];
+        glm::mat4 m_dlight_mat[dal::MAX_DLIGHT_COUNT];
+        glm::vec4 m_dlight_direc[dal::MAX_DLIGHT_COUNT];
+        glm::vec4 m_dlight_color[dal::MAX_DLIGHT_COUNT];
 
-        glm::vec4 m_plight_pos_n_max_dist[3];
-        glm::vec4 m_plight_color[3];
+        glm::vec4 m_plight_pos_n_max_dist[dal::MAX_PLIGHT_COUNT];
+        glm::vec4 m_plight_color[dal::MAX_PLIGHT_COUNT];
+
+        glm::mat4 m_slight_mat[dal::MAX_SLIGHT_COUNT];
+        glm::vec4 m_slight_pos_n_max_dist[dal::MAX_SLIGHT_COUNT];
+        glm::vec4 m_slight_direc_n_fade_start[dal::MAX_SLIGHT_COUNT];
+        glm::vec4 m_slight_color_n_fade_end[dal::MAX_SLIGHT_COUNT];
 
         glm::vec4 m_ambient_light;
 
         uint32_t m_dlight_count = 0;
         uint32_t m_plight_count = 0;
+        uint32_t m_slight_count = 0;
     };
 
     struct U_AnimTransform {
@@ -56,6 +64,11 @@ namespace dal {
     };
 
     static_assert(sizeof(U_AnimTransform) <= 16 * 1024);
+
+    struct U_PC_Shadow {
+        glm::mat4 m_model_mat;
+        glm::mat4 m_light_mat;
+    };
 
 
     template <typename _DataStruct>
@@ -156,6 +169,7 @@ namespace dal {
         VkDescriptorSetLayout m_layout_animation = VK_NULL_HANDLE;
 
         VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_alpha = VK_NULL_HANDLE;
 
     public:
         void init(const VkDevice logiDevice);
@@ -184,6 +198,10 @@ namespace dal {
 
         auto layout_composition() const {
             return this->m_layout_composition;
+        }
+
+        auto layout_alpha() const {
+            return this->m_layout_alpha;
         }
 
     };
@@ -223,7 +241,7 @@ namespace dal {
 
         void record_final(
             const VkImageView color_view,
-            const VkSampler sampler,
+            const SamplerTexture& sampler,
             const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
             const VkDevice logi_device
         );
@@ -237,7 +255,7 @@ namespace dal {
         void record_material(
             const UniformBuffer<U_PerMaterial>& ubuf_per_material,
             const VkImageView texture_view,
-            const VkSampler sampler,
+            const SamplerTexture& sampler,
             const VkDevice logi_device
         );
 
@@ -255,6 +273,18 @@ namespace dal {
             const std::vector<VkImageView>& attachment_views,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
+            const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
+            const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
+            const SamplerDepth& sampler,
+            const VkDevice logi_device
+        );
+
+        void record_alpha(
+            const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+            const UniformBuffer<U_GlobalLight>& ubuf_global_light,
+            const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
+            const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
+            const SamplerDepth& sampler,
             const VkDevice logi_device
         );
 
@@ -328,11 +358,11 @@ namespace dal {
     class DescriptorManager {
 
     private:
-        DescPool m_pool_simple, m_pool_composition;
-        std::vector<DescPool> m_pool_final;
+        DescPool m_pool;
         std::vector<DescSet> m_descset_per_global;
         std::vector<DescSet> m_descset_final;
         std::vector<DescSet> m_descset_composition;
+        std::vector<DescSet> m_descset_alpha;
 
     public:
         void init(const uint32_t swapchain_count, const VkDevice logi_device);
@@ -340,33 +370,16 @@ namespace dal {
         void destroy(VkDevice logiDevice);
 
         auto& pool() {
-            return this->m_pool_simple;
+            return this->m_pool;
         }
 
-        void init_desc_sets_per_global(
-            const UniformBufferArray<U_PerFrame>& ubufs_simple,
-            const UniformBufferArray<U_GlobalLight>& ubufs_global_light,
-            const uint32_t swapchain_count,
-            const VkDescriptorSetLayout desc_layout_simple,
-            const VkDevice logi_device
-        );
+        DescSet& add_descset_per_global(const VkDescriptorSetLayout desc_layout_per_global, const VkDevice logi_device);
 
-        void init_desc_sets_final(
-            const uint32_t index,
-            const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
-            const VkImageView color_view,
-            const VkSampler sampler,
-            const VkDescriptorSetLayout desc_layout_final,
-            const VkDevice logi_device
-        );
+        DescSet& add_descset_final(const VkDescriptorSetLayout desc_layout_final, const VkDevice logi_device);
 
-        void add_desc_set_composition(
-            const std::vector<VkImageView>& attachment_views,
-            const UniformBuffer<U_GlobalLight>& ubuf_global_light,
-            const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
-            const VkDescriptorSetLayout desc_layout_composition,
-            const VkDevice logi_device
-        );
+        DescSet& add_descset_composition(const VkDescriptorSetLayout desc_layout_composition, const VkDevice logi_device);
+
+        DescSet& add_descset_alpha(const VkDescriptorSetLayout desc_layout_alpha, const VkDevice logi_device);
 
         auto& desc_set_per_global_at(const size_t index) const {
             return this->m_descset_per_global.at(index).get();
@@ -378,6 +391,10 @@ namespace dal {
 
         auto& desc_set_composition_at(const size_t index) const {
             return this->m_descset_composition.at(index);
+        }
+
+        auto& desc_set_alpha_at(const size_t index) const {
+            return this->m_descset_alpha.at(index).get();
         }
 
     };

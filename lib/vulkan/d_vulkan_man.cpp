@@ -17,11 +17,11 @@
 
 namespace {
 
-    glm::mat4 make_perspective_proj_mat(const float ratio, const float fov) {
-        auto mat = glm::perspective<float>(glm::radians(fov), ratio, 0.1f, 100.0f);
-        mat[1][1] *= -1;
-        return mat;
-    }
+    constexpr float DLIGHT_HALF_BOX_SIZE = 30;
+
+    constexpr float PROJ_NEAR = 0.1;
+    constexpr float PROJ_FAR = 30;
+
 
     VkExtent2D calc_smaller_extent(const VkExtent2D& extent, const float scale) {
         return VkExtent2D{
@@ -200,7 +200,7 @@ namespace dal {
         dal::TaskManager& task_man,
         dal::ITextureManager& texture_man,
         const std::vector<const char*>& extensions,
-        std::function<void*(void*)> surface_create_func
+        surface_create_func_t surface_create_func
     )
         : m_filesys(filesys)
         , m_texture_man(texture_man)
@@ -210,7 +210,14 @@ namespace dal {
         dalAssert(1 == InitVulkan());
 #endif
         this->m_instance = ::create_vulkan_instance(window_title, extensions);
+
+#ifdef DAL_SYS_X32
+        this->m_surface = surface_create_func(this->m_instance);
+#elif defined(DAL_SYS_X64)
         this->m_surface = reinterpret_cast<VkSurfaceKHR>(surface_create_func(this->m_instance));
+#else
+        #error Not supported system bit size
+#endif
         dalAssert(VK_NULL_HANDLE != this->m_surface);
 
 #ifdef DAL_VK_DEBUG
@@ -222,14 +229,14 @@ namespace dal {
         this->m_logi_device.init(this->m_surface, this->m_phys_device, this->m_phys_info);
         this->m_desc_layout_man.init(this->m_logi_device.get());
 
-        const auto result_init_swapchain = this->init_swapchain_and_dependers();
-        dalAssert(result_init_swapchain);
-
         this->m_sampler_man.init(
             this->m_phys_info.does_support_anisotropic_sampling(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
+
+        const auto result_init_swapchain = this->init_swapchain_and_dependers();
+        dalAssert(result_init_swapchain);
 
         this->m_desc_allocator.init(64, 64, 64, 64, this->m_logi_device.get());
     }
@@ -237,6 +244,7 @@ namespace dal {
     VulkanState::~VulkanState() {
         this->wait_idle();
 
+        this->m_shadow_maps.destroy(this->m_logi_device.get());
         this->m_desc_allocator.destroy(this->m_logi_device.get());
         this->m_sampler_man.destroy(this->m_logi_device.get());
         this->m_desc_man.destroy(this->m_logi_device.get());
@@ -303,7 +311,7 @@ namespace dal {
         {
             U_PerFrame ubuf_data_per_frame{};
             ubuf_data_per_frame.m_view = camera.make_view_mat();
-            ubuf_data_per_frame.m_proj = ::make_perspective_proj_mat(this->m_swapchain.perspective_ratio(), 80);
+            ubuf_data_per_frame.m_proj = make_perspective_proj_mat(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
             ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
             this->m_ubuf_man.m_ub_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
@@ -315,27 +323,119 @@ namespace dal {
         }
 
         {
-            U_GlobalLight ubuf_data_glight{};
+            dalAssert(render_list.m_dlights.size() <= dal::MAX_DLIGHT_COUNT);
+            dalAssert(render_list.m_plights.size() <= dal::MAX_PLIGHT_COUNT);
+            dalAssert(render_list.m_slights.size() <= dal::MAX_SLIGHT_COUNT);
 
-            const auto light_direc = glm::vec3{1, 1, 1};
-            ubuf_data_glight.m_dlight_count = 1;
-            ubuf_data_glight.m_dlight_direc[0] = glm::vec4{glm::normalize(light_direc), 0};
-            ubuf_data_glight.m_dlight_color[0] = glm::vec4{0.2, 0.2, 0.4, 1};
+            U_GlobalLight data_glight{};
+            {
+                const auto frustum_vertices = camera.make_frustum_vertices(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
 
-            ubuf_data_glight.m_plight_count = 1;
+                data_glight.m_dlight_count = render_list.m_dlights.size();
+                for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
+                    auto& src_light = render_list.m_dlights[i];
+                    const auto light_mat_frustum = src_light.make_light_mat(frustum_vertices.data(), frustum_vertices.data() + frustum_vertices.size());
 
-            ubuf_data_glight.m_plight_pos_n_max_dist[0] = glm::vec4{ sin(dal::get_cur_sec()) * 3, 1, cos(dal::get_cur_sec()) * 2, 20 };
-            ubuf_data_glight.m_plight_color[0] = glm::vec4{ glm::vec3{1.5}, 1 };
+                    data_glight.m_dlight_mat[i]   = light_mat_frustum;
+                    data_glight.m_dlight_direc[i] = glm::vec4{ src_light.to_light_direc(), 0 };
+                    data_glight.m_dlight_color[i] = glm::vec4{ src_light.m_color, 1 };
+                }
 
-            ubuf_data_glight.m_plight_pos_n_max_dist[1] = glm::vec4{ cos(dal::get_cur_sec()) * 2, 1, sin(dal::get_cur_sec()) * 2, 20 };
-            ubuf_data_glight.m_plight_color[1] = glm::vec4{ 1, 1, 1, 1 };
+                data_glight.m_plight_count = render_list.m_plights.size();
+                for (size_t i = 0; i < render_list.m_plights.size(); ++i) {
+                    data_glight.m_plight_pos_n_max_dist[i] = glm::vec4{ render_list.m_plights[i].m_pos, 0 };
+                    data_glight.m_plight_color[i]          = glm::vec4{ render_list.m_plights[i].m_color, 0 };
+                }
 
-            ubuf_data_glight.m_ambient_light = glm::vec4{ 0.01, 0.01, 0.01, 1 };
+                data_glight.m_slight_count = render_list.m_slights.size();
+                for (size_t i = 0; i < render_list.m_slights.size(); ++i) {
+                    auto& src_light = render_list.m_slights[i];
 
-            this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_glight, this->m_logi_device.get());
+                    data_glight.m_slight_mat[i]                = src_light.make_light_mat();
+                    data_glight.m_slight_pos_n_max_dist[i]     = glm::vec4{ src_light.m_pos, src_light.m_max_dist };
+                    data_glight.m_slight_direc_n_fade_start[i] = glm::vec4{ src_light.to_light_direc(), src_light.fade_start() };
+                    data_glight.m_slight_color_n_fade_end[i]   = glm::vec4{ src_light.m_color, src_light.fade_end() };
+                }
+
+                data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };
+            }
+
+            this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(data_glight, this->m_logi_device.get());
         }
 
         //-----------------------------------------------------------------------------------------------------
+
+        {
+            std::array<VkPipelineStageFlags, 0> wait_stages{};
+            std::array<VkSemaphore, 0> wait_semaphores{};
+            std::array<VkSemaphore, 0> signal_semaphores{};
+
+            const auto frustum_vertices = camera.make_frustum_vertices(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
+
+            for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
+                const auto light_mat_frustum = render_list.m_dlights[i].make_light_mat(frustum_vertices.data(), frustum_vertices.data() + frustum_vertices.size());
+
+                this->m_shadow_maps.m_dlights[i].record_cmd_buf(
+                    this->m_flight_frame_index,
+                    render_list,
+                    light_mat_frustum,
+                    this->m_pipelines.shadow(),
+                    this->m_pipelines.shadow_animated(),
+                    this->m_renderpasses.rp_shadow()
+                );
+
+                VkSubmitInfo submit_info{};
+                submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submit_info.pCommandBuffers = &this->m_shadow_maps.m_dlights[i].cmd_buf_at(this->m_flight_frame_index.get());
+                submit_info.commandBufferCount = 1;
+                submit_info.waitSemaphoreCount = wait_semaphores.size();
+                submit_info.pWaitSemaphores = wait_semaphores.data();
+                submit_info.pWaitDstStageMask = wait_stages.data();
+                submit_info.signalSemaphoreCount = signal_semaphores.size();
+                submit_info.pSignalSemaphores = signal_semaphores.data();
+
+                const auto submit_result = vkQueueSubmit(
+                    this->m_logi_device.queue_graphics(),
+                    1,
+                    &submit_info,
+                    VK_NULL_HANDLE
+                );
+
+                dalAssert(VK_SUCCESS == submit_result);
+            }
+
+            for (size_t i = 0; i < render_list.m_slights.size(); ++i) {
+                auto& shadow_map = this->m_shadow_maps.m_slights[i];
+
+                shadow_map.record_cmd_buf(
+                    this->m_flight_frame_index,
+                    render_list,
+                    render_list.m_slights[i].make_light_mat(),
+                    this->m_pipelines.shadow(),
+                    this->m_pipelines.shadow_animated(),
+                    this->m_renderpasses.rp_shadow()
+                );
+
+                VkSubmitInfo submit_info{};
+                submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submit_info.pCommandBuffers = &shadow_map.cmd_buf_at(this->m_flight_frame_index.get());
+                submit_info.commandBufferCount = 1;
+                submit_info.waitSemaphoreCount = wait_semaphores.size();
+                submit_info.pWaitSemaphores = wait_semaphores.data();
+                submit_info.pWaitDstStageMask = wait_stages.data();
+                submit_info.signalSemaphoreCount = signal_semaphores.size();
+                submit_info.pSignalSemaphores = signal_semaphores.data();
+
+                const auto submit_result = vkQueueSubmit(
+                    this->m_logi_device.queue_graphics(),
+                    1,
+                    &submit_info,
+                    VK_NULL_HANDLE
+                );
+
+                dalAssert(VK_SUCCESS == submit_result);
+            }
+        }
 
         {
             std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -384,7 +484,7 @@ namespace dal {
                 this->m_flight_frame_index,
                 camera.view_pos(),
                 render_list,
-                this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
+                this->m_desc_man.desc_set_alpha_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_attach_man.color().extent(),
                 this->m_fbuf_man.fbuf_alpha_at(swapchain_index).get(),
@@ -420,15 +520,6 @@ namespace dal {
             auto& fence = sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
 
             fence.wait_reset(this->m_logi_device.get());
-
-            this->m_desc_man.init_desc_sets_final(
-                this->m_flight_frame_index.get(),
-                this->m_ubuf_man.m_ub_final,
-                this->m_attach_man.color().view().get(),
-                this->m_sampler_man.sampler_tex().get(),
-                this->m_desc_layout_man.layout_final(),
-                this->m_logi_device.get()
-            );
 
             this->m_cmd_man.record_final(
                 this->m_flight_frame_index.get(),
@@ -480,7 +571,7 @@ namespace dal {
     }
 
     void VulkanState::wait_idle() {
-        vkDeviceWaitIdle(this->m_logi_device.get());
+        this->m_logi_device.wait_idle();
     }
 
     void VulkanState::on_screen_resize(const unsigned width, const unsigned height) {
@@ -595,7 +686,7 @@ namespace dal {
 
         return model.fetch_one_resource(
             this->m_desc_layout_man.layout_per_material(),
-            this->m_sampler_man.sampler_tex().get(),
+            this->m_sampler_man.sampler_tex(),
             this->m_logi_device.get()
         );
     }
@@ -605,7 +696,7 @@ namespace dal {
 
         return m.fetch_one_resource(
             this->m_desc_layout_man.layout_per_material(),
-            this->m_sampler_man.sampler_tex().get(),
+            this->m_sampler_man.sampler_tex(),
             this->m_logi_device.get()
         );
     }
@@ -638,6 +729,7 @@ namespace dal {
 
         this->m_attach_man.init(
             ::calc_smaller_extent(this->m_new_extent, 0.9),
+            this->m_phys_device.find_depth_format(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
@@ -651,6 +743,8 @@ namespace dal {
             this->m_attach_man.normal().format(),
             this->m_logi_device.get()
         );
+
+        this->m_shadow_maps.init(this->m_renderpasses.rp_shadow(), this->m_phys_device, this->m_logi_device);
 
         this->m_fbuf_man.init(
             this->m_swapchain.views(),
@@ -666,6 +760,7 @@ namespace dal {
         this->m_pipelines.init(
             this->m_filesys.asset_mgr(),
             !this->m_swapchain.is_format_srgb(),
+            this->m_phys_info.does_support_depth_clamp(),
             this->m_swapchain.identity_extent(),
             this->m_attach_man.color().extent(),
             this->m_desc_layout_man.layout_final(),
@@ -674,9 +769,11 @@ namespace dal {
             this->m_desc_layout_man.layout_per_actor(),
             this->m_desc_layout_man.layout_animation(),
             this->m_desc_layout_man.layout_composition(),
+            this->m_desc_layout_man.layout_alpha(),
             this->m_renderpasses.rp_gbuf(),
             this->m_renderpasses.rp_final(),
             this->m_renderpasses.rp_alpha(),
+            this->m_renderpasses.rp_shadow(),
             this->m_logi_device.get()
         );
 
@@ -694,28 +791,72 @@ namespace dal {
 
         this->m_desc_man.init(MAX_FRAMES_IN_FLIGHT, this->m_logi_device.get());
 
-        this->m_desc_man.init_desc_sets_per_global(
-            this->m_ubuf_man.m_ub_simple,
-            this->m_ubuf_man.m_ub_glights,
-            MAX_FRAMES_IN_FLIGHT,
-            this->m_desc_layout_man.layout_per_global(),
-            this->m_logi_device.get()
-        );
+        for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
+            auto& desc_per_global = this->m_desc_man.add_descset_per_global(
+                this->m_desc_layout_man.layout_per_global(),
+                this->m_logi_device.get()
+            );
 
-        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            this->m_desc_man.add_desc_set_composition(
-                {
-                    this->m_attach_man.depth().view().get(),
-                    this->m_attach_man.albedo().view().get(),
-                    this->m_attach_man.materials().view().get(),
-                    this->m_attach_man.normal().view().get(),
-                },
+            desc_per_global.record_per_global(
+                this->m_ubuf_man.m_ub_simple.at(i),
                 this->m_ubuf_man.m_ub_glights.at(i),
-                this->m_ubuf_man.m_ub_per_frame_composition.at(i),
+                this->m_logi_device.get()
+            );
+
+            auto& desc_composition = this->m_desc_man.add_descset_composition(
                 this->m_desc_layout_man.layout_composition(),
                 this->m_logi_device.get()
             );
+
+            const std::vector<VkImageView> color_attachments{
+                this->m_attach_man.depth().view().get(),
+                this->m_attach_man.albedo().view().get(),
+                this->m_attach_man.materials().view().get(),
+                this->m_attach_man.normal().view().get(),
+            };
+
+            desc_composition.record_composition(
+                color_attachments,
+                this->m_ubuf_man.m_ub_glights.at(i),
+                this->m_ubuf_man.m_ub_per_frame_composition.at(i),
+                this->m_shadow_maps.dlight_views(),
+                this->m_shadow_maps.slight_views(),
+                this->m_sampler_man.sampler_depth(),
+                this->m_logi_device.get()
+            );
+
+            auto& desc_final = this->m_desc_man.add_descset_final(
+                this->m_desc_layout_man.layout_final(),
+                this->m_logi_device.get()
+            );
+
+            desc_final.record_final(
+                this->m_attach_man.color().view().get(),
+                this->m_sampler_man.sampler_tex(),
+                this->m_ubuf_man.m_ub_final,
+                this->m_logi_device.get()
+            );
+
+            auto& desc_alpha = this->m_desc_man.add_descset_alpha(
+                this->m_desc_layout_man.layout_alpha(),
+                this->m_logi_device.get()
+            );
+
+            desc_alpha.record_alpha(
+                this->m_ubuf_man.m_ub_simple.at(i),
+                this->m_ubuf_man.m_ub_glights.at(i),
+                this->m_shadow_maps.dlight_views(),
+                this->m_shadow_maps.slight_views(),
+                this->m_sampler_man.sampler_depth(),
+                this->m_logi_device.get()
+            );
         }
+
+        this->m_shadow_maps.render_empty_for_all(
+            this->m_pipelines,
+            this->m_renderpasses.rp_shadow(),
+            this->m_logi_device
+        );
 
         return true;
     }

@@ -142,6 +142,48 @@ namespace dal {
 }
 
 
+// ICamera
+namespace dal {
+
+    std::array<glm::vec3, 8> ICamera::make_frustum_vertices(const float fov, const float ratio, const float near, const float far) const {
+        constexpr float KONST_VALUE = 1;
+
+        static const std::array<glm::vec3, 8> vertices_in_device_space{
+            glm::vec3{-KONST_VALUE, -KONST_VALUE,           0},
+            glm::vec3{ KONST_VALUE, -KONST_VALUE,           0},
+            glm::vec3{-KONST_VALUE,  KONST_VALUE,           0},
+            glm::vec3{ KONST_VALUE,  KONST_VALUE,           0},
+            glm::vec3{-KONST_VALUE, -KONST_VALUE, KONST_VALUE},
+            glm::vec3{ KONST_VALUE, -KONST_VALUE, KONST_VALUE},
+            glm::vec3{-KONST_VALUE,  KONST_VALUE, KONST_VALUE},
+            glm::vec3{ KONST_VALUE,  KONST_VALUE, KONST_VALUE},
+        };
+
+        const auto proj_inv = glm::inverse(make_perspective_proj_mat(fov, ratio, near, far));
+        std::array<glm::vec3, 8> after_proj_inv;
+
+        for (size_t i = 0; i < 8; ++i) {
+            auto v = proj_inv * glm::vec4{ vertices_in_device_space[i], 1 };
+            v.x /= v.w;
+            v.y /= v.w;
+            v.z /= v.w;
+            after_proj_inv[i] = v;
+        }
+
+        const auto view_inv = glm::inverse(this->make_view_mat());
+        std::array<glm::vec3, 8> output;
+
+        for (size_t i = 0; i < 8; ++i) {
+            auto v = view_inv * glm::vec4{ after_proj_inv[i], 1 };
+            output[i] = v;
+        }
+
+        return output;
+    }
+
+}
+
+
 // EulerCamera
 namespace dal {
 
@@ -161,6 +203,18 @@ namespace dal {
 
     void EulerCamera::move_forward(const glm::vec3& v) {
         this->m_pos += ::make_rotation_yxz<glm::mat3>(this->m_rotations) * v;
+    }
+
+}
+
+
+// Functions
+namespace dal {
+
+    glm::mat4 make_perspective_proj_mat(const float fov, const float ratio, const float near, const float far) {
+        auto mat = glm::perspective<float>(fov, ratio, near, far);
+        mat[1][1] *= -1;
+        return mat;
     }
 
 }

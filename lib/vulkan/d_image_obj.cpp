@@ -539,13 +539,25 @@ namespace dal {
 // Sampler
 namespace dal {
 
-    void Sampler::init_for_color_map(
+    void ISampler::create(const VkSamplerCreateInfo& info, const VkDevice logi_device) {
+        this->destroy(logi_device);
+
+        if (VK_SUCCESS != vkCreateSampler(logi_device, &info, nullptr, &this->m_sampler))
+            dalAbort("failed to create texture sampler!");
+    }
+
+    void ISampler::destroy(const VkDevice logi_device) {
+        if (VK_NULL_HANDLE != this->m_sampler) {
+            vkDestroySampler(logi_device, this->m_sampler, nullptr);
+            this->m_sampler = VK_NULL_HANDLE;
+        }
+    }
+
+    void SamplerTexture::init(
         const bool enable_anisotropy,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->destroy(logi_device);
-
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(phys_device, &properties);
 
@@ -567,16 +579,38 @@ namespace dal {
         samplerInfo.minLod = 0;
         samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
 
-        if (VK_SUCCESS != vkCreateSampler(logi_device, &samplerInfo, nullptr, &this->m_sampler)) {
-            dalAbort("failed to create texture sampler!");
-        }
+        this->create(samplerInfo, logi_device);
     }
 
-    void Sampler::destroy(const VkDevice logi_device) {
-        if (VK_NULL_HANDLE != this->m_sampler) {
-            vkDestroySampler(logi_device, this->m_sampler, nullptr);
-            this->m_sampler = VK_NULL_HANDLE;
-        }
+    void SamplerDepth::init(
+        const bool enable_anisotropy,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->destroy(logi_device);
+
+        VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(phys_device, &properties);
+
+        VkSamplerCreateInfo samplerInfo{};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_NEAREST;
+        samplerInfo.minFilter = VK_FILTER_NEAREST;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        samplerInfo.anisotropyEnable = enable_anisotropy ? VK_TRUE : VK_FALSE;
+        samplerInfo.maxAnisotropy    = enable_anisotropy ? properties.limits.maxSamplerAnisotropy : 1;
+        samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+        samplerInfo.unnormalizedCoordinates = VK_FALSE;
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        samplerInfo.mipLodBias = 0;
+        samplerInfo.minLod = 0;
+        samplerInfo.maxLod = 1;
+
+        this->create(samplerInfo, logi_device);
     }
 
 }
@@ -637,11 +671,13 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->m_tex_sampler.init_for_color_map(enable_anisotropy, phys_device, logi_device);
+        this->m_tex_sampler.init(enable_anisotropy, phys_device, logi_device);
+        this->m_depth_sampler.init(enable_anisotropy, phys_device, logi_device);
     }
 
     void SamplerManager::destroy(const VkDevice logi_device) {
         this->m_tex_sampler.destroy(logi_device);
+        this->m_depth_sampler.destroy(logi_device);
     }
 
 }

@@ -2,12 +2,14 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 
 #include "d_actor.h"
 #include "d_indices.h"
 #include "d_animation.h"
 #include "d_filesystem.h"
 #include "d_model_data.h"
+#include "d_render_cpnt.h"
 #include "d_image_parser.h"
 
 
@@ -104,6 +106,10 @@ namespace dal {
     struct RenderList {
         std::vector<RenderPair<HRenModel, HActor>> m_static_models;
         std::vector<RenderPair<HRenModelSkinned, HActorSkinned>> m_skinned_models;
+        std::vector<DLight> m_dlights;
+        std::vector<PLight> m_plights;
+        std::vector<SLight> m_slights;
+        glm::vec3 m_ambient_color;
     };
 
 
@@ -155,5 +161,8 @@ namespace dal {
         virtual bool prepare(IRenModelSkineed& model) { return false; }
 
     };
+
+
+    using surface_create_func_t = std::function<uint64_t(void*)>;
 
 }

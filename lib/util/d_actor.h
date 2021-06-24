@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -32,6 +34,8 @@ namespace dal {
 
         virtual glm::mat4 make_view_mat() const = 0;
 
+        std::array<glm::vec3, 8> make_frustum_vertices(const float fov, const float ratio, const float near, const float far) const;
+
     };
 
 
@@ -54,5 +58,8 @@ namespace dal {
         void move_forward(const glm::vec3& v);
 
     };
+
+
+    glm::mat4 make_perspective_proj_mat(const float fov, const float ratio, const float near, const float far);
 
 }

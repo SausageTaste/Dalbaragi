@@ -68,6 +68,7 @@ namespace dal {
     public:
         void init(
             const VkExtent2D& extent,
+            const VkFormat depth_format,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
@@ -75,10 +76,11 @@ namespace dal {
         void init(
             const uint32_t width,
             const uint32_t height,
+            const VkFormat depth_format,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         ) {
-            this->init(VkExtent2D{ width, height }, phys_device, logi_device);
+            this->init(VkExtent2D{ width, height }, depth_format, phys_device, logi_device);
         }
 
         void destroy(const VkDevice logi_device);
@@ -182,6 +184,18 @@ namespace dal {
             const VkExtent2D& extent,
             const VkImageView color_view,
             const VkImageView depth_view,
+            const VkDevice logi_device
+        );
+
+    };
+
+    class Fbuf_Shadow : public Framebuffer {
+
+    public:
+        void init(
+            const dal::RenderPass_ShadowMap& renderpass,
+            const VkExtent2D& extent,
+            const VkImageView shadow_map_view,
             const VkDevice logi_device
         );
 

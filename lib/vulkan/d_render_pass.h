@@ -71,6 +71,17 @@ namespace dal {
     };
 
 
+    class RenderPass_ShadowMap : public IRenderPass {
+
+    public:
+        void init(
+            const VkFormat format_shadow_map,
+            const VkDevice logi_device
+        );
+
+    };
+
+
     class RenderPassManager {
 
     public:
@@ -85,6 +96,7 @@ namespace dal {
         RenderPass_Gbuf m_rp_gbuf;
         RenderPass_Final m_rp_final;
         RenderPass_Alpha m_rp_alpha;
+        RenderPass_ShadowMap m_rp_shadow;
 
     public:
         void init(
@@ -109,6 +121,10 @@ namespace dal {
 
         auto& rp_alpha() const {
             return this->m_rp_alpha;
+        }
+
+        auto& rp_shadow() const {
+            return this->m_rp_shadow;
         }
 
     };

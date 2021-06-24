@@ -15,16 +15,23 @@ layout(input_attachment_index = 3, binding = 3) uniform subpassInput input_norma
 
 
 layout(set = 0, binding = 4) uniform U_GlobalLight {
+    mat4 m_dlight_mat[2];
     vec4 m_dlight_direc[2];
     vec4 m_dlight_color[2];
 
     vec4 m_plight_pos_n_max_dist[3];
     vec4 m_plight_color[3];
 
+    mat4 m_slight_mat[3];
+    vec4 m_slight_pos_n_max_dist[3];
+    vec4 m_slight_direc_n_fade_start[3];
+    vec4 m_slight_color_n_fade_end[3];
+
     vec4 m_ambient_light;
 
     uint m_dlight_count;
     uint m_plight_count;
+    uint m_slight_count;
 } u_global_light;
 
 layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
@@ -32,6 +39,9 @@ layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
     mat4 m_proj_inv;
     vec4 m_view_pos;
 } u_per_frame_composition;
+
+layout(set = 0, binding = 6) uniform sampler2D u_dlight_shadow_maps[2];
+layout(set = 0, binding = 7) uniform sampler2D u_slight_shadow_maps[3];
 
 
 vec3 calc_world_pos(const float z) {
@@ -69,6 +79,8 @@ void main() {
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;
 
     for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
+        const float shadow = how_much_not_in_shadow_pcf(world_pos, u_global_light.m_dlight_mat[i], u_dlight_shadow_maps[i]);
+
         light += calc_pbr_illumination(
             material.x,
             material.y,
@@ -79,7 +91,7 @@ void main() {
             u_global_light.m_dlight_direc[i].xyz,
             1,
             u_global_light.m_dlight_color[i].xyz
-        );
+        ) * shadow;
     }
 
     for (uint i = 0; i < u_global_light.m_plight_count; ++i) {
@@ -96,6 +108,31 @@ void main() {
             1,
             u_global_light.m_plight_color[i].xyz
         );
+    }
+
+    for (uint i = 0; i < u_global_light.m_slight_count; ++i) {
+        const float shadow = how_much_not_in_shadow_pcf(world_pos, u_global_light.m_slight_mat[i], u_slight_shadow_maps[i]);
+        const vec3 frag_to_light_direc = normalize(u_global_light.m_slight_pos_n_max_dist[i].xyz - world_pos);
+
+        const float attenuation = calc_slight_attenuation(
+            world_pos,
+            u_global_light.m_slight_pos_n_max_dist[i].xyz,
+            -u_global_light.m_slight_direc_n_fade_start[i].xyz,
+            u_global_light.m_slight_direc_n_fade_start[i].w,
+            u_global_light.m_slight_color_n_fade_end[i].w
+        );
+
+        light += calc_pbr_illumination(
+            material.x,
+            material.y,
+            albedo,
+            normal,
+            F0,
+            view_direc,
+            frag_to_light_direc,
+            1,
+            u_global_light.m_slight_color_n_fade_end[i].xyz
+        ) * (attenuation * shadow);
     }
 
     out_color = vec4(light, 1);

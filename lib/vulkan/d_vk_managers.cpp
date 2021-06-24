@@ -72,6 +72,22 @@ namespace {
         return std::make_pair(sort_vec, sort_vec_animated);
     }
 
+    auto create_info_viewport_scissor(const VkExtent2D& extent) {
+        VkViewport viewport{};
+        viewport.x = 0;
+        viewport.y = 0;
+        viewport.width = static_cast<float>(extent.width);
+        viewport.height = static_cast<float>(extent.height);
+        viewport.minDepth = 0;
+        viewport.maxDepth = 1;
+
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = extent;
+
+        return std::make_pair(viewport, scissor);
+    }
+
 }
 
 
@@ -608,6 +624,289 @@ namespace dal {
         this->m_ub_glights.destroy(logi_device);
         this->m_ub_per_frame_composition.destroy(logi_device);
         this->m_ub_final.destroy(logi_device);
+    }
+
+}
+
+
+// ShadowMap
+namespace dal {
+
+    void ShadowMap::init(
+        const uint32_t width,
+        const uint32_t height,
+        const uint32_t max_in_flight_count,
+        CommandPool& cmd_pool,
+        const RenderPass_ShadowMap& rp_shadow,
+        const VkFormat depth_format,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->destroy(cmd_pool, logi_device);
+
+        this->m_depth_attach.init(width, height, dal::FbufAttachment::Usage::depth_map, depth_format, phys_device, logi_device);
+        this->m_fbuf.init(rp_shadow, VkExtent2D{width, height}, this->m_depth_attach.view().get(), logi_device);
+        this->m_cmd_buf = cmd_pool.allocate(max_in_flight_count, logi_device);
+    }
+
+    void ShadowMap::destroy(CommandPool& cmd_pool, const VkDevice logi_device) {
+        if (!this->m_cmd_buf.empty()) {
+            cmd_pool.free(this->m_cmd_buf, logi_device);
+            this->m_cmd_buf.clear();
+        }
+
+        this->m_fbuf.destroy(logi_device);
+        this->m_depth_attach.destroy(logi_device);
+    }
+
+    void ShadowMap::record_cmd_buf(
+        const FrameInFlightIndex& flight_frame_index,
+        const RenderList& render_list,
+        const glm::mat4& light_mat,
+        const ShaderPipeline& pipeline_shadow,
+        const ShaderPipeline& pipeline_shadow_animated,
+        const RenderPass_ShadowMap& render_pass
+    ) {
+        auto& cmd_buf = this->m_cmd_buf.at(flight_frame_index.get());
+
+        VkCommandBufferBeginInfo begin_info{};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags = 0;
+        begin_info.pInheritanceInfo = nullptr;
+
+        if (VK_SUCCESS != vkBeginCommandBuffer(cmd_buf, &begin_info))
+            dalAbort("failed to begin recording command buffer!");
+
+        std::array<VkClearValue, 5> clear_colors{};
+        clear_colors[0].depthStencil = { 1, 0 };
+
+        VkRenderPassBeginInfo render_pass_info{};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_info.renderPass = render_pass.get();
+        render_pass_info.framebuffer = this->m_fbuf.get();
+        render_pass_info.renderArea.offset = {0, 0};
+        render_pass_info.renderArea.extent = this->m_depth_attach.extent();
+        render_pass_info.clearValueCount = clear_colors.size();
+        render_pass_info.pClearValues = clear_colors.data();
+
+        vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        {
+            auto& pipeline = pipeline_shadow;
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            const auto [viewport, scissor] = ::create_info_viewport_scissor(this->m_depth_attach.extent());
+            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            for (auto& render_tuple : render_list.m_static_models) {
+                auto& model = *reinterpret_cast<ModelRenderer*>(render_tuple.m_model.get());
+
+                for (auto& unit : model.render_units()) {
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    for (auto& actor : render_tuple.m_actors) {
+                        U_PC_Shadow pc_data;
+                        pc_data.m_model_mat = actor->m_transform.make_mat4();
+                        pc_data.m_light_mat = light_mat;
+                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Shadow), &pc_data);
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        {
+            auto& pipeline = pipeline_shadow_animated;
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            const auto [viewport, scissor] = ::create_info_viewport_scissor(this->m_depth_attach.extent());
+            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            for (auto& render_tuple : render_list.m_skinned_models) {
+                auto& model = *reinterpret_cast<ModelSkinnedRenderer*>(render_tuple.m_model.get());
+
+                for (auto& unit : model.render_units()) {
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    for (auto& h_actor : render_tuple.m_actors) {
+                        auto& actor = *reinterpret_cast<ActorSkinnedVK*>(h_actor.get());
+
+                        U_PC_Shadow pc_data;
+                        pc_data.m_model_mat = actor.m_transform.make_mat4();
+                        pc_data.m_light_mat = light_mat;
+                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Shadow), &pc_data);
+
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            0,
+                            1, &actor.desc_animation(flight_frame_index),
+                            0, nullptr
+                        );
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        vkCmdEndRenderPass(cmd_buf);
+
+        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS)
+            dalAbort("failed to record command buffer!");
+    }
+
+}
+
+
+// ShadowMapManager
+namespace dal {
+
+    void ShadowMapManager::init(
+        const RenderPass_ShadowMap& renderpass,
+        const PhysicalDevice& phys_device,
+        const LogicalDevice& logi_device
+    ) {
+        this->destroy(logi_device.get());
+
+        const auto depth_format = phys_device.find_depth_format();
+        this->m_cmd_pool.init(logi_device.indices().graphics_family(), logi_device.get());
+
+        for (auto& x : this->m_dlights) {
+            x.init(
+                2048, 2048,
+                dal::MAX_FRAMES_IN_FLIGHT,
+                this->m_cmd_pool,
+                renderpass,
+                depth_format,
+                phys_device.get(),
+                logi_device.get()
+            );
+        }
+
+        for (auto& x : this->m_slights) {
+            x.init(
+                512, 512,
+                dal::MAX_FRAMES_IN_FLIGHT,
+                this->m_cmd_pool,
+                renderpass,
+                depth_format,
+                phys_device.get(),
+                logi_device.get()
+            );
+        }
+
+        for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i)
+            this->m_dlight_views[i] = this->m_dlights[i].shadow_map_view();
+
+        for (size_t i = 0; i < dal::MAX_SLIGHT_COUNT; ++i)
+            this->m_slight_views[i] = this->m_slights[i].shadow_map_view();
+
+    }
+
+    void ShadowMapManager::render_empty_for_all(
+        const PipelineManager& pipelines,
+        const RenderPass_ShadowMap& render_pass,
+        const LogicalDevice& logi_device
+    ) {
+
+        RenderList render_list;
+        FrameInFlightIndex index0{0};
+        std::array<VkPipelineStageFlags, 0> wait_stages{};
+        std::array<VkSemaphore, 0> wait_semaphores{};
+        std::array<VkSemaphore, 0> signal_semaphores{};
+
+        for (size_t i = 0; i < this->m_dlights.size(); ++i) {
+            this->m_dlights[i].record_cmd_buf(
+                index0,
+                render_list,
+                glm::mat4{1},
+                pipelines.shadow(),
+                pipelines.shadow_animated(),
+                render_pass
+            );
+
+            VkSubmitInfo submit_info{};
+            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info.pCommandBuffers = &this->m_dlights[i].cmd_buf_at(index0.get());
+            submit_info.commandBufferCount = 1;
+            submit_info.waitSemaphoreCount = wait_semaphores.size();
+            submit_info.pWaitSemaphores = wait_semaphores.data();
+            submit_info.pWaitDstStageMask = wait_stages.data();
+            submit_info.signalSemaphoreCount = signal_semaphores.size();
+            submit_info.pSignalSemaphores = signal_semaphores.data();
+
+            const auto submit_result = vkQueueSubmit(
+                logi_device.queue_graphics(),
+                1,
+                &submit_info,
+                VK_NULL_HANDLE
+            );
+
+            dalAssert(VK_SUCCESS == submit_result);
+        }
+
+        for (size_t i = 0; i < this->m_slights.size(); ++i) {
+            auto& shadow_map = this->m_slights[i];
+
+            shadow_map.record_cmd_buf(
+                index0,
+                render_list,
+                glm::mat4{1},
+                pipelines.shadow(),
+                pipelines.shadow_animated(),
+                render_pass
+            );
+
+            VkSubmitInfo submit_info{};
+            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info.pCommandBuffers = &shadow_map.cmd_buf_at(index0.get());
+            submit_info.commandBufferCount = 1;
+            submit_info.waitSemaphoreCount = wait_semaphores.size();
+            submit_info.pWaitSemaphores = wait_semaphores.data();
+            submit_info.pWaitDstStageMask = wait_stages.data();
+            submit_info.signalSemaphoreCount = signal_semaphores.size();
+            submit_info.pSignalSemaphores = signal_semaphores.data();
+
+            const auto submit_result = vkQueueSubmit(
+                logi_device.queue_graphics(),
+                1,
+                &submit_info,
+                VK_NULL_HANDLE
+            );
+
+            dalAssert(VK_SUCCESS == submit_result);
+        }
+
+        logi_device.wait_idle();
+    }
+
+    void ShadowMapManager::destroy(const VkDevice logi_device) {
+        for (auto& x : this->m_dlights)
+            x.destroy(this->m_cmd_pool, logi_device);
+
+        for (auto& x : this->m_slights)
+            x.destroy(this->m_cmd_pool, logi_device);
+
+        for (size_t i = 1; i < dal::MAX_DLIGHT_COUNT; ++i)
+            this->m_dlight_views[i] = VK_NULL_HANDLE;
+
+        for (size_t i = 1; i < dal::MAX_SLIGHT_COUNT; ++i)
+            this->m_slight_views[i] = VK_NULL_HANDLE;
+
+        this->m_cmd_pool.destroy(logi_device);
     }
 
 }

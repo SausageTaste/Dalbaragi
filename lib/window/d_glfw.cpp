@@ -31,10 +31,10 @@ namespace {
         );
 
         if (VK_SUCCESS != create_result)
-            return nullptr;
+            return VK_NULL_HANDLE;
 
         if (VK_NULL_HANDLE == surface)
-            return nullptr;
+            return VK_NULL_HANDLE;
 
         return surface;
     }
@@ -262,12 +262,23 @@ namespace dal {
         return extensions;
     }
 
-    std::function<void*(void*)> WindowGLFW::get_vk_surface_creator() const {
-        return [this](void* vk_instance) -> void* {
-            return ::create_vk_surface(
+    surface_create_func_t WindowGLFW::get_vk_surface_creator() const {
+        static_assert(sizeof(VkInstance) == sizeof(void*));
+        static_assert(sizeof(VkSurfaceKHR) == sizeof(uint64_t));
+
+        return [this](void* vk_instance) -> uint64_t {
+            auto surface = ::create_vk_surface(
                 reinterpret_cast<VkInstance>(vk_instance),
                 reinterpret_cast<GLFWwindow*>(this->m_window)
             );
+
+#ifdef DAL_SYS_X32
+            return surface;
+#elif defined(DAL_SYS_X64)
+            return reinterpret_cast<uint64_t>(surface);
+#else
+            #error Not supported system bis size
+#endif
         };
     }
 
