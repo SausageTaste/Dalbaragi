@@ -469,7 +469,7 @@ namespace dal {
     }
 
     std::string ResPath::make_str() const {
-        return ::join_path(this->dir_list().begin(), this->dir_list().end(), this->SEPERATOR);
+        return ::join_path(this->dir_list().begin(), this->dir_list().end(), this->SEPARATOR);
     }
 
     bool ResPath::is_valid() const {

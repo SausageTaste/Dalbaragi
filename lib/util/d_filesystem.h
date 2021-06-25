@@ -13,7 +13,7 @@ namespace dal {
     class ResPath {
 
     private:
-        static constexpr char SEPERATOR = '/';
+        static constexpr char SEPARATOR = '/';
 
     private:
         std::vector<std::string> m_dir_list;
