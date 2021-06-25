@@ -50,8 +50,6 @@ namespace dal::filesystem {
     public:
         virtual ~FileReadOnly() = default;
 
-        virtual bool open(const char* const path) = 0;
-
         virtual void close() = 0;
 
         virtual bool is_ready() = 0;
