@@ -450,7 +450,7 @@ namespace android {
             this->m_ptr_asset_manager = nullptr;
         }
 
-        bool open(const char* const path) override {
+        bool open(const char* const path) {
             return this->m_file.open(path, this->m_ptr_asset_manager);
         }
 
@@ -658,6 +658,7 @@ namespace {
             {"image", {
                 {"honoka", {}},
                 {"sponza", {}},
+                {"\xED\x85\x8D\xEC\x8A\xA4\xEC\xB2\x98", {}},
             }},
             {"model", {}},
             {"spv", {}},
@@ -859,7 +860,7 @@ namespace dal::filesystem {
         file->open(file_path);
 
 #elif defined(DAL_OS_ANDROID)
-        std::unique_ptr<FileReadOnly> file{ new ::android::FileReadOnly_AndroidAsset(this->m_ptr_asset_manager) };
+        auto file = std::make_unique<::android::FileReadOnly_AndroidAsset>(this->m_ptr_asset_manager);
         file->open(asset_path.c_str());
 
 #endif
