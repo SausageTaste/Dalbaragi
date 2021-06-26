@@ -4,7 +4,13 @@
 #include <codecvt>
 #include <fstream>
 
-#if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
+#if defined(DAL_OS_WINDOWS)
+    #include <filesystem>
+    #include <Shlobj.h>
+
+    #define DAL_STD_FILESYSTEM
+
+#elif defined(DAL_OS_LINUX)
     #include <filesystem>
 
     #define DAL_STD_FILESYSTEM
@@ -264,6 +270,21 @@ namespace desktop {
         }
 
         return std::nullopt;
+    }
+
+    std::optional<fs::path> find_userdata_dir() {
+
+#if defined(DAL_OS_WINDOWS)
+        WCHAR path[MAX_PATH];
+        const auto result = SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, path);
+        if (S_OK != result)
+            return std::nullopt;
+
+        return fs::path{ path };
+#else
+        #error
+#endif
+
     }
 
     void listfile_asset(const char* const path, std::vector<std::string>& result) {
