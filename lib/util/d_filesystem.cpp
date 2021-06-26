@@ -841,7 +841,7 @@ namespace dal::filesystem {
 
         const auto asset_path = ::join_path(&respath.dir_list().front() + 1, &respath.dir_list().back() + 1, '/');
 
-#if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
+#if defined(DAL_OS_WINDOWS)
         const auto asset_dir = ::desktop::find_asset_dir();
         if (!asset_dir.has_value())
             return std::make_unique<::FileReadOnly_Null>();
