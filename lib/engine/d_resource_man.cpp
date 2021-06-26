@@ -64,7 +64,10 @@ namespace {
             dal::Timer timer;
 
             auto file = this->m_filesys.open(this->m_respath);
+            dalAssert(file->is_ready());
+
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
+            dalAssert(model_content.has_value());
             dalInfo(fmt::format("Model res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
 
             this->out_model_data = dal::parse_model_dmd(model_content->data(), model_content->size());
@@ -94,7 +97,10 @@ namespace {
             dal::Timer timer;
 
             auto file = this->m_filesys.open(this->m_respath);
+            dalAssert(file->is_ready());
+
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
+            dalAssert(model_content.has_value());
             dalInfo(fmt::format("Model res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
 
             this->out_model_data = dal::parse_model_skinned_dmd(model_content->data(), model_content->size());

@@ -4,6 +4,8 @@
 #include <codecvt>
 #include <fstream>
 
+#include "d_konsts.h"
+
 #if defined(DAL_OS_WINDOWS)
     #include <filesystem>
     #include <Shlobj.h>
@@ -280,11 +282,14 @@ namespace desktop {
         if (S_OK != result)
             return std::nullopt;
 
-        return fs::path{ path };
+        auto output_path = fs::path{ path } / dal::APP_NAME;
 #else
         #error
 #endif
+        if (!fs::is_directory(output_path))
+            fs::create_directory(output_path);
 
+        return output_path;
     }
 
     void listfile_asset(const char* const path, std::vector<std::string>& result) {
@@ -561,10 +566,10 @@ namespace {
         return std::nullopt;
     }
 
-    std::optional<dal::ResPath> resolve_path(const fs::path& start_dir, const dal::ResPath& respath) {
+    std::optional<std::string> resolve_path(const dal::ResPath& respath, const fs::path& start_dir, const size_t start_index) {
         auto cur_path = start_dir;
 
-        for (size_t i = 1; i < respath.dir_list().size(); ++i) {
+        for (size_t i = start_index; i < respath.dir_list().size(); ++i) {
             const auto dir_element = respath.dir_list().at(i);
 
             if (dir_element == "?") {
@@ -595,18 +600,35 @@ namespace {
         if (!std::filesystem::is_regular_file(cur_path))
             return std::nullopt;
 
-        return dal::ResPath{ ::SPECIAL_NAMESPACE_ASSET + cur_path.u8string().substr(start_dir.string().size()) };
+        return cur_path.generic_u8string().substr(start_dir.generic_u8string().size() + 1);
     }
 
     std::optional<dal::ResPath> resolve_asset_path(const dal::ResPath& respath) {
         if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
             return std::nullopt;
 
-        const auto asset_dir = ::desktop::find_asset_dir();
-        if (!asset_dir.has_value())
+        const auto start_dir = ::desktop::find_asset_dir();
+        if (!start_dir.has_value())
             return std::nullopt;
 
-        return ::resolve_path(*asset_dir, respath);
+        const auto result = ::resolve_path(respath, *start_dir, 1);
+        if (!result.has_value())
+            return std::nullopt;
+
+        const auto res_path_str = std::string{} + ::SPECIAL_NAMESPACE_ASSET + '/' + result.value();
+        return dal::ResPath{ res_path_str };
+    }
+
+    std::optional<dal::ResPath> resolve_userdata_path(const dal::ResPath& respath) {
+        const auto start_dir = ::desktop::find_userdata_dir();
+        if (!start_dir.has_value())
+            return std::nullopt;
+
+        const auto result = ::resolve_path(respath, *start_dir, 0);
+        if (!result.has_value())
+            return std::nullopt;
+
+        return dal::ResPath{ result.value() };
     }
 
 #elif defined(DAL_OS_ANDROID)
@@ -899,6 +921,38 @@ namespace dal::filesystem {
 }
 
 
+// UserDataManager
+namespace dal::filesystem {
+
+    std::unique_ptr<FileReadOnly> UserDataManager::open(const dal::ResPath& respath) {
+        if (respath.dir_list().size() < 2)
+            return std::make_unique<::FileReadOnly_Null>();
+
+        const auto userdata_path = ::join_path(&respath.dir_list().front(), &respath.dir_list().back() + 1, '/');
+
+#if defined(DAL_OS_WINDOWS)
+        const auto userdata_dir = ::desktop::find_userdata_dir();
+        if (!userdata_dir.has_value())
+            return std::make_unique<::FileReadOnly_Null>();
+
+        const auto file_path = userdata_dir.value() / ::utf8_to_utf16(userdata_path).value();
+        auto file = std::make_unique<::desktop::FileReadOnly_STL>();
+        file->open(file_path);
+
+#else
+        #error
+
+#endif
+
+        if (!file->is_ready())
+            return std::unique_ptr<FileReadOnly>{ new FileReadOnly_Null };
+        else
+            return file;
+    }
+
+}
+
+
 namespace dal {
 
     std::optional<dal::ResPath> Filesystem::resolve_respath(const dal::ResPath& respath) {
@@ -920,6 +974,13 @@ namespace dal {
 #endif
             if (result_asset.has_value())
                 return result_asset;
+
+            auto result_userdata = ::resolve_userdata_path(respath);
+            if (result_userdata.has_value())
+                return result_userdata;
+        }
+        else {
+            return ::resolve_userdata_path(respath);
         }
 
         return std::nullopt;
@@ -931,6 +992,9 @@ namespace dal {
 
         if (respath.dir_list().front() == ::SPECIAL_NAMESPACE_ASSET) {
             return this->asset_mgr().open(respath);
+        }
+        else {
+            return this->m_ud_man.open(respath);
         }
 
         return std::unique_ptr<dal::filesystem::FileReadOnly>{ new FileReadOnly_Null };

@@ -218,7 +218,7 @@ namespace {
         // Honoka
         {
             const auto entity = scene.m_registry.create();
-            auto model = res_man.request_model_skinned("_asset/model/honoka_basic_3.dmd");
+            auto model = res_man.request_model_skinned("sungmin/honoka_basic_3.dmd");
 
             auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::ModelSkinned>(entity);
             cpnt_model.m_model = model;

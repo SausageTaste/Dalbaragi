@@ -109,6 +109,21 @@ namespace dal::filesystem {
 
     };
 
+
+    class UserDataManager {
+
+    public:
+        UserDataManager() = default;
+
+        UserDataManager(const UserDataManager&) = delete;
+
+        UserDataManager& operator=(const UserDataManager&) = delete;
+
+    public:
+        std::unique_ptr<FileReadOnly> open(const dal::ResPath& path);
+
+    };
+
 }
 
 
@@ -118,6 +133,7 @@ namespace dal {
 
     private:
         filesystem::AssetManager m_asset_man;
+        filesystem::UserDataManager m_ud_man;
 
     public:
         auto& asset_mgr() {
