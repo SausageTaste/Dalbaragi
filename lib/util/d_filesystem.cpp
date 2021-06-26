@@ -561,15 +561,8 @@ namespace {
         return std::nullopt;
     }
 
-    std::optional<dal::ResPath> resolve_asset_path(const dal::ResPath& respath) {
-        if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
-            return std::nullopt;
-
-        const auto asset_dir = ::desktop::find_asset_dir();
-        if (!asset_dir.has_value())
-            return std::nullopt;
-
-        auto cur_path = asset_dir.value();
+    std::optional<dal::ResPath> resolve_path(const fs::path& start_dir, const dal::ResPath& respath) {
+        auto cur_path = start_dir;
 
         for (size_t i = 1; i < respath.dir_list().size(); ++i) {
             const auto dir_element = respath.dir_list().at(i);
@@ -602,7 +595,18 @@ namespace {
         if (!std::filesystem::is_regular_file(cur_path))
             return std::nullopt;
 
-        return dal::ResPath{ ::SPECIAL_NAMESPACE_ASSET + cur_path.u8string().substr(asset_dir->string().size()) };
+        return dal::ResPath{ ::SPECIAL_NAMESPACE_ASSET + cur_path.u8string().substr(start_dir.string().size()) };
+    }
+
+    std::optional<dal::ResPath> resolve_asset_path(const dal::ResPath& respath) {
+        if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
+            return std::nullopt;
+
+        const auto asset_dir = ::desktop::find_asset_dir();
+        if (!asset_dir.has_value())
+            return std::nullopt;
+
+        return ::resolve_path(*asset_dir, respath);
     }
 
 #elif defined(DAL_OS_ANDROID)
