@@ -845,6 +845,10 @@ namespace {
         return dal::ResPath{ ::join_path({::SPECIAL_NAMESPACE_ASSET, cur_path}, '/') };
     }
 
+    std::optional<dal::ResPath> resolve_userdata_path(const dal::ResPath& respath) {
+        return std::nullopt;
+    }
+
 #endif
 
 }
@@ -940,12 +944,12 @@ namespace dal::filesystem {
         file->open(file_path);
 
 #else
-        #error
+        auto file = std::make_unique<FileReadOnly_Null>();
 
 #endif
 
         if (!file->is_ready())
-            return std::unique_ptr<FileReadOnly>{ new FileReadOnly_Null };
+            return std::make_unique<FileReadOnly_Null>();
         else
             return file;
     }
