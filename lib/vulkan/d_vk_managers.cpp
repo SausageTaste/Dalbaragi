@@ -356,7 +356,7 @@ namespace dal {
                 0, nullptr
             );
 
-            vkCmdDraw(cmd_buf, 6, 1, 0, 0);
+            vkCmdDraw(cmd_buf, 3, 1, 0, 0);
         }
         vkCmdEndRenderPass(cmd_buf);
 

@@ -9,22 +9,16 @@ layout(set = 0, binding = 1) uniform U_PerFrame {
 } u_per_frame;
 
 
-const vec2 POSITIONS[6] = vec2[](
+const vec2 POSITIONS[3] = vec2[](
     vec2(-1, -1),
-    vec2(-1,  1),
-    vec2( 1,  1),
-    vec2(-1, -1),
-    vec2( 1,  1),
-    vec2( 1, -1)
+    vec2(-1,  3),
+    vec2( 3, -1)
 );
 
-const vec2 UV_COORDS[6] = vec2[](
+const vec2 UV_COORDS[3] = vec2[](
     vec2(0, 0),
-    vec2(0, 1),
-    vec2(1, 1),
-    vec2(0, 0),
-    vec2(1, 1),
-    vec2(1, 0)
+    vec2(0, 2),
+    vec2(2, 0)
 );
 
 
