@@ -26,30 +26,59 @@ bool is_in_shadow(const vec3 world_pos, const mat4 light_mat, sampler2D depth_ma
     return currentDepth > closestDepth;
 }
 
-float how_much_not_in_shadow(const vec3 world_pos, const mat4 light_mat, sampler2D depth_map) {
+float how_much_not_in_shadow_single(const vec3 world_pos, const mat4 light_mat, sampler2D depth_map) {
     return is_in_shadow(world_pos, light_mat, depth_map) ? 0.0 : 1.0;
 }
 
-float how_much_not_in_shadow_pcf(const vec3 world_pos, const mat4 light_mat, sampler2D depth_map) {
+float how_much_not_in_shadow_pcf_nearest(const vec3 world_pos, const mat4 light_mat, sampler2D depth_map) {
     const vec4 frag_pos_in_dlight = light_mat * vec4(world_pos, 1);
     const vec3 proj_coords = frag_pos_in_dlight.xyz / frag_pos_in_dlight.w;
     if (proj_coords.z > 1.0)
         return 1.0;
 
     const vec2 sample_coord = proj_coords.xy * 0.5 + 0.5;
-    const float currentDepth = proj_coords.z;
+    const float current_depth = proj_coords.z;
 
     float shadow = 0.0;
     const vec2 texel_size = 1.0 / textureSize(depth_map, 0);
-    for(int x = 0; x <= 1; ++x) {
-        for(int y = 0; y <= 1; ++y) {
+    for (int x = 0; x <= 1; ++x) {
+        for (int y = 0; y <= 1; ++y) {
             float pcf_depth = texture(depth_map, sample_coord + vec2(x, y) * texel_size).r;
-            shadow += currentDepth > pcf_depth ? 1.0 : 0.0;
+            shadow += current_depth > pcf_depth ? 1.0 : 0.0;
         }
     }
     shadow /= 4.0;
 
     return 1.0 - shadow;
+}
+
+float how_much_not_in_shadow_pcf_bilinear(const vec3 world_pos, const mat4 light_mat, sampler2D depth_map) {
+    const vec4 frag_pos_in_dlight = light_mat * vec4(world_pos, 1);
+    const vec3 proj_coords = frag_pos_in_dlight.xyz / frag_pos_in_dlight.w;
+    if (proj_coords.z > 1.0)
+        return 1.0;
+
+    const vec2 sample_coord = proj_coords.xy * 0.5 + 0.5;
+    const float current_depth = min(proj_coords.z, 0.99999);
+
+    const vec2 tex_size = textureSize(depth_map, 0);
+    const vec2 texel_size = 1.0 / tex_size;
+    const vec2 coord_frac = fract(sample_coord.xy * tex_size);
+
+    const float lit00 = current_depth > texture(depth_map, sample_coord + vec2(           0,             0)).r ? 0 : 1;
+    const float lit01 = current_depth > texture(depth_map, sample_coord + vec2(           0,  texel_size.y)).r ? 0 : 1;
+    const float lit10 = current_depth > texture(depth_map, sample_coord + vec2(texel_size.x,             0)).r ? 0 : 1;
+    const float lit11 = current_depth > texture(depth_map, sample_coord + vec2(texel_size.x,  texel_size.y)).r ? 0 : 1;
+
+    const float lit_y0    = mix( lit00,  lit10, coord_frac.x);
+    const float lit_y1    = mix( lit01,  lit11, coord_frac.x);
+    const float lit_total = mix(lit_y0, lit_y1, coord_frac.y);
+
+    return lit_total;
+}
+
+float how_much_not_in_shadow(const vec3 world_pos, const mat4 light_mat, sampler2D depth_map) {
+    return how_much_not_in_shadow_pcf_bilinear(world_pos, light_mat, depth_map);
 }
 
 
