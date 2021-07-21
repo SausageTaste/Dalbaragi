@@ -4,6 +4,8 @@
 #include <codecvt>
 #include <fstream>
 
+#include <fmt/format.h>
+
 #include "d_konsts.h"
 
 #if defined(DAL_OS_WINDOWS)
@@ -14,6 +16,7 @@
 
 #elif defined(DAL_OS_LINUX)
     #include <filesystem>
+    #include <unistd.h>
 
     #define DAL_STD_FILESYSTEM
 
@@ -284,7 +287,10 @@ namespace desktop {
 
         auto output_path = fs::path{ path } / dal::APP_NAME;
 #else
-        #error
+        char username_buf[128];
+        getlogin_r(username_buf, 128);
+
+        const fs::path output_path = fmt::format("/home/{}/Documents/{}", username_buf, dal::APP_NAME);
 #endif
         if (!fs::is_directory(output_path))
             fs::create_directory(output_path);
