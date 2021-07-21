@@ -79,7 +79,7 @@ void main() {
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;
 
     for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
-        const float shadow = how_much_not_in_shadow(world_pos, u_global_light.m_dlight_mat[i], u_dlight_shadow_maps[i]);
+        const float shadow = how_much_not_in_shadow_pcf_bilinear(world_pos, u_global_light.m_dlight_mat[i], u_dlight_shadow_maps[i]);
 
         light += calc_pbr_illumination(
             material.x,
@@ -111,7 +111,7 @@ void main() {
     }
 
     for (uint i = 0; i < u_global_light.m_slight_count; ++i) {
-        const float shadow = how_much_not_in_shadow(world_pos, u_global_light.m_slight_mat[i], u_slight_shadow_maps[i]);
+        const float shadow = how_much_not_in_shadow_pcf_bilinear(world_pos, u_global_light.m_slight_mat[i], u_slight_shadow_maps[i]);
         const vec3 frag_to_light_direc = normalize(u_global_light.m_slight_pos_n_max_dist[i].xyz - world_pos);
 
         const float attenuation = calc_slight_attenuation(

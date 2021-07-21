@@ -77,6 +77,7 @@ float how_much_not_in_shadow_pcf_bilinear(const vec3 world_pos, const mat4 light
     return lit_total;
 }
 
+// Use this function and get an unidentifiable error on Android
 float how_much_not_in_shadow(const vec3 world_pos, const mat4 light_mat, sampler2D depth_map) {
     return how_much_not_in_shadow_pcf_bilinear(world_pos, light_mat, depth_map);
 }
