@@ -949,6 +949,15 @@ namespace dal::filesystem {
         auto file = std::make_unique<::desktop::FileReadOnly_STL>();
         file->open(file_path);
 
+#elif defined(DAL_OS_LINUX)
+        const auto userdata_dir = ::desktop::find_userdata_dir();
+        if (!userdata_dir.has_value())
+            return std::make_unique<::FileReadOnly_Null>();
+
+        const auto file_path = userdata_dir.value() / userdata_path;
+        auto file = std::make_unique<::desktop::FileReadOnly_STL>();
+        file->open(file_path);
+
 #else
         auto file = std::make_unique<FileReadOnly_Null>();
 
