@@ -11,6 +11,7 @@
 namespace {
 
     constexpr char* const MISSING_TEX_PATH = "_asset/image/missing_tex.png";
+    constexpr char* const MISSING_MODEL_PATH = "_asset/model/missing_model.dmd";
 
 
     class Task_LoadImage : public dal::ITask {
@@ -64,11 +65,18 @@ namespace {
             dal::Timer timer;
 
             auto file = this->m_filesys.open(this->m_respath);
+            if (!file->is_ready()) {
+                out_model_data = std::nullopt;
+                return;
+            }
+
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
-            dalInfo(fmt::format("Model res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
+            if (!model_content.has_value()) {
+                out_model_data = std::nullopt;
+                return;
+            }
 
             this->out_model_data = dal::parse_model_dmd(model_content->data(), model_content->size());
-            dalInfo(fmt::format("Model res parsed ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
         }
 
     };
@@ -94,11 +102,18 @@ namespace {
             dal::Timer timer;
 
             auto file = this->m_filesys.open(this->m_respath);
+            if (!file->is_ready()) {
+                out_model_data = std::nullopt;
+                return;
+            }
+
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
-            dalInfo(fmt::format("Model res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
+            if (!model_content.has_value()) {
+                out_model_data = std::nullopt;
+                return;
+            }
 
             this->out_model_data = dal::parse_model_skinned_dmd(model_content->data(), model_content->size());
-            dalInfo(fmt::format("Model res parsed ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
         }
 
     };
@@ -183,13 +198,20 @@ namespace dal {
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
         if (this->m_waiting_file.end() != found) {
-            this->m_renderer->init(
-                *found->second.get(),
-                task_result.out_model_data.value(),
-                task_result.m_respath.dir_list().front().c_str()
-            );
+            if (task_result.out_model_data.has_value()) {
+                this->m_renderer->init(
+                    *found->second.get(),
+                    task_result.out_model_data.value(),
+                    task_result.m_respath.dir_list().front().c_str()
+                );
 
-            this->m_waiting_prepare.push_back(found->second);
+                this->m_waiting_prepare.push_back(found->second);
+            }
+            else {
+                const auto msg = fmt::format("Failed to load model: {}", task_result.m_respath.make_str());
+                dalError(msg.c_str());
+            }
+
             this->m_waiting_file.erase(found);
         }
     }
@@ -240,17 +262,24 @@ namespace dal {
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
         if (this->m_waiting_file.end() != found) {
-            this->m_renderer->init(
-                *found->second.get(),
-                task_result.out_model_data.value(),
-                task_result.m_respath.dir_list().front().c_str()
-            );
+            if (task_result.out_model_data.has_value()) {
+                this->m_renderer->init(
+                    *found->second.get(),
+                    task_result.out_model_data.value(),
+                    task_result.m_respath.dir_list().front().c_str()
+                );
 
-            for (auto& anim : found->second->animations()) {
-                anim = anim.make_compatible_with(found->second->skeleton());
+                for (auto& anim : found->second->animations()) {
+                    anim = anim.make_compatible_with(found->second->skeleton());
+                }
+
+                this->m_waiting_prepare.push_back(found->second);
+            }
+            else {
+                const auto msg = fmt::format("Failed to load model: {}", task_result.m_respath.make_str());
+                dalError(msg.c_str());
             }
 
-            this->m_waiting_prepare.push_back(found->second);
             this->m_waiting_file.erase(found);
         }
     }
@@ -303,6 +332,8 @@ namespace dal {
             this->m_renderer->init(*actor.get());
 
         this->m_missing_tex = this->request_texture(::MISSING_TEX_PATH);
+        this->m_missing_model = this->request_model(::MISSING_MODEL_PATH);
+        this->m_missing_model_skinned = this->request_model_skinned(::MISSING_MODEL_PATH);
     }
 
     void ResourceManager::invalidate_renderer() {
@@ -310,6 +341,8 @@ namespace dal {
             this->m_renderer->wait_idle();
 
         this->m_missing_tex.reset();
+        this->m_missing_model.reset();
+        this->m_missing_model_skinned.reset();
 
         this->m_model_skinned_builder.invalidate_renderer();
         this->m_model_builder.invalidate_renderer();
@@ -358,8 +391,11 @@ namespace dal {
 
     HRenModel ResourceManager::request_model(const ResPath& respath) {
         const auto resolved_respath = this->m_filesys.resolve_respath(respath);
-        if (!resolved_respath.has_value())
-            dalAbort(fmt::format("Failed to find model file: {}", respath.make_str()).c_str());
+        if (!resolved_respath.has_value()) {
+            dalError(fmt::format("Failed to find model file: {}", respath.make_str()).c_str());
+            dalAssert(!!this->m_missing_model);
+            return this->m_missing_model;
+        }
 
         const auto path_str = resolved_respath->make_str();
         const auto result = this->m_models.find(path_str);
@@ -378,8 +414,11 @@ namespace dal {
 
     HRenModelSkinned ResourceManager::request_model_skinned(const ResPath& respath) {
         const auto resolved_respath = this->m_filesys.resolve_respath(respath);
-        if (!resolved_respath.has_value())
-            dalAbort(fmt::format("Failed to find skinned model file: {}", respath.make_str()).c_str());
+        if (!resolved_respath.has_value()) {
+            dalError(fmt::format("Failed to find skinned model file: {}", respath.make_str()).c_str());
+            dalAssert(!!this->m_missing_model_skinned);
+            return this->m_missing_model_skinned;
+        }
 
         const auto path_str = resolved_respath->make_str();
         const auto result = this->m_skinned_models.find(path_str);

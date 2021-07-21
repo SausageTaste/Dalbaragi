@@ -356,7 +356,7 @@ namespace dal {
                 0, nullptr
             );
 
-            vkCmdDraw(cmd_buf, 6, 1, 0, 0);
+            vkCmdDraw(cmd_buf, 3, 1, 0, 0);
         }
         vkCmdEndRenderPass(cmd_buf);
 
@@ -784,9 +784,12 @@ namespace dal {
         const auto depth_format = phys_device.find_depth_format();
         this->m_cmd_pool.init(logi_device.indices().graphics_family(), logi_device.get());
 
+        constexpr uint32_t DLIGHT_RES = 1024 * 4;
+        constexpr uint32_t SLIGHT_RES = 512;
+
         for (auto& x : this->m_dlights) {
             x.init(
-                2048, 2048,
+                DLIGHT_RES, DLIGHT_RES,
                 dal::MAX_FRAMES_IN_FLIGHT,
                 this->m_cmd_pool,
                 renderpass,
@@ -798,7 +801,7 @@ namespace dal {
 
         for (auto& x : this->m_slights) {
             x.init(
-                512, 512,
+                SLIGHT_RES, SLIGHT_RES,
                 dal::MAX_FRAMES_IN_FLIGHT,
                 this->m_cmd_pool,
                 renderpass,

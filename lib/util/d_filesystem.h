@@ -13,7 +13,7 @@ namespace dal {
     class ResPath {
 
     private:
-        static constexpr char SEPERATOR = '/';
+        static constexpr char SEPARATOR = '/';
 
     private:
         std::vector<std::string> m_dir_list;
@@ -49,8 +49,6 @@ namespace dal::filesystem {
 
     public:
         virtual ~FileReadOnly() = default;
-
-        virtual bool open(const char* const path) = 0;
 
         virtual void close() = 0;
 
@@ -111,6 +109,21 @@ namespace dal::filesystem {
 
     };
 
+
+    class UserDataManager {
+
+    public:
+        UserDataManager() = default;
+
+        UserDataManager(const UserDataManager&) = delete;
+
+        UserDataManager& operator=(const UserDataManager&) = delete;
+
+    public:
+        std::unique_ptr<FileReadOnly> open(const dal::ResPath& path);
+
+    };
+
 }
 
 
@@ -120,6 +133,7 @@ namespace dal {
 
     private:
         filesystem::AssetManager m_asset_man;
+        filesystem::UserDataManager m_ud_man;
 
     public:
         auto& asset_mgr() {
