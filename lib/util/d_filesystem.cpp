@@ -12,13 +12,9 @@
     #include <filesystem>
     #include <Shlobj.h>
 
-    #define DAL_STD_FILESYSTEM
-
 #elif defined(DAL_OS_LINUX)
     #include <filesystem>
     #include <unistd.h>
-
-    #define DAL_STD_FILESYSTEM
 
 #elif defined(DAL_OS_ANDROID)
     #include <android/asset_manager.h>
@@ -203,16 +199,6 @@ namespace {
 
     };
 
-}
-
-
-// STD Filesystem functions
-namespace {
-#ifdef DAL_STD_FILESYSTEM
-namespace stdfs {
-
-}
-#endif
 }
 
 
