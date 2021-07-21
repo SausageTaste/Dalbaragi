@@ -33,7 +33,7 @@ def _work_for_one(output_file_name_ext, shader_src_name_ext, macro_definitions: 
     )
 
     if 0 != os.system(cmd_str):
-        print("- failed {}".format(shader_src_name_ext))
+        raise RuntimeError("- failed {}".format(shader_src_name_ext))
     else:
         print("- done {} -> {}".format(src_path, dst_path))
 
@@ -69,6 +69,8 @@ def main():
     _work_for_one("shadow_f.spv", "shadow.frag", [])
 
     _work_for_one("shadow_animated_v.spv", "shadow_animated.vert", [])
+
+    print("All done")
 
 
 if "__main__" == __name__:
