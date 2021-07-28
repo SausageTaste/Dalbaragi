@@ -307,6 +307,7 @@ namespace dal {
         //-----------------------------------------------------------------------------------------------------
 
         const auto cur_sec = dal::get_cur_sec();
+        const auto frustum_vertices = camera.make_frustum_vertices(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
 
         {
             U_PerFrame ubuf_data_per_frame{};
@@ -329,8 +330,6 @@ namespace dal {
 
             U_GlobalLight data_glight{};
             {
-                const auto frustum_vertices = camera.make_frustum_vertices(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
-
                 data_glight.m_dlight_count = render_list.m_dlights.size();
                 for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
                     auto& src_light = render_list.m_dlights[i];
@@ -358,6 +357,9 @@ namespace dal {
                 }
 
                 data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };
+
+                for (size_t i = 0; i < 8; ++i)
+                    data_glight.m_test_vertices[i] = glm::vec4{frustum_vertices[i], 1};
             }
 
             this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(data_glight, this->m_logi_device.get());

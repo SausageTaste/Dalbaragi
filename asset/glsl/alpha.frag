@@ -34,6 +34,8 @@ layout(set = 0, binding = 1) uniform U_GlobalLight {
     uint m_dlight_count;
     uint m_plight_count;
     uint m_slight_count;
+
+    vec4 m_test_vertices[8];
 } u_global_light;
 
 layout(set = 0, binding = 2) uniform sampler2D u_dlight_shadow_maps[2];

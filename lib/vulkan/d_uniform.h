@@ -57,6 +57,8 @@ namespace dal {
         uint32_t m_dlight_count = 0;
         uint32_t m_plight_count = 0;
         uint32_t m_slight_count = 0;
+
+        glm::vec4 m_test_vertices[8];
     };
 
     struct U_AnimTransform {

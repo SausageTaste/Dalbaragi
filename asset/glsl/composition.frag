@@ -32,6 +32,8 @@ layout(set = 0, binding = 4) uniform U_GlobalLight {
     uint m_dlight_count;
     uint m_plight_count;
     uint m_slight_count;
+
+    vec4 m_test_vertices[8];
 } u_global_light;
 
 layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
@@ -63,6 +65,16 @@ vec3 fix_color(const vec3 color) {
     //vec3 mapped = color / (color + 1.0);
     mapped = pow(mapped, vec3(1.0 / GAMMA));
     return mapped;
+}
+
+bool is_near_test_points(const vec3 world_pos) {
+    for (int i = 0; i < 8; ++i) {
+        if (distance(world_pos, u_global_light.m_test_vertices[i].xyz) < 0.5) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 
@@ -140,5 +152,9 @@ void main() {
 #ifdef DAL_GAMMA_CORRECT
     out_color.xyz = fix_color(out_color.xyz);
 #endif
+
+    if (is_near_test_points(world_pos)) {
+        out_color.xyz = vec3(1);
+    }
 
 }
