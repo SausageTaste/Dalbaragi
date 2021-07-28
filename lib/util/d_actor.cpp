@@ -146,6 +146,8 @@ namespace dal {
 namespace dal {
 
     std::array<glm::vec3, 8> ICamera::make_frustum_vertices(const float fov, const float ratio, const float near, const float far) const {
+        const auto view_inv = glm::inverse(this->make_view_mat());
+/*
         constexpr float KONST_VALUE = 1;
 
         static const std::array<glm::vec3, 8> vertices_in_device_space{
@@ -170,15 +172,38 @@ namespace dal {
             after_proj_inv[i] = v;
         }
 
-        const auto view_inv = glm::inverse(this->make_view_mat());
         std::array<glm::vec3, 8> output;
 
         for (size_t i = 0; i < 8; ++i) {
             auto v = view_inv * glm::vec4{ after_proj_inv[i], 1 };
             output[i] = v;
         }
+*/
 
-        return output;
+        const float tan_half_angle_vertical = tanf(fov * 0.5);
+        const float tan_half_angle_horizontal = tan_half_angle_vertical * ratio;
+
+        const float half_width_near = near * tan_half_angle_horizontal;
+        const float half_width_far = far * tan_half_angle_horizontal;
+        const float half_height_near = near * tan_half_angle_vertical;
+        const float half_height_far = far * tan_half_angle_vertical;
+
+        std::array<glm::vec3, 8> new_output{
+            glm::vec3{-half_width_near, -half_height_near, near},
+            glm::vec3{ half_width_near, -half_height_near, near},
+            glm::vec3{-half_width_near,  half_height_near, near},
+            glm::vec3{ half_width_near,  half_height_near, near},
+            glm::vec3{-half_width_far,  -half_height_far,  far},
+            glm::vec3{ half_width_far,  -half_height_far,  far},
+            glm::vec3{-half_width_far,   half_height_far,  far},
+            glm::vec3{ half_width_far,   half_height_far,  far},
+        };
+
+        for (size_t i = 0; i < 8; ++i) {
+            new_output[i] = view_inv * glm::vec4{new_output[i], 1};
+        }
+
+        return new_output;
     }
 
 }
