@@ -39,7 +39,7 @@ namespace {
             const auto file_data = file->read_stl<std::vector<uint8_t>>();
             dalAssert(file_data.has_value());
             this->out_image_data = dal::parse_image_stb(file_data->data(), file_data->size());
-            dalInfo(fmt::format("Image res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
+            //dalInfo(fmt::format("Image res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
         }
 
     };
