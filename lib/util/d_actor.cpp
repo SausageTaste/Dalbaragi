@@ -189,14 +189,14 @@ namespace dal {
         const float half_height_far = far * tan_half_angle_vertical;
 
         std::array<glm::vec3, 8> new_output{
-            glm::vec3{-half_width_near, -half_height_near, near},
-            glm::vec3{ half_width_near, -half_height_near, near},
-            glm::vec3{-half_width_near,  half_height_near, near},
-            glm::vec3{ half_width_near,  half_height_near, near},
-            glm::vec3{-half_width_far,  -half_height_far,  far},
-            glm::vec3{ half_width_far,  -half_height_far,  far},
-            glm::vec3{-half_width_far,   half_height_far,  far},
-            glm::vec3{ half_width_far,   half_height_far,  far},
+            glm::vec3{-half_width_near, -half_height_near, -near},
+            glm::vec3{ half_width_near, -half_height_near, -near},
+            glm::vec3{-half_width_near,  half_height_near, -near},
+            glm::vec3{ half_width_near,  half_height_near, -near},
+            glm::vec3{-half_width_far,  -half_height_far,  -far},
+            glm::vec3{ half_width_far,  -half_height_far,  -far},
+            glm::vec3{-half_width_far,   half_height_far,  -far},
+            glm::vec3{ half_width_far,   half_height_far,  -far},
         };
 
         for (size_t i = 0; i < 8; ++i) {
