@@ -10,8 +10,8 @@
 
 namespace {
 
-    constexpr char* const MISSING_TEX_PATH = "_asset/image/missing_tex.png";
-    constexpr char* const MISSING_MODEL_PATH = "_asset/model/missing_model.dmd";
+    const char* const MISSING_TEX_PATH = "_asset/image/missing_tex.png";
+    const char* const MISSING_MODEL_PATH = "_asset/model/missing_model.dmd";
 
 
     class Task_LoadImage : public dal::ITask {
