@@ -15,6 +15,8 @@ layout(input_attachment_index = 3, binding = 3) uniform subpassInput input_norma
 
 
 layout(set = 0, binding = 4) uniform U_GlobalLight {
+    vec4 m_test_vertices[8];
+
     mat4 m_dlight_mat[2];
     vec4 m_dlight_direc[2];
     vec4 m_dlight_color[2];
@@ -32,8 +34,6 @@ layout(set = 0, binding = 4) uniform U_GlobalLight {
     uint m_dlight_count;
     uint m_plight_count;
     uint m_slight_count;
-
-    vec4 m_test_vertices[8];
 } u_global_light;
 
 layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
@@ -157,4 +157,8 @@ void main() {
         out_color.xyz = vec3(1);
     }
 
+    if (v_device_coord.x > 0.0 && v_device_coord.y > 0.0) {
+        const float a = texture(u_dlight_shadow_maps[0], v_device_coord).r;
+        out_color.xyz = mix(out_color.xyz, vec3(a), 0.5);
+    }
 }

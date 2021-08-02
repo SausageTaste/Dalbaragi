@@ -17,6 +17,8 @@ layout(set = 0, binding = 0) uniform U_PerFrame {
 } u_per_frame;
 
 layout(set = 0, binding = 1) uniform U_GlobalLight {
+    vec4 m_test_vertices[8];
+
     mat4 m_dlight_mat[2];
     vec4 m_dlight_direc[2];
     vec4 m_dlight_color[2];
@@ -34,8 +36,6 @@ layout(set = 0, binding = 1) uniform U_GlobalLight {
     uint m_dlight_count;
     uint m_plight_count;
     uint m_slight_count;
-
-    vec4 m_test_vertices[8];
 } u_global_light;
 
 layout(set = 0, binding = 2) uniform sampler2D u_dlight_shadow_maps[2];

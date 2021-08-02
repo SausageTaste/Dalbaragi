@@ -40,6 +40,8 @@ namespace dal {
     };
 
     struct U_GlobalLight {
+        glm::vec4 m_test_vertices[8];
+
         glm::mat4 m_dlight_mat[dal::MAX_DLIGHT_COUNT];
         glm::vec4 m_dlight_direc[dal::MAX_DLIGHT_COUNT];
         glm::vec4 m_dlight_color[dal::MAX_DLIGHT_COUNT];
@@ -57,8 +59,6 @@ namespace dal {
         uint32_t m_dlight_count = 0;
         uint32_t m_plight_count = 0;
         uint32_t m_slight_count = 0;
-
-        glm::vec4 m_test_vertices[8];
     };
 
     struct U_AnimTransform {
