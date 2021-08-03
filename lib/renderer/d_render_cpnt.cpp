@@ -65,7 +65,7 @@ namespace dal {
         auto proj_mat = glm::ortho<float>(min.x, max.x, min.y, max.y, min.z, max.z);
         proj_mat[1][1] *= -1;
 
-        dalInfo(fmt::format("{}, {}, {}, {}, {}, {}", min.x, max.x, min.y, max.y, min.z, max.z).c_str());
+        dalInfo(fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}", min.x, max.x, min.y, max.y, min.z, max.z).c_str());
 
         return proj_mat * view_mat;
     }
