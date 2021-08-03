@@ -54,21 +54,12 @@ namespace dal {
         glm::vec3 max{ std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
 
         for (auto iter = begin; iter != end; ++iter) {
-            const auto v = glm::vec3{ view_mat * glm::vec4{*iter, 1} };
+            const auto v = view_mat * glm::vec4{*iter, 1};
 
-            if (v.x > max.x)
-                max.x = v.x;
-            if (v.y > max.y)
-                max.y = v.y;
-            if (v.z > max.z)
-                max.z = v.z;
-
-            if (v.x < min.x)
-                min.x = v.x;
-            if (v.y < min.y)
-                min.y = v.y;
-            if (v.z < min.z)
-                min.z = v.z;
+            for (int i = 0; i < 3; ++i) {
+                max[i] = std::max(v[i], max[i]);
+                min[i] = std::min(v[i], min[i]);
+            }
         }
 
         auto proj_mat = glm::ortho<float>(min.x, max.x, min.y, max.y, min.z, max.z);
