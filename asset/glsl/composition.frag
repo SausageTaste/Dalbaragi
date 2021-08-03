@@ -67,14 +67,18 @@ vec3 fix_color(const vec3 color) {
     return mapped;
 }
 
-bool is_near_test_points(const vec3 world_pos) {
+float calc_test_point_factor(const vec3 world_pos) {
+    float factor = 0;
+
     for (int i = 0; i < 8; ++i) {
-        if (distance(world_pos, u_global_light.m_test_vertices[i].xyz) < 0.5) {
-            return true;
+        const float dist = distance(world_pos, u_global_light.m_test_vertices[i].xyz);
+        if (dist <= 0.5) {
+            const float a = (0.5 - dist) / 0.5;
+            factor += a*a;
         }
     }
 
-    return false;
+    return min(1, factor);
 }
 
 
@@ -153,9 +157,7 @@ void main() {
     out_color.xyz = fix_color(out_color.xyz);
 #endif
 
-    if (is_near_test_points(world_pos)) {
-        out_color.xyz = vec3(1);
-    }
+    out_color.xyz = mix(out_color.xyz, vec3(1), calc_test_point_factor(world_pos));
 
     if (v_device_coord.x > 0.0 && v_device_coord.y > 0.0) {
         const float a = texture(u_dlight_shadow_maps[0], v_device_coord).r;
