@@ -85,7 +85,7 @@ namespace dal {
         }
 
         dalAbort("failed to find suitable memory type!");
-        return std::numeric_limits<uint32_t>::max();
+        return (std::numeric_limits<uint32_t>::max)();
     }
 
 }
