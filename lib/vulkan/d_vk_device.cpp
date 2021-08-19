@@ -178,7 +178,9 @@ namespace dal {
             }
 
             if (print_info) {
-                dalInfo(fmt::format(" * {} ({}) : {}", info.name(), info.device_type_str(), this_score).c_str());
+                dalInfo(fmt::format(" * {} ({}): {}", info.name(), info.device_type_str(), this_score).c_str());
+                dalInfo(fmt::format(" * Depth clamp: {}", info.does_support_depth_clamp()).c_str());
+                dalInfo(fmt::format(" * Anisotropic sampling: {}", info.does_support_anisotropic_sampling()).c_str());
             }
         }
 
