@@ -357,9 +357,6 @@ namespace dal {
                 }
 
                 data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };
-
-                for (size_t i = 0; i < 8; ++i)
-                    data_glight.m_test_vertices[i] = glm::vec4{frustum_vertices[i], 1};
             }
 
             this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(data_glight, this->m_logi_device.get());
