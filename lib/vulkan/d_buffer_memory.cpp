@@ -1,7 +1,5 @@
 #include "d_buffer_memory.h"
 
-#include <limits>
-
 #include <fmt/format.h>
 
 #include "d_logger.h"
@@ -85,7 +83,6 @@ namespace dal {
         }
 
         dalAbort("failed to find suitable memory type!");
-        return std::numeric_limits<uint32_t>::max();
     }
 
 }

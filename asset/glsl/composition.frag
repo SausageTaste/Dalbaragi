@@ -15,8 +15,6 @@ layout(input_attachment_index = 3, binding = 3) uniform subpassInput input_norma
 
 
 layout(set = 0, binding = 4) uniform U_GlobalLight {
-    vec4 m_test_vertices[8];
-
     mat4 m_dlight_mat[2];
     vec4 m_dlight_direc[2];
     vec4 m_dlight_color[2];
@@ -65,20 +63,6 @@ vec3 fix_color(const vec3 color) {
     //vec3 mapped = color / (color + 1.0);
     mapped = pow(mapped, vec3(1.0 / GAMMA));
     return mapped;
-}
-
-float calc_test_point_factor(const vec3 world_pos) {
-    float factor = 0;
-
-    for (int i = 0; i < 8; ++i) {
-        const float dist = distance(world_pos, u_global_light.m_test_vertices[i].xyz);
-        if (dist <= 0.5) {
-            const float a = (0.5 - dist) / 0.5;
-            factor += a*a;
-        }
-    }
-
-    return min(1, factor);
 }
 
 
@@ -157,10 +141,4 @@ void main() {
     out_color.xyz = fix_color(out_color.xyz);
 #endif
 
-    out_color.xyz = mix(out_color.xyz, vec3(1), calc_test_point_factor(world_pos));
-
-    if (v_device_coord.x > 0.0 && v_device_coord.y > 0.0) {
-        const float a = texture(u_dlight_shadow_maps[0], v_device_coord).r;
-        out_color.xyz = mix(out_color.xyz, vec3(a), 0.5);
-    }
 }
