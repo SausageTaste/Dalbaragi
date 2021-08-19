@@ -309,6 +309,8 @@ namespace dal {
         const auto cur_sec = dal::get_cur_sec();
 
         std::array<std::array<glm::vec3, 8>, dal::MAX_DLIGHT_COUNT> frustum_vertices;
+        std::array<glm::mat4, dal::MAX_DLIGHT_COUNT> dlight_matrices;
+        std::array<float, dal::MAX_DLIGHT_COUNT> dlight_clip_dists;
         {
             constexpr auto PROJ_DIST = ::PROJ_FAR - ::PROJ_NEAR;
             constexpr auto NEAR_SCALAR = 0.2;
@@ -322,6 +324,7 @@ namespace dal {
                     ::PROJ_NEAR + near_dist,
                     ::PROJ_NEAR + far_dist
                 );
+                dlight_clip_dists[frustum_vertices.size() - i - 1] = ::PROJ_NEAR + far_dist;
 
                 far_dist = near_dist;
                 near_dist = far_dist * NEAR_SCALAR;
@@ -333,6 +336,11 @@ namespace dal {
                 ::PROJ_NEAR,
                 ::PROJ_NEAR + far_dist
             );
+            dlight_clip_dists[0] = ::PROJ_NEAR + far_dist;
+
+            for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
+                dlight_matrices[i] = render_list.m_dlights[0].make_light_mat(frustum_vertices[i].data(), frustum_vertices[i].data() + frustum_vertices[i].size());
+            }
         }
 
         {
@@ -359,11 +367,13 @@ namespace dal {
                 data_glight.m_dlight_count = 1;
                 for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
                     auto& src_light = render_list.m_dlights[0];
-                    const auto light_mat_frustum = src_light.make_light_mat(frustum_vertices[i].data(), frustum_vertices[i].data() + frustum_vertices[i].size());
+                    const auto light_mat_frustum = dlight_matrices[i];
 
                     data_glight.m_dlight_mat[i]   = light_mat_frustum;
                     data_glight.m_dlight_direc[i] = glm::vec4{ src_light.to_light_direc(), 0 };
                     data_glight.m_dlight_color[i] = glm::vec4{ src_light.m_color, 1 };
+
+                    data_glight.m_dlight_clip_dist[i] = dlight_clip_dists[i];
                 }
 
                 data_glight.m_plight_count = render_list.m_plights.size();
@@ -401,7 +411,7 @@ namespace dal {
                 this->m_shadow_maps.m_dlights[i].record_cmd_buf(
                     this->m_flight_frame_index,
                     render_list,
-                    light_mat_frustum,
+                    dlight_matrices[i],
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
                     this->m_renderpasses.rp_shadow()

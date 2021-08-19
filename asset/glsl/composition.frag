@@ -29,6 +29,8 @@ layout(set = 0, binding = 4) uniform U_GlobalLight {
 
     vec4 m_ambient_light;
 
+    vec4 m_dlight_clip_dist;
+
     uint m_dlight_count;
     uint m_plight_count;
     uint m_slight_count;
