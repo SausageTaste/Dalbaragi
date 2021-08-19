@@ -31,8 +31,11 @@ My goal is catching up my previous [OpenGL game engine project](https://github.c
 
 # Control
 
-* WASD : Move
-* SPACE : Ascend vertically
-* Left Ctrl : Descend vertically
-* Drag on left side of window : Move
-* Drag on right side of window : Look around
+| Key | Command
+|-|-
+| WASD | Move
+| Arrow keys | Look around
+| SPACE | Ascend vertically
+| Left Ctrl | Descend vertically
+| Drag on left side of window | Move
+| Drag on right side of window | Look around
