@@ -182,6 +182,10 @@ namespace dal {
 
     public:
         std::array<ShadowMap, dal::MAX_DLIGHT_COUNT> m_dlights;
+        std::array<glm::mat4, dal::MAX_DLIGHT_COUNT> m_dlight_matrices;
+        std::array<float, dal::MAX_DLIGHT_COUNT> m_dlight_clip_dists;
+        std::array<dal::Timer, dal::MAX_DLIGHT_COUNT> m_dlight_timers;
+
         std::array<ShadowMap, dal::MAX_SLIGHT_COUNT> m_slights;
 
     private:
@@ -211,6 +215,8 @@ namespace dal {
         auto& slight_views() const {
             return this->m_slight_views;
         }
+
+        std::array<bool, dal::MAX_DLIGHT_COUNT> create_dlight_update_flags();
 
     };
 
