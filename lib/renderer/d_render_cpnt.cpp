@@ -67,10 +67,10 @@ namespace dal {
         const auto cos_t = (cos(get_cur_sec()) + 1.0) * 0.5;
         const auto sin_t = (sin(get_cur_sec()) + 1.0) * 0.5;
         const auto t_mod = std::fmod(get_cur_sec(), 1);
+        const auto either_0_1 = std::floor(std::fmod(get_cur_sec(), 6.0)) / 5.0;
         */
 
-        // left, right, top, bottom, near, far
-        auto proj_mat = glm::ortho<float>(min.x, max.x, -max.y, -min.y, -10, 10);
+        auto proj_mat = glm::ortho<float>(min.x, max.x, -max.y, -min.y, -2.f * max.z + min.z, -min.z);  // Why the hell???
         proj_mat[1][1] *= -1;
 
         //dalInfo(fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}", min.x, max.x, min.y, max.y, min.z, max.z).c_str());
