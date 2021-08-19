@@ -2,6 +2,10 @@
 const float PI = 3.14159265359;
 const vec3 TO_LIGHT_DIRECTION = normalize(vec3(1, 1, 1));
 
+const int MAX_D_LIGHT_COUNT = 3;
+const int MAX_P_LIGHT_COUNT = 3;
+const int MAX_S_LIGHT_COUNT = 3;
+
 
 float calc_slight_attenuation(const vec3 frag_pos, const vec3 light_pos, const vec3 light_direc, const float fade_start, const float fade_end) {
     const vec3 fragToLight_n = normalize(light_pos - frag_pos);

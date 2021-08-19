@@ -784,7 +784,7 @@ namespace dal {
         const auto depth_format = phys_device.find_depth_format();
         this->m_cmd_pool.init(logi_device.indices().graphics_family(), logi_device.get());
 
-        constexpr uint32_t DLIGHT_RES = 1024 * 4;
+        constexpr uint32_t DLIGHT_RES = 1024;
         constexpr uint32_t SLIGHT_RES = 512;
 
         for (auto& x : this->m_dlights) {
@@ -910,6 +910,22 @@ namespace dal {
             this->m_slight_views[i] = VK_NULL_HANDLE;
 
         this->m_cmd_pool.destroy(logi_device);
+    }
+
+    std::array<bool, dal::MAX_DLIGHT_COUNT> ShadowMapManager::create_dlight_update_flags() {
+        static_assert(3 == dal::MAX_DLIGHT_COUNT);
+
+        std::array<bool, dal::MAX_DLIGHT_COUNT> output{ false };
+        const std::array<float, dal::MAX_DLIGHT_COUNT> intervals{ 0, 0.033, 1.3 };
+
+        for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
+            if (this->m_dlight_timers[i].get_elapsed() > intervals[i]) {
+                output[i] = true;
+                this->m_dlight_timers[i].check();
+            }
+        }
+
+        return output;
     }
 
 }

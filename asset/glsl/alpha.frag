@@ -17,27 +17,29 @@ layout(set = 0, binding = 0) uniform U_PerFrame {
 } u_per_frame;
 
 layout(set = 0, binding = 1) uniform U_GlobalLight {
-    mat4 m_dlight_mat[2];
-    vec4 m_dlight_direc[2];
-    vec4 m_dlight_color[2];
+    mat4 m_dlight_mat[MAX_D_LIGHT_COUNT];
+    vec4 m_dlight_direc[MAX_D_LIGHT_COUNT];
+    vec4 m_dlight_color[MAX_D_LIGHT_COUNT];
 
-    vec4 m_plight_pos_n_max_dist[3];
-    vec4 m_plight_color[3];
+    vec4 m_plight_pos_n_max_dist[MAX_P_LIGHT_COUNT];
+    vec4 m_plight_color[MAX_P_LIGHT_COUNT];
 
-    mat4 m_slight_mat[3];
-    vec4 m_slight_pos_n_max_dist[3];
-    vec4 m_slight_direc_n_fade_start[3];
-    vec4 m_slight_color_n_fade_end[3];
+    mat4 m_slight_mat[MAX_S_LIGHT_COUNT];
+    vec4 m_slight_pos_n_max_dist[MAX_S_LIGHT_COUNT];
+    vec4 m_slight_direc_n_fade_start[MAX_S_LIGHT_COUNT];
+    vec4 m_slight_color_n_fade_end[MAX_S_LIGHT_COUNT];
 
     vec4 m_ambient_light;
+
+    vec4 m_dlight_clip_dist;
 
     uint m_dlight_count;
     uint m_plight_count;
     uint m_slight_count;
 } u_global_light;
 
-layout(set = 0, binding = 2) uniform sampler2D u_dlight_shadow_maps[2];
-layout(set = 0, binding = 3) uniform sampler2D u_slight_shadow_maps[3];
+layout(set = 0, binding = 2) uniform sampler2D u_dlight_shadow_maps[MAX_D_LIGHT_COUNT];
+layout(set = 0, binding = 3) uniform sampler2D u_slight_shadow_maps[MAX_S_LIGHT_COUNT];
 
 layout(set = 1, binding = 0) uniform U_PerMaterial {
     float m_roughness;
@@ -59,6 +61,7 @@ vec3 fix_color(const vec3 color) {
 
 
 void main() {
+    const float depth = gl_FragCoord.z;
     const vec4 color_texture = texture(u_albedo_map, v_uv_coord);
     const vec3 albedo = color_texture.xyz;
     const float alpha = color_texture.w;
@@ -68,8 +71,16 @@ void main() {
 
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;
 
-    for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
-        const float shadow = how_much_not_in_shadow_pcf_bilinear(v_world_pos, u_global_light.m_dlight_mat[i], u_dlight_shadow_maps[i]);
+    {
+        uint selected_dlight = u_global_light.m_dlight_count - 1;
+        for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
+            if (u_global_light.m_dlight_clip_dist[i] > depth) {
+                selected_dlight = i;
+                break;
+            }
+        }
+
+        const float shadow = how_much_not_in_shadow_pcf_bilinear(v_world_pos, u_global_light.m_dlight_mat[selected_dlight], u_dlight_shadow_maps[selected_dlight]);
 
         light += calc_pbr_illumination(
             u_per_material.m_roughness,
@@ -78,9 +89,9 @@ void main() {
             v_normal,
             F0,
             view_direc,
-            u_global_light.m_dlight_direc[i].xyz,
+            u_global_light.m_dlight_direc[selected_dlight].xyz,
             1,
-            u_global_light.m_dlight_color[i].xyz
+            u_global_light.m_dlight_color[selected_dlight].xyz
         ) * shadow;
     }
 

@@ -50,6 +50,7 @@ namespace dal {
         FrameInFlightIndex m_flight_frame_index;
         bool m_screen_resize_notified = false;
         VkExtent2D m_new_extent;
+        uint64_t m_frame_count = 0;
 
     public:
         VulkanState(

@@ -1,6 +1,12 @@
 #include "d_render_cpnt.h"
 
+#include <limits>
+
+#include <fmt/format.h>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "d_logger.h"
+#include "d_timer.h"
 
 
 namespace {
@@ -43,35 +49,31 @@ namespace dal {
     }
 
     glm::mat4 DLight::make_light_mat(const glm::vec3* const begin, const glm::vec3* const end) const {
-        const auto average_vec = ::calc_average_vec(begin, end);
-        const auto view_mat = this->make_view_mat(average_vec);
+        const auto view_mat = this->make_view_mat(glm::vec3{0});
 
-        float xp = 0;
-        float xn = 0;
-        float yp = 0;
-        float yn = 0;
-        float zp = 0;
-        float zn = 0;
+        glm::vec3 min{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+        glm::vec3 max = -min;
 
         for (auto iter = begin; iter != end; ++iter) {
-            const auto v = glm::vec3{ view_mat * glm::vec4{*iter, 1} };
+            const auto v = view_mat * glm::vec4{*iter, 1};
 
-            if (v.x > xp)
-                xp = v.x;
-            if (v.x < xn)
-                xn = v.x;
-            if (v.y > yp)
-                yp = v.y;
-            if (v.y < yn)
-                yn = v.y;
-            if (v.z > zp)
-                zp = v.z;
-            if (v.z < zn)
-                zn = v.z;
+            for (int i = 0; i < 3; ++i) {
+                max[i] = std::max(v[i], max[i]);
+                min[i] = std::min(v[i], min[i]);
+            }
         }
 
-        auto proj_mat = glm::ortho<float>(xn, xp, yn, yp, zn - 10, zp + 10);
+        /*
+        const auto cos_t = (cos(get_cur_sec()) + 1.0) * 0.5;
+        const auto sin_t = (sin(get_cur_sec()) + 1.0) * 0.5;
+        const auto t_mod = std::fmod(get_cur_sec(), 1);
+        const auto either_0_1 = std::floor(std::fmod(get_cur_sec(), 6.0)) / 5.0;
+        */
+
+        auto proj_mat = glm::ortho<float>(min.x, max.x, -max.y, -min.y, -2.f * max.z + min.z, -min.z);  // Why the hell???
         proj_mat[1][1] *= -1;
+
+        //dalInfo(fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}", min.x, max.x, min.y, max.y, min.z, max.z).c_str());
 
         return proj_mat * view_mat;
     }

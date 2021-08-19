@@ -20,7 +20,7 @@ namespace {
     constexpr float DLIGHT_HALF_BOX_SIZE = 30;
 
     constexpr float PROJ_NEAR = 0.1;
-    constexpr float PROJ_FAR = 30;
+    constexpr float PROJ_FAR = 50;
 
 
     VkExtent2D calc_smaller_extent(const VkExtent2D& extent, const float scale) {
@@ -28,6 +28,12 @@ namespace {
             std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<float>(extent.width) * scale)),
             std::max<uint32_t>(1, static_cast<uint32_t>(static_cast<float>(extent.height) * scale))
         };
+    }
+
+    float calc_clip_depth(const float z, const glm::mat4& proj_mat) {
+        const auto a = proj_mat * glm::vec4{0, 0, -z, 1};
+        const auto output = a.z / a.w;
+        return output;
     }
 
 }
@@ -304,41 +310,92 @@ namespace dal {
             img_fences = &sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
         }
 
+        // Prepare needed data
         //-----------------------------------------------------------------------------------------------------
 
         const auto cur_sec = dal::get_cur_sec();
 
+        const auto cam_view_mat = camera.make_view_mat();
+        const auto cam_proj_mat = make_perspective_proj_mat(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
+        const auto cam_proj_view_mat = cam_proj_mat * cam_view_mat;
+
+        const auto dlight_update_flags = this->m_shadow_maps.create_dlight_update_flags();
+
+        std::array<std::array<glm::vec3, 8>, dal::MAX_DLIGHT_COUNT> frustum_vertices;
+        {
+            constexpr float PROJ_DIST = ::PROJ_FAR - ::PROJ_NEAR;
+            constexpr float NEAR_SCALAR = 0.2f;
+            auto far_dist = PROJ_DIST;
+            auto near_dist = far_dist * NEAR_SCALAR;
+
+            for (size_t i = 0; i < frustum_vertices.size() - 1; ++i) {
+                const auto index = frustum_vertices.size() - i - 1;
+
+                if (dlight_update_flags[index]) {
+                    frustum_vertices[index] = camera.make_frustum_vertices(
+                        glm::radians<float>(80),
+                        this->m_swapchain.perspective_ratio(),
+                        ::PROJ_NEAR + near_dist,
+                        ::PROJ_NEAR + far_dist
+                    );
+
+                    this->m_shadow_maps.m_dlight_clip_dists[index] = ::calc_clip_depth(::PROJ_NEAR + far_dist, cam_proj_mat);
+
+                    this->m_shadow_maps.m_dlight_matrices[index] = render_list.m_dlights[0].make_light_mat(
+                        frustum_vertices[index].data(), frustum_vertices[index].data() + frustum_vertices[index].size()
+                    );
+                }
+
+                far_dist = near_dist;
+                near_dist = far_dist * NEAR_SCALAR;
+            }
+
+            frustum_vertices[0] = camera.make_frustum_vertices(
+                glm::radians<float>(80),
+                this->m_swapchain.perspective_ratio(),
+                ::PROJ_NEAR,
+                ::PROJ_NEAR + far_dist
+            );
+
+            this->m_shadow_maps.m_dlight_clip_dists[0] = ::calc_clip_depth(::PROJ_NEAR + far_dist, cam_proj_mat);
+
+            this->m_shadow_maps.m_dlight_matrices[0] = render_list.m_dlights[0].make_light_mat(
+                frustum_vertices[0].data(), frustum_vertices[0].data() + frustum_vertices[0].size()
+            );
+        }
+
+        // Set up uniform variables
+        //-----------------------------------------------------------------------------------------------------
+
         {
             U_PerFrame ubuf_data_per_frame{};
-            ubuf_data_per_frame.m_view = camera.make_view_mat();
-            ubuf_data_per_frame.m_proj = make_perspective_proj_mat(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
+            ubuf_data_per_frame.m_view = cam_view_mat;
+            ubuf_data_per_frame.m_proj = cam_proj_mat;
             ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
             this->m_ubuf_man.m_ub_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
             U_PerFrame_Composition ubuf_data_composition{};
-            ubuf_data_composition.m_proj_inv = glm::inverse(ubuf_data_per_frame.m_proj);
-            ubuf_data_composition.m_view_inv = glm::inverse(ubuf_data_per_frame.m_view);
+            ubuf_data_composition.m_view_inv = glm::inverse(cam_view_mat);
+            ubuf_data_composition.m_proj_inv = glm::inverse(cam_proj_mat);
             ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
             this->m_ubuf_man.m_ub_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
         }
 
         {
-            dalAssert(render_list.m_dlights.size() <= dal::MAX_DLIGHT_COUNT);
+            dalAssert(render_list.m_dlights.size() == 1);
             dalAssert(render_list.m_plights.size() <= dal::MAX_PLIGHT_COUNT);
             dalAssert(render_list.m_slights.size() <= dal::MAX_SLIGHT_COUNT);
 
             U_GlobalLight data_glight{};
             {
-                const auto frustum_vertices = camera.make_frustum_vertices(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
+                data_glight.m_dlight_count = dal::MAX_DLIGHT_COUNT;
+                for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
+                    auto& src_light = render_list.m_dlights[0];
 
-                data_glight.m_dlight_count = render_list.m_dlights.size();
-                for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
-                    auto& src_light = render_list.m_dlights[i];
-                    const auto light_mat_frustum = src_light.make_light_mat(frustum_vertices.data(), frustum_vertices.data() + frustum_vertices.size());
-
-                    data_glight.m_dlight_mat[i]   = light_mat_frustum;
+                    data_glight.m_dlight_mat[i]   = this->m_shadow_maps.m_dlight_matrices[i];
                     data_glight.m_dlight_direc[i] = glm::vec4{ src_light.to_light_direc(), 0 };
                     data_glight.m_dlight_color[i] = glm::vec4{ src_light.m_color, 1 };
+                    data_glight.m_dlight_clip_dist[i] = this->m_shadow_maps.m_dlight_clip_dists[i];
                 }
 
                 data_glight.m_plight_count = render_list.m_plights.size();
@@ -363,6 +420,7 @@ namespace dal {
             this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(data_glight, this->m_logi_device.get());
         }
 
+        // Submit command buffers to GPU
         //-----------------------------------------------------------------------------------------------------
 
         {
@@ -370,15 +428,14 @@ namespace dal {
             std::array<VkSemaphore, 0> wait_semaphores{};
             std::array<VkSemaphore, 0> signal_semaphores{};
 
-            const auto frustum_vertices = camera.make_frustum_vertices(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
-
-            for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
-                const auto light_mat_frustum = render_list.m_dlights[i].make_light_mat(frustum_vertices.data(), frustum_vertices.data() + frustum_vertices.size());
+            for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
+                if (!dlight_update_flags[i])
+                    continue;
 
                 this->m_shadow_maps.m_dlights[i].record_cmd_buf(
                     this->m_flight_frame_index,
                     render_list,
-                    light_mat_frustum,
+                    this->m_shadow_maps.m_dlight_matrices[i],
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
                     this->m_renderpasses.rp_shadow()
@@ -567,7 +624,11 @@ namespace dal {
             vkQueuePresentKHR(this->m_logi_device.queue_present(), &presentInfo);
         }
 
+        // Finish one frame
+        //-----------------------------------------------------------------------------------------------------
+
         this->m_flight_frame_index.increase();
+        ++this->m_frame_count;
     }
 
     void VulkanState::wait_idle() {

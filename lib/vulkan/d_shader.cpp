@@ -931,6 +931,7 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_shadow_animated(
         dal::filesystem::AssetManager& asset_mgr,
+        const bool does_support_depth_clamp,
         const VkExtent2D& extent,
         const VkRenderPass renderpass,
         const VkDescriptorSetLayout desc_layout_animation,
@@ -961,7 +962,7 @@ namespace {
         const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
-        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_BACK_BIT, true, 80, 8);
+        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, true, 80, 8, does_support_depth_clamp);
 
         // Multisampling
         const auto multisampling = ::create_info_multisampling();
@@ -1109,6 +1110,7 @@ namespace dal {
 
         this->m_shadow_animated = ::make_pipeline_shadow_animated(
             asset_mgr,
+            does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
             rp_shadow.get(),
             desc_layout_animation,
