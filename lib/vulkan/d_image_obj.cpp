@@ -17,6 +17,8 @@ namespace {
             default:
                 dalAbort(fmt::format("Unkown dal::ImageFormat value: {}", static_cast<int>(format)).c_str());
         }
+
+        return VK_FORMAT_UNDEFINED;
     }
 
     VkMemoryRequirements get_image_mem_requirements(const VkImage image, const VkDevice logi_device) {

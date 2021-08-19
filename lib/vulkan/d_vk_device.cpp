@@ -25,6 +25,7 @@ namespace {
         }
 
         dalAbort("failed to find supported format!");
+        return VK_FORMAT_UNDEFINED;
     }
 
 }
