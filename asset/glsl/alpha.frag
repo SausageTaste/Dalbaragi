@@ -17,17 +17,17 @@ layout(set = 0, binding = 0) uniform U_PerFrame {
 } u_per_frame;
 
 layout(set = 0, binding = 1) uniform U_GlobalLight {
-    mat4 m_dlight_mat[2];
-    vec4 m_dlight_direc[2];
-    vec4 m_dlight_color[2];
+    mat4 m_dlight_mat[MAX_D_LIGHT_COUNT];
+    vec4 m_dlight_direc[MAX_D_LIGHT_COUNT];
+    vec4 m_dlight_color[MAX_D_LIGHT_COUNT];
 
-    vec4 m_plight_pos_n_max_dist[3];
-    vec4 m_plight_color[3];
+    vec4 m_plight_pos_n_max_dist[MAX_P_LIGHT_COUNT];
+    vec4 m_plight_color[MAX_P_LIGHT_COUNT];
 
-    mat4 m_slight_mat[3];
-    vec4 m_slight_pos_n_max_dist[3];
-    vec4 m_slight_direc_n_fade_start[3];
-    vec4 m_slight_color_n_fade_end[3];
+    mat4 m_slight_mat[MAX_S_LIGHT_COUNT];
+    vec4 m_slight_pos_n_max_dist[MAX_S_LIGHT_COUNT];
+    vec4 m_slight_direc_n_fade_start[MAX_S_LIGHT_COUNT];
+    vec4 m_slight_color_n_fade_end[MAX_S_LIGHT_COUNT];
 
     vec4 m_ambient_light;
 
@@ -36,8 +36,8 @@ layout(set = 0, binding = 1) uniform U_GlobalLight {
     uint m_slight_count;
 } u_global_light;
 
-layout(set = 0, binding = 2) uniform sampler2D u_dlight_shadow_maps[2];
-layout(set = 0, binding = 3) uniform sampler2D u_slight_shadow_maps[3];
+layout(set = 0, binding = 2) uniform sampler2D u_dlight_shadow_maps[MAX_D_LIGHT_COUNT];
+layout(set = 0, binding = 3) uniform sampler2D u_slight_shadow_maps[MAX_S_LIGHT_COUNT];
 
 layout(set = 1, binding = 0) uniform U_PerMaterial {
     float m_roughness;
