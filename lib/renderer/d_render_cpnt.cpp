@@ -3,9 +3,10 @@
 #include <limits>
 
 #include <fmt/format.h>
-#include "d_logger.h"
-
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "d_logger.h"
+#include "d_timer.h"
 
 
 namespace {
@@ -51,7 +52,7 @@ namespace dal {
         const auto view_mat = this->make_view_mat(glm::vec3{0});
 
         glm::vec3 min{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
-        glm::vec3 max{ std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
+        glm::vec3 max = -min;
 
         for (auto iter = begin; iter != end; ++iter) {
             const auto v = view_mat * glm::vec4{*iter, 1};
@@ -62,10 +63,17 @@ namespace dal {
             }
         }
 
-        auto proj_mat = glm::ortho<float>(min.x, max.x, min.y, max.y, min.z, max.z);
+        /*
+        const auto cos_t = (cos(get_cur_sec()) + 1.0) * 0.5;
+        const auto sin_t = (sin(get_cur_sec()) + 1.0) * 0.5;
+        const auto t_mod = std::fmod(get_cur_sec(), 1);
+        */
+
+        // left, right, top, bottom, near, far
+        auto proj_mat = glm::ortho<float>(min.x, max.x, -max.y, -min.y, -10, 10);
         proj_mat[1][1] *= -1;
 
-        dalInfo(fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}", min.x, max.x, min.y, max.y, min.z, max.z).c_str());
+        //dalInfo(fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}", min.x, max.x, min.y, max.y, min.z, max.z).c_str());
 
         return proj_mat * view_mat;
     }
