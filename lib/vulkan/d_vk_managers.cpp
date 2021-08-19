@@ -784,7 +784,7 @@ namespace dal {
         const auto depth_format = phys_device.find_depth_format();
         this->m_cmd_pool.init(logi_device.indices().graphics_family(), logi_device.get());
 
-        constexpr uint32_t DLIGHT_RES = 1024 * 4;
+        constexpr uint32_t DLIGHT_RES = 1024;
         constexpr uint32_t SLIGHT_RES = 512;
 
         for (auto& x : this->m_dlights) {

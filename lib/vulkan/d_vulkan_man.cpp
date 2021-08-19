@@ -323,7 +323,7 @@ namespace dal {
         std::array<float, dal::MAX_DLIGHT_COUNT> dlight_clip_dists;
         {
             constexpr auto PROJ_DIST = ::PROJ_FAR - ::PROJ_NEAR;
-            constexpr auto NEAR_SCALAR = 0.1;
+            constexpr auto NEAR_SCALAR = 0.2;
             auto far_dist = PROJ_DIST;
             auto near_dist = far_dist * NEAR_SCALAR;
 
