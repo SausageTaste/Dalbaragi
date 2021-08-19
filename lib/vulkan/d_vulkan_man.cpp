@@ -611,6 +611,7 @@ namespace dal {
         }
 
         this->m_flight_frame_index.increase();
+        ++this->m_frame_count;
     }
 
     void VulkanState::wait_idle() {
