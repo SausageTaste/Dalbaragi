@@ -1,10 +1,5 @@
 #include "d_render_cpnt.h"
 
-#include <limits>
-
-#include <fmt/format.h>
-#include "d_logger.h"
-
 #include <glm/gtc/matrix_transform.hpp>
 
 
@@ -48,24 +43,35 @@ namespace dal {
     }
 
     glm::mat4 DLight::make_light_mat(const glm::vec3* const begin, const glm::vec3* const end) const {
-        const auto view_mat = this->make_view_mat(glm::vec3{0});
+        const auto average_vec = ::calc_average_vec(begin, end);
+        const auto view_mat = this->make_view_mat(average_vec);
 
-        glm::vec3 min{ std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
-        glm::vec3 max{ std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
+        float xp = 0;
+        float xn = 0;
+        float yp = 0;
+        float yn = 0;
+        float zp = 0;
+        float zn = 0;
 
         for (auto iter = begin; iter != end; ++iter) {
-            const auto v = view_mat * glm::vec4{*iter, 1};
+            const auto v = glm::vec3{ view_mat * glm::vec4{*iter, 1} };
 
-            for (int i = 0; i < 3; ++i) {
-                max[i] = std::max(v[i], max[i]);
-                min[i] = std::min(v[i], min[i]);
-            }
+            if (v.x > xp)
+                xp = v.x;
+            if (v.x < xn)
+                xn = v.x;
+            if (v.y > yp)
+                yp = v.y;
+            if (v.y < yn)
+                yn = v.y;
+            if (v.z > zp)
+                zp = v.z;
+            if (v.z < zn)
+                zn = v.z;
         }
 
-        auto proj_mat = glm::ortho<float>(min.x, max.x, min.y, max.y, min.z, max.z);
+        auto proj_mat = glm::ortho<float>(xn, xp, yn, yp, zn - 10, zp + 10);
         proj_mat[1][1] *= -1;
-
-        dalInfo(fmt::format("{:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f}", min.x, max.x, min.y, max.y, min.z, max.z).c_str());
 
         return proj_mat * view_mat;
     }

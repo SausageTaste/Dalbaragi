@@ -67,7 +67,6 @@ namespace {
         }
 
         dalAssert(false);
-        return VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     }
 
     uint32_t choose_image_count(const dal::SwapChainSupportDetails& swapchain_support) {
@@ -468,8 +467,6 @@ namespace dal {
                     static_cast<int>(this->format())
                 ).c_str());
         }
-
-        return false;
     }
 
     SwapchainSpec SwapchainManager::make_spec() const {
