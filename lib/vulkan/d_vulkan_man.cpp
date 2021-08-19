@@ -30,6 +30,12 @@ namespace {
         };
     }
 
+    float calc_clip_depth(const float z, const glm::mat4& proj_mat) {
+        const auto a = proj_mat * glm::vec4{0, 0, -z, 1};
+        const auto output = a.z / a.w;
+        return output;
+    }
+
 }
 
 
@@ -308,12 +314,16 @@ namespace dal {
 
         const auto cur_sec = dal::get_cur_sec();
 
+        const auto cam_view_mat = camera.make_view_mat();
+        const auto cam_proj_mat = make_perspective_proj_mat(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
+        const auto cam_proj_view_mat = cam_proj_mat * cam_view_mat;
+
         std::array<std::array<glm::vec3, 8>, dal::MAX_DLIGHT_COUNT> frustum_vertices;
         std::array<glm::mat4, dal::MAX_DLIGHT_COUNT> dlight_matrices;
         std::array<float, dal::MAX_DLIGHT_COUNT> dlight_clip_dists;
         {
             constexpr auto PROJ_DIST = ::PROJ_FAR - ::PROJ_NEAR;
-            constexpr auto NEAR_SCALAR = 0.2;
+            constexpr auto NEAR_SCALAR = 0.1;
             auto far_dist = PROJ_DIST;
             auto near_dist = far_dist * NEAR_SCALAR;
 
@@ -324,7 +334,7 @@ namespace dal {
                     ::PROJ_NEAR + near_dist,
                     ::PROJ_NEAR + far_dist
                 );
-                dlight_clip_dists[frustum_vertices.size() - i - 1] = ::PROJ_NEAR + far_dist;
+                dlight_clip_dists[frustum_vertices.size() - i - 1] = ::calc_clip_depth(::PROJ_NEAR + far_dist, cam_proj_mat);
 
                 far_dist = near_dist;
                 near_dist = far_dist * NEAR_SCALAR;
@@ -336,7 +346,7 @@ namespace dal {
                 ::PROJ_NEAR,
                 ::PROJ_NEAR + far_dist
             );
-            dlight_clip_dists[0] = ::PROJ_NEAR + far_dist;
+            dlight_clip_dists[0] = ::calc_clip_depth(::PROJ_NEAR + far_dist, cam_proj_mat);
 
             for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
                 dlight_matrices[i] = render_list.m_dlights[0].make_light_mat(frustum_vertices[i].data(), frustum_vertices[i].data() + frustum_vertices[i].size());
@@ -345,14 +355,14 @@ namespace dal {
 
         {
             U_PerFrame ubuf_data_per_frame{};
-            ubuf_data_per_frame.m_view = camera.make_view_mat();
-            ubuf_data_per_frame.m_proj = make_perspective_proj_mat(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
+            ubuf_data_per_frame.m_view = cam_view_mat;
+            ubuf_data_per_frame.m_proj = cam_proj_mat;
             ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
             this->m_ubuf_man.m_ub_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
             U_PerFrame_Composition ubuf_data_composition{};
-            ubuf_data_composition.m_proj_inv = glm::inverse(ubuf_data_per_frame.m_proj);
-            ubuf_data_composition.m_view_inv = glm::inverse(ubuf_data_per_frame.m_view);
+            ubuf_data_composition.m_view_inv = glm::inverse(cam_view_mat);
+            ubuf_data_composition.m_proj_inv = glm::inverse(cam_proj_mat);
             ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
             this->m_ubuf_man.m_ub_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
         }
@@ -364,7 +374,7 @@ namespace dal {
 
             U_GlobalLight data_glight{};
             {
-                data_glight.m_dlight_count = 1;
+                data_glight.m_dlight_count = dal::MAX_DLIGHT_COUNT;
                 for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
                     auto& src_light = render_list.m_dlights[0];
                     const auto light_mat_frustum = dlight_matrices[i];
