@@ -20,7 +20,7 @@ namespace {
     constexpr float DLIGHT_HALF_BOX_SIZE = 30;
 
     constexpr float PROJ_NEAR = 0.1;
-    constexpr float PROJ_FAR = 10;
+    constexpr float PROJ_FAR = 50;
 
 
     VkExtent2D calc_smaller_extent(const VkExtent2D& extent, const float scale) {
@@ -307,7 +307,33 @@ namespace dal {
         //-----------------------------------------------------------------------------------------------------
 
         const auto cur_sec = dal::get_cur_sec();
-        const auto frustum_vertices = camera.make_frustum_vertices(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
+
+        std::array<std::array<glm::vec3, 8>, dal::MAX_DLIGHT_COUNT> frustum_vertices;
+        {
+            constexpr auto PROJ_DIST = ::PROJ_FAR - ::PROJ_NEAR;
+            constexpr auto NEAR_SCALAR = 0.2;
+            auto far_dist = PROJ_DIST;
+            auto near_dist = far_dist * NEAR_SCALAR;
+
+            for (size_t i = 0; i < frustum_vertices.size() - 1; ++i) {
+                frustum_vertices[frustum_vertices.size() - i - 1] = camera.make_frustum_vertices(
+                    glm::radians<float>(80),
+                    this->m_swapchain.perspective_ratio(),
+                    ::PROJ_NEAR + near_dist,
+                    ::PROJ_NEAR + far_dist
+                );
+
+                far_dist = near_dist;
+                near_dist = far_dist * NEAR_SCALAR;
+            }
+
+            frustum_vertices[0] = camera.make_frustum_vertices(
+                glm::radians<float>(80),
+                this->m_swapchain.perspective_ratio(),
+                ::PROJ_NEAR,
+                ::PROJ_NEAR + far_dist
+            );
+        }
 
         {
             U_PerFrame ubuf_data_per_frame{};
@@ -324,16 +350,16 @@ namespace dal {
         }
 
         {
-            dalAssert(render_list.m_dlights.size() <= dal::MAX_DLIGHT_COUNT);
+            dalAssert(render_list.m_dlights.size() == 1);
             dalAssert(render_list.m_plights.size() <= dal::MAX_PLIGHT_COUNT);
             dalAssert(render_list.m_slights.size() <= dal::MAX_SLIGHT_COUNT);
 
             U_GlobalLight data_glight{};
             {
-                data_glight.m_dlight_count = render_list.m_dlights.size();
-                for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
-                    auto& src_light = render_list.m_dlights[i];
-                    const auto light_mat_frustum = src_light.make_light_mat(frustum_vertices.data(), frustum_vertices.data() + frustum_vertices.size());
+                data_glight.m_dlight_count = 1;
+                for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
+                    auto& src_light = render_list.m_dlights[0];
+                    const auto light_mat_frustum = src_light.make_light_mat(frustum_vertices[i].data(), frustum_vertices[i].data() + frustum_vertices[i].size());
 
                     data_glight.m_dlight_mat[i]   = light_mat_frustum;
                     data_glight.m_dlight_direc[i] = glm::vec4{ src_light.to_light_direc(), 0 };
@@ -369,8 +395,8 @@ namespace dal {
             std::array<VkSemaphore, 0> wait_semaphores{};
             std::array<VkSemaphore, 0> signal_semaphores{};
 
-            for (size_t i = 0; i < render_list.m_dlights.size(); ++i) {
-                const auto light_mat_frustum = render_list.m_dlights[i].make_light_mat(frustum_vertices.data(), frustum_vertices.data() + frustum_vertices.size());
+            for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
+                const auto light_mat_frustum = render_list.m_dlights[0].make_light_mat(frustum_vertices[i].data(), frustum_vertices[i].data() + frustum_vertices[i].size());
 
                 this->m_shadow_maps.m_dlights[i].record_cmd_buf(
                     this->m_flight_frame_index,
