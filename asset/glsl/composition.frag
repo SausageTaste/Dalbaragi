@@ -67,16 +67,6 @@ vec3 fix_color(const vec3 color) {
     return mapped;
 }
 
-uint select_dlight_cascade(const float depth) {
-    for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
-        if (u_global_light.m_dlight_clip_dist[i] > depth) {
-            return i;
-        }
-    }
-
-    return u_global_light.m_dlight_count - 1;
-}
-
 
 void main() {
     const float depth = subpassLoad(input_depth).x;
@@ -91,7 +81,14 @@ void main() {
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;
 
     {
-        const uint selected_dlight = select_dlight_cascade(depth);
+        uint selected_dlight = u_global_light.m_dlight_count - 1;
+        for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
+            if (u_global_light.m_dlight_clip_dist[i] > depth) {
+                selected_dlight = i;
+                break;
+            }
+        }
+
         const float shadow = how_much_not_in_shadow_pcf_bilinear(world_pos, u_global_light.m_dlight_mat[selected_dlight], u_dlight_shadow_maps[selected_dlight]);
 
         light += calc_pbr_illumination(
