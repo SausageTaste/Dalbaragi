@@ -147,38 +147,6 @@ namespace dal {
 
     std::array<glm::vec3, 8> ICamera::make_frustum_vertices(const float fov, const float ratio, const float near, const float far) const {
         const auto view_inv = glm::inverse(this->make_view_mat());
-/*
-        constexpr float KONST_VALUE = 1;
-
-        static const std::array<glm::vec3, 8> vertices_in_device_space{
-            glm::vec3{-KONST_VALUE, -KONST_VALUE,           0},
-            glm::vec3{ KONST_VALUE, -KONST_VALUE,           0},
-            glm::vec3{-KONST_VALUE,  KONST_VALUE,           0},
-            glm::vec3{ KONST_VALUE,  KONST_VALUE,           0},
-            glm::vec3{-KONST_VALUE, -KONST_VALUE, KONST_VALUE},
-            glm::vec3{ KONST_VALUE, -KONST_VALUE, KONST_VALUE},
-            glm::vec3{-KONST_VALUE,  KONST_VALUE, KONST_VALUE},
-            glm::vec3{ KONST_VALUE,  KONST_VALUE, KONST_VALUE},
-        };
-
-        const auto proj_inv = glm::inverse(make_perspective_proj_mat(fov, ratio, near, far));
-        std::array<glm::vec3, 8> after_proj_inv;
-
-        for (size_t i = 0; i < 8; ++i) {
-            auto v = proj_inv * glm::vec4{ vertices_in_device_space[i], 1 };
-            v.x /= v.w;
-            v.y /= v.w;
-            v.z /= v.w;
-            after_proj_inv[i] = v;
-        }
-
-        std::array<glm::vec3, 8> output;
-
-        for (size_t i = 0; i < 8; ++i) {
-            auto v = view_inv * glm::vec4{ after_proj_inv[i], 1 };
-            output[i] = v;
-        }
-*/
 
         const float tan_half_angle_vertical = tanf(fov * 0.5);
         const float tan_half_angle_horizontal = tan_half_angle_vertical * ratio;
