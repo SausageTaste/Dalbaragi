@@ -322,8 +322,8 @@ namespace dal {
         std::array<glm::mat4, dal::MAX_DLIGHT_COUNT> dlight_matrices;
         std::array<float, dal::MAX_DLIGHT_COUNT> dlight_clip_dists;
         {
-            constexpr auto PROJ_DIST = ::PROJ_FAR - ::PROJ_NEAR;
-            constexpr auto NEAR_SCALAR = 0.2;
+            constexpr float PROJ_DIST = ::PROJ_FAR - ::PROJ_NEAR;
+            constexpr float NEAR_SCALAR = 0.2;
             auto far_dist = PROJ_DIST;
             auto near_dist = far_dist * NEAR_SCALAR;
 
