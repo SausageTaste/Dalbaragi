@@ -438,17 +438,15 @@ namespace dal {
         return height;
     }
 
-    uint32_t WindowGLFW::xpos() const {
+    int32_t WindowGLFW::xpos() const {
         int output = 0;
         glfwGetWindowPos(::window_cast(this->m_window), &output, nullptr);
-        dalAssert(0 <= output);
         return output;
     }
 
-    uint32_t WindowGLFW::ypos() const {
+    int32_t WindowGLFW::ypos() const {
         int output = 0;
         glfwGetWindowPos(::window_cast(this->m_window), nullptr, &output);
-        dalAssert(0 <= output);
         return output;
     }
 

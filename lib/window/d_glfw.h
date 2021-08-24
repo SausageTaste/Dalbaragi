@@ -18,8 +18,8 @@ namespace dal {
 
         uint32_t m_windowed_width;
         uint32_t m_windowed_height;
-        uint32_t m_windowed_xpos;
-        uint32_t m_windowed_ypos;
+        int32_t m_windowed_xpos;
+        int32_t m_windowed_ypos;
 
     public:
         WindowGLFW(const char* const title);
@@ -58,9 +58,9 @@ namespace dal {
 
         uint32_t height() const;
 
-        uint32_t xpos() const;
+        int32_t xpos() const;
 
-        uint32_t ypos() const;
+        int32_t ypos() const;
 
     };
 
