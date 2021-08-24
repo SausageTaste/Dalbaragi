@@ -33,13 +33,22 @@ My goal is catching up my previous [OpenGL game engine project](https://github.c
 
 Most commands are same on supported platforms unless otherwise specified.
 
+On Android, you can use Bluetooth keyboard or just stick to touch screen control.
+
+## Keyboard control
+
 | Key | Command
 |-|-
 | WASD | Move
 | Arrow keys | Look around
 | SPACE | Ascend vertically
 | Left Ctrl | Descend vertically
-| Drag on left side of window | Move
-| Drag on right side of window | Look around
 | Q or E | Tilt left or right
 | Alt + Enter | Toggle full screen (Windows and Linux)
+
+## Touch control
+
+| Key | Command
+|-|-
+| Drag (Swipe) on left side of window | Move
+| Drag (Swipe) on right side of window | Look around
