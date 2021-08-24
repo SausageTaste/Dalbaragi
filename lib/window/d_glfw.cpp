@@ -213,7 +213,7 @@ namespace {
                 e.m_action_type = dal::KeyActionType::down;
                 break;
             case GLFW_REPEAT:
-                e.m_action_type = dal::KeyActionType::down;
+                e.m_action_type = dal::KeyActionType::repeat;
                 break;
             case GLFW_RELEASE:
                 e.m_action_type = dal::KeyActionType::up;

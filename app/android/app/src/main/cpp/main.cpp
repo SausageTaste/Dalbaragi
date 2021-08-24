@@ -331,7 +331,7 @@ namespace {
 
         switch (action) {
             case AKEY_EVENT_ACTION_DOWN:
-                e.m_action_type = dal::KeyActionType::down;
+                e.m_action_type = km.key_state_of(e.m_key).m_pressed ? e.m_action_type = dal::KeyActionType::repeat : dal::KeyActionType::down;
                 break;
             case AKEY_EVENT_ACTION_UP:
                 e.m_action_type = dal::KeyActionType::up;
