@@ -3,14 +3,17 @@
 # What is this?
 
 My personal game engine project powered by Vulkan.
-My goal is catching up my previous [OpenGL game engine project](https://github.com/SausageTaste/Little-Ruler) in terms of rendering techniques and image quality.
+
+My goal is to catch up my previous [OpenGL game engine project](https://github.com/SausageTaste/Little-Ruler) in terms of rendering techniques and image quality.
+
+Supported platforms are Windows, Linux and Android.
 
 # How to build
 
-* Download LunarG Vulkan SDK [here](https://www.lunarg.com/vulkan-sdk/) and install it
-* Git is required to fetch dependencies automatically
-* CMake is the only supported build system so please use it
-* On Ubuntu you may need to execute followings to configure CMakeList.txt without error
+* Download [LunarG Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) and install it
+* *CMake* is the only supported build system so please use it
+* *Git* is required for CMake to fetch dependencies automatically
+* On *Ubuntu* you may need to execute followings to configure CMakeList.txt without error
     ```
     sudo apt-get install libx11-dev
     sudo apt-get install xorg-dev libglu1-mesa-dev
@@ -31,7 +34,7 @@ My goal is catching up my previous [OpenGL game engine project](https://github.c
 
 # Control
 
-Most commands are same on supported platforms unless otherwise specified.
+Most commands are consistent across all supported platforms unless otherwise specified.
 
 On Android, you can use Bluetooth keyboard or just stick to touch screen control.
 
@@ -50,5 +53,5 @@ On Android, you can use Bluetooth keyboard or just stick to touch screen control
 
 | Key | Command
 |-|-
-| Drag (Swipe) on left side of window | Move
-| Drag (Swipe) on right side of window | Look around
+| Swipe on left side of window | Move
+| Swipe on right side of window | Look around
