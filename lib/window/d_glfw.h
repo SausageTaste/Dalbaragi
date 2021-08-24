@@ -13,7 +13,7 @@ namespace dal {
     class WindowGLFW {
 
     private:
-        void* m_window;
+        void* const m_window;
         std::string m_title;
 
         uint32_t m_windowed_width;

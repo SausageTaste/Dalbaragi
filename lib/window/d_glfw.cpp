@@ -298,21 +298,18 @@ namespace {
 namespace dal {
 
     WindowGLFW::WindowGLFW(const char* const title)
-        : m_window(nullptr)
+        : m_window(::create_glfw_window_resizable(title, DAL_START_AS_FULLSCREEN))
         , m_title(title)
         , m_windowed_xpos(64)
         , m_windowed_ypos(64)
         , m_windowed_width(800)
         , m_windowed_height(450)
     {
-        const auto window = ::create_glfw_window_resizable(title, DAL_START_AS_FULLSCREEN);
-        this->m_window = window;
-        ::fill_glfw_window(window, *this);
+        ::fill_glfw_window(::window_cast(this->m_window), *this);
     }
 
     WindowGLFW::~WindowGLFW() {
         glfwDestroyWindow(::window_cast(this->m_window));
-        this->m_window = nullptr;
         glfwTerminate();
     }
 
