@@ -362,10 +362,6 @@ namespace dal {
         }
     }
 
-    void WindowGLFW::toggle_fullscreen() {
-        this->set_fullscreen(!this->is_fullscreen());
-    }
-
     void WindowGLFW::set_callback_fbuf_resize(std::function<void(int, int)> func) {
         g_callback_func_buf_resize = func;
     }

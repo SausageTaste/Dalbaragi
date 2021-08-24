@@ -38,7 +38,9 @@ namespace dal {
 
         void set_fullscreen(const bool fullscreen);
 
-        void toggle_fullscreen();
+        void toggle_fullscreen() {
+            this->set_fullscreen(!this->is_fullscreen());
+        }
 
         void set_callback_fbuf_resize(std::function<void(int, int)> func);
 
