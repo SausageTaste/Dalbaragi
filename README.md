@@ -31,6 +31,8 @@ My goal is catching up my previous [OpenGL game engine project](https://github.c
 
 # Control
 
+Most commands are same on supported platforms unless otherwise specified.
+
 | Key | Command
 |-|-
 | WASD | Move
