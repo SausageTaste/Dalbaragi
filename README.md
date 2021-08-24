@@ -13,11 +13,6 @@ Supported platforms are Windows, Linux and Android.
 * Download [LunarG Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) and install it
 * *CMake* is the only supported build system so please use it
 * *Git* is required for CMake to fetch dependencies automatically
-* On *Ubuntu* you may need to execute followings to configure CMakeList.txt without error
-    ```
-    sudo apt-get install libx11-dev
-    sudo apt-get install xorg-dev libglu1-mesa-dev
-    ```
 
 ## For Windows
 
@@ -27,6 +22,11 @@ Supported platforms are Windows, Linux and Android.
 
 * I have only tested it on Ubuntu
 * Build CMake target `dalbaragi_linux` and execute it
+* On Ubuntu you may need to execute followings to configure CMake without error
+    ```
+    sudo apt-get install libx11-dev
+    sudo apt-get install xorg-dev libglu1-mesa-dev
+    ```
 
 ## For Android
 
