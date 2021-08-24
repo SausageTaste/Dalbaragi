@@ -13,8 +13,13 @@ namespace dal {
     class WindowGLFW {
 
     private:
-        void* m_window = nullptr;
+        void* m_window;
         std::string m_title;
+
+        uint32_t m_windowed_width;
+        uint32_t m_windowed_height;
+        uint32_t m_windowed_xpos;
+        uint32_t m_windowed_ypos;
 
     public:
         WindowGLFW(const char* const title);
@@ -24,6 +29,10 @@ namespace dal {
         bool should_close() const;
         std::vector<std::string> get_vulkan_extensions() const;
         surface_create_func_t get_vk_surface_creator() const;
+
+        bool is_fullscreen() const;
+        void set_fullscreen(const bool fullscreen);
+        void toggle_fullscreen();
 
         void set_callback_fbuf_resize(std::function<void(int, int)> func);
         void set_callback_mouse_event(std::function<void(const dal::MouseEvent&)> func);
@@ -37,6 +46,8 @@ namespace dal {
         }
         uint32_t width() const;
         uint32_t height() const;
+        uint32_t xpos() const;
+        uint32_t ypos() const;
 
     };
 
