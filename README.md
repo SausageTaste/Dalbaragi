@@ -51,7 +51,7 @@ On Android, you can use Bluetooth keyboard or just stick to touch screen control
 
 ## Touch control
 
-| Key | Command
+| Action | Command
 |-|-
 | Swipe on left side of window | Move
 | Swipe on right side of window | Look around
