@@ -15,6 +15,10 @@
 
 namespace {
 
+    GLFWwindow* window_cast(void* const ptr) {
+        return reinterpret_cast<GLFWwindow*>(ptr);
+    }
+
     // The result might be nullptr
     GLFWwindow* create_glfw_window(const char* const title, const bool full_screen) {
         glfwInit();
@@ -289,7 +293,7 @@ namespace dal {
     }
 
     WindowGLFW::~WindowGLFW() {
-        glfwDestroyWindow(reinterpret_cast<GLFWwindow*>(this->m_window));
+        glfwDestroyWindow(::window_cast(this->m_window));
         this->m_window = nullptr;
         glfwTerminate();
     }
@@ -299,7 +303,7 @@ namespace dal {
     }
 
     bool WindowGLFW::should_close() const {
-        return glfwWindowShouldClose(reinterpret_cast<GLFWwindow*>(this->m_window));
+        return glfwWindowShouldClose(::window_cast(this->m_window));
     }
 
     std::vector<std::string> WindowGLFW::get_vulkan_extensions() const {
@@ -318,7 +322,7 @@ namespace dal {
         return [this](void* vk_instance) -> uint64_t {
             auto surface = ::create_vk_surface(
                 reinterpret_cast<VkInstance>(vk_instance),
-                reinterpret_cast<GLFWwindow*>(this->m_window)
+                ::window_cast(this->m_window)
             );
 
 #ifdef DAL_SYS_X32
@@ -332,7 +336,7 @@ namespace dal {
     }
 
     bool WindowGLFW::is_fullscreen() const {
-        return ::is_window_full_screen(reinterpret_cast<GLFWwindow*>(this->m_window));
+        return ::is_window_full_screen(::window_cast(this->m_window));
     }
 
     void WindowGLFW::set_fullscreen(const bool fullscreen) {
@@ -341,11 +345,11 @@ namespace dal {
             this->m_windowed_height = this->height();
             this->m_windowed_xpos = this->xpos();
             this->m_windowed_ypos = this->ypos();
-            ::set_window_full_screen(reinterpret_cast<GLFWwindow*>(this->m_window));
+            ::set_window_full_screen(::window_cast(this->m_window));
         }
         else {
             ::set_window_window_mode(
-                reinterpret_cast<GLFWwindow*>(this->m_window),
+                ::window_cast(this->m_window),
                 this->m_windowed_xpos,
                 this->m_windowed_ypos,
                 this->m_windowed_width,
@@ -422,28 +426,28 @@ namespace dal {
 
     uint32_t WindowGLFW::width() const {
         int width = 0;
-        glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(this->m_window), &width, nullptr);
+        glfwGetFramebufferSize(::window_cast(this->m_window), &width, nullptr);
         dalAssert(width >= 0);
         return width;
     }
 
     uint32_t WindowGLFW::height() const {
         int height = 0;
-        glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(this->m_window), nullptr, &height);
+        glfwGetFramebufferSize(::window_cast(this->m_window), nullptr, &height);
         dalAssert(height >= 0);
         return height;
     }
 
     uint32_t WindowGLFW::xpos() const {
         int output = 0;
-        glfwGetWindowPos(reinterpret_cast<GLFWwindow*>(this->m_window), &output, nullptr);
+        glfwGetWindowPos(::window_cast(this->m_window), &output, nullptr);
         dalAssert(0 <= output);
         return output;
     }
 
     uint32_t WindowGLFW::ypos() const {
         int output = 0;
-        glfwGetWindowPos(reinterpret_cast<GLFWwindow*>(this->m_window), nullptr, &output);
+        glfwGetWindowPos(::window_cast(this->m_window), nullptr, &output);
         dalAssert(0 <= output);
         return output;
     }
