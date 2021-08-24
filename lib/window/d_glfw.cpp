@@ -9,16 +9,29 @@
 #include "d_timer.h"
 #include "d_logger.h"
 
+#define DAL_START_AS_FULLSCREEN true
+
 
 namespace {
 
     // The result might be nullptr
-    GLFWwindow* create_glfw_window(const unsigned width, const unsigned height, const char* const title) {
+    GLFWwindow* create_glfw_window(const char* const title, const bool full_screen) {
         glfwInit();
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        return glfwCreateWindow(width, height, title, nullptr, nullptr);
+        const auto monitor = glfwGetPrimaryMonitor();
+        const auto mode = glfwGetVideoMode(monitor);
+
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+
+        if (full_screen) {
+            glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+            return glfwCreateWindow(mode->width, mode->height, title, monitor, nullptr);
+        }
+        else {
+            glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+            return glfwCreateWindow(800, 450, title, nullptr, nullptr);
+        }
     }
 
     VkSurfaceKHR create_vk_surface(const VkInstance instance, GLFWwindow* const window) {
@@ -226,7 +239,7 @@ namespace dal {
     WindowGLFW::WindowGLFW(const char* const title) {
         this->m_title = title;
 
-        const auto window = ::create_glfw_window(800, 450, title);
+        const auto window = ::create_glfw_window(title, true);
         if (nullptr == window) {
             throw std::runtime_error{ "Failed to create glfw window" };
         }
