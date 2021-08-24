@@ -9,7 +9,8 @@
 #include "d_timer.h"
 #include "d_logger.h"
 
-#define DAL_START_AS_FULLSCREEN true
+
+#define DAL_START_AS_FULLSCREEN false
 
 
 namespace {
@@ -272,7 +273,7 @@ namespace dal {
         , m_windowed_width(800)
         , m_windowed_height(450)
     {
-        const auto window = ::create_glfw_window(title, true);
+        const auto window = ::create_glfw_window(title, DAL_START_AS_FULLSCREEN);
         if (nullptr == window) {
             throw std::runtime_error{ "Failed to create glfw window" };
         }
