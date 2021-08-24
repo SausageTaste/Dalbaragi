@@ -23,23 +23,33 @@ namespace {
         return reinterpret_cast<GLFWwindow*>(ptr);
     }
 
-    // The result might be nullptr
-    GLFWwindow* create_glfw_window(const char* const title, const bool full_screen) {
+    GLFWwindow* create_glfw_window_fullscreen(const char* const title, const bool resizable) {
         glfwInit();
 
         const auto monitor = glfwGetPrimaryMonitor();
         const auto mode = glfwGetVideoMode(monitor);
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
         glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
 
-        if (full_screen) {
-            return glfwCreateWindow(mode->width, mode->height, title, monitor, nullptr);
-        }
-        else {
-            return glfwCreateWindow(::DEFAULT_WINDOW_WIDTH, ::DEFAULT_WINDOW_HEIGHT, title, nullptr, nullptr);
-        }
+        return glfwCreateWindow(mode->width, mode->height, title, monitor, nullptr);
+    }
+
+    GLFWwindow* create_glfw_window_windowed(const char* const title, const bool resizable, const uint32_t width, const uint32_t height) {
+        glfwInit();
+
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
+
+        return glfwCreateWindow(::DEFAULT_WINDOW_WIDTH, ::DEFAULT_WINDOW_HEIGHT, title, nullptr, nullptr);
+    }
+
+    GLFWwindow* create_glfw_window_resizable(const char* const title, const bool full_screen) {
+        if (full_screen)
+            return ::create_glfw_window_fullscreen(title, true);
+        else
+            return create_glfw_window_windowed(title, true, ::DEFAULT_WINDOW_WIDTH, ::DEFAULT_WINDOW_HEIGHT);
     }
 
     VkSurfaceKHR create_vk_surface(const VkInstance instance, GLFWwindow* const window) {
@@ -295,7 +305,7 @@ namespace dal {
         , m_windowed_width(800)
         , m_windowed_height(450)
     {
-        const auto window = ::create_glfw_window(title, DAL_START_AS_FULLSCREEN);
+        const auto window = ::create_glfw_window_resizable(title, DAL_START_AS_FULLSCREEN);
         this->m_window = window;
         ::fill_glfw_window(window, *this);
     }
