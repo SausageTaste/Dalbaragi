@@ -15,6 +15,10 @@
 
 namespace {
 
+    constexpr int DEFAULT_WINDOW_WIDTH = 1600;
+    constexpr int DEFAULT_WINDOW_HEIGHT = 900;
+
+
     GLFWwindow* window_cast(void* const ptr) {
         return reinterpret_cast<GLFWwindow*>(ptr);
     }
@@ -34,7 +38,7 @@ namespace {
             return glfwCreateWindow(mode->width, mode->height, title, monitor, nullptr);
         }
         else {
-            return glfwCreateWindow(800, 450, title, nullptr, nullptr);
+            return glfwCreateWindow(::DEFAULT_WINDOW_WIDTH, ::DEFAULT_WINDOW_HEIGHT, title, nullptr, nullptr);
         }
     }
 
