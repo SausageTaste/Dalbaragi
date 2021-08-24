@@ -13,7 +13,6 @@ namespace dal {
         std::string                     m_window_title;
         dal::Filesystem*                m_filesystem = nullptr;
         std::vector<std::string>        m_extensions;
-        surface_create_func_t           m_surface_create_func;
 
         bool check_validity() const;
     };
@@ -44,7 +43,7 @@ namespace dal {
 
         void update();
 
-        void init_vulkan(const unsigned win_width, const unsigned win_height);
+        void init_vulkan(const unsigned win_width, const unsigned win_height, const surface_create_func_t surface_create_func);
 
         void destory_vulkan();
 
