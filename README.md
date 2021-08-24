@@ -40,4 +40,4 @@ My goal is catching up my previous [OpenGL game engine project](https://github.c
 | Drag on left side of window | Move
 | Drag on right side of window | Look around
 | Q or E | Tilt left or right
-| Alt + Enter | Toggle full screen
+| Alt + Enter | Toggle full screen (Windows and Linux)
