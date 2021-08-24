@@ -268,6 +268,20 @@ namespace {
         g_callback_func_gamepad_connection(e);
     }
 
+
+    void fill_glfw_window(GLFWwindow* const window, dal::WindowGLFW& window_obj) {
+        if (nullptr == window)
+            throw std::runtime_error{"Failed to create glfw window"};
+
+        glfwSetWindowUserPointer(window, reinterpret_cast<void*>(&window_obj));
+
+        glfwSetFramebufferSizeCallback(window, ::callback_fbuf_resize);
+        glfwSetCursorPosCallback(window, ::callback_cursor_pos);
+        glfwSetMouseButtonCallback(window, ::callback_mouse_button);
+        glfwSetKeyCallback(window, ::callback_key_event);
+        glfwSetJoystickCallback(::joystick_callback);
+    }
+
 }
 
 
@@ -282,18 +296,8 @@ namespace dal {
         , m_windowed_height(450)
     {
         const auto window = ::create_glfw_window(title, DAL_START_AS_FULLSCREEN);
-        if (nullptr == window) {
-            throw std::runtime_error{ "Failed to create glfw window" };
-        }
         this->m_window = window;
-
-        glfwSetWindowUserPointer(window, reinterpret_cast<void*>(this));
-
-        glfwSetFramebufferSizeCallback(window, ::callback_fbuf_resize);
-        glfwSetCursorPosCallback(window, ::callback_cursor_pos);
-        glfwSetMouseButtonCallback(window, ::callback_mouse_button);
-        glfwSetKeyCallback(window, ::callback_key_event);
-        glfwSetJoystickCallback(::joystick_callback);
+        ::fill_glfw_window(window, *this);
     }
 
     WindowGLFW::~WindowGLFW() {
