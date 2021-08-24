@@ -5,7 +5,7 @@
 #include "d_logger.h"
 
 
-//#define DAL_PRINT_INPUT
+#define DAL_PRINT_INPUT false
 
 
 namespace {
@@ -27,7 +27,7 @@ namespace dal {
 
     bool TouchInputManager::push_back(const TouchEvent& e) {
 
-#ifdef DAL_PRINT_INPUT
+#if DAL_PRINT_INPUT
         if (TouchActionType::move != e.m_action_type && TouchActionType::hover_move != e.m_action_type) {
             dalInfo(fmt::format(
                 "Touch Event{{ type={}, id={}, time={}, pos={}x{} }}",
@@ -50,7 +50,7 @@ namespace dal {
 
     bool KeyInputManager::push_back(const KeyEvent& e) {
 
-#ifdef DAL_PRINT_INPUT
+#if DAL_PRINT_INPUT
         {
             std::string key_str;
             if (KeyCode::unknown == e.m_key) {

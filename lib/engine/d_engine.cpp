@@ -296,8 +296,6 @@ namespace dal {
     bool EngineCreateInfo::check_validity() const {
         if (nullptr == this->m_filesystem)
             return false;
-        if (!this->m_surface_create_func)
-            return false;
 
         return true;
     }
@@ -388,7 +386,7 @@ namespace dal {
         this->m_renderer->update(this->m_scene.m_euler_camera, this->m_scene.make_render_list());
     }
 
-    void Engine::init_vulkan(const unsigned win_width, const unsigned win_height) {
+    void Engine::init_vulkan(const unsigned win_width, const unsigned win_height, const surface_create_func_t surface_create_func) {
         this->m_screen_width = win_width;
         this->m_screen_height = win_height;
 
@@ -405,7 +403,7 @@ namespace dal {
             this->m_task_man,
             this->m_res_man,
             extensions,
-            this->m_create_info.m_surface_create_func
+            surface_create_func
         );
 
         this->m_res_man.set_renderer(*this->m_renderer.get());

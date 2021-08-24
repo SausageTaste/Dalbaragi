@@ -15,6 +15,8 @@ namespace {
 
     dal::Filesystem g_filesys;
 
+    dal::surface_create_func_t g_surface_create_func;
+
 
     class LogChannel_Logcat : public dal::ILogChannel {
 
@@ -67,7 +69,7 @@ namespace {
             "VK_KHR_surface",
             "VK_KHR_android_surface",
         };
-        const auto surface_creator = [state](void* vk_instance) -> uint64_t {
+        g_surface_create_func = [state](void* vk_instance) -> uint64_t {
             VkAndroidSurfaceCreateInfoKHR create_info{
                 .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
                 .pNext = nullptr,
@@ -97,7 +99,6 @@ namespace {
         engine_info.m_window_title = "Dalbrargi Android";
         engine_info.m_filesystem = &g_filesys;
         engine_info.m_extensions = instanceExt;
-        engine_info.m_surface_create_func = surface_creator;
 
         dalAssert(nullptr == state->userData);
         state->userData = new dal::Engine(engine_info);
@@ -331,7 +332,7 @@ namespace {
 
         switch (action) {
             case AKEY_EVENT_ACTION_DOWN:
-                e.m_action_type = dal::KeyActionType::down;
+                e.m_action_type = km.key_state_of(e.m_key).m_pressed ? e.m_action_type = dal::KeyActionType::repeat : dal::KeyActionType::down;
                 break;
             case AKEY_EVENT_ACTION_UP:
                 e.m_action_type = dal::KeyActionType::up;
@@ -404,7 +405,11 @@ extern "C" {
         switch (cmd) {
             case APP_CMD_INIT_WINDOW:
                 dalInfo("handle cmd: init window");
-                engine.init_vulkan(ANativeWindow_getWidth(state->window), ANativeWindow_getHeight(state->window));
+                engine.init_vulkan(
+                    ANativeWindow_getWidth(state->window),
+                    ANativeWindow_getHeight(state->window),
+                    g_surface_create_func
+                );
                 break;
             case APP_CMD_TERM_WINDOW:
                 dalInfo("handle cmd: window terminated");

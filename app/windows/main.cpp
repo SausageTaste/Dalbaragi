@@ -19,10 +19,9 @@ int main(int argc, char** argv) {
     engine_info.m_window_title = "Dalbrargi";
     engine_info.m_filesystem = &filesys;
     engine_info.m_extensions = window.get_vulkan_extensions();
-    engine_info.m_surface_create_func = window.get_vk_surface_creator();
 
     dal::Engine engine{ engine_info };
-    engine.init_vulkan(window.width(), window.height());
+    engine.init_vulkan(window.width(), window.height(), window.get_vk_surface_creator());
 
     window.set_callback_fbuf_resize([&engine](int width, int height) { engine.on_screen_resize(width, height); });
     window.set_callback_mouse_event([&engine](const dal::MouseEvent& e) {

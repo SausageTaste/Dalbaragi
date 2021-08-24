@@ -57,7 +57,7 @@ namespace dal {
 // Keyboard
 namespace dal {
 
-    enum class KeyActionType { down, up };
+    enum class KeyActionType { down, up, repeat };
 
     enum class KeyModifier { none, shift, ctrl, alt, caps_lock, num_lock };
 
@@ -115,7 +115,7 @@ namespace dal {
         void update_one(const KeyEvent& e) {
             const auto index = this->to_index(e.m_key);
             this->m_states[index].m_last_updated_sec = e.m_time_sec;
-            this->m_states[index].m_pressed = (e.m_action_type == KeyActionType::down);
+            this->m_states[index].m_pressed = (e.m_action_type != KeyActionType::up);
         }
 
         KeyState& operator[](const KeyCode key) {

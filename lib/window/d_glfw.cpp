@@ -9,29 +9,47 @@
 #include "d_timer.h"
 #include "d_logger.h"
 
-#define DAL_START_AS_FULLSCREEN true
+
+#define DAL_START_AS_FULLSCREEN false
 
 
 namespace {
 
-    // The result might be nullptr
-    GLFWwindow* create_glfw_window(const char* const title, const bool full_screen) {
+    constexpr int DEFAULT_WINDOW_WIDTH = 1600;
+    constexpr int DEFAULT_WINDOW_HEIGHT = 900;
+
+
+    GLFWwindow* window_cast(void* const ptr) {
+        return reinterpret_cast<GLFWwindow*>(ptr);
+    }
+
+    GLFWwindow* create_glfw_window_fullscreen(const char* const title, const bool resizable) {
         glfwInit();
 
         const auto monitor = glfwGetPrimaryMonitor();
         const auto mode = glfwGetVideoMode(monitor);
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
         glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
 
-        if (full_screen) {
-            glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-            return glfwCreateWindow(mode->width, mode->height, title, monitor, nullptr);
-        }
-        else {
-            glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-            return glfwCreateWindow(800, 450, title, nullptr, nullptr);
-        }
+        return glfwCreateWindow(mode->width, mode->height, title, monitor, nullptr);
+    }
+
+    GLFWwindow* create_glfw_window_windowed(const char* const title, const bool resizable, const uint32_t width, const uint32_t height) {
+        glfwInit();
+
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
+
+        return glfwCreateWindow(::DEFAULT_WINDOW_WIDTH, ::DEFAULT_WINDOW_HEIGHT, title, nullptr, nullptr);
+    }
+
+    GLFWwindow* create_glfw_window_resizable(const char* const title, const bool full_screen) {
+        if (full_screen)
+            return ::create_glfw_window_fullscreen(title, true);
+        else
+            return create_glfw_window_windowed(title, true, ::DEFAULT_WINDOW_WIDTH, ::DEFAULT_WINDOW_HEIGHT);
     }
 
     VkSurfaceKHR create_vk_surface(const VkInstance instance, GLFWwindow* const window) {
@@ -50,6 +68,29 @@ namespace {
             return VK_NULL_HANDLE;
 
         return surface;
+    }
+
+    bool is_window_full_screen(GLFWwindow* const window) {
+        return glfwGetWindowMonitor(window) != nullptr;
+    }
+
+    void set_window_full_screen(GLFWwindow* const window) {
+        if (true == ::is_window_full_screen(window))
+            return;
+
+        const auto monitor = glfwGetPrimaryMonitor();
+        const auto mode = glfwGetVideoMode(monitor);
+
+        glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+        dalInfo(fmt::format("Set full screen: width={}, height={}, refresh rate={}", mode->width, mode->height, mode->refreshRate).c_str());
+    }
+
+    void set_window_window_mode(GLFWwindow* const window, const int xpos, const int ypos, const int width, const int height) {
+        if (false == ::is_window_full_screen(window))
+            return;
+
+        glfwSetWindowMonitor(window, nullptr, xpos, ypos, width, height, 0);
+        dalInfo(fmt::format("Set window mode: width={}, height={}, xpos={}, ypos={}", width, height, xpos, ypos).c_str());
     }
 
 }
@@ -191,13 +232,19 @@ namespace {
                 e.m_action_type = dal::KeyActionType::down;
                 break;
             case GLFW_REPEAT:
-                e.m_action_type = dal::KeyActionType::down;
+                e.m_action_type = dal::KeyActionType::repeat;
                 break;
             case GLFW_RELEASE:
                 e.m_action_type = dal::KeyActionType::up;
                 break;
             default:
                 dalWarn(fmt::format("Unknown key action type: {}", action).c_str());
+        }
+
+        if (e.m_key == dal::KeyCode::enter && e.modifier_state(dal::KeyModifier::alt) && e.m_action_type == dal::KeyActionType::down) {
+            const auto win_obj = reinterpret_cast<dal::WindowGLFW*>(glfwGetWindowUserPointer(window));
+            win_obj->toggle_fullscreen();
+            return;
         }
 
         g_callback_func_key_event(e);
@@ -231,19 +278,12 @@ namespace {
         g_callback_func_gamepad_connection(e);
     }
 
-}
 
+    void fill_glfw_window(GLFWwindow* const window, dal::WindowGLFW& window_obj) {
+        if (nullptr == window)
+            throw std::runtime_error{"Failed to create glfw window"};
 
-namespace dal {
-
-    WindowGLFW::WindowGLFW(const char* const title) {
-        this->m_title = title;
-
-        const auto window = ::create_glfw_window(title, true);
-        if (nullptr == window) {
-            throw std::runtime_error{ "Failed to create glfw window" };
-        }
-        this->m_window = window;
+        glfwSetWindowUserPointer(window, reinterpret_cast<void*>(&window_obj));
 
         glfwSetFramebufferSizeCallback(window, ::callback_fbuf_resize);
         glfwSetCursorPosCallback(window, ::callback_cursor_pos);
@@ -252,8 +292,26 @@ namespace dal {
         glfwSetJoystickCallback(::joystick_callback);
     }
 
+}
+
+
+namespace dal {
+
+    WindowGLFW::WindowGLFW(const char* const title)
+        : m_window(nullptr)
+        , m_title(title)
+        , m_windowed_xpos(64)
+        , m_windowed_ypos(64)
+        , m_windowed_width(800)
+        , m_windowed_height(450)
+    {
+        const auto window = ::create_glfw_window_resizable(title, DAL_START_AS_FULLSCREEN);
+        this->m_window = window;
+        ::fill_glfw_window(window, *this);
+    }
+
     WindowGLFW::~WindowGLFW() {
-        glfwDestroyWindow(reinterpret_cast<GLFWwindow*>(this->m_window));
+        glfwDestroyWindow(::window_cast(this->m_window));
         this->m_window = nullptr;
         glfwTerminate();
     }
@@ -263,7 +321,7 @@ namespace dal {
     }
 
     bool WindowGLFW::should_close() const {
-        return glfwWindowShouldClose(reinterpret_cast<GLFWwindow*>(this->m_window));
+        return glfwWindowShouldClose(::window_cast(this->m_window));
     }
 
     std::vector<std::string> WindowGLFW::get_vulkan_extensions() const {
@@ -282,7 +340,7 @@ namespace dal {
         return [this](void* vk_instance) -> uint64_t {
             auto surface = ::create_vk_surface(
                 reinterpret_cast<VkInstance>(vk_instance),
-                reinterpret_cast<GLFWwindow*>(this->m_window)
+                ::window_cast(this->m_window)
             );
 
 #ifdef DAL_SYS_X32
@@ -293,6 +351,29 @@ namespace dal {
             #error Not supported system bis size
 #endif
         };
+    }
+
+    bool WindowGLFW::is_fullscreen() const {
+        return ::is_window_full_screen(::window_cast(this->m_window));
+    }
+
+    void WindowGLFW::set_fullscreen(const bool fullscreen) {
+        if (fullscreen) {
+            this->m_windowed_width = this->width();
+            this->m_windowed_height = this->height();
+            this->m_windowed_xpos = this->xpos();
+            this->m_windowed_ypos = this->ypos();
+            ::set_window_full_screen(::window_cast(this->m_window));
+        }
+        else {
+            ::set_window_window_mode(
+                ::window_cast(this->m_window),
+                this->m_windowed_xpos,
+                this->m_windowed_ypos,
+                this->m_windowed_width,
+                this->m_windowed_height
+            );
+        }
     }
 
     void WindowGLFW::set_callback_fbuf_resize(std::function<void(int, int)> func) {
@@ -359,14 +440,28 @@ namespace dal {
 
     uint32_t WindowGLFW::width() const {
         int width = 0;
-        glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(this->m_window), &width, nullptr);
+        glfwGetFramebufferSize(::window_cast(this->m_window), &width, nullptr);
+        dalAssert(width >= 0);
         return width;
     }
 
     uint32_t WindowGLFW::height() const {
         int height = 0;
-        glfwGetFramebufferSize(reinterpret_cast<GLFWwindow*>(this->m_window), nullptr, &height);
+        glfwGetFramebufferSize(::window_cast(this->m_window), nullptr, &height);
+        dalAssert(height >= 0);
         return height;
+    }
+
+    int32_t WindowGLFW::xpos() const {
+        int output = 0;
+        glfwGetWindowPos(::window_cast(this->m_window), &output, nullptr);
+        return output;
+    }
+
+    int32_t WindowGLFW::ypos() const {
+        int output = 0;
+        glfwGetWindowPos(::window_cast(this->m_window), nullptr, &output);
+        return output;
     }
 
 }
