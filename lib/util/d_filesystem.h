@@ -113,7 +113,15 @@ namespace dal {
         std::unique_ptr<IUserDataManager> m_userdata_mgr;
 
     public:
-        std::optional<ResPath> resolve_respath(const ResPath& path);
+        void init(
+            std::unique_ptr<IAssetManager>&& asset_mgr,
+            std::unique_ptr<IUserDataManager>&& userdata_mgr
+        ) {
+            this->m_asset_mgr = std::move(asset_mgr);
+            this->m_userdata_mgr = std::move(userdata_mgr);
+        }
+
+        std::optional<ResPath> resolve(const ResPath& path);
 
         std::unique_ptr<FileReadOnly> open(const ResPath& path);
 

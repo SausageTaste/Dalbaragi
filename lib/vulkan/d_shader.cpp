@@ -337,7 +337,7 @@ namespace {
 namespace {
 
     dal::ShaderPipeline make_pipeline_gbuf(
-        dal::filesystem::AssetManager& asset_mgr,
+        dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
@@ -347,11 +347,11 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/gbuf_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = filesys.open("_asset/spv/gbuf_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'gbuf_v.spv' not found");
         }
-        const auto frag_src = asset_mgr.open("_asset/spv/gbuf_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = filesys.open("_asset/spv/gbuf_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'gbuf_f.spv' not found");
         }
@@ -422,7 +422,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_gbuf_animated(
-        dal::filesystem::AssetManager& asset_mgr,
+        dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
@@ -433,11 +433,11 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/gbuf_animated_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = filesys.open("_asset/spv/gbuf_animated_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'gbuf_animated_v.spv' not found");
         }
-        const auto frag_src = asset_mgr.open("_asset/spv/gbuf_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = filesys.open("_asset/spv/gbuf_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'gbuf_f.spv' not found");
         }
@@ -508,7 +508,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_composition(
-        dal::filesystem::AssetManager& asset_mgr,
+        dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
         const VkDescriptorSetLayout desc_layout_composition,
@@ -516,13 +516,13 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/composition_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = filesys.open("_asset/spv/composition_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'composition_v.spv' not found");
         }
         const auto frag_src = need_gamma_correction ?
-            asset_mgr.open("_asset/spv/composition_gamma_f.spv")->read_stl<std::vector<char>>() :
-            asset_mgr.open("_asset/spv/composition_f.spv")->read_stl<std::vector<char>>();
+            filesys.open("_asset/spv/composition_gamma_f.spv")->read_stl<std::vector<char>>() :
+            filesys.open("_asset/spv/composition_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'composition_f.spv' not found");
         }
@@ -591,18 +591,18 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_final(
-        dal::filesystem::AssetManager& asset_mgr,
+        dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
         const VkDescriptorSetLayout desc_layout_final,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/fill_screen_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = filesys.open("_asset/spv/fill_screen_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'fill_screen_v.spv' not found");
         }
-        const auto frag_src = asset_mgr.open("_asset/spv/fill_screen_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = filesys.open("_asset/spv/fill_screen_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'fill_screen_f.spv' not found");
         }
@@ -667,7 +667,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_alpha(
-        dal::filesystem::AssetManager& asset_mgr,
+        dal::Filesystem& filesys,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -676,13 +676,13 @@ namespace {
         const VkDescriptorSetLayout desc_layout_per_actor,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/alpha_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = filesys.open("_asset/spv/alpha_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'alpha_v.spv' not found");
         }
         const auto frag_src = need_gamma_correction ?
-            asset_mgr.open("_asset/spv/alpha_gamma_f.spv")->read_stl<std::vector<char>>() :
-            asset_mgr.open("_asset/spv/alpha_f.spv")->read_stl<std::vector<char>>();
+            filesys.open("_asset/spv/alpha_gamma_f.spv")->read_stl<std::vector<char>>() :
+            filesys.open("_asset/spv/alpha_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'alpha_f.spv' not found");
         }
@@ -757,7 +757,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_alpha_animated(
-        dal::filesystem::AssetManager& asset_mgr,
+        dal::Filesystem& filesys,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -767,13 +767,13 @@ namespace {
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/alpha_animated_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = filesys.open("_asset/spv/alpha_animated_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'alpha_animated_v.spv' not found");
         }
         const auto frag_src = need_gamma_correction ?
-            asset_mgr.open("_asset/spv/alpha_gamma_f.spv")->read_stl<std::vector<char>>() :
-            asset_mgr.open("_asset/spv/alpha_f.spv")->read_stl<std::vector<char>>();
+            filesys.open("_asset/spv/alpha_gamma_f.spv")->read_stl<std::vector<char>>() :
+            filesys.open("_asset/spv/alpha_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'alpha_f.spv' not found");
         }
@@ -849,17 +849,17 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_shadow(
-        dal::filesystem::AssetManager& asset_mgr,
+        dal::Filesystem& filesys,
         const bool does_support_depth_clamp,
         const VkExtent2D& extent,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/shadow_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = filesys.open("_asset/spv/shadow_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src) {
             dalAbort("Vertex shader 'shadow_v.spv' not found");
         }
-        const auto frag_src = asset_mgr.open("_asset/spv/shadow_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = filesys.open("_asset/spv/shadow_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src) {
             dalAbort("Fragment shader 'shadow_f.spv' not found");
         }
@@ -930,17 +930,17 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_shadow_animated(
-        dal::filesystem::AssetManager& asset_mgr,
+        dal::Filesystem& filesys,
         const bool does_support_depth_clamp,
         const VkExtent2D& extent,
         const VkRenderPass renderpass,
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDevice logi_device
     ) {
-        const auto vert_src = asset_mgr.open("_asset/spv/shadow_animated_v.spv")->read_stl<std::vector<char>>();
+        const auto vert_src = filesys.open("_asset/spv/shadow_animated_v.spv")->read_stl<std::vector<char>>();
         if (!vert_src)
             dalAbort("Vertex shader 'shadow_animated_v.spv' not found");
-        const auto frag_src = asset_mgr.open("_asset/spv/shadow_f.spv")->read_stl<std::vector<char>>();
+        const auto frag_src = filesys.open("_asset/spv/shadow_f.spv")->read_stl<std::vector<char>>();
         if (!frag_src)
             dalAbort("Fragment shader 'shadow_f.spv' not found");
 
@@ -1016,7 +1016,7 @@ namespace {
 namespace dal {
 
     void PipelineManager::init(
-        dal::filesystem::AssetManager& asset_mgr,
+        dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const bool does_support_depth_clamp,
         const VkExtent2D& swapchain_extent,
@@ -1037,7 +1037,7 @@ namespace dal {
         this->destroy(logi_device);
 
         this->m_gbuf = ::make_pipeline_gbuf(
-            asset_mgr,
+            filesys,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_per_global,
@@ -1048,7 +1048,7 @@ namespace dal {
         );
 
         this->m_gbuf_animated = ::make_pipeline_gbuf_animated(
-            asset_mgr,
+            filesys,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_per_global,
@@ -1060,7 +1060,7 @@ namespace dal {
         );
 
         this->m_composition = ::make_pipeline_composition(
-            asset_mgr,
+            filesys,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_composition,
@@ -1069,7 +1069,7 @@ namespace dal {
         );
 
         this->m_final = ::make_pipeline_final(
-            asset_mgr,
+            filesys,
             need_gamma_correction,
             swapchain_extent,
             desc_layout_final,
@@ -1078,7 +1078,7 @@ namespace dal {
         );
 
         this->m_alpha = ::make_pipeline_alpha(
-            asset_mgr,
+            filesys,
             rp_alpha,
             need_gamma_correction,
             gbuf_extent,
@@ -1089,7 +1089,7 @@ namespace dal {
         );
 
         this->m_alpha_animated = ::make_pipeline_alpha_animated(
-            asset_mgr,
+            filesys,
             rp_alpha,
             need_gamma_correction,
             gbuf_extent,
@@ -1101,7 +1101,7 @@ namespace dal {
         );
 
         this->m_shadow = ::make_pipeline_shadow(
-            asset_mgr,
+            filesys,
             does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
             rp_shadow.get(),
@@ -1109,7 +1109,7 @@ namespace dal {
         );
 
         this->m_shadow_animated = ::make_pipeline_shadow_animated(
-            asset_mgr,
+            filesys,
             does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
             rp_shadow.get(),

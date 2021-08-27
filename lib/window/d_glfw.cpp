@@ -8,6 +8,7 @@
 
 #include "d_timer.h"
 #include "d_logger.h"
+#include "d_defines.h"
 
 
 #define DAL_START_AS_FULLSCREEN false

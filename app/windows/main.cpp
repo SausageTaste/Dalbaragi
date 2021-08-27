@@ -3,6 +3,7 @@
 #include "d_glfw.h"
 #include "d_logger.h"
 #include "d_engine.h"
+#include "d_filesystem_std.h"
 
 
 int main(int argc, char** argv) {
@@ -12,6 +13,10 @@ int main(int argc, char** argv) {
 
     dal::LoggerSingleton::inst().add_channel(dal::get_log_channel_cout());
     dal::Filesystem filesys;
+    filesys.init(
+        std::make_unique<dal::AssetManagerSTD>(),
+        std::make_unique<dal::UserDataManagerSTD>()
+    );
 
     dal::WindowGLFW window("Dalbrargi");
 

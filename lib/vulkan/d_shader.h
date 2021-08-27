@@ -62,7 +62,7 @@ namespace dal {
 
     public:
         void init(
-            dal::filesystem::AssetManager& asset_mgr,
+            dal::Filesystem& filesys,
             const bool need_gamma_correction,
             const bool does_support_depth_clamp,
             const VkExtent2D& swapchain_extent,
