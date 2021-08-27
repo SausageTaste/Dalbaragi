@@ -1,4 +1,4 @@
-#include "d_filesystem2.h"
+#include "d_filesystem.h"
 
 #include "d_konsts.h"
 
@@ -39,11 +39,11 @@ namespace dal {
 // Filesystem2
 namespace dal {
 
-    std::optional<ResPath> Filesystem2::resolve_respath(const dal::ResPath& path) {
+    std::optional<ResPath> Filesystem::resolve_respath(const dal::ResPath& path) {
         return std::nullopt;
     }
 
-    std::unique_ptr<FileReadOnly> Filesystem2::open(const ResPath& path) {
+    std::unique_ptr<FileReadOnly> Filesystem::open(const ResPath& path) {
         if (!path.is_valid())
             return make_file_read_only_null();
 

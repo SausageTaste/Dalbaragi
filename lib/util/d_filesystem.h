@@ -106,7 +106,7 @@ namespace dal {
     };
 
 
-    class Filesystem2 {
+    class Filesystem {
 
     private:
         std::unique_ptr<IAssetManager> m_asset_mgr;
