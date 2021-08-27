@@ -1,5 +1,6 @@
 scene = require('scene')
 logger = require('logger')
+sysinfo = require('sysinfo')
 
 
 function on_engine_init()
@@ -21,8 +22,8 @@ function on_engine_init()
     do
         local light = scene.create_slight()
         light:get_pos():set_xyz(6, 2, 0)
-        light:get_color():set_xyz(3, 3, 3)
-        light:set_direction_to_light(0, 1, 1)
+        light:get_color():set_xyz(5, 5, 5)
+        light:set_direction_to_light(0, 0, 1)
         light:set_fade_start_degree(0)
         light:set_fade_end_degree(35)
     end
@@ -68,5 +69,20 @@ function on_renderer_init()
         local t = e:get_transform_view()
         t:get_pos():set_z(-1)
         e:notify_transform_change()
+    end
+end
+
+
+function before_rendering()
+    local t = sysinfo.time()
+
+    do
+        local light = scene.get_slight_at(0)
+        light:set_direction_to_light(math.sin(t * 0.7), 1, math.cos(t * 0.7));
+    end
+
+    do
+        local light = scene.get_slight_at(1)
+        light:get_pos():set_xyz(math.cos(t*0.3) * 3, 1, 4.5);
     end
 end

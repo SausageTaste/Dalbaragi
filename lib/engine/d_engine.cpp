@@ -306,6 +306,8 @@ namespace dal {
         this->m_res_man.update();
         this->m_scene.update();
 
+        this->m_lua.exec("before_rendering()");
+
         auto render_list = this->m_scene.make_render_list();
         this->m_renderer->update(this->m_scene.m_euler_camera, render_list);
     }

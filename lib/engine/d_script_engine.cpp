@@ -14,6 +14,7 @@ extern "C" {
 #include "d_logger.h"
 #include "d_scene.h"
 #include "d_resource_man.h"
+#include "d_timer.h"
 
 
 // Dependencies
@@ -776,6 +777,33 @@ namespace {
 }
 
 
+// Lua lib: sysinfo
+namespace {
+
+    namespace sysinfo {
+
+        // sysinfo.get_cur_sec() -> double
+        int time(lua_State* const L) {
+            lua_pushnumber(L, dal::get_cur_sec());
+            return 1;
+        }
+
+    }
+
+
+    int luaopen_sysinfo(lua_State* const L) {
+        {
+            LuaFuncListBuilder func_list;
+            func_list.add("time", ::sysinfo::time);
+            luaL_newlib(L, func_list.data());
+        }
+
+        return 1;
+    }
+
+}
+
+
 namespace dal {
 
     LuaState::LuaState()
@@ -785,6 +813,7 @@ namespace dal {
 
         luaL_requiref(this->m_lua, "logger", ::luaopen_logger, 0);
         luaL_requiref(this->m_lua, "scene", ::luaopen_scene, 0);
+        luaL_requiref(this->m_lua, "sysinfo", ::luaopen_sysinfo, 0);
     }
 
     LuaState::~LuaState() {
