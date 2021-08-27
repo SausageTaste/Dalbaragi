@@ -170,6 +170,7 @@ namespace {
 
     const char* const DAL_VEC3 = "dalbaragi.Vec3";
     const char* const DAL_DLIGHT = "dalbaragi.DLight";
+    const char* const DAL_SLIGHT = "dalbaragi.SLight";
     const char* const DAL_TRANSFORM_VIEW = "dalbaragi.TransformView";
     const char* const DAL_ACTOR_STATIC = "dalbaragi.ActorStatic";
     const char* const DAL_ACTOR_SKINNED = "dalbaragi.ActorSkinned";
@@ -181,6 +182,10 @@ namespace {
 
     dal::DLight& check_dlight(lua_State* const L, const int index = 1) {
         return *::check_udata<dal::DLight*>(L, index, ::DAL_DLIGHT);
+    }
+
+    dal::SLight& check_slight(lua_State* const L, const int index = 1) {
+        return *::check_udata<dal::SLight*>(L, index, ::DAL_SLIGHT);
     }
 
     dal::Transform& check_transform_view(lua_State* const L, const int index = 1) {
@@ -255,6 +260,47 @@ namespace {
             *ud_ptr = &g_scene->m_dlight;
 
             luaL_getmetatable(L, ::DAL_DLIGHT);
+            lua_setmetatable(L, -2);
+
+            return 1;
+        }
+
+        // scene.get_slight_count() -> int
+        int get_slight_count(lua_State* const L) {
+            dalAssert(::are_dependencies_ready());
+
+            lua_pushnumber(L, g_scene->m_slights.size());
+            return 1;
+        }
+
+        // scene.get_slight_at() -> SLight
+        int get_slight_at(lua_State* const L) {
+            dalAssert(::are_dependencies_ready());
+
+            const auto index = luaL_checknumber(L, 1);
+            const auto slight_count = g_scene->m_slights.size();
+            if (index >= slight_count)
+                return luaL_error(L, fmt::format("Spot light index out of range: input={}, size={}", index, slight_count).c_str());
+
+            const auto ud = lua_newuserdata(L, sizeof(dal::SLight*));
+            const auto ud_ptr = static_cast<dal::SLight**>(ud);
+            *ud_ptr = &g_scene->m_slights.at(index);
+
+            luaL_getmetatable(L, ::DAL_SLIGHT);
+            lua_setmetatable(L, -2);
+
+            return 1;
+        }
+
+        // scene.create_slight() -> SLight
+        int create_slight(lua_State* const L) {
+            dalAssert(::are_dependencies_ready());
+
+            const auto ud = lua_newuserdata(L, sizeof(dal::SLight*));
+            const auto ud_ptr = static_cast<dal::SLight**>(ud);
+            *ud_ptr = &g_scene->m_slights.emplace_back();
+
+            luaL_getmetatable(L, ::DAL_SLIGHT);
             lua_setmetatable(L, -2);
 
             return 1;
@@ -372,6 +418,145 @@ namespace {
     }
 
 
+    namespace scene::slight {
+
+        int to_string(lua_State* const L) {
+            const auto& light = ::check_slight(L);
+            const auto v = light.to_light_direc();
+
+            //--------------------------------------------------------------------------------------------
+
+            lua_pushstring(L, fmt::format("SLight{{ to light=({}, {}, {}) }}", v.x, v.y, v.z).c_str());
+            return 1;
+        }
+
+        // SLight.set_direction_to_light(SLight self, float x, float y, float z) -> None
+        int set_direction_to_light(lua_State* const L) {
+            auto& light = ::check_slight(L);
+            const auto x = luaL_checknumber(L, 2);
+            const auto y = luaL_checknumber(L, 3);
+            const auto z = luaL_checknumber(L, 4);
+
+            light.set_direc_to_light(x, y, z);
+
+            return 0;
+        }
+
+        // SLight.get_pos(SLight self) -> Vec3
+        int get_pos(lua_State* const L) {
+            auto& light = ::check_slight(L);
+
+            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
+            const auto ud_ptr = static_cast<glm::vec3**>(ud);
+            *ud_ptr = &light.m_pos;
+
+            luaL_getmetatable(L, ::DAL_VEC3);
+            lua_setmetatable(L, -2);
+
+            return 1;
+        }
+
+        // SLight.get_color(SLight self) -> Vec3
+        int get_color(lua_State* const L) {
+            auto& light = ::check_slight(L);
+
+            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
+            const auto ud_ptr = static_cast<glm::vec3**>(ud);
+            *ud_ptr = &light.m_color;
+
+            luaL_getmetatable(L, ::DAL_VEC3);
+            lua_setmetatable(L, -2);
+
+            return 1;
+        }
+
+        // SLight.set_fade_start_degree(SLight self, float value) -> None
+        int set_fade_start_degree(lua_State* const L) {
+            auto& light = ::check_slight(L);
+            const auto value = luaL_checknumber(L, 2);
+
+            light.set_fade_start_degree(value);
+
+            return 0;
+        }
+
+        // SLight.set_fade_end_degree(SLight self, float value) -> None
+        int set_fade_end_degree(lua_State* const L) {
+            auto& light = ::check_slight(L);
+            const auto value = luaL_checknumber(L, 2);
+
+            light.set_fade_end_degree(value);
+
+            return 0;
+        }
+
+    }
+
+
+    namespace scene::transform_view {
+
+        int to_string(lua_State* const L) {
+            const auto& t = ::check_transform_view(L);
+
+            //--------------------------------------------------------------------------------------------
+
+            lua_pushstring(L, fmt::format(
+                "TransformView{{ pos=({}, {}, {}), quat=({}, {}, {}, {}), scale={} }}",
+                t.m_pos.x, t.m_pos.y, t.m_pos.z,
+                t.m_quat.w, t.m_quat.x, t.m_quat.y, t.m_quat.z,
+                t.m_scale
+            ).c_str());
+            return 1;
+        }
+
+        // TransformView.get_pos(TransformView self) -> Vec3
+        int get_pos(lua_State* const L) {
+            auto& t = ::check_transform_view(L);
+
+            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
+            const auto ud_ptr = static_cast<glm::vec3**>(ud);
+            *ud_ptr = &t.m_pos;
+
+            luaL_getmetatable(L, ::DAL_VEC3);
+            lua_setmetatable(L, -2);
+
+            return 1;
+        }
+
+        // TransformView.rotate_degree(TransformView self, float degree, float axis_x, float axis_y, float axis_z) -> None
+        int rotate_degree(lua_State* const L) {
+            auto& t = ::check_transform_view(L);
+            const auto degree = luaL_checknumber(L, 2);
+            const auto x_axis = luaL_checknumber(L, 3);
+            const auto y_axis = luaL_checknumber(L, 4);
+            const auto z_axis = luaL_checknumber(L, 5);
+
+            t.rotate(glm::radians<float>(degree), glm::vec3{ x_axis, y_axis, z_axis });
+
+            return 0;
+        }
+
+        // TransformView.get_scale(TransformView self) -> float
+        int get_scale(lua_State* const L) {
+            auto& t = ::check_transform_view(L);
+
+            lua_pushnumber(L, t.m_scale);
+            return 1;
+        }
+
+        // TransformView.set_scale(TransformView self, float value) -> None
+        int set_scale(lua_State* const L) {
+            auto& t = ::check_transform_view(L);
+            const auto value = luaL_checknumber(L, 2);
+
+            t.m_scale = value;
+
+            return 0;
+        }
+
+    }
+
+
     namespace scene::actor_static {
 
         int to_string(lua_State* const L) {
@@ -480,70 +665,6 @@ namespace {
     }
 
 
-    namespace scene::transform_view {
-
-        int to_string(lua_State* const L) {
-            const auto& t = ::check_transform_view(L);
-
-            //--------------------------------------------------------------------------------------------
-
-            lua_pushstring(L, fmt::format(
-                "TransformView{{ pos=({}, {}, {}), quat=({}, {}, {}, {}), scale={} }}",
-                t.m_pos.x, t.m_pos.y, t.m_pos.z,
-                t.m_quat.w, t.m_quat.x, t.m_quat.y, t.m_quat.z,
-                t.m_scale
-            ).c_str());
-            return 1;
-        }
-
-        // TransformView.get_pos(TransformView self) -> Vec3
-        int get_pos(lua_State* const L) {
-            auto& t = ::check_transform_view(L);
-
-            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
-            const auto ud_ptr = static_cast<glm::vec3**>(ud);
-            *ud_ptr = &t.m_pos;
-
-            luaL_getmetatable(L, ::DAL_VEC3);
-            lua_setmetatable(L, -2);
-
-            return 1;
-        }
-
-        // TransformView.rotate_degree(TransformView self, float degree, float axis_x, float axis_y, float axis_z) -> None
-        int rotate_degree(lua_State* const L) {
-            auto& t = ::check_transform_view(L);
-            const auto degree = luaL_checknumber(L, 2);
-            const auto x_axis = luaL_checknumber(L, 3);
-            const auto y_axis = luaL_checknumber(L, 4);
-            const auto z_axis = luaL_checknumber(L, 5);
-
-            t.rotate(glm::radians<float>(degree), glm::vec3{ x_axis, y_axis, z_axis });
-
-            return 0;
-        }
-
-        // TransformView.get_scale(TransformView self) -> float
-        int get_scale(lua_State* const L) {
-            auto& t = ::check_transform_view(L);
-
-            lua_pushnumber(L, t.m_scale);
-            return 1;
-        }
-
-        // TransformView.set_scale(TransformView self, float value) -> None
-        int set_scale(lua_State* const L) {
-            auto& t = ::check_transform_view(L);
-            const auto value = luaL_checknumber(L, 2);
-
-            t.m_scale = value;
-
-            return 0;
-        }
-
-    }
-
-
     int luaopen_scene(lua_State* const L) {
         // Vec3
         {
@@ -570,6 +691,23 @@ namespace {
             methods.add("get_color", scene::dlight::get_color);
 
             luaL_newmetatable(L, ::DAL_DLIGHT);
+            lua_pushstring(L, "__index");
+            lua_pushvalue(L, -2);
+            lua_settable(L, -3);
+            set_lua_func_to_table(L, methods.data(), 0);
+        }
+
+        // SLight
+        {
+            LuaFuncListBuilder methods;
+            methods.add("__tostring", scene::slight::to_string);
+            methods.add("set_direction_to_light", scene::slight::set_direction_to_light);
+            methods.add("get_pos", scene::slight::get_pos);
+            methods.add("get_color", scene::slight::get_color);
+            methods.add("set_fade_start_degree", scene::slight::set_fade_start_degree);
+            methods.add("set_fade_end_degree", scene::slight::set_fade_end_degree);
+
+            luaL_newmetatable(L, ::DAL_SLIGHT);
             lua_pushstring(L, "__index");
             lua_pushvalue(L, -2);
             lua_settable(L, -3);
@@ -626,6 +764,9 @@ namespace {
             func_list.add("create_actor_static", ::scene::create_actor_static);
             func_list.add("create_actor_skinned", ::scene::create_actor_skinned);
             func_list.add("get_dlight_handle", scene::get_dlight_handle);
+            func_list.add("get_slight_count", scene::get_slight_count);
+            func_list.add("get_slight_at", scene::get_slight_at);
+            func_list.add("create_slight", scene::create_slight);
             luaL_newlib(L, func_list.data());
         }
 

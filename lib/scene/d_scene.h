@@ -32,7 +32,9 @@ namespace dal {
         entt::registry m_registry;
 
         EulerCamera m_euler_camera;
+
         DLight m_dlight;
+        std::vector<SLight> m_slights;
 
     public:
         Scene();

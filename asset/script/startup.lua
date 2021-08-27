@@ -3,10 +3,29 @@ logger = require('logger')
 
 
 function on_engine_init()
-    local light = scene.get_dlight_handle()
-    light:set_direction_to_light(1, 10, 1);
-    light:get_color():set_xyz(2, 2, 2)
-    logger.log(logger.INFO, light)
+    do
+        local light = scene.get_dlight_handle()
+        light:set_direction_to_light(1, 10, 1);
+        light:get_color():set_xyz(2, 2, 2)
+    end
+
+    do
+        local light = scene.create_slight()
+        light:get_pos():set_xyz(6, 2, 0)
+        light:get_color():set_xyz(3, 3, 3)
+        light:set_direction_to_light(0, 1, -1)
+        light:set_fade_start_degree(0)
+        light:set_fade_end_degree(35)
+    end
+
+    do
+        local light = scene.create_slight()
+        light:get_pos():set_xyz(6, 2, 0)
+        light:get_color():set_xyz(3, 3, 3)
+        light:set_direction_to_light(0, 1, 1)
+        light:set_fade_start_degree(0)
+        light:set_fade_end_degree(35)
+    end
 end
 
 

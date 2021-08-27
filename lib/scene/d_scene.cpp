@@ -48,21 +48,7 @@ namespace dal {
         }
 
         {
-            auto& light = output.m_slights.emplace_back();
-            light.set_direc_to_light(sin(t*0.7), 1, cos(t*0.7));
-            light.m_pos = glm::vec3{6, 2, 0};
-            light.m_color = glm::vec3{3};
-            light.set_fade_start_degree(0);
-            light.set_fade_end_degree(35);
-        }
-
-        {
-            auto& light = output.m_slights.emplace_back();
-            light.set_direc_to_light(0, 0, 1);
-            light.m_pos = glm::vec3{cos(t*0.3) * 3, 1, 5};
-            light.m_color = glm::vec3{3};
-            light.set_fade_start_degree(0);
-            light.set_fade_end_degree(35);
+            output.m_slights = this->m_slights;
         }
 
         output.m_ambient_color = glm::vec3{0.01};
