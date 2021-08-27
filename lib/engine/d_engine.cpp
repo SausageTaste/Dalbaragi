@@ -218,71 +218,59 @@ namespace {
         // Honoka
         {
             const auto entity = scene.m_registry.create();
-            auto model = res_man.request_model_skinned("sungmin/honoka_basic_3.dmd");
-
-            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::ModelSkinned>(entity);
-            cpnt_model.m_model = model;
-
             auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
+            cpnt_actor.m_model = res_man.request_model_skinned("sungmin/honoka_basic_3.dmd");
+            cpnt_actor.m_actor = res_man.request_actor_skinned();
 
-            cpnt_actor.m_actors.push_back(res_man.request_actor_skinned());
-            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
+            cpnt_actor.m_actor->m_transform.m_scale = 0.3;
+        }
+        {
+            const auto entity = scene.m_registry.create();
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
+            cpnt_actor.m_model = res_man.request_model_skinned("sungmin/honoka_basic_3.dmd");
+            cpnt_actor.m_actor = res_man.request_actor_skinned();
 
-            cpnt_actor.m_actors.push_back(res_man.request_actor_skinned());
-            cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
-            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
-            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
+            cpnt_actor.m_actor->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
+            cpnt_actor.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
+            cpnt_actor.m_actor->m_transform.m_scale = 0.3;
         }
 
         // Character Running
         {
             const auto entity = scene.m_registry.create();
-            auto model = res_man.request_model_skinned("_asset/model/Character Running.dmd");
-
-            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::ModelSkinned>(entity);
-            cpnt_model.m_model = model;
-
             auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
+            cpnt_actor.m_model = res_man.request_model_skinned("_asset/model/Character Running.dmd");
+            cpnt_actor.m_actor = res_man.request_actor_skinned();
 
-            cpnt_actor.m_actors.push_back(res_man.request_actor_skinned());
-            cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ 2, 0, 0 };
-            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
-            cpnt_actor.m_actors.back()->m_transform.m_scale = 1;
-            cpnt_actor.m_actors.back()->apply_transform(dal::FrameInFlightIndex{0});
-
-            cpnt_actor.m_actors.back()->m_anim_state.set_anim_index(0);
+            cpnt_actor.m_actor->m_transform.m_pos = glm::vec3{ 2, 0, 0 };
+            cpnt_actor.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
+            cpnt_actor.m_actor->m_transform.m_scale = 1;
+            cpnt_actor.m_actor->apply_transform(dal::FrameInFlightIndex{0});
+            cpnt_actor.m_actor->m_anim_state.set_anim_index(0);
         }
 
         // Sponza
         {
             const auto entity = scene.m_registry.create();
-            auto model = res_man.request_model("_asset/model/sponza.dmd");
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorStatic>(entity);
+            cpnt_actor.m_model = res_man.request_model("_asset/model/sponza.dmd");
+            cpnt_actor.m_actor = res_man.request_actor();
 
-            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::Model>(entity);
-            cpnt_model.m_model = model;
-
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
-
-            cpnt_actor.m_actors.push_back(res_man.request_actor());
-            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.01;
-            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
-            cpnt_actor.m_actors.back()->apply_changes();
+            cpnt_actor.m_actor->m_transform.m_scale = 0.01;
+            cpnt_actor.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
+            cpnt_actor.m_actor->apply_changes();
         }
 
         // Simple box
         {
             const auto entity = scene.m_registry.create();
-            auto model = res_man.request_model("_asset/model/simple_box.dmd");
+            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorStatic>(entity);
+            cpnt_actor.m_model = res_man.request_model("_asset/model/simple_box.dmd");
+            cpnt_actor.m_actor = res_man.request_actor();
 
-            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::Model>(entity);
-            cpnt_model.m_model = model;
-
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
-
-            cpnt_actor.m_actors.push_back(res_man.request_actor());
-            cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ 0, 0, -1 };
-            cpnt_actor.m_actors.back()->m_transform.m_scale = 1;
-            cpnt_actor.m_actors.back()->apply_changes();
+            cpnt_actor.m_actor->m_transform.m_pos = glm::vec3{ 0, 0, -1 };
+            cpnt_actor.m_actor->m_transform.m_scale = 1;
+            cpnt_actor.m_actor->apply_changes();
         }
 
         dalInfo("Scene populated");

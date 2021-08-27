@@ -103,13 +103,22 @@ namespace dal {
         _Model m_model;
     };
 
-    struct RenderList {
+
+    class RenderList {
+
+    public:
         std::vector<RenderPair<HRenModel, HActor>> m_static_models;
         std::vector<RenderPair<HRenModelSkinned, HActorSkinned>> m_skinned_models;
         std::vector<DLight> m_dlights;
         std::vector<PLight> m_plights;
         std::vector<SLight> m_slights;
         glm::vec3 m_ambient_color;
+
+    public:
+        void add_actor(const HActor& actor, const HRenModel& model);
+
+        void add_actor(const HActorSkinned& actor, const HRenModelSkinned& model);
+
     };
 
 

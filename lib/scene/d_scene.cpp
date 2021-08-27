@@ -10,10 +10,9 @@ namespace dal {
 
     void Scene::update() {
         {
-            auto view = this->m_registry.view<cpnt::ModelSkinned, cpnt::ActorAnimated>();
-            view.each([](cpnt::ModelSkinned& model, cpnt::ActorAnimated& actor) {
-                for (auto& a : actor.m_actors)
-                    update_anime_state(a->m_anim_state, model.m_model->animations(), model.m_model->skeleton());
+            auto view = this->m_registry.view<cpnt::ActorAnimated>();
+            view.each([](cpnt::ActorAnimated& actor) {
+                update_anime_state(actor.m_actor->m_anim_state, actor.m_model->animations(), actor.m_model->skeleton());
             });
         }
     }
@@ -22,22 +21,16 @@ namespace dal {
         RenderList output;
 
         {
-            auto view = this->m_registry.view<cpnt::Model, cpnt::Actor>();
-            view.each([&output](cpnt::Model& model, cpnt::Actor& actor) {
-                auto& one = output.m_static_models.emplace_back();
-
-                one.m_model = model.m_model;
-                one.m_actors = actor.m_actors;
+            auto view = this->m_registry.view<cpnt::ActorStatic>();
+            view.each([&output](cpnt::ActorStatic& actor) {
+                output.add_actor(actor.m_actor, actor.m_model);
             });
         }
 
         {
-            auto view = this->m_registry.view<cpnt::ModelSkinned, cpnt::ActorAnimated>();
-            view.each([&output](cpnt::ModelSkinned& model, cpnt::ActorAnimated& actor) {
-                auto& one = output.m_skinned_models.emplace_back();
-
-                one.m_model = model.m_model;
-                one.m_actors = actor.m_actors;
+            auto view = this->m_registry.view<cpnt::ActorAnimated>();
+            view.each([&output](cpnt::ActorAnimated& actor) {
+                output.add_actor(actor.m_actor, actor.m_model);
             });
         }
 
