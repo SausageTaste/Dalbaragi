@@ -36,6 +36,39 @@ namespace {
         return output;
     }
 
+
+    auto& actor_cast(dal::IActor& actor) {
+        return dynamic_cast<dal::ActorVK&>(actor);
+    }
+
+    auto& actor_cast(const dal::IActor& actor) {
+        return dynamic_cast<const dal::ActorVK&>(actor);
+    }
+
+    auto& actor_cast(dal::HActor& actor) {
+        return dynamic_cast<dal::ActorVK&>(*actor.get());
+    }
+
+    auto& actor_cast(const dal::HActor& actor) {
+        return dynamic_cast<const dal::ActorVK&>(*actor.get());
+    }
+
+    auto& actor_cast(dal::IActorSkinned& actor) {
+        return dynamic_cast<dal::ActorSkinnedVK&>(actor);
+    }
+
+    auto& actor_cast(const dal::IActorSkinned& actor) {
+        return dynamic_cast<const dal::ActorSkinnedVK&>(actor);
+    }
+
+    auto& actor_cast(dal::HActorSkinned& actor) {
+        return dynamic_cast<dal::ActorSkinnedVK&>(*actor.get());
+    }
+
+    auto& actor_cast(const dal::HActorSkinned& actor) {
+        return dynamic_cast<const dal::ActorSkinnedVK&>(*actor.get());
+    }
+
 }
 
 
@@ -716,7 +749,7 @@ namespace dal {
     }
 
     bool VulkanState::init(IActor& actor) {
-        auto& a = reinterpret_cast<ActorVK&>(actor);
+        auto& a = ::actor_cast(actor);
 
         a.init(
             this->m_desc_allocator,
@@ -729,7 +762,7 @@ namespace dal {
     }
 
     bool VulkanState::init(IActorSkinned& actor) {
-        auto& a = reinterpret_cast<ActorSkinnedVK&>(actor);
+        auto& a = ::actor_cast(actor);
 
         a.init(
             this->m_desc_allocator,
