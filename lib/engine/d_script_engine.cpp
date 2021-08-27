@@ -99,6 +99,8 @@ namespace {
 
     namespace logger {
 
+        // logger.log(int log_level, T a0, T a1, T a2...) -> None
+        // Type of T must be one of built-in types or implement __tostring method
         int log(lua_State* const L) {
             static_assert(5 == static_cast<int>(dal::LogLevel::fatal));
 
@@ -182,6 +184,7 @@ namespace {
 
     namespace scene {
 
+        // scene.create_actor_static(string name, string resource_path) -> ActorStatic
         int create_actor_static(lua_State* const L) {
             dalAssert(::are_dependencies_ready());
 
@@ -205,6 +208,7 @@ namespace {
             return 1;
         }
 
+        // scene.create_actor_static(string name, string resource_path) -> ActorSkinned
         int create_actor_skinned(lua_State* const L) {
             dalAssert(::are_dependencies_ready());
 
@@ -242,6 +246,7 @@ namespace {
             return 1;
         }
 
+        // ActorStatic.get_transform_view(ActorStatic self) -> TransformView
         int get_transform_view(lua_State* const L) {
             const auto entity = ::check_actor_static(L);
 
@@ -261,6 +266,7 @@ namespace {
             return 1;
         }
 
+        // ActorStatic.notify_transform_change(ActorStatic self) -> None
         int notify_transform_change(lua_State* const L) {
             const auto entity = ::check_actor_static(L);
 
@@ -287,6 +293,7 @@ namespace {
             return 1;
         }
 
+        // ActorSkinned.get_transform_view(ActorSkinned self) -> TransformView
         int get_transform_view(lua_State* const L) {
             const auto entity = ::check_actor_skinned(L);
 
@@ -306,6 +313,7 @@ namespace {
             return 1;
         }
 
+        // ActorSkinned.notify_transform_change(ActorSkinned self) -> None
         int notify_transform_change(lua_State* const L) {
             const auto entity = ::check_actor_skinned(L);
 
@@ -318,6 +326,7 @@ namespace {
             return 0;
         }
 
+        // ActorSkinned.set_anim_index(ActorSkinned self, int index) -> None
         int set_anim_index(lua_State* const L) {
             const auto entity = ::check_actor_skinned(L);
             const auto value = luaL_checknumber(L, 2);
@@ -350,6 +359,7 @@ namespace {
             return 1;
         }
 
+        // TransformView.get_pos(TransformView self) -> <float, float, float>
         int get_pos(lua_State* const L) {
             auto& t = ::check_transform_view(L);
 
@@ -359,6 +369,7 @@ namespace {
             return 3;
         }
 
+        // TransformView.set_pos_x(TransformView self, float value) -> None
         int set_pos_x(lua_State* const L) {
             auto& t = ::check_transform_view(L);
             const auto value = luaL_checknumber(L, 2);
@@ -368,6 +379,7 @@ namespace {
             return 0;
         }
 
+        // TransformView.set_pos_y(TransformView self, float value) -> None
         int set_pos_y(lua_State* const L) {
             auto& t = ::check_transform_view(L);
             const auto value = luaL_checknumber(L, 2);
@@ -377,6 +389,7 @@ namespace {
             return 0;
         }
 
+        // TransformView.set_pos_z(TransformView self, float value) -> None
         int set_pos_z(lua_State* const L) {
             auto& t = ::check_transform_view(L);
             const auto value = luaL_checknumber(L, 2);
@@ -386,6 +399,7 @@ namespace {
             return 0;
         }
 
+        // TransformView.rotate_degree(TransformView self, float degree, float axis_x, float axis_y, float axis_z) -> None
         int rotate_degree(lua_State* const L) {
             auto& t = ::check_transform_view(L);
             const auto degree = luaL_checknumber(L, 2);
@@ -398,6 +412,7 @@ namespace {
             return 0;
         }
 
+        // TransformView.get_scale(TransformView self) -> float
         int get_scale(lua_State* const L) {
             auto& t = ::check_transform_view(L);
 
@@ -405,6 +420,7 @@ namespace {
             return 1;
         }
 
+        // TransformView.set_scale(TransformView self, float value) -> None
         int set_scale(lua_State* const L) {
             auto& t = ::check_transform_view(L);
             const auto value = luaL_checknumber(L, 2);
