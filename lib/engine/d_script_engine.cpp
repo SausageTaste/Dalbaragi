@@ -79,6 +79,18 @@ namespace {
         lua_settable(L, -3);
     }
 
+    void set_lua_func_to_table(lua_State* L, const luaL_Reg* l, int nup) {
+        for (; l->name; l++) {
+            int i;
+            lua_pushstring(L, l->name);
+            for (i=0; i<nup; i++)  /* copy upvalues to the top */
+            lua_pushvalue(L, -(nup+1));
+            lua_pushcclosure(L, l->func, nup);
+            lua_settable(L, -(nup+3));
+        }
+        lua_pop(L, nup);  /* remove upvalues */
+    }
+
 }
 
 
@@ -145,6 +157,15 @@ namespace {
 // Lua lib: scene
 namespace {
 
+    const char* const DAL_TRANSFORM_VIEW = "dalbaragi.TransformView";
+
+    dal::Transform& scene_transform_view_check(lua_State* const L) {
+        void* const ud = luaL_checkudata(L, 1, ::DAL_TRANSFORM_VIEW);
+        luaL_argcheck(L, ud != nullptr, 1, "'TransformView' expected");
+        return **static_cast<dal::Transform**>(ud);
+    }
+
+
     int scene_create_actor_skinned(lua_State* const L) {
         dalAssert(::are_dependencies_ready());
 
@@ -164,12 +185,127 @@ namespace {
         return 1;
     }
 
+    int scene_get_transform_view_of(lua_State* const L) {
+        const auto entity_num = luaL_checknumber(L, -1);
+        const auto entity = static_cast<entt::entity>(entity_num);
+        dal::Transform* transform = nullptr;
+
+        const auto actor_static = g_scene->m_registry.try_get<dal::cpnt::ActorStatic>(entity);
+        if (nullptr != actor_static) {
+            transform = &actor_static->m_actor->m_transform;
+        }
+        else {
+            const auto actor_animated = g_scene->m_registry.try_get<dal::cpnt::ActorAnimated>(entity);
+            if (nullptr != actor_animated) {
+                transform = &actor_animated->m_actor->m_transform;
+            }
+        }
+
+        if (nullptr == transform)
+            return luaL_error(L, "Invalid entity");
+
+        const auto ud = lua_newuserdata(L, sizeof(dal::Transform*));
+        const auto ptr = static_cast<dal::Transform**>(ud);
+
+        luaL_getmetatable(L, ::DAL_TRANSFORM_VIEW);
+        lua_setmetatable(L, -2);
+
+        *ptr = transform;
+        return 1;
+    }
+
+
+    int scene_transform_view_get_pos(lua_State* const L) {
+        auto& t = ::scene_transform_view_check(L);
+
+        lua_pushnumber(L, t.m_pos.x);
+        lua_pushnumber(L, t.m_pos.y);
+        lua_pushnumber(L, t.m_pos.z);
+        return 3;
+    }
+
+    int scene_transform_view_set_pos_x(lua_State* const L) {
+        auto& t = ::scene_transform_view_check(L);
+        const auto value = luaL_checknumber(L, 2);
+
+        t.m_pos.x = value;
+
+        return 0;
+    }
+
+    int scene_transform_view_set_pos_y(lua_State* const L) {
+        auto& t = ::scene_transform_view_check(L);
+        const auto value = luaL_checknumber(L, 2);
+
+        t.m_pos.y = value;
+
+        return 0;
+    }
+
+    int scene_transform_view_set_pos_z(lua_State* const L) {
+        auto& t = ::scene_transform_view_check(L);
+        const auto value = luaL_checknumber(L, 2);
+
+        t.m_pos.z = value;
+
+        return 0;
+    }
+
+    int scene_transform_view_rotate_degree(lua_State* const L) {
+        auto& t = ::scene_transform_view_check(L);
+        const auto degree = luaL_checknumber(L, 2);
+        const auto x_axis = luaL_checknumber(L, 3);
+        const auto y_axis = luaL_checknumber(L, 4);
+        const auto z_axis = luaL_checknumber(L, 5);
+
+        t.rotate(glm::radians<float>(degree), glm::vec3{ x_axis, y_axis, z_axis });
+
+        return 0;
+    }
+
+    int scene_transform_view_get_scale(lua_State* const L) {
+        auto& t = ::scene_transform_view_check(L);
+
+        lua_pushnumber(L, t.m_scale);
+        return 1;
+    }
+
+    int scene_transform_view_set_scale(lua_State* const L) {
+        auto& t = ::scene_transform_view_check(L);
+        const auto value = luaL_checknumber(L, 2);
+
+        t.m_scale = value;
+
+        return 0;
+    }
+
+
     //name of this function is not flexible
     int luaopen_scene(lua_State* const L) {
-        LuaFuncListBuilder func_list;
-        func_list.add("create_actor_skinned", ::scene_create_actor_skinned);
+        {
+            LuaFuncListBuilder transform_viwe_methods;
+            transform_viwe_methods.add("get_pos", ::scene_transform_view_get_pos);
+            transform_viwe_methods.add("set_pos_x", ::scene_transform_view_set_pos_x);
+            transform_viwe_methods.add("set_pos_y", ::scene_transform_view_set_pos_y);
+            transform_viwe_methods.add("set_pos_z", ::scene_transform_view_set_pos_z);
+            transform_viwe_methods.add("rotate_degree", ::scene_transform_view_rotate_degree);
+            transform_viwe_methods.add("get_scale", ::scene_transform_view_get_scale);
+            transform_viwe_methods.add("set_scale", ::scene_transform_view_set_scale);
 
-        luaL_newlib(L, func_list.data());
+            luaL_newmetatable(L, ::DAL_TRANSFORM_VIEW);
+            lua_pushstring(L, "__index");
+            lua_pushvalue(L, -2);  /* pushes the metatable */
+            lua_settable(L, -3);  /* metatable.__index = metatable */
+            set_lua_func_to_table(L, transform_viwe_methods.data(), 0);
+        }
+
+        {
+            LuaFuncListBuilder func_list;
+            func_list.add("create_actor_skinned", ::scene_create_actor_skinned);
+            func_list.add("get_transform_view_of", ::scene_get_transform_view_of);
+            func_list.add("transform_view_get_pos", ::scene_transform_view_get_pos);
+            luaL_newlib(L, func_list.data());
+        }
 
         return 1;
     }
