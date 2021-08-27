@@ -92,6 +92,8 @@ namespace dal {
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
+#define dalLog(log_level, str)   dal::LoggerSingleton::inst().put((log_level), (str), __LINE__, __func__, __FILE__);
+
 #define dalVerbose(str) dal::LoggerSingleton::inst().put_verbose((str), __LINE__, __func__, __FILE__);
 #define dalDebug(str)   dal::LoggerSingleton::inst().put_debug((str),   __LINE__, __func__, __FILE__);
 #define dalInfo(str)    dal::LoggerSingleton::inst().put_info((str),    __LINE__, __func__, __FILE__);

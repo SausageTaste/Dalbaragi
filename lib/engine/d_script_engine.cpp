@@ -56,6 +56,14 @@ namespace {
 
     };
 
+
+    // The target table must be on top of the stack
+    void push_lua_constant(lua_State* const L, const char* const name, const lua_Number value) {
+        lua_pushstring(L, name);
+        lua_pushnumber(L, value);
+        lua_settable(L, -3);
+    }
+
 }
 
 
@@ -63,36 +71,55 @@ namespace {
 namespace {
 
     int console_log(lua_State* const L) {
+        static_assert(4 == static_cast<int>(dal::LogLevel::error));
+
         std::string buffer;
 
         const auto nargs = lua_gettop(L);
-        for ( int i = 1; i <= nargs; ++i ) {
-            if ( lua_isnil(L, i) ) {
-                break;
-            }
+        if (2 > nargs)
+            return luaL_error(L, "Needs 2 arguments");
 
-            auto arg = lua_tostring(L, i);
-            if ( nullptr == arg ) {
+        if (!lua_isnumber(L, 1))
+            return luaL_error(L, "First augument must be one of log levels {console.VERBOSE, console.INFO, ... console.ERROR}");
+
+        const auto log_level_int = static_cast<int>(lua_tonumber(L, 1));
+        if (log_level_int < static_cast<int>(dal::LogLevel::verbose) || log_level_int > static_cast<int>(dal::LogLevel::error))
+            return luaL_error(L, fmt::format("Invalid log level value: {}", log_level_int).c_str());
+
+        const auto log_level = static_cast<dal::LogLevel>(log_level_int);
+
+        for (int i = 2; i <= nargs; ++i) {
+            if (lua_isnil(L, i))
+                break;
+
+            const auto arg = lua_tostring(L, i);
+            if (nullptr == arg)
                 continue;
-            }
 
             buffer.append(arg);
             buffer += ' ';
         }
 
         if (!buffer.empty()) {
-            dalInfo(buffer.c_str());
+            dalLog(log_level, buffer.c_str());
         }
 
         return 0;
     }
 
     //name of this function is not flexible
-    int luaopen_console(lua_State* L) {
+    int luaopen_console(lua_State* const L) {
         LuaFuncListBuilder func_list;
         func_list.add("log", ::console_log);
 
         luaL_newlib(L, func_list.data());
+
+        push_lua_constant(L, "VERBOSE", static_cast<int>(dal::LogLevel::verbose));
+        push_lua_constant(L, "INFO", static_cast<int>(dal::LogLevel::info));
+        push_lua_constant(L, "DEBUG", static_cast<int>(dal::LogLevel::debug));
+        push_lua_constant(L, "WARNING", static_cast<int>(dal::LogLevel::warning));
+        push_lua_constant(L, "ERROR", static_cast<int>(dal::LogLevel::error));
+
         return 1;
     }
 
@@ -115,7 +142,7 @@ namespace dal {
 
     void LuaState::exec(const char* const statements) {
         if (luaL_dostring(this->m_lua, statements)) {
-            dalError(fmt::format("[LUA] {}", lua_tostring(this->m_lua, -1)).c_str());
+            dalError(lua_tostring(this->m_lua, -1));
             lua_pop(this->m_lua, 1);
         }
     }

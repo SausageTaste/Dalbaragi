@@ -311,7 +311,9 @@ namespace dal {
         this->m_task_man.init(2);
         this->init(create_info);
 
-        this->m_lua.exec("console = require('console'); console.log('Lua state initialized')");
+        this->m_lua.exec("console = require('console'); console.log(console.INFO, 'Lua state initialized')");
+        this->m_lua.exec("console.log(console.INFO)");
+        this->m_lua.exec("console.log('console.INFO', 123)");
     }
 
     Engine::~Engine() {
