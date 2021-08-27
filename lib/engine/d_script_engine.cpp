@@ -71,7 +71,7 @@ namespace {
 namespace {
 
     int console_log(lua_State* const L) {
-        static_assert(4 == static_cast<int>(dal::LogLevel::error));
+        static_assert(5 == static_cast<int>(dal::LogLevel::fatal));
 
         std::string buffer;
 
@@ -80,10 +80,10 @@ namespace {
             return luaL_error(L, "Needs 2 arguments");
 
         if (!lua_isnumber(L, 1))
-            return luaL_error(L, "First augument must be one of log levels {console.VERBOSE, console.INFO, ... console.ERROR}");
+            return luaL_error(L, "First augument must be one of log levels {console.VERBOSE, console.INFO, ... console.FATAL}");
 
         const auto log_level_int = static_cast<int>(lua_tonumber(L, 1));
-        if (log_level_int < static_cast<int>(dal::LogLevel::verbose) || log_level_int > static_cast<int>(dal::LogLevel::error))
+        if (log_level_int < static_cast<int>(dal::LogLevel::verbose) || log_level_int > static_cast<int>(dal::LogLevel::fatal))
             return luaL_error(L, fmt::format("Invalid log level value: {}", log_level_int).c_str());
 
         const auto log_level = static_cast<dal::LogLevel>(log_level_int);
@@ -119,6 +119,7 @@ namespace {
         push_lua_constant(L, "DEBUG", static_cast<int>(dal::LogLevel::debug));
         push_lua_constant(L, "WARNING", static_cast<int>(dal::LogLevel::warning));
         push_lua_constant(L, "ERROR", static_cast<int>(dal::LogLevel::error));
+        push_lua_constant(L, "FATAL", static_cast<int>(dal::LogLevel::fatal));
 
         return 1;
     }
