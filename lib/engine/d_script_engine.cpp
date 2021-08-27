@@ -98,6 +98,14 @@ namespace {
         return *static_cast<T*>(ud);
     }
 
+    void add_metatable_definition(lua_State* const L, const char* const name, const luaL_Reg* const functions) {
+        luaL_newmetatable(L, name);
+        lua_pushstring(L, "__index");
+        lua_pushvalue(L, -2);  /* pushes the metatable */
+        lua_settable(L, -3);  /* metatable.__index = metatable */
+        set_lua_func_to_table(L, functions, 0);
+    }
+
 }
 
 
@@ -776,11 +784,7 @@ namespace {
             methods.add("set_z", scene::vec3::set_z);
             methods.add("set_xyz", scene::vec3::set_xyz);
 
-            luaL_newmetatable(L, ::DAL_VEC3);
-            lua_pushstring(L, "__index");
-            lua_pushvalue(L, -2);
-            lua_settable(L, -3);
-            set_lua_func_to_table(L, methods.data(), 0);
+            add_metatable_definition(L, ::DAL_VEC3, methods.data());
         }
 
         // DLight
@@ -790,11 +794,7 @@ namespace {
             methods.add("set_direction_to_light", scene::dlight::set_direction_to_light);
             methods.add("get_color", scene::dlight::get_color);
 
-            luaL_newmetatable(L, ::DAL_DLIGHT);
-            lua_pushstring(L, "__index");
-            lua_pushvalue(L, -2);
-            lua_settable(L, -3);
-            set_lua_func_to_table(L, methods.data(), 0);
+            add_metatable_definition(L, ::DAL_DLIGHT, methods.data());
         }
 
         // SLight
@@ -807,11 +807,7 @@ namespace {
             methods.add("set_fade_start_degree", scene::slight::set_fade_start_degree);
             methods.add("set_fade_end_degree", scene::slight::set_fade_end_degree);
 
-            luaL_newmetatable(L, ::DAL_SLIGHT);
-            lua_pushstring(L, "__index");
-            lua_pushvalue(L, -2);
-            lua_settable(L, -3);
-            set_lua_func_to_table(L, methods.data(), 0);
+            add_metatable_definition(L, ::DAL_SLIGHT, methods.data());
         }
 
         // PLight
@@ -822,27 +818,19 @@ namespace {
             methods.add("get_color", scene::plight::get_color);
             methods.add("set_max_distance", scene::plight::set_max_distance);
 
-            luaL_newmetatable(L, ::DAL_PLIGHT);
-            lua_pushstring(L, "__index");
-            lua_pushvalue(L, -2);
-            lua_settable(L, -3);
-            set_lua_func_to_table(L, methods.data(), 0);
+            add_metatable_definition(L, ::DAL_PLIGHT, methods.data());
         }
 
         // TransformView
         {
-            LuaFuncListBuilder transform_viwe_methods;
-            transform_viwe_methods.add("__tostring", ::scene::transform_view::to_string);
-            transform_viwe_methods.add("get_pos", ::scene::transform_view::get_pos);
-            transform_viwe_methods.add("rotate_degree", ::scene::transform_view::rotate_degree);
-            transform_viwe_methods.add("get_scale", ::scene::transform_view::get_scale);
-            transform_viwe_methods.add("set_scale", ::scene::transform_view::set_scale);
+            LuaFuncListBuilder methods;
+            methods.add("__tostring", ::scene::transform_view::to_string);
+            methods.add("get_pos", ::scene::transform_view::get_pos);
+            methods.add("rotate_degree", ::scene::transform_view::rotate_degree);
+            methods.add("get_scale", ::scene::transform_view::get_scale);
+            methods.add("set_scale", ::scene::transform_view::set_scale);
 
-            luaL_newmetatable(L, ::DAL_TRANSFORM_VIEW);
-            lua_pushstring(L, "__index");
-            lua_pushvalue(L, -2);  /* pushes the metatable */
-            lua_settable(L, -3);  /* metatable.__index = metatable */
-            set_lua_func_to_table(L, transform_viwe_methods.data(), 0);
+            add_metatable_definition(L, ::DAL_TRANSFORM_VIEW, methods.data());
         }
 
         // ActorStatic
@@ -852,11 +840,7 @@ namespace {
             methods.add("get_transform_view", ::scene::actor_static::get_transform_view);
             methods.add("notify_transform_change", ::scene::actor_static::notify_transform_change);
 
-            luaL_newmetatable(L, ::DAL_ACTOR_STATIC);
-            lua_pushstring(L, "__index");
-            lua_pushvalue(L, -2);
-            lua_settable(L, -3);
-            set_lua_func_to_table(L, methods.data(), 0);
+            add_metatable_definition(L, ::DAL_ACTOR_STATIC, methods.data());
         }
 
         // ActorSkinned
@@ -867,11 +851,7 @@ namespace {
             methods.add("notify_transform_change", ::scene::actor_skinned::notify_transform_change);
             methods.add("set_anim_index", ::scene::actor_skinned::set_anim_index);
 
-            luaL_newmetatable(L, ::DAL_ACTOR_SKINNED);
-            lua_pushstring(L, "__index");
-            lua_pushvalue(L, -2);
-            lua_settable(L, -3);
-            set_lua_func_to_table(L, methods.data(), 0);
+            add_metatable_definition(L, ::DAL_ACTOR_SKINNED, methods.data());
         }
 
         {
