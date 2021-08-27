@@ -158,11 +158,16 @@ namespace {
 namespace {
 
     const char* const DAL_TRANSFORM_VIEW = "dalbaragi.TransformView";
+    const char* const DAL_ACTOR_SKINNED = "dalbaragi.ActorSkinned";
 
-    dal::Transform& scene_transform_view_check(lua_State* const L) {
+    dal::Transform& check_transform_view(lua_State* const L) {
         void* const ud = luaL_checkudata(L, 1, ::DAL_TRANSFORM_VIEW);
-        luaL_argcheck(L, ud != nullptr, 1, "'TransformView' expected");
         return **static_cast<dal::Transform**>(ud);
+    }
+
+    entt::entity check_actor_skinned(lua_State* const L) {
+        void* const ud = luaL_checkudata(L, 1, ::DAL_ACTOR_SKINNED);
+        return *static_cast<entt::entity*>(ud);
     }
 
 
@@ -181,42 +186,53 @@ namespace {
         cpnt_actor.m_model = g_res_man->request_model_skinned(res_path);
         cpnt_actor.m_actor = g_res_man->request_actor_skinned();
 
-        lua_pushnumber(L, static_cast<lua_Number>(entity));
+        //--------------------------------------------------------------------------------------------
+
+        const auto ud = lua_newuserdata(L, sizeof(entt::entity));
+        const auto ud_ptr = static_cast<entt::entity*>(ud);
+        *ud_ptr = entity;
+
+        luaL_getmetatable(L, ::DAL_ACTOR_SKINNED);
+        lua_setmetatable(L, -2);
+
         return 1;
     }
 
-    int scene_get_transform_view_of(lua_State* const L) {
-        const auto entity_num = luaL_checknumber(L, -1);
-        const auto entity = static_cast<entt::entity>(entity_num);
-        dal::Transform* transform = nullptr;
 
-        const auto actor_static = g_scene->m_registry.try_get<dal::cpnt::ActorStatic>(entity);
-        if (nullptr != actor_static) {
-            transform = &actor_static->m_actor->m_transform;
-        }
-        else {
-            const auto actor_animated = g_scene->m_registry.try_get<dal::cpnt::ActorAnimated>(entity);
-            if (nullptr != actor_animated) {
-                transform = &actor_animated->m_actor->m_transform;
-            }
-        }
+    int scene_actor_skinned_get_transform_view(lua_State* const L) {
+        const auto entity = ::check_actor_skinned(L);
 
-        if (nullptr == transform)
-            return luaL_error(L, "Invalid entity");
+        const auto actor_animated = g_scene->m_registry.try_get<dal::cpnt::ActorAnimated>(entity);
+        if (nullptr == actor_animated)
+            return luaL_error(L, "Invalid entity for a skinned actor");
+
+        //--------------------------------------------------------------------------------------------
 
         const auto ud = lua_newuserdata(L, sizeof(dal::Transform*));
         const auto ptr = static_cast<dal::Transform**>(ud);
+        *ptr = &actor_animated->m_actor->m_transform;
 
         luaL_getmetatable(L, ::DAL_TRANSFORM_VIEW);
         lua_setmetatable(L, -2);
 
-        *ptr = transform;
         return 1;
+    }
+
+    int scene_actor_skinned_notify_transform_change(lua_State* const L) {
+        const auto entity = ::check_actor_skinned(L);
+
+        const auto actor_animated = g_scene->m_registry.try_get<dal::cpnt::ActorAnimated>(entity);
+        if (nullptr == actor_animated)
+            return luaL_error(L, "Invalid entity for a skinned actor");
+
+        actor_animated->m_actor->notify_transform_change();
+
+        return 0;
     }
 
 
     int scene_transform_view_get_pos(lua_State* const L) {
-        auto& t = ::scene_transform_view_check(L);
+        auto& t = ::check_transform_view(L);
 
         lua_pushnumber(L, t.m_pos.x);
         lua_pushnumber(L, t.m_pos.y);
@@ -225,7 +241,7 @@ namespace {
     }
 
     int scene_transform_view_set_pos_x(lua_State* const L) {
-        auto& t = ::scene_transform_view_check(L);
+        auto& t = ::check_transform_view(L);
         const auto value = luaL_checknumber(L, 2);
 
         t.m_pos.x = value;
@@ -234,7 +250,7 @@ namespace {
     }
 
     int scene_transform_view_set_pos_y(lua_State* const L) {
-        auto& t = ::scene_transform_view_check(L);
+        auto& t = ::check_transform_view(L);
         const auto value = luaL_checknumber(L, 2);
 
         t.m_pos.y = value;
@@ -243,7 +259,7 @@ namespace {
     }
 
     int scene_transform_view_set_pos_z(lua_State* const L) {
-        auto& t = ::scene_transform_view_check(L);
+        auto& t = ::check_transform_view(L);
         const auto value = luaL_checknumber(L, 2);
 
         t.m_pos.z = value;
@@ -252,7 +268,7 @@ namespace {
     }
 
     int scene_transform_view_rotate_degree(lua_State* const L) {
-        auto& t = ::scene_transform_view_check(L);
+        auto& t = ::check_transform_view(L);
         const auto degree = luaL_checknumber(L, 2);
         const auto x_axis = luaL_checknumber(L, 3);
         const auto y_axis = luaL_checknumber(L, 4);
@@ -264,14 +280,14 @@ namespace {
     }
 
     int scene_transform_view_get_scale(lua_State* const L) {
-        auto& t = ::scene_transform_view_check(L);
+        auto& t = ::check_transform_view(L);
 
         lua_pushnumber(L, t.m_scale);
         return 1;
     }
 
     int scene_transform_view_set_scale(lua_State* const L) {
-        auto& t = ::scene_transform_view_check(L);
+        auto& t = ::check_transform_view(L);
         const auto value = luaL_checknumber(L, 2);
 
         t.m_scale = value;
@@ -300,9 +316,20 @@ namespace {
         }
 
         {
+            LuaFuncListBuilder methods;
+            methods.add("get_transform_view", ::scene_actor_skinned_get_transform_view);
+            methods.add("notify_transform_change", ::scene_actor_skinned_notify_transform_change);
+
+            luaL_newmetatable(L, ::DAL_ACTOR_SKINNED);
+            lua_pushstring(L, "__index");
+            lua_pushvalue(L, -2);
+            lua_settable(L, -3);
+            set_lua_func_to_table(L, methods.data(), 0);
+        }
+
+        {
             LuaFuncListBuilder func_list;
             func_list.add("create_actor_skinned", ::scene_create_actor_skinned);
-            func_list.add("get_transform_view_of", ::scene_get_transform_view_of);
             func_list.add("transform_view_get_pos", ::scene_transform_view_get_pos);
             luaL_newlib(L, func_list.data());
         }
