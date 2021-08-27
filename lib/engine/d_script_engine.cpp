@@ -188,7 +188,7 @@ namespace {
 // Lua lib: scene
 namespace {
 
-    const char* const DAL_VEC3 = "dalbaragi.Vec3";
+    const char* const DAL_VEC3_VIEW = "dalbaragi.Vec3View";
     const char* const DAL_DLIGHT = "dalbaragi.DLight";
     const char* const DAL_SLIGHT = "dalbaragi.SLight";
     const char* const DAL_PLIGHT = "dalbaragi.PLight";
@@ -198,7 +198,7 @@ namespace {
 
 
     glm::vec3& check_vec3(lua_State* const L, const int index = 1) {
-        return *::check_udata<glm::vec3*>(L, index, ::DAL_VEC3);
+        return *::check_udata<glm::vec3*>(L, index, ::DAL_VEC3_VIEW);
     }
 
     dal::DLight& check_dlight(lua_State* const L, const int index = 1) {
@@ -347,7 +347,7 @@ namespace {
     }
 
 
-    namespace scene::vec3 {
+    namespace scene::vec3_view {
 
         int to_string(lua_State* const L) {
             const auto& v = ::check_vec3(L);
@@ -443,7 +443,7 @@ namespace {
         int get_color(lua_State* const L) {
             auto& light = ::check_dlight(L);
 
-            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3_VIEW);
             obj = &light.m_color;
 
             return 1;
@@ -480,7 +480,7 @@ namespace {
         int get_pos(lua_State* const L) {
             auto& light = ::check_slight(L);
 
-            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3_VIEW);
             obj = &light.m_pos;
 
             return 1;
@@ -490,7 +490,7 @@ namespace {
         int get_color(lua_State* const L) {
             auto& light = ::check_slight(L);
 
-            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3_VIEW);
             obj = &light.m_color;
 
             return 1;
@@ -535,7 +535,7 @@ namespace {
         int get_pos(lua_State* const L) {
             auto& light = ::check_plight(L);
 
-            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3_VIEW);
             obj = &light.m_pos;
 
             return 1;
@@ -545,7 +545,7 @@ namespace {
         int get_color(lua_State* const L) {
             auto& light = ::check_plight(L);
 
-            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3_VIEW);
             obj = &light.m_color;
 
             return 1;
@@ -584,7 +584,7 @@ namespace {
         int get_pos(lua_State* const L) {
             auto& t = ::check_transform_view(L);
 
-            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3_VIEW);
             obj = &t.m_pos;
 
             return 1;
@@ -636,7 +636,7 @@ namespace {
         }
 
         // ActorStatic.get_transform_view(ActorStatic self) -> TransformView
-        int get_transform_view(lua_State* const L) {
+        int get_transform(lua_State* const L) {
             const auto entity = ::check_actor_static(L);
 
             const auto actor = g_scene->m_registry.try_get<dal::cpnt::ActorStatic>(entity);
@@ -679,7 +679,7 @@ namespace {
         }
 
         // ActorSkinned.get_transform_view(ActorSkinned self) -> TransformView
-        int get_transform_view(lua_State* const L) {
+        int get_transform(lua_State* const L) {
             const auto entity = ::check_actor_skinned(L);
 
             const auto actor_animated = g_scene->m_registry.try_get<dal::cpnt::ActorAnimated>(entity);
@@ -728,14 +728,14 @@ namespace {
         // Vec3
         {
             LuaFuncListBuilder methods;
-            methods.add("__tostring", scene::vec3::to_string);
-            methods.add("get_xyz", scene::vec3::get_xyz);
-            methods.add("set_x", scene::vec3::set_x);
-            methods.add("set_y", scene::vec3::set_y);
-            methods.add("set_z", scene::vec3::set_z);
-            methods.add("set_xyz", scene::vec3::set_xyz);
+            methods.add("__tostring", scene::vec3_view::to_string);
+            methods.add("get_xyz", scene::vec3_view::get_xyz);
+            methods.add("set_x", scene::vec3_view::set_x);
+            methods.add("set_y", scene::vec3_view::set_y);
+            methods.add("set_z", scene::vec3_view::set_z);
+            methods.add("set_xyz", scene::vec3_view::set_xyz);
 
-            add_metatable_definition(L, ::DAL_VEC3, methods.data());
+            add_metatable_definition(L, ::DAL_VEC3_VIEW, methods.data());
         }
 
         // DLight
@@ -788,7 +788,7 @@ namespace {
         {
             LuaFuncListBuilder methods;
             methods.add("__tostring", ::scene::actor_static::to_string);
-            methods.add("get_transform_view", ::scene::actor_static::get_transform_view);
+            methods.add("get_transform", ::scene::actor_static::get_transform);
             methods.add("notify_transform_change", ::scene::actor_static::notify_transform_change);
 
             add_metatable_definition(L, ::DAL_ACTOR_STATIC, methods.data());
@@ -798,7 +798,7 @@ namespace {
         {
             LuaFuncListBuilder methods;
             methods.add("__tostring", ::scene::actor_skinned::to_string);
-            methods.add("get_transform_view", ::scene::actor_skinned::get_transform_view);
+            methods.add("get_transform", ::scene::actor_skinned::get_transform);
             methods.add("notify_transform_change", ::scene::actor_skinned::notify_transform_change);
             methods.add("set_anim_index", ::scene::actor_skinned::set_anim_index);
 
