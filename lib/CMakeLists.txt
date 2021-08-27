@@ -43,12 +43,19 @@ FetchContent_Declare(
     GIT_TAG        main
 )
 
+FetchContent_Declare(
+    fetch_lua
+    GIT_REPOSITORY https://github.com/lua/lua
+    GIT_TAG        v5.4.3
+)
+
 
 FetchContent_MakeAvailable(fetch_fmt)
 FetchContent_MakeAvailable(fetch_glm)
 FetchContent_MakeAvailable(fetch_stb)
 FetchContent_MakeAvailable(fetch_entt)
 FetchContent_MakeAvailable(fetch_dal_blender)
+FetchContent_MakeAvailable(fetch_lua)
 
 if (WIN32)
     find_package(Vulkan REQUIRED)
@@ -61,6 +68,43 @@ elseif ("${CMAKE_SYSTEM}" MATCHES "Linux")
 elseif (ANDROID)
 
 endif()
+
+
+add_library(lua_static STATIC
+    ${fetch_lua_SOURCE_DIR}/lapi.c
+    ${fetch_lua_SOURCE_DIR}/lcode.c
+    ${fetch_lua_SOURCE_DIR}/lctype.c
+    ${fetch_lua_SOURCE_DIR}/ldebug.c
+    ${fetch_lua_SOURCE_DIR}/ldo.c
+    ${fetch_lua_SOURCE_DIR}/ldump.c
+    ${fetch_lua_SOURCE_DIR}/lfunc.c
+    ${fetch_lua_SOURCE_DIR}/lgc.c
+    ${fetch_lua_SOURCE_DIR}/llex.c
+    ${fetch_lua_SOURCE_DIR}/lmem.c
+    ${fetch_lua_SOURCE_DIR}/lobject.c
+    ${fetch_lua_SOURCE_DIR}/lopcodes.c
+    ${fetch_lua_SOURCE_DIR}/lparser.c
+    ${fetch_lua_SOURCE_DIR}/lstate.c
+    ${fetch_lua_SOURCE_DIR}/lstring.c
+    ${fetch_lua_SOURCE_DIR}/ltable.c
+    ${fetch_lua_SOURCE_DIR}/ltm.c
+    ${fetch_lua_SOURCE_DIR}/lundump.c
+    ${fetch_lua_SOURCE_DIR}/lvm.c
+    ${fetch_lua_SOURCE_DIR}/lzio.c
+    ${fetch_lua_SOURCE_DIR}/lauxlib.c
+    ${fetch_lua_SOURCE_DIR}/lbaselib.c
+    ${fetch_lua_SOURCE_DIR}/lcorolib.c
+    ${fetch_lua_SOURCE_DIR}/ldblib.c
+    ${fetch_lua_SOURCE_DIR}/liolib.c
+    ${fetch_lua_SOURCE_DIR}/lmathlib.c
+    ${fetch_lua_SOURCE_DIR}/loadlib.c
+    ${fetch_lua_SOURCE_DIR}/loslib.c
+    ${fetch_lua_SOURCE_DIR}/lstrlib.c
+    ${fetch_lua_SOURCE_DIR}/ltablib.c
+    ${fetch_lua_SOURCE_DIR}/lutf8lib.c
+    ${fetch_lua_SOURCE_DIR}/linit.c
+)
+target_include_directories(lua_static PUBLIC ${fetch_lua_SOURCE_DIR})
 
 
 add_subdirectory(./util)

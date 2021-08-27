@@ -310,6 +310,8 @@ namespace dal {
     {
         this->m_task_man.init(2);
         this->init(create_info);
+
+        this->m_lua.exec("console = require('console'); console.log('Lua state initialized')");
     }
 
     Engine::~Engine() {
