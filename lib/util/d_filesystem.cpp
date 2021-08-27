@@ -26,17 +26,6 @@
 namespace fs = std::filesystem;
 
 
-// Constants
-namespace {
-
-    const char* FOLDER_NAME_ASSET = "asset";
-
-    const char* SPECIAL_NAMESPACE_ASSET = "_asset";
-    const char* SPECIAL_NAMESPACE_LOG = "_log";
-
-}
-
-
 // Common functions
 namespace {
 
@@ -252,8 +241,8 @@ namespace desktop {
 
         for (int i = 0; i < 16; ++i) {
             for (const auto& entry : std::filesystem::directory_iterator(cur_dir)) {
-                if (entry.path().filename() == FOLDER_NAME_ASSET) {
-                    return cur_dir / FOLDER_NAME_ASSET;
+                if (entry.path().filename() == dal::FOLDER_NAME_ASSET) {
+                    return cur_dir / dal::FOLDER_NAME_ASSET;
                 }
             }
 
@@ -596,7 +585,7 @@ namespace {
     }
 
     std::optional<dal::ResPath> resolve_asset_path(const dal::ResPath& respath) {
-        if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
+        if (respath.dir_list().front() != dal::SPECIAL_NAMESPACE_ASSET)
             return std::nullopt;
 
         const auto start_dir = ::desktop::find_asset_dir();
@@ -607,7 +596,7 @@ namespace {
         if (!result.has_value())
             return std::nullopt;
 
-        const auto res_path_str = std::string{} + ::SPECIAL_NAMESPACE_ASSET + '/' + result.value();
+        const auto res_path_str = std::string{} + dal::SPECIAL_NAMESPACE_ASSET + '/' + result.value();
         return dal::ResPath{ res_path_str };
     }
 
@@ -852,7 +841,7 @@ namespace dal::filesystem {
     std::vector<std::string> AssetManager::listfile(const ResPath& respath) {
         std::vector<std::string> result;
 
-        if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
+        if (respath.dir_list().front() != dal::SPECIAL_NAMESPACE_ASSET)
             return result;
         if (respath.dir_list().size() < 2)
             return result;
@@ -877,7 +866,7 @@ namespace dal::filesystem {
     }
 
     std::unique_ptr<FileReadOnly> AssetManager::open(const ResPath& respath) {
-        if (respath.dir_list().front() != ::SPECIAL_NAMESPACE_ASSET)
+        if (respath.dir_list().front() != dal::SPECIAL_NAMESPACE_ASSET)
             return std::make_unique<::FileReadOnly_Null>();
         if (respath.dir_list().size() < 2)
             return std::make_unique<::FileReadOnly_Null>();
@@ -964,7 +953,7 @@ namespace dal {
         if (!respath.is_valid())
             return std::nullopt;
 
-        if (respath.dir_list().front() == ::SPECIAL_NAMESPACE_ASSET) {
+        if (respath.dir_list().front() == dal::SPECIAL_NAMESPACE_ASSET) {
 #ifdef DAL_OS_ANDROID
             return ::resolve_asset_path(respath, this->asset_mgr().get_android_asset_manager());
 #else
@@ -995,7 +984,7 @@ namespace dal {
         if (!respath.is_valid())
             return std::unique_ptr<dal::filesystem::FileReadOnly>{ new FileReadOnly_Null };
 
-        if (respath.dir_list().front() == ::SPECIAL_NAMESPACE_ASSET) {
+        if (respath.dir_list().front() == dal::SPECIAL_NAMESPACE_ASSET) {
             return this->asset_mgr().open(respath);
         }
         else {
