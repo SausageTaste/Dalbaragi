@@ -106,6 +106,17 @@ namespace {
         set_lua_func_to_table(L, functions, 0);
     }
 
+    template <typename T>
+    auto& push_meta_object(lua_State* const L, const char* const type_name) {
+        const auto ud = lua_newuserdata(L, sizeof(T));
+        const auto ud_ptr = static_cast<T*>(ud);
+
+        luaL_getmetatable(L, type_name);
+        lua_setmetatable(L, -2);
+
+        return *ud_ptr;
+    }
+
 }
 
 
@@ -231,12 +242,8 @@ namespace {
 
             //--------------------------------------------------------------------------------------------
 
-            const auto ud = lua_newuserdata(L, sizeof(entt::entity));
-            const auto ud_ptr = static_cast<entt::entity*>(ud);
-            *ud_ptr = entity;
-
-            luaL_getmetatable(L, ::DAL_ACTOR_STATIC);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<entt::entity>(L, ::DAL_ACTOR_STATIC);
+            obj = entity;
 
             return 1;
         }
@@ -255,12 +262,8 @@ namespace {
 
             //--------------------------------------------------------------------------------------------
 
-            const auto ud = lua_newuserdata(L, sizeof(entt::entity));
-            const auto ud_ptr = static_cast<entt::entity*>(ud);
-            *ud_ptr = entity;
-
-            luaL_getmetatable(L, ::DAL_ACTOR_SKINNED);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<entt::entity>(L, ::DAL_ACTOR_SKINNED);
+            obj = entity;
 
             return 1;
         }
@@ -269,12 +272,8 @@ namespace {
         int get_dlight_handle(lua_State* const L) {
             dalAssert(::are_dependencies_ready());
 
-            const auto ud = lua_newuserdata(L, sizeof(dal::DLight*));
-            const auto ud_ptr = static_cast<dal::DLight**>(ud);
-            *ud_ptr = &g_scene->m_dlight;
-
-            luaL_getmetatable(L, ::DAL_DLIGHT);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<dal::DLight*>(L, ::DAL_DLIGHT);
+            obj = &g_scene->m_dlight;
 
             return 1;
         }
@@ -291,17 +290,13 @@ namespace {
         int get_slight_at(lua_State* const L) {
             dalAssert(::are_dependencies_ready());
 
-            const auto index = luaL_checknumber(L, 1);
+            const auto index = static_cast<size_t>(luaL_checknumber(L, 1));
             const auto slight_count = g_scene->m_slights.size();
             if (index >= slight_count)
                 return luaL_error(L, fmt::format("Spot light index out of range: input={}, size={}", index, slight_count).c_str());
 
-            const auto ud = lua_newuserdata(L, sizeof(dal::SLight*));
-            const auto ud_ptr = static_cast<dal::SLight**>(ud);
-            *ud_ptr = &g_scene->m_slights.at(index);
-
-            luaL_getmetatable(L, ::DAL_SLIGHT);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<dal::SLight*>(L, ::DAL_SLIGHT);
+            obj = &g_scene->m_slights[index];
 
             return 1;
         }
@@ -310,12 +305,8 @@ namespace {
         int create_slight(lua_State* const L) {
             dalAssert(::are_dependencies_ready());
 
-            const auto ud = lua_newuserdata(L, sizeof(dal::SLight*));
-            const auto ud_ptr = static_cast<dal::SLight**>(ud);
-            *ud_ptr = &g_scene->m_slights.emplace_back();
-
-            luaL_getmetatable(L, ::DAL_SLIGHT);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<dal::SLight*>(L, ::DAL_SLIGHT);
+            obj = &g_scene->m_slights.emplace_back();
 
             return 1;
         }
@@ -337,12 +328,8 @@ namespace {
             if (index >= plight_count)
                 return luaL_error(L, fmt::format("Point light index out of range: input={}, size={}", index, plight_count).c_str());
 
-            const auto ud = lua_newuserdata(L, sizeof(dal::PLight*));
-            const auto ud_ptr = static_cast<dal::PLight**>(ud);
-            *ud_ptr = &g_scene->m_plights[index];
-
-            luaL_getmetatable(L, ::DAL_PLIGHT);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<dal::PLight*>(L, ::DAL_PLIGHT);
+            obj = &g_scene->m_plights[index];
 
             return 1;
         }
@@ -351,12 +338,8 @@ namespace {
         int create_plight(lua_State* const L) {
             dalAssert(::are_dependencies_ready());
 
-            const auto ud = lua_newuserdata(L, sizeof(dal::PLight*));
-            const auto ud_ptr = static_cast<dal::PLight**>(ud);
-            *ud_ptr = &g_scene->m_plights.emplace_back();
-
-            luaL_getmetatable(L, ::DAL_PLIGHT);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<dal::PLight*>(L, ::DAL_PLIGHT);
+            obj = &g_scene->m_plights.emplace_back();
 
             return 1;
         }
@@ -460,12 +443,8 @@ namespace {
         int get_color(lua_State* const L) {
             auto& light = ::check_dlight(L);
 
-            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
-            const auto ud_ptr = static_cast<glm::vec3**>(ud);
-            *ud_ptr = &light.m_color;
-
-            luaL_getmetatable(L, ::DAL_VEC3);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            obj = &light.m_color;
 
             return 1;
         }
@@ -501,12 +480,8 @@ namespace {
         int get_pos(lua_State* const L) {
             auto& light = ::check_slight(L);
 
-            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
-            const auto ud_ptr = static_cast<glm::vec3**>(ud);
-            *ud_ptr = &light.m_pos;
-
-            luaL_getmetatable(L, ::DAL_VEC3);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            obj = &light.m_pos;
 
             return 1;
         }
@@ -515,12 +490,8 @@ namespace {
         int get_color(lua_State* const L) {
             auto& light = ::check_slight(L);
 
-            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
-            const auto ud_ptr = static_cast<glm::vec3**>(ud);
-            *ud_ptr = &light.m_color;
-
-            luaL_getmetatable(L, ::DAL_VEC3);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            obj = &light.m_color;
 
             return 1;
         }
@@ -564,12 +535,8 @@ namespace {
         int get_pos(lua_State* const L) {
             auto& light = ::check_plight(L);
 
-            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
-            const auto ud_ptr = static_cast<glm::vec3**>(ud);
-            *ud_ptr = &light.m_pos;
-
-            luaL_getmetatable(L, ::DAL_VEC3);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            obj = &light.m_pos;
 
             return 1;
         }
@@ -578,12 +545,8 @@ namespace {
         int get_color(lua_State* const L) {
             auto& light = ::check_plight(L);
 
-            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
-            const auto ud_ptr = static_cast<glm::vec3**>(ud);
-            *ud_ptr = &light.m_color;
-
-            luaL_getmetatable(L, ::DAL_VEC3);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            obj = &light.m_color;
 
             return 1;
         }
@@ -621,12 +584,8 @@ namespace {
         int get_pos(lua_State* const L) {
             auto& t = ::check_transform_view(L);
 
-            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
-            const auto ud_ptr = static_cast<glm::vec3**>(ud);
-            *ud_ptr = &t.m_pos;
-
-            luaL_getmetatable(L, ::DAL_VEC3);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3);
+            obj = &t.m_pos;
 
             return 1;
         }
@@ -686,12 +645,8 @@ namespace {
 
             //--------------------------------------------------------------------------------------------
 
-            const auto ud = lua_newuserdata(L, sizeof(dal::Transform*));
-            const auto ptr = static_cast<dal::Transform**>(ud);
-            *ptr = &actor->m_actor->m_transform;
-
-            luaL_getmetatable(L, ::DAL_TRANSFORM_VIEW);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<dal::Transform*>(L, ::DAL_TRANSFORM_VIEW);
+            obj = &actor->m_actor->m_transform;
 
             return 1;
         }
@@ -733,12 +688,8 @@ namespace {
 
             //--------------------------------------------------------------------------------------------
 
-            const auto ud = lua_newuserdata(L, sizeof(dal::Transform*));
-            const auto ptr = static_cast<dal::Transform**>(ud);
-            *ptr = &actor_animated->m_actor->m_transform;
-
-            luaL_getmetatable(L, ::DAL_TRANSFORM_VIEW);
-            lua_setmetatable(L, -2);
+            auto& obj = ::push_meta_object<dal::Transform*>(L, ::DAL_TRANSFORM_VIEW);
+            obj = &actor_animated->m_actor->m_transform;
 
             return 1;
         }
