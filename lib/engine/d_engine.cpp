@@ -214,23 +214,7 @@ namespace {
 
 namespace {
 
-    void populate_models(dal::Scene& scene, dal::ResourceManager& res_man, dal::LuaState& lua) {
-        lua.exec("scene = require('scene')");
-
-        // Honoka
-        {
-            lua.exec("honoka_0 = scene.create_actor_skinned('honoka_0', 'sungmin/honoka_basic_3.dmd')");
-            lua.exec("t = scene.get_transform_view_of(honoka_0)");
-            lua.exec("t:set_pos_x(-2)");
-            lua.exec("t:rotate_degree(90, 0, 1, 0)");
-            lua.exec("t:set_scale(0.3)");
-        }
-        {
-            lua.exec("honoka_1 = scene.create_actor_skinned('honoka_1', 'sungmin/honoka_basic_3.dmd')");
-            lua.exec("t = scene.get_transform_view_of(honoka_1)");
-            lua.exec("t:set_scale(0.3)");
-        }
-
+    void populate_models(dal::Scene& scene, dal::ResourceManager& res_man) {
         // Character Running
         {
             const auto entity = scene.m_registry.create();
@@ -268,8 +252,6 @@ namespace {
             cpnt_actor.m_actor->m_transform.m_scale = 1;
             cpnt_actor.m_actor->notify_transform_change();
         }
-
-        dalInfo("Scene populated");
     }
 
 }
@@ -297,6 +279,11 @@ namespace dal {
 
         this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
         this->m_lua.exec("console = require('console'); console.log(console.INFO, 'Lua state initialized')");
+
+        auto file = this->m_create_info.m_filesystem->open("_asset/script/startup.lua");
+        const auto content = file->read_stl<std::string>();
+        dalAssert(content.has_value());
+        this->m_lua.exec(content->c_str());
     }
 
     Engine::~Engine() {
@@ -389,8 +376,10 @@ namespace dal {
 
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
-        if (this->m_scene.m_registry.empty())
-            ::populate_models(this->m_scene, this->m_res_man, this->m_lua);
+        if (this->m_scene.m_registry.empty()) {
+            ::populate_models(this->m_scene, this->m_res_man);
+            this->m_lua.exec("on_renderer_init()");
+        }
     }
 
     void Engine::destory_vulkan() {
