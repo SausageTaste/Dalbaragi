@@ -78,7 +78,7 @@ function on_renderer_init()
 end
 
 
-function before_rendering()
+function before_rendering_every_frame()
     local t = sysinfo.time()
 
     do
