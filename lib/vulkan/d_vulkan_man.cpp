@@ -315,7 +315,7 @@ namespace dal {
         }
     }
 
-    void VulkanState::update(const ICamera& camera, const RenderList& render_list) {
+    void VulkanState::update(const ICamera& camera, RenderList& render_list) {
         if (this->m_screen_resize_notified) {
             this->m_screen_resize_notified = this->on_recreate_swapchain();
             return;

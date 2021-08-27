@@ -11,7 +11,7 @@ namespace {
         dal::FrameInFlightIndex m_no_one_cares_about_this;
 
     public:
-        void update(const dal::ICamera& camera, const dal::RenderList& render_list) override {}
+        void update(const dal::ICamera& camera, dal::RenderList& render_list) override {}
 
         const dal::FrameInFlightIndex& in_flight_index() const override {
             return this->m_no_one_cares_about_this;

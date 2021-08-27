@@ -137,7 +137,7 @@ namespace dal {
     public:
         virtual ~IRenderer() = default;
 
-        virtual void update(const ICamera& camera, const RenderList& render_list) = 0;
+        virtual void update(const ICamera& camera, RenderList& render_list) = 0;
 
         virtual const FrameInFlightIndex& in_flight_index() const = 0;
 

@@ -66,7 +66,7 @@ namespace dal {
 
         ~VulkanState();
 
-        void update(const ICamera& camera, const RenderList& render_list) override;
+        void update(const ICamera& camera, RenderList& render_list) override;
 
         const FrameInFlightIndex& in_flight_index() const override {
             return this->m_flight_frame_index;
