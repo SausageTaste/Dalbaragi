@@ -37,10 +37,8 @@ namespace dal {
         const auto t = dal::get_cur_sec();
 
         {
-            auto& light = output.m_dlights.emplace_back();
-            light.m_pos = this->m_euler_camera.m_pos;
-            light.set_direc_to_light(1, 10, 1);
-            light.m_color = glm::vec3{2};
+            output.m_dlights.push_back(this->m_dlight);
+            output.m_dlights.back().m_pos = this->m_euler_camera.m_pos;
         }
 
         {

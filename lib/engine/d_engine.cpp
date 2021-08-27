@@ -239,6 +239,7 @@ namespace dal {
         const auto content = file->read_stl<std::string>();
         dalAssert(content.has_value());
         this->m_lua.exec(content->c_str());
+        this->m_lua.exec("on_engine_init()");
     }
 
     Engine::~Engine() {

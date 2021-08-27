@@ -32,6 +32,7 @@ namespace dal {
         entt::registry m_registry;
 
         EulerCamera m_euler_camera;
+        DLight m_dlight;
 
     public:
         Scene();
