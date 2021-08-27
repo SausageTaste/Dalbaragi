@@ -116,6 +116,21 @@ namespace {
         return file_path;
     }
 
+    std::optional<fs::path> convert_userdata_respath(const dal::ResPath& path) {
+        const auto domain_dir = ::find_userdata_dir();
+        if (!domain_dir.has_value())
+            return std::nullopt;
+
+        const auto target_path = ::join_path(&path.dir_list().front(), &path.dir_list().back() + 1, '/');
+
+#if defined(DAL_OS_WINDOWS)
+        return *domain_dir / ::utf8_to_utf16(target_path).value();
+#elif defined(DAL_OS_LINUX)
+        return *domain_dir / target_path;
+#endif
+
+    }
+
 
     class FileReadOnly_STL : public dal::FileReadOnly {
 
@@ -159,14 +174,23 @@ namespace {
 }
 
 
+// AssetManagerSTD
 namespace dal {
 
     bool AssetManagerSTD::is_file(const ResPath& path) {
-        return false;
+        const auto normal_path = ::convert_asset_respath(path);
+        if (!normal_path.has_value())
+            return 0;
+
+        return fs::is_regular_file(*normal_path);
     }
 
     bool AssetManagerSTD::is_folder(const ResPath& path) {
-        return false;
+        const auto normal_path = ::convert_asset_respath(path);
+        if (!normal_path.has_value())
+            return 0;
+
+        return fs::is_directory(*normal_path);
     }
 
     size_t AssetManagerSTD::list_files(const ResPath& path, std::vector<std::string>& output) {
@@ -177,23 +201,101 @@ namespace dal {
             return 0;
 
         for (const auto& x : fs::directory_iterator(*normal_path)) {
-            output.push_back(x.path().u8string());
+            if (fs::is_regular_file(x))
+                output.push_back(x.path().filename().u8string());
         }
 
         return output.size();
     }
 
     size_t AssetManagerSTD::list_folders(const ResPath& path, std::vector<std::string>& output) {
-        return 0;
+        output.clear();
+
+        const auto normal_path = ::convert_asset_respath(path);
+        if (!normal_path.has_value())
+            return 0;
+
+        for (const auto& x : fs::directory_iterator(*normal_path)) {
+            if (fs::is_directory(x))
+                output.push_back(x.path().filename().u8string());
+        }
+
+        return output.size();
     }
 
-    std::unique_ptr<dal::FileReadOnly> open(const ResPath& path) {
+    std::unique_ptr<FileReadOnly> AssetManagerSTD::open(const ResPath& path) {
         if (path.dir_list().front() != dal::SPECIAL_NAMESPACE_ASSET)
             return make_file_read_only_null();
         if (path.dir_list().size() < 2)
             return make_file_read_only_null();
 
         const auto file_path = ::convert_asset_respath(path);
+        if (!file_path.has_value())
+            return make_file_read_only_null();
+
+        auto file = std::make_unique<::FileReadOnly_STL>();
+        file->open(*file_path);
+
+        if (!file->is_ready())
+            return make_file_read_only_null();
+        else
+            return file;
+    }
+
+}
+
+
+// UserDataManagerSTD
+namespace dal {
+
+    bool UserDataManagerSTD::is_file(const dal::ResPath& path) {
+        const auto normal_path = ::convert_userdata_respath(path);
+        if (!normal_path.has_value())
+            return 0;
+
+        return fs::is_regular_file(*normal_path);
+    }
+
+    bool UserDataManagerSTD::is_folder(const dal::ResPath& path) {
+        const auto normal_path = ::convert_userdata_respath(path);
+        if (!normal_path.has_value())
+            return 0;
+
+        return fs::is_directory(*normal_path);
+    }
+
+    size_t UserDataManagerSTD::list_files(const dal::ResPath& path, std::vector<std::string>& output) {
+        output.clear();
+
+        const auto normal_path = ::convert_userdata_respath(path);
+        if (!normal_path.has_value())
+            return 0;
+
+        for (const auto& x : fs::directory_iterator(*normal_path)) {
+            if (fs::is_regular_file(x))
+                output.push_back(x.path().filename().u8string());
+        }
+
+        return output.size();
+    }
+
+    size_t UserDataManagerSTD::list_folders(const dal::ResPath& path, std::vector<std::string>& output) {
+        output.clear();
+
+        const auto normal_path = ::convert_userdata_respath(path);
+        if (!normal_path.has_value())
+            return 0;
+
+        for (const auto& x : fs::directory_iterator(*normal_path)) {
+            if (fs::is_directory(x))
+                output.push_back(x.path().filename().u8string());
+        }
+
+        return output.size();
+    }
+
+    std::unique_ptr<FileReadOnly> UserDataManagerSTD::open(const dal::ResPath& path) {
+        const auto file_path = ::convert_userdata_respath(path);
         if (!file_path.has_value())
             return make_file_read_only_null();
 

@@ -111,11 +111,9 @@ namespace dal {
         std::unique_ptr<IUserDataManager> m_userdata_mgr;
 
     public:
-        [[nodiscard]]
-        std::optional<ResPath> resolve_respath(const dal::ResPath& path);
+        std::optional<ResPath> resolve_respath(const ResPath& path);
 
-        [[nodiscard]]
-        std::unique_ptr<FileReadOnly> open(const dal::ResPath& path);
+        std::unique_ptr<FileReadOnly> open(const ResPath& path);
 
     };
 
