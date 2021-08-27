@@ -212,85 +212,6 @@ namespace {
 }
 
 
-namespace {
-
-    void populate_models(dal::Scene& scene, dal::ResourceManager& res_man) {
-        // Honoka
-        {
-            const auto entity = scene.m_registry.create();
-            auto model = res_man.request_model_skinned("sungmin/honoka_basic_3.dmd");
-
-            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::ModelSkinned>(entity);
-            cpnt_model.m_model = model;
-
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
-
-            cpnt_actor.m_actors.push_back(res_man.request_actor_skinned());
-            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
-
-            cpnt_actor.m_actors.push_back(res_man.request_actor_skinned());
-            cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
-            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
-            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.3;
-        }
-
-        // Character Running
-        {
-            const auto entity = scene.m_registry.create();
-            auto model = res_man.request_model_skinned("_asset/model/Character Running.dmd");
-
-            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::ModelSkinned>(entity);
-            cpnt_model.m_model = model;
-
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
-
-            cpnt_actor.m_actors.push_back(res_man.request_actor_skinned());
-            cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ 2, 0, 0 };
-            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
-            cpnt_actor.m_actors.back()->m_transform.m_scale = 1;
-            cpnt_actor.m_actors.back()->apply_transform(dal::FrameInFlightIndex{0});
-
-            cpnt_actor.m_actors.back()->m_anim_state.set_anim_index(0);
-        }
-
-        // Sponza
-        {
-            const auto entity = scene.m_registry.create();
-            auto model = res_man.request_model("_asset/model/sponza.dmd");
-
-            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::Model>(entity);
-            cpnt_model.m_model = model;
-
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
-
-            cpnt_actor.m_actors.push_back(res_man.request_actor());
-            cpnt_actor.m_actors.back()->m_transform.m_scale = 0.01;
-            cpnt_actor.m_actors.back()->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
-            cpnt_actor.m_actors.back()->apply_changes();
-        }
-
-        // Simple box
-        {
-            const auto entity = scene.m_registry.create();
-            auto model = res_man.request_model("_asset/model/simple_box.dmd");
-
-            auto& cpnt_model = scene.m_registry.emplace<dal::cpnt::Model>(entity);
-            cpnt_model.m_model = model;
-
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::Actor>(entity);
-
-            cpnt_actor.m_actors.push_back(res_man.request_actor());
-            cpnt_actor.m_actors.back()->m_transform.m_pos = glm::vec3{ 0, 0, -1 };
-            cpnt_actor.m_actors.back()->m_transform.m_scale = 1;
-            cpnt_actor.m_actors.back()->apply_changes();
-        }
-
-        dalInfo("Scene populated");
-    }
-
-}
-
-
 namespace dal {
 
     bool EngineCreateInfo::check_validity() const {
@@ -310,9 +231,19 @@ namespace dal {
     {
         this->m_task_man.init(2);
         this->init(create_info);
+
+        this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
+        this->m_lua.exec("logger = require('logger'); logger.log(logger.INFO, 'Lua state initialized')");
+
+        auto file = this->m_create_info.m_filesystem->open("_asset/script/startup.lua");
+        const auto content = file->read_stl<std::string>();
+        dalAssert(content.has_value());
+        this->m_lua.exec(content->c_str());
+        this->m_lua.exec("on_engine_init()");
     }
 
     Engine::~Engine() {
+        this->m_lua.clear_dependencies();
         this->m_task_man.destroy();
         this->destroy();
     }
@@ -375,15 +306,10 @@ namespace dal {
         this->m_res_man.update();
         this->m_scene.update();
 
-        auto render_list = this->m_scene.make_render_list();
-        for (auto& x : render_list.m_skinned_models) {
-            for (auto& actor : x.m_actors) {
-                actor->apply_animation(this->m_renderer->in_flight_index());
-                actor->apply_transform(this->m_renderer->in_flight_index());
-            }
-        }
+        this->m_lua.exec("before_rendering_every_frame()");
 
-        this->m_renderer->update(this->m_scene.m_euler_camera, this->m_scene.make_render_list());
+        auto render_list = this->m_scene.make_render_list();
+        this->m_renderer->update(this->m_scene.m_euler_camera, render_list);
     }
 
     void Engine::init_vulkan(const unsigned win_width, const unsigned win_height, const surface_create_func_t surface_create_func) {
@@ -408,8 +334,9 @@ namespace dal {
 
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
-        if (this->m_scene.m_registry.empty())
-            ::populate_models(this->m_scene, this->m_res_man);
+        if (this->m_scene.m_registry.empty()) {
+            this->m_lua.exec("on_renderer_init()");
+        }
     }
 
     void Engine::destory_vulkan() {

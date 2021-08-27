@@ -13,20 +13,14 @@ namespace dal {
 
     namespace cpnt {
 
-        struct Model {
+        struct ActorStatic {
             HRenModel m_model;
-        };
-
-        struct ModelSkinned {
-            HRenModelSkinned m_model;
-        };
-
-        struct Actor {
-            std::vector<HActor> m_actors;
+            HActor m_actor;
         };
 
         struct ActorAnimated {
-            std::vector<HActorSkinned> m_actors;
+            HRenModelSkinned m_model;
+            HActorSkinned m_actor;
         };
 
     }
@@ -38,6 +32,10 @@ namespace dal {
         entt::registry m_registry;
 
         EulerCamera m_euler_camera;
+
+        DLight m_dlight;
+        std::vector<SLight> m_slights;
+        std::vector<PLight> m_plights;
 
     public:
         Scene();

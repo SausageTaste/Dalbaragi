@@ -325,7 +325,6 @@ namespace dal {
 
         for (auto& actor : this->m_actors) {
             this->m_renderer->init(*actor.get());
-            actor->apply_changes();
         }
 
         for (auto& actor : this->m_skinned_actors)

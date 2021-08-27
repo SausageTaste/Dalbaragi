@@ -7,6 +7,9 @@
 #include "d_log_channel.h"
 
 
+#define DAL_ENABLE_ASSERT true
+
+
 namespace dal {
 
     void critical_exit();
@@ -44,69 +47,31 @@ namespace dal {
             const int line, const char* const func, const char* const file
         );
 
-        void put_verbose(
-            const char* const str,
-            const int line, const char* const func, const char* const file
-        ) {
-            this->put(LogLevel::verbose, str, line, func, file);
-        }
-        void put_debug(
-            const char* const str,
-            const int line, const char* const func, const char* const file
-        ) {
-            this->put(LogLevel::debug, str, line, func, file);
-        }
-        void put_info(
-            const char* const str,
-            const int line, const char* const func, const char* const file
-        ) {
-            this->put(LogLevel::info, str, line, func, file);
-        }
-        void put_warn(
-            const char* const str,
-            const int line, const char* const func, const char* const file
-        ) {
-            this->put(LogLevel::warning, str, line, func, file);
-        }
-        void put_error(
-            const char* const str,
-            const int line, const char* const func, const char* const file
-        ) {
-            this->put(LogLevel::error, str, line, func, file);
-        }
-        void put_fatal(
-            const char* const str,
-            const int line, const char* const func, const char* const file
-        ) {
-            this->put(LogLevel::fatal, str, line, func, file);
-        }
-
     };
 
 }
 
 
-#define DAL_ENABLE_ASSERT
+#define _STRINGIFY(x) #x
+#define TOSTRING(x) _STRINGIFY(x)
 
+#define dalLog(log_level, str)   dal::LoggerSingleton::inst().put((log_level), (str), __LINE__, __func__, __FILE__);
 
-#define STRINGIFY(x) #x
-#define TOSTRING(x) STRINGIFY(x)
+#define dalVerbose(str) dalLog(dal::LogLevel::verbose, (str));
+#define dalDebug(str)   dalLog(dal::LogLevel::debug,   (str));
+#define dalInfo(str)    dalLog(dal::LogLevel::info,    (str));
+#define dalWarn(str)    dalLog(dal::LogLevel::warning, (str));
+#define dalError(str)   dalLog(dal::LogLevel::error,   (str));
+#define dalFatal(str)   dalLog(dal::LogLevel::fatal,   (str));
 
-#define dalVerbose(str) dal::LoggerSingleton::inst().put_verbose((str), __LINE__, __func__, __FILE__);
-#define dalDebug(str)   dal::LoggerSingleton::inst().put_debug((str),   __LINE__, __func__, __FILE__);
-#define dalInfo(str)    dal::LoggerSingleton::inst().put_info((str),    __LINE__, __func__, __FILE__);
-#define dalWarn(str)    dal::LoggerSingleton::inst().put_warn((str),    __LINE__, __func__, __FILE__);
-#define dalError(str)   dal::LoggerSingleton::inst().put_error((str),   __LINE__, __func__, __FILE__);
-#define dalFatal(str)   dal::LoggerSingleton::inst().put_fatal((str),   __LINE__, __func__, __FILE__);
-
-#define dalAbort(str) {                                                             \
-    dal::LoggerSingleton::inst().put_fatal((str),   __LINE__, __func__, __FILE__);  \
-    dal::LoggerSingleton::inst().flush();                                           \
-    dal::critical_exit();                                                           \
+#define dalAbort(str) {                    \
+    dalFatal(str);                         \
+    dal::LoggerSingleton::inst().flush();  \
+    dal::critical_exit();                  \
 }
 
 
-#ifdef DAL_ENABLE_ASSERT
+#if DAL_ENABLE_ASSERT
     #define dalAssert(condition) { if (!(condition)) dalAbort("Assertion failed ( " TOSTRING(condition) " ), file " __FILE__ ", line " TOSTRING(__LINE__)); }
     #define dalAssertm(condition, message) { if (!(condition)) dalAbort(message); }
 #else

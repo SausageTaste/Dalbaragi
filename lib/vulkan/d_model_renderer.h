@@ -18,6 +18,9 @@ namespace dal {
         VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
+        size_t m_transform_update_needed = 0;
+
+    public:
         ~ActorVK();
 
         void init(
@@ -31,7 +34,11 @@ namespace dal {
 
         bool is_ready() const;
 
-        void apply_changes() override;
+        void notify_transform_change() override {
+            this->m_transform_update_needed = 1;
+        }
+
+        void apply_changes();
 
         auto& desc_set_raw() const {
             return this->m_desc_per_actor.get();
@@ -51,6 +58,9 @@ namespace dal {
         VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
+        size_t m_transform_update_needed = 0;
+
+    public:
         ~ActorSkinnedVK();
 
         void init(
@@ -65,9 +75,13 @@ namespace dal {
 
         bool is_ready() const;
 
-        void apply_transform(const FrameInFlightIndex& index) override;
+        void notify_transform_change() override {
+            this->m_transform_update_needed = MAX_FRAMES_IN_FLIGHT;
+        }
 
-        void apply_animation(const FrameInFlightIndex& index) override;
+        void apply_transform(const FrameInFlightIndex& index);
+
+        void apply_animation(const FrameInFlightIndex& index);
 
         auto& desc_per_actor(const FrameInFlightIndex& index) const {
             return this->m_desc_per_actor.at(index.get()).get();

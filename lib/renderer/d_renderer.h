@@ -67,7 +67,7 @@ namespace dal {
 
         virtual void destroy() = 0;
 
-        virtual void apply_changes() = 0;
+        virtual void notify_transform_change() = 0;
 
     };
 
@@ -83,9 +83,7 @@ namespace dal {
 
         virtual void destroy() = 0;
 
-        virtual void apply_transform(const FrameInFlightIndex& index) = 0;
-
-        virtual void apply_animation(const FrameInFlightIndex& index) = 0;
+        virtual void notify_transform_change() = 0;
 
     };
 
@@ -103,13 +101,22 @@ namespace dal {
         _Model m_model;
     };
 
-    struct RenderList {
+
+    class RenderList {
+
+    public:
         std::vector<RenderPair<HRenModel, HActor>> m_static_models;
         std::vector<RenderPair<HRenModelSkinned, HActorSkinned>> m_skinned_models;
         std::vector<DLight> m_dlights;
         std::vector<PLight> m_plights;
         std::vector<SLight> m_slights;
         glm::vec3 m_ambient_color;
+
+    public:
+        void add_actor(const HActor& actor, const HRenModel& model);
+
+        void add_actor(const HActorSkinned& actor, const HRenModelSkinned& model);
+
     };
 
 
@@ -128,7 +135,7 @@ namespace dal {
     public:
         virtual ~IRenderer() = default;
 
-        virtual void update(const ICamera& camera, const RenderList& render_list) = 0;
+        virtual void update(const ICamera& camera, RenderList& render_list) = 0;
 
         virtual const FrameInFlightIndex& in_flight_index() const = 0;
 

@@ -5,6 +5,7 @@
 #include "d_timer.h"
 #include "d_input_consumer.h"
 #include "d_scene.h"
+#include "d_script_engine.h"
 
 
 namespace dal {
@@ -23,6 +24,7 @@ namespace dal {
     private:
         EngineCreateInfo m_create_info;
 
+        LuaState m_lua;
         InputManager m_input_man;
         TaskManager m_task_man;
         ResourceManager m_res_man;
