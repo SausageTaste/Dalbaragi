@@ -16,6 +16,8 @@ namespace dal {
 
         size_t list_folders(const dal::ResPath& path, std::vector<std::string>& output) override;
 
+        std::optional<ResPath> resolve(const ResPath& path) override;
+
         std::unique_ptr<FileReadOnly> open(const dal::ResPath& path) override;
 
     };
@@ -31,6 +33,8 @@ namespace dal {
         size_t list_files(const dal::ResPath& path, std::vector<std::string>& output) override;
 
         size_t list_folders(const dal::ResPath& path, std::vector<std::string>& output) override;
+
+        std::optional<ResPath> resolve(const ResPath& path) override;
 
         std::unique_ptr<FileReadOnly> open(const dal::ResPath& path) override;
 

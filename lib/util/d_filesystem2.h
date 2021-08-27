@@ -89,6 +89,8 @@ namespace dal {
 
         virtual size_t list_folders(const ResPath& path, std::vector<std::string>& output) = 0;
 
+        virtual std::optional<ResPath> resolve(const ResPath& path) = 0;
+
         virtual std::unique_ptr<FileReadOnly> open(const ResPath& path) = 0;
 
     };

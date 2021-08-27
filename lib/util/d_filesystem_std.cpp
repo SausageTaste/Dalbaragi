@@ -174,6 +174,105 @@ namespace {
 }
 
 
+// Resolve functions
+namespace {
+
+    std::optional<fs::path> resolve_question_path(const fs::path& domain_dir, const std::string& entry_to_find) {
+        if (!fs::is_directory(domain_dir))
+            return std::nullopt;
+
+        for (auto& e : fs::recursive_directory_iterator(domain_dir)) {
+            if (e.path().filename().u8string() == entry_to_find) {
+                return e.path();
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<fs::path> resolve_asterisk_path(const fs::path& domain_dir, const std::string& entry_to_find) {
+        if (!fs::is_directory(domain_dir))
+            return std::nullopt;
+
+        for (auto& e0 : fs::directory_iterator(domain_dir)) {
+            for (auto& e1 : fs::directory_iterator(e0.path())) {
+                if (e1.path().filename().u8string() == entry_to_find) {
+                    return e1.path();
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<std::string> resolve_path(const dal::ResPath& respath, const fs::path& start_dir, const size_t start_index) {
+        auto cur_path = start_dir;
+
+        for (size_t i = start_index; i < respath.dir_list().size(); ++i) {
+            const auto dir_element = respath.dir_list().at(i);
+
+            if (dir_element == "?") {
+                const auto resolve_result = ::resolve_question_path(cur_path, respath.dir_list().at(i + 1));
+                if (!resolve_result.has_value()) {
+                    return std::nullopt;
+                }
+                else {
+                    cur_path = resolve_result.value();
+                    ++i;
+                }
+            }
+            else if (dir_element == "*") {
+                const auto resolve_result = ::resolve_asterisk_path(cur_path, respath.dir_list().at(i + 1));
+                if (!resolve_result.has_value()) {
+                    return std::nullopt;
+                }
+                else {
+                    cur_path = resolve_result.value();
+                    ++i;
+                }
+            }
+            else {
+                cur_path = cur_path / dir_element;
+            }
+        }
+
+        if (!fs::is_regular_file(cur_path))
+            return std::nullopt;
+
+        return cur_path.generic_u8string().substr(start_dir.generic_u8string().size() + 1);
+    }
+
+    std::optional<dal::ResPath> resolve_asset_path(const dal::ResPath& respath) {
+        if (respath.dir_list().front() != dal::SPECIAL_NAMESPACE_ASSET)
+            return std::nullopt;
+
+        const auto start_dir = ::find_asset_dir();
+        if (!start_dir.has_value())
+            return std::nullopt;
+
+        const auto result = ::resolve_path(respath, *start_dir, 1);
+        if (!result.has_value())
+            return std::nullopt;
+
+        const auto res_path_str = std::string{} + dal::SPECIAL_NAMESPACE_ASSET + '/' + result.value();
+        return dal::ResPath{ res_path_str };
+    }
+
+    std::optional<dal::ResPath> resolve_userdata_path(const dal::ResPath& respath) {
+        const auto start_dir = ::find_userdata_dir();
+        if (!start_dir.has_value())
+            return std::nullopt;
+
+        const auto result = ::resolve_path(respath, *start_dir, 0);
+        if (!result.has_value())
+            return std::nullopt;
+
+        return dal::ResPath{ result.value() };
+    }
+
+}
+
+
 // AssetManagerSTD
 namespace dal {
 
@@ -221,6 +320,10 @@ namespace dal {
         }
 
         return output.size();
+    }
+
+    std::optional<ResPath> AssetManagerSTD::resolve(const ResPath& path) {
+        return ::resolve_asset_path(path);
     }
 
     std::unique_ptr<FileReadOnly> AssetManagerSTD::open(const ResPath& path) {
@@ -292,6 +395,10 @@ namespace dal {
         }
 
         return output.size();
+    }
+
+    std::optional<ResPath> UserDataManagerSTD::resolve(const ResPath& path) {
+        return ::resolve_userdata_path(path);
     }
 
     std::unique_ptr<FileReadOnly> UserDataManagerSTD::open(const dal::ResPath& path) {
