@@ -91,6 +91,12 @@ namespace {
         lua_pop(L, nup);  /* remove upvalues */
     }
 
+    template <typename T>
+    auto check_udata(lua_State* const L, const int index, const char* const type_name) {
+        void* const ud = luaL_checkudata(L, index, type_name);
+        return *static_cast<T*>(ud);
+    }
+
 }
 
 
@@ -168,29 +174,25 @@ namespace {
     const char* const DAL_ACTOR_STATIC = "dalbaragi.ActorStatic";
     const char* const DAL_ACTOR_SKINNED = "dalbaragi.ActorSkinned";
 
+
     glm::vec3& check_vec3(lua_State* const L, const int index = 1) {
-        void* const ud = luaL_checkudata(L, index, ::DAL_VEC3);
-        return **static_cast<glm::vec3**>(ud);
+        return *::check_udata<glm::vec3*>(L, index, ::DAL_VEC3);
     }
 
     dal::DLight& check_dlight(lua_State* const L, const int index = 1) {
-        void* const ud = luaL_checkudata(L, index, ::DAL_DLIGHT);
-        return **static_cast<dal::DLight**>(ud);
+        return *::check_udata<dal::DLight*>(L, index, ::DAL_DLIGHT);
     }
 
-    dal::Transform& check_transform_view(lua_State* const L) {
-        void* const ud = luaL_checkudata(L, 1, ::DAL_TRANSFORM_VIEW);
-        return **static_cast<dal::Transform**>(ud);
+    dal::Transform& check_transform_view(lua_State* const L, const int index = 1) {
+        return *::check_udata<dal::Transform*>(L, index, ::DAL_TRANSFORM_VIEW);
     }
 
-    entt::entity check_actor_static(lua_State* const L) {
-        void* const ud = luaL_checkudata(L, 1, ::DAL_ACTOR_STATIC);
-        return *static_cast<entt::entity*>(ud);
+    entt::entity check_actor_static(lua_State* const L, const int index = 1) {
+        return ::check_udata<entt::entity>(L, index, ::DAL_ACTOR_STATIC);
     }
 
-    entt::entity check_actor_skinned(lua_State* const L) {
-        void* const ud = luaL_checkudata(L, 1, ::DAL_ACTOR_SKINNED);
-        return *static_cast<entt::entity*>(ud);
+    entt::entity check_actor_skinned(lua_State* const L, const int index = 1) {
+        return ::check_udata<entt::entity>(L, index, ::DAL_ACTOR_SKINNED);
     }
 
 
