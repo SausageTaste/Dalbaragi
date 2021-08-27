@@ -233,7 +233,7 @@ namespace dal {
         this->init(create_info);
 
         this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
-        this->m_lua.exec("console = require('console'); console.log(console.INFO, 'Lua state initialized')");
+        this->m_lua.exec("logger = require('logger'); logger.log(logger.INFO, 'Lua state initialized')");
 
         auto file = this->m_create_info.m_filesystem->open("_asset/script/startup.lua");
         const auto content = file->read_stl<std::string>();
