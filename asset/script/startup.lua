@@ -27,6 +27,11 @@ function on_engine_init()
         light:set_fade_start_degree(0)
         light:set_fade_end_degree(35)
     end
+
+    do
+        local light = scene.create_plight()
+        light:get_color():set_xyz(0.5, 0.5, 0.5)
+    end
 end
 
 
@@ -84,5 +89,10 @@ function before_rendering()
     do
         local light = scene.get_slight_at(1)
         light:get_pos():set_xyz(math.cos(t*0.3) * 3, 1, 4.5);
+    end
+
+    do
+        local light = scene.get_plight_at(0)
+        light:get_pos():set_xyz(math.sin(t) * 3 - 10, 1, math.cos(t) * 2);
     end
 end

@@ -35,6 +35,7 @@ namespace dal {
 
         DLight m_dlight;
         std::vector<SLight> m_slights;
+        std::vector<PLight> m_plights;
 
     public:
         Scene();

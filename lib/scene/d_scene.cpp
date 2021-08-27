@@ -34,23 +34,11 @@ namespace dal {
             });
         }
 
-        const auto t = dal::get_cur_sec();
+        output.m_dlights.push_back(this->m_dlight);
+        output.m_dlights.back().m_pos = this->m_euler_camera.m_pos;
 
-        {
-            output.m_dlights.push_back(this->m_dlight);
-            output.m_dlights.back().m_pos = this->m_euler_camera.m_pos;
-        }
-
-        {
-            auto& light = output.m_plights.emplace_back();
-            light.m_pos = glm::vec3{sin(t) * 3 - 10, 1, cos(t) * 2};
-            light.m_color = glm::vec3{0.5};
-        }
-
-        {
-            output.m_slights = this->m_slights;
-        }
-
+        output.m_plights = this->m_plights;
+        output.m_slights = this->m_slights;
         output.m_ambient_color = glm::vec3{0.01};
 
         return output;

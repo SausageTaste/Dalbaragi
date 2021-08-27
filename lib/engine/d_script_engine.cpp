@@ -93,7 +93,7 @@ namespace {
     }
 
     template <typename T>
-    auto check_udata(lua_State* const L, const int index, const char* const type_name) {
+    auto& check_udata(lua_State* const L, const int index, const char* const type_name) {
         void* const ud = luaL_checkudata(L, index, type_name);
         return *static_cast<T*>(ud);
     }
@@ -172,6 +172,7 @@ namespace {
     const char* const DAL_VEC3 = "dalbaragi.Vec3";
     const char* const DAL_DLIGHT = "dalbaragi.DLight";
     const char* const DAL_SLIGHT = "dalbaragi.SLight";
+    const char* const DAL_PLIGHT = "dalbaragi.PLight";
     const char* const DAL_TRANSFORM_VIEW = "dalbaragi.TransformView";
     const char* const DAL_ACTOR_STATIC = "dalbaragi.ActorStatic";
     const char* const DAL_ACTOR_SKINNED = "dalbaragi.ActorSkinned";
@@ -187,6 +188,10 @@ namespace {
 
     dal::SLight& check_slight(lua_State* const L, const int index = 1) {
         return *::check_udata<dal::SLight*>(L, index, ::DAL_SLIGHT);
+    }
+
+    dal::PLight& check_plight(lua_State* const L, const int index = 1) {
+        return *::check_udata<dal::PLight*>(L, index, ::DAL_PLIGHT);
     }
 
     dal::Transform& check_transform_view(lua_State* const L, const int index = 1) {
@@ -302,6 +307,47 @@ namespace {
             *ud_ptr = &g_scene->m_slights.emplace_back();
 
             luaL_getmetatable(L, ::DAL_SLIGHT);
+            lua_setmetatable(L, -2);
+
+            return 1;
+        }
+
+        // scene.get_plight_count() -> int
+        int get_plight_count(lua_State* const L) {
+            dalAssert(::are_dependencies_ready());
+
+            lua_pushnumber(L, g_scene->m_plights.size());
+            return 1;
+        }
+
+        // scene.get_plight_at() -> PLight
+        int get_plight_at(lua_State* const L) {
+            dalAssert(::are_dependencies_ready());
+
+            const auto index = luaL_checknumber(L, 1);
+            const auto plight_count = g_scene->m_plights.size();
+            if (index >= plight_count)
+                return luaL_error(L, fmt::format("Point light index out of range: input={}, size={}", index, plight_count).c_str());
+
+            const auto ud = lua_newuserdata(L, sizeof(dal::PLight*));
+            const auto ud_ptr = static_cast<dal::PLight**>(ud);
+            *ud_ptr = &g_scene->m_plights[index];
+
+            luaL_getmetatable(L, ::DAL_PLIGHT);
+            lua_setmetatable(L, -2);
+
+            return 1;
+        }
+
+        // scene.create_plight() -> PLight
+        int create_plight(lua_State* const L) {
+            dalAssert(::are_dependencies_ready());
+
+            const auto ud = lua_newuserdata(L, sizeof(dal::PLight*));
+            const auto ud_ptr = static_cast<dal::PLight**>(ud);
+            *ud_ptr = &g_scene->m_plights.emplace_back();
+
+            luaL_getmetatable(L, ::DAL_PLIGHT);
             lua_setmetatable(L, -2);
 
             return 1;
@@ -487,6 +533,59 @@ namespace {
             const auto value = luaL_checknumber(L, 2);
 
             light.set_fade_end_degree(value);
+
+            return 0;
+        }
+
+    }
+
+
+    namespace scene::plight {
+
+        int to_string(lua_State* const L) {
+            const auto& light = ::check_plight(L);
+            const auto v = light.m_pos;
+
+            //--------------------------------------------------------------------------------------------
+
+            lua_pushstring(L, fmt::format("SLight{{ pos=({}, {}, {}) }}", v.x, v.y, v.z).c_str());
+            return 1;
+        }
+
+        // PLight.get_pos(PLight self) -> Vec3
+        int get_pos(lua_State* const L) {
+            auto& light = ::check_plight(L);
+
+            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
+            const auto ud_ptr = static_cast<glm::vec3**>(ud);
+            *ud_ptr = &light.m_pos;
+
+            luaL_getmetatable(L, ::DAL_VEC3);
+            lua_setmetatable(L, -2);
+
+            return 1;
+        }
+
+        // PLight.get_color(PLight self) -> Vec3
+        int get_color(lua_State* const L) {
+            auto& light = ::check_plight(L);
+
+            const auto ud = lua_newuserdata(L, sizeof(glm::vec3*));
+            const auto ud_ptr = static_cast<glm::vec3**>(ud);
+            *ud_ptr = &light.m_color;
+
+            luaL_getmetatable(L, ::DAL_VEC3);
+            lua_setmetatable(L, -2);
+
+            return 1;
+        }
+
+        // PLight.set_max_distance(SLight self, float value) -> None
+        int set_max_distance(lua_State* const L) {
+            auto& light = ::check_plight(L);
+            const auto value = luaL_checknumber(L, 2);
+
+            light.m_max_dist = value;
 
             return 0;
         }
@@ -715,6 +814,21 @@ namespace {
             set_lua_func_to_table(L, methods.data(), 0);
         }
 
+        // PLight
+        {
+            LuaFuncListBuilder methods;
+            methods.add("__tostring", scene::plight::to_string);
+            methods.add("get_pos", scene::plight::get_pos);
+            methods.add("get_color", scene::plight::get_color);
+            methods.add("set_max_distance", scene::plight::set_max_distance);
+
+            luaL_newmetatable(L, ::DAL_PLIGHT);
+            lua_pushstring(L, "__index");
+            lua_pushvalue(L, -2);
+            lua_settable(L, -3);
+            set_lua_func_to_table(L, methods.data(), 0);
+        }
+
         // TransformView
         {
             LuaFuncListBuilder transform_viwe_methods;
@@ -768,6 +882,9 @@ namespace {
             func_list.add("get_slight_count", scene::get_slight_count);
             func_list.add("get_slight_at", scene::get_slight_at);
             func_list.add("create_slight", scene::create_slight);
+            func_list.add("get_plight_count", scene::get_plight_count);
+            func_list.add("get_plight_at", scene::get_plight_at);
+            func_list.add("create_plight", scene::create_plight);
             luaL_newlib(L, func_list.data());
         }
 
@@ -804,6 +921,7 @@ namespace {
 }
 
 
+// LuaState
 namespace dal {
 
     LuaState::LuaState()
