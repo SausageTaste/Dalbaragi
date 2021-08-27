@@ -12,6 +12,21 @@ extern "C" {
 }
 
 #include "d_logger.h"
+#include "d_scene.h"
+#include "d_resource_man.h"
+
+
+// Dependencies
+namespace {
+
+    dal::Scene* g_scene = nullptr;
+    dal::ResourceManager* g_res_man = nullptr;
+
+    bool are_dependencies_ready() {
+        return nullptr != g_scene && nullptr != g_res_man;
+    }
+
+}
 
 
 // Lua state functions
@@ -127,6 +142,41 @@ namespace {
 }
 
 
+// Lua lib: scene
+namespace {
+
+    int scene_create_actor_skinned(lua_State* const L) {
+        dalAssert(::are_dependencies_ready());
+
+        const auto nargs = lua_gettop(L);
+        if (2 != nargs)
+            return luaL_error(L, "Needs 2 arguments");
+
+        const auto name = lua_tostring(L, -2);
+        const auto res_path = lua_tostring(L, -1);
+
+        const auto entity = g_scene->m_registry.create();
+        auto& cpnt_actor = g_scene->m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
+        cpnt_actor.m_model = g_res_man->request_model_skinned(res_path);
+        cpnt_actor.m_actor = g_res_man->request_actor_skinned();
+
+        lua_pushnumber(L, static_cast<lua_Number>(entity));
+        return 1;
+    }
+
+    //name of this function is not flexible
+    int luaopen_scene(lua_State* const L) {
+        LuaFuncListBuilder func_list;
+        func_list.add("create_actor_skinned", ::scene_create_actor_skinned);
+
+        luaL_newlib(L, func_list.data());
+
+        return 1;
+    }
+
+}
+
+
 namespace dal {
 
     LuaState::LuaState()
@@ -135,6 +185,7 @@ namespace dal {
         luaL_openlibs(this->m_lua);
 
         luaL_requiref(this->m_lua, "console", ::luaopen_console, 0);
+        luaL_requiref(this->m_lua, "scene", ::luaopen_scene, 0);
     }
 
     LuaState::~LuaState() {
@@ -146,6 +197,21 @@ namespace dal {
             dalError(lua_tostring(this->m_lua, -1));
             lua_pop(this->m_lua, 1);
         }
+    }
+
+    // Static
+
+    void LuaState::give_dependencies(
+        dal::Scene& scene,
+        dal::ResourceManager& res_man
+    ) {
+        g_scene = &scene;
+        g_res_man = &res_man;
+    }
+
+    void LuaState::clear_dependencies() {
+        g_scene = nullptr;
+        g_res_man = nullptr;
     }
 
 }

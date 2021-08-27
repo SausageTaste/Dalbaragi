@@ -214,16 +214,8 @@ namespace {
 
 namespace {
 
-    void populate_models(dal::Scene& scene, dal::ResourceManager& res_man) {
+    void populate_models(dal::Scene& scene, dal::ResourceManager& res_man, dal::LuaState& lua) {
         // Honoka
-        {
-            const auto entity = scene.m_registry.create();
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
-            cpnt_actor.m_model = res_man.request_model_skinned("sungmin/honoka_basic_3.dmd");
-            cpnt_actor.m_actor = res_man.request_actor_skinned();
-
-            cpnt_actor.m_actor->m_transform.m_scale = 0.3;
-        }
         {
             const auto entity = scene.m_registry.create();
             auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
@@ -233,6 +225,13 @@ namespace {
             cpnt_actor.m_actor->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
             cpnt_actor.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
             cpnt_actor.m_actor->m_transform.m_scale = 0.3;
+        }
+        {
+            lua.exec("scene = require('scene')");
+            lua.exec("honoka_1 = scene.create_actor_skinned('honoka_1', 'sungmin/honoka_basic_3.dmd')");
+            lua.exec("console.log(console.INFO, honoka_1)");
+
+            //cpnt_actor.m_actor->m_transform.m_scale = 0.3;
         }
 
         // Character Running
@@ -299,10 +298,12 @@ namespace dal {
         this->m_task_man.init(2);
         this->init(create_info);
 
+        this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
         this->m_lua.exec("console = require('console'); console.log(console.INFO, 'Lua state initialized')");
     }
 
     Engine::~Engine() {
+        this->m_lua.clear_dependencies();
         this->m_task_man.destroy();
         this->destroy();
     }
@@ -399,7 +400,7 @@ namespace dal {
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
         if (this->m_scene.m_registry.empty())
-            ::populate_models(this->m_scene, this->m_res_man);
+            ::populate_models(this->m_scene, this->m_res_man, this->m_lua);
     }
 
     void Engine::destory_vulkan() {
