@@ -343,6 +343,24 @@ namespace dal {
             img_fences = &sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index);
         }
 
+        // Update render list
+        {
+            for (auto& x : render_list.m_static_models) {
+                for (auto& a : x.m_actors) {
+                    auto& actor = ::actor_cast(a);
+                    actor.apply_changes();
+                }
+            }
+
+            for (auto& x : render_list.m_skinned_models) {
+                for (auto& a : x.m_actors) {
+                    auto& actor = ::actor_cast(a);
+                    actor.apply_animation(this->in_flight_index());
+                    actor.apply_transform(this->in_flight_index());
+                }
+            }
+        }
+
         // Prepare needed data
         //-----------------------------------------------------------------------------------------------------
 

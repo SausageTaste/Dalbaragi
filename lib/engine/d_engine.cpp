@@ -225,6 +225,7 @@ namespace {
             cpnt_actor.m_actor->m_transform.m_pos = glm::vec3{ -2, 0, 0 };
             cpnt_actor.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
             cpnt_actor.m_actor->m_transform.m_scale = 0.3;
+            cpnt_actor.m_actor->notify_transform_change();
         }
         {
             lua.exec("scene = require('scene')");
@@ -244,8 +245,8 @@ namespace {
             cpnt_actor.m_actor->m_transform.m_pos = glm::vec3{ 2, 0, 0 };
             cpnt_actor.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
             cpnt_actor.m_actor->m_transform.m_scale = 1;
-            cpnt_actor.m_actor->apply_transform(dal::FrameInFlightIndex{0});
             cpnt_actor.m_actor->m_anim_state.set_anim_index(0);
+            cpnt_actor.m_actor->notify_transform_change();
         }
 
         // Sponza
@@ -257,7 +258,7 @@ namespace {
 
             cpnt_actor.m_actor->m_transform.m_scale = 0.01;
             cpnt_actor.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
-            cpnt_actor.m_actor->apply_changes();
+            cpnt_actor.m_actor->notify_transform_change();
         }
 
         // Simple box
@@ -269,7 +270,7 @@ namespace {
 
             cpnt_actor.m_actor->m_transform.m_pos = glm::vec3{ 0, 0, -1 };
             cpnt_actor.m_actor->m_transform.m_scale = 1;
-            cpnt_actor.m_actor->apply_changes();
+            cpnt_actor.m_actor->notify_transform_change();
         }
 
         dalInfo("Scene populated");
@@ -367,14 +368,7 @@ namespace dal {
         this->m_scene.update();
 
         auto render_list = this->m_scene.make_render_list();
-        for (auto& x : render_list.m_skinned_models) {
-            for (auto& actor : x.m_actors) {
-                actor->apply_animation(this->m_renderer->in_flight_index());
-                actor->apply_transform(this->m_renderer->in_flight_index());
-            }
-        }
-
-        this->m_renderer->update(this->m_scene.m_euler_camera, this->m_scene.make_render_list());
+        this->m_renderer->update(this->m_scene.m_euler_camera, render_list);
     }
 
     void Engine::init_vulkan(const unsigned win_width, const unsigned win_height, const surface_create_func_t surface_create_func) {

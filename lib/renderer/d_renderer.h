@@ -67,7 +67,7 @@ namespace dal {
 
         virtual void destroy() = 0;
 
-        virtual void apply_changes() = 0;
+        virtual void notify_transform_change() = 0;
 
     };
 
@@ -83,9 +83,7 @@ namespace dal {
 
         virtual void destroy() = 0;
 
-        virtual void apply_transform(const FrameInFlightIndex& index) = 0;
-
-        virtual void apply_animation(const FrameInFlightIndex& index) = 0;
+        virtual void notify_transform_change() = 0;
 
     };
 
