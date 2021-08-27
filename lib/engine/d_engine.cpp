@@ -212,51 +212,6 @@ namespace {
 }
 
 
-namespace {
-
-    void populate_models(dal::Scene& scene, dal::ResourceManager& res_man) {
-        // Character Running
-        {
-            const auto entity = scene.m_registry.create();
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
-            cpnt_actor.m_model = res_man.request_model_skinned("_asset/model/Character Running.dmd");
-            cpnt_actor.m_actor = res_man.request_actor_skinned();
-
-            cpnt_actor.m_actor->m_transform.m_pos = glm::vec3{ 2, 0, 0 };
-            cpnt_actor.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
-            cpnt_actor.m_actor->m_transform.m_scale = 1;
-            cpnt_actor.m_actor->m_anim_state.set_anim_index(0);
-            cpnt_actor.m_actor->notify_transform_change();
-        }
-
-        // Sponza
-        {
-            const auto entity = scene.m_registry.create();
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorStatic>(entity);
-            cpnt_actor.m_model = res_man.request_model("_asset/model/sponza.dmd");
-            cpnt_actor.m_actor = res_man.request_actor();
-
-            cpnt_actor.m_actor->m_transform.m_scale = 0.01;
-            cpnt_actor.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{1, 0, 0});
-            cpnt_actor.m_actor->notify_transform_change();
-        }
-
-        // Simple box
-        {
-            const auto entity = scene.m_registry.create();
-            auto& cpnt_actor = scene.m_registry.emplace<dal::cpnt::ActorStatic>(entity);
-            cpnt_actor.m_model = res_man.request_model("_asset/model/simple_box.dmd");
-            cpnt_actor.m_actor = res_man.request_actor();
-
-            cpnt_actor.m_actor->m_transform.m_pos = glm::vec3{ 0, 0, -1 };
-            cpnt_actor.m_actor->m_transform.m_scale = 1;
-            cpnt_actor.m_actor->notify_transform_change();
-        }
-    }
-
-}
-
-
 namespace dal {
 
     bool EngineCreateInfo::check_validity() const {
@@ -377,7 +332,6 @@ namespace dal {
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
         if (this->m_scene.m_registry.empty()) {
-            ::populate_models(this->m_scene, this->m_res_man);
             this->m_lua.exec("on_renderer_init()");
         }
     }

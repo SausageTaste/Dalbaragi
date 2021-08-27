@@ -158,11 +158,17 @@ namespace {
 namespace {
 
     const char* const DAL_TRANSFORM_VIEW = "dalbaragi.TransformView";
+    const char* const DAL_ACTOR_STATIC = "dalbaragi.ActorStatic";
     const char* const DAL_ACTOR_SKINNED = "dalbaragi.ActorSkinned";
 
     dal::Transform& check_transform_view(lua_State* const L) {
         void* const ud = luaL_checkudata(L, 1, ::DAL_TRANSFORM_VIEW);
         return **static_cast<dal::Transform**>(ud);
+    }
+
+    entt::entity check_actor_static(lua_State* const L) {
+        void* const ud = luaL_checkudata(L, 1, ::DAL_ACTOR_STATIC);
+        return *static_cast<entt::entity*>(ud);
     }
 
     entt::entity check_actor_skinned(lua_State* const L) {
@@ -171,15 +177,34 @@ namespace {
     }
 
 
+    int scene_create_actor_static(lua_State* const L) {
+        dalAssert(::are_dependencies_ready());
+
+        const auto name = luaL_checkstring(L, -2);
+        const auto res_path = luaL_checkstring(L, -1);
+
+        const auto entity = g_scene->m_registry.create();
+        auto& cpnt_actor = g_scene->m_registry.emplace<dal::cpnt::ActorStatic>(entity);
+        cpnt_actor.m_model = g_res_man->request_model(res_path);
+        cpnt_actor.m_actor = g_res_man->request_actor();
+
+        //--------------------------------------------------------------------------------------------
+
+        const auto ud = lua_newuserdata(L, sizeof(entt::entity));
+        const auto ud_ptr = static_cast<entt::entity*>(ud);
+        *ud_ptr = entity;
+
+        luaL_getmetatable(L, ::DAL_ACTOR_STATIC);
+        lua_setmetatable(L, -2);
+
+        return 1;
+    }
+
     int scene_create_actor_skinned(lua_State* const L) {
         dalAssert(::are_dependencies_ready());
 
-        const auto nargs = lua_gettop(L);
-        if (2 != nargs)
-            return luaL_error(L, "Needs 2 arguments");
-
-        const auto name = lua_tostring(L, -2);
-        const auto res_path = lua_tostring(L, -1);
+        const auto name = luaL_checkstring(L, -2);
+        const auto res_path = luaL_checkstring(L, -1);
 
         const auto entity = g_scene->m_registry.create();
         auto& cpnt_actor = g_scene->m_registry.emplace<dal::cpnt::ActorAnimated>(entity);
@@ -196,6 +221,38 @@ namespace {
         lua_setmetatable(L, -2);
 
         return 1;
+    }
+
+
+    int scene_actor_static_get_transform_view(lua_State* const L) {
+        const auto entity = ::check_actor_static(L);
+
+        const auto actor = g_scene->m_registry.try_get<dal::cpnt::ActorStatic>(entity);
+        if (nullptr == actor)
+            return luaL_error(L, "Invalid entity for a static actor");
+
+        //--------------------------------------------------------------------------------------------
+
+        const auto ud = lua_newuserdata(L, sizeof(dal::Transform*));
+        const auto ptr = static_cast<dal::Transform**>(ud);
+        *ptr = &actor->m_actor->m_transform;
+
+        luaL_getmetatable(L, ::DAL_TRANSFORM_VIEW);
+        lua_setmetatable(L, -2);
+
+        return 1;
+    }
+
+    int scene_actor_static_notify_transform_change(lua_State* const L) {
+        const auto entity = ::check_actor_static(L);
+
+        const auto actor = g_scene->m_registry.try_get<dal::cpnt::ActorStatic>(entity);
+        if (nullptr == actor)
+            return luaL_error(L, "Invalid entity for a skinned actor");
+
+        actor->m_actor->notify_transform_change();
+
+        return 0;
     }
 
 
@@ -226,6 +283,19 @@ namespace {
             return luaL_error(L, "Invalid entity for a skinned actor");
 
         actor_animated->m_actor->notify_transform_change();
+
+        return 0;
+    }
+
+    int scene_actor_skinned_set_anim_index(lua_State* const L) {
+        const auto entity = ::check_actor_skinned(L);
+        const auto value = luaL_checknumber(L, 2);
+
+        const auto actor = g_scene->m_registry.try_get<dal::cpnt::ActorAnimated>(entity);
+        if (nullptr == actor)
+            return luaL_error(L, "Invalid entity for a skinned actor");
+
+        actor->m_actor->m_anim_state.set_anim_index(value);
 
         return 0;
     }
@@ -317,8 +387,21 @@ namespace {
 
         {
             LuaFuncListBuilder methods;
+            methods.add("get_transform_view", ::scene_actor_static_get_transform_view);
+            methods.add("notify_transform_change", ::scene_actor_static_notify_transform_change);
+
+            luaL_newmetatable(L, ::DAL_ACTOR_STATIC);
+            lua_pushstring(L, "__index");
+            lua_pushvalue(L, -2);
+            lua_settable(L, -3);
+            set_lua_func_to_table(L, methods.data(), 0);
+        }
+
+        {
+            LuaFuncListBuilder methods;
             methods.add("get_transform_view", ::scene_actor_skinned_get_transform_view);
             methods.add("notify_transform_change", ::scene_actor_skinned_notify_transform_change);
+            methods.add("set_anim_index", ::scene_actor_skinned_set_anim_index);
 
             luaL_newmetatable(L, ::DAL_ACTOR_SKINNED);
             lua_pushstring(L, "__index");
@@ -329,8 +412,8 @@ namespace {
 
         {
             LuaFuncListBuilder func_list;
+            func_list.add("create_actor_static", ::scene_create_actor_static);
             func_list.add("create_actor_skinned", ::scene_create_actor_skinned);
-            func_list.add("transform_view_get_pos", ::scene_transform_view_get_pos);
             luaL_newlib(L, func_list.data());
         }
 
