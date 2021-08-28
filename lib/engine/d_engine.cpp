@@ -6,6 +6,9 @@
 #include "d_renderer_create.h"
 
 
+#define DAL_TEST_FUNCTIONS true
+
+
 namespace {
 
     auto make_move_direc(const dal::KeyInputManager& im) {
@@ -209,6 +212,32 @@ namespace {
 
     } g_touch_view;
 
+
+#if DAL_TEST_FUNCTIONS
+
+    void test(dal::Filesystem& filesys) {
+        {
+            auto file = filesys.open_write("_internal/config.json");
+            dalAssert(file->is_ready());
+            std::string test_data{ "Hello file!" };
+            file->write(test_data.data(), test_data.size());
+        }
+
+        {
+            auto file = filesys.open("_internal/config.json");
+            dalAssert(file->is_ready());
+            dalInfo(file->read_stl<std::string>()->c_str());
+        }
+
+        {
+            for (auto& x : filesys.list_files("_internal")) {
+                dalWarn(x.c_str());
+            }
+        }
+    }
+
+#endif
+
 }
 
 
@@ -242,6 +271,11 @@ namespace dal {
             this->m_lua.exec(content->c_str());
             this->m_lua.exec("on_engine_init()");
         }
+
+#if DAL_TEST_FUNCTIONS
+        ::test(*this->m_create_info.m_filesystem);
+#endif
+
     }
 
     Engine::~Engine() {
