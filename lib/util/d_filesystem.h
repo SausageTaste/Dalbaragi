@@ -196,6 +196,26 @@ namespace dal {
             this->m_internal_mgr = std::move(internal_mgr);
         }
 
+        bool is_file(const ResPath& path);
+
+        bool is_folder(const ResPath& path);
+
+        size_t list_files(const ResPath& path, std::vector<std::string>& output);
+
+        size_t list_folders(const ResPath& path, std::vector<std::string>& output);
+
+        std::vector<std::string> list_files(const ResPath& path) {
+            std::vector<std::string> output;
+            this->list_files(path, output);
+            return output;
+        }
+
+        std::vector<std::string> list_folders(const ResPath& path) {
+            std::vector<std::string> output;
+            this->list_folders(path, output);
+            return output;
+        }
+
         std::optional<ResPath> resolve(const ResPath& path);
 
         std::unique_ptr<FileReadOnly> open(const ResPath& path);

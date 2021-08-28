@@ -42,6 +42,26 @@ namespace {
 
     };
 
+
+    enum class FileType {
+        asset,
+        userdata,
+        internal,
+        unknown
+    };
+
+    FileType dispatch_file_manager(const dal::ResPath& path) {
+        if (!path.is_valid())
+            return ::FileType::unknown;
+
+        if (dal::SPECIAL_NAMESPACE_ASSET == path.dir_list().front())
+            return ::FileType::asset;
+        else if (dal::SPECIAL_NAMESPACE_INTERNAL == path.dir_list().front())
+            return ::FileType::internal;
+        else
+            return ::FileType::userdata;
+    }
+
 }
 
 
@@ -190,6 +210,58 @@ namespace dal {
 // Filesystem
 namespace dal {
 
+    bool Filesystem::is_file(const ResPath& path) {
+        switch (::dispatch_file_manager(path)) {
+            case ::FileType::asset:
+                return this->m_asset_mgr->is_file(path);
+            case ::FileType::internal:
+                return this->m_internal_mgr->is_file(path);
+            case ::FileType::userdata:
+                return this->m_userdata_mgr->is_file(path);
+            default:
+                return 0;
+        }
+    }
+
+    bool Filesystem::is_folder(const ResPath& path) {
+        switch (::dispatch_file_manager(path)) {
+            case ::FileType::asset:
+                return this->m_asset_mgr->is_folder(path);
+            case ::FileType::internal:
+                return this->m_internal_mgr->is_folder(path);
+            case ::FileType::userdata:
+                return this->m_userdata_mgr->is_folder(path);
+            default:
+                return 0;
+        }
+    }
+
+    size_t Filesystem::list_files(const ResPath& path, std::vector<std::string>& output) {
+        switch (::dispatch_file_manager(path)) {
+            case ::FileType::asset:
+                return this->m_asset_mgr->list_files(path, output);
+            case ::FileType::internal:
+                return this->m_internal_mgr->list_files(path, output);
+            case ::FileType::userdata:
+                return this->m_userdata_mgr->list_files(path, output);
+            default:
+                return 0;
+        }
+    }
+
+    size_t Filesystem::list_folders(const ResPath& path, std::vector<std::string>& output) {
+        switch (::dispatch_file_manager(path)) {
+            case ::FileType::asset:
+                return this->m_asset_mgr->list_folders(path, output);
+            case ::FileType::internal:
+                return this->m_internal_mgr->list_folders(path, output);
+            case ::FileType::userdata:
+                return this->m_userdata_mgr->list_folders(path, output);
+            default:
+                return 0;
+        }
+    }
+
     std::optional<ResPath> Filesystem::resolve(const dal::ResPath& path) {
         if (!path.is_valid())
             return std::nullopt;
@@ -221,17 +293,16 @@ namespace dal {
     }
 
     std::unique_ptr<FileReadOnly> Filesystem::open(const ResPath& path) {
-        if (!path.is_valid())
-            return make_file_read_only_null();
-
-        if (path.dir_list().front() == dal::SPECIAL_NAMESPACE_ASSET)
-            return this->m_asset_mgr->open(path);
-        else if (path.dir_list().front() == dal::SPECIAL_NAMESPACE_INTERNAL)
-            return this->m_internal_mgr->open_read(path);
-        else
-            return this->m_userdata_mgr->open(path);
-
-        return make_file_read_only_null();
+        switch (::dispatch_file_manager(path)) {
+            case ::FileType::asset:
+                return this->m_asset_mgr->open(path);
+            case ::FileType::internal:
+                return this->m_internal_mgr->open_read(path);
+            case ::FileType::userdata:
+                return this->m_userdata_mgr->open(path);
+            default:
+                return make_file_read_only_null();
+        }
     }
 
     std::unique_ptr<IFileWriteOnly> Filesystem::open_write(const ResPath& path) {
