@@ -3,6 +3,7 @@
 #include "d_glfw.h"
 #include "d_logger.h"
 #include "d_engine.h"
+#include "d_filesystem_std.h"
 
 
 int main(int argc, char** argv) {
@@ -12,16 +13,26 @@ int main(int argc, char** argv) {
 
     dal::LoggerSingleton::inst().add_channel(dal::get_log_channel_cout());
     dal::Filesystem filesys;
-
-    dal::WindowGLFW window("Dalbrargi");
+    filesys.init(
+        std::make_unique<dal::AssetManagerSTD>(),
+        std::make_unique<dal::UserDataManagerSTD>(),
+        std::make_unique<dal::InternalManagerSTD>()
+    );
 
     dal::EngineCreateInfo engine_info;
-    engine_info.m_window_title = "Dalbrargi";
+    engine_info.m_window_title = dal::APP_NAME;
     engine_info.m_filesystem = &filesys;
-    engine_info.m_extensions = window.get_vulkan_extensions();
 
     dal::Engine engine{ engine_info };
-    engine.init_vulkan(window.width(), window.height(), window.get_vk_surface_creator());
+
+    dal::WindowGLFW window(dal::APP_NAME);
+
+    engine.init_vulkan(
+        window.width(),
+        window.height(),
+        window.get_vk_surface_creator(),
+        window.get_vulkan_extensions()
+    );
 
     window.set_callback_fbuf_resize([&engine](int width, int height) { engine.on_screen_resize(width, height); });
     window.set_callback_mouse_event([&engine](const dal::MouseEvent& e) {
