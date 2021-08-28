@@ -7,7 +7,9 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_o
 
 add_library(dal_android_native_lib SHARED
     main.cpp
+    filesys_android.h               filesys_android.cpp
 )
+
 target_compile_definitions(dal_android_native_lib PRIVATE VK_USE_PLATFORM_ANDROID_KHR)
 
 

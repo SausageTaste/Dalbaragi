@@ -3,12 +3,13 @@
 #include <jni.h>
 #include <fmt/format.h>
 #include <android/log.h>
-#include <android_native_app_glue.h>
 
 #include <d_logger.h>
 #include <d_vulkan_header.h>
 #include <d_engine.h>
 #include <d_timer.h>
+
+#include "filesys_android.h"
 
 
 namespace {
@@ -63,7 +64,11 @@ namespace {
 
 
     void init(android_app* const state) {
-        g_filesys.asset_mgr().set_android_asset_manager(state->activity->assetManager);
+        //g_filesys.asset_mgr().set_android_asset_manager();
+        g_filesys.init(
+            std::make_unique<dal::AssetManagerAndroid>(state->activity->assetManager),
+            std::make_unique<dal::UserDataManagerAndroid>()
+        );
 
         const std::vector<std::string> instanceExt{
             "VK_KHR_surface",
@@ -91,7 +96,7 @@ namespace {
 #elif defined(DAL_SYS_X64)
             return reinterpret_cast<uint64_t>(surface);
 #else
-            #error Not supported system bis size
+            #error Not supported system bit size
 #endif
         };
 
