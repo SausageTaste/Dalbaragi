@@ -1,10 +1,10 @@
 #include "d_filesystem_std.h"
 
+#if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
+
 #include <codecvt>
 #include <fstream>
 #include <filesystem>
-
-#include "d_defines.h"
 
 #if defined(DAL_OS_WINDOWS)
     #include <Shlobj.h>
@@ -70,7 +70,7 @@ namespace {
             return std::nullopt;
 
         auto output_path = fs::path{ path } / dal::APP_NAME;
-#else
+#elif defined(DAL_OS_LINUX)
         char username_buf[128];
         getlogin_r(username_buf, 128);
 
@@ -416,3 +416,5 @@ namespace dal {
     }
 
 }
+
+#endif

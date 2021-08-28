@@ -1,5 +1,9 @@
 #pragma once
 
+#include "d_defines.h"
+
+#if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
+
 #include "d_filesystem.h"
 
 
@@ -41,3 +45,5 @@ namespace dal {
     };
 
 }
+
+#endif
