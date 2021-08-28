@@ -18,6 +18,7 @@ add_library(libdal_util STATIC
     d_konsts.h
     d_animation.h           d_animation.cpp
     d_indices.h             d_indices.cpp
+    d_filesystem_std.h      d_filesystem_std.cpp
 )
 target_compile_features(libdal_util PUBLIC cxx_std_17)
 target_include_directories(libdal_util PUBLIC ./)

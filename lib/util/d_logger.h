@@ -34,6 +34,8 @@ namespace dal {
 
         void add_channel(std::shared_ptr<ILogChannel> ptr);
 
+        void remove_channel(std::shared_ptr<ILogChannel> ptr);
+
         template <typename _ChTyp>
         void emplace_channel() {
             auto ptr = std::shared_ptr<ILogChannel>(new _ChTyp);

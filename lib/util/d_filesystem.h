@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <fstream>
 #include <optional>
-
-#include "d_defines.h"
+#include <filesystem>
 
 
 namespace dal {
@@ -40,20 +40,22 @@ namespace dal {
 
     };
 
-}
 
-
-namespace dal::filesystem {
-
-    class FileReadOnly {
+    class IFile {
 
     public:
-        virtual ~FileReadOnly() = default;
+        virtual ~IFile() = default;
 
         virtual void close() = 0;
 
         virtual bool is_ready() = 0;
 
+    };
+
+
+    class FileReadOnly : public IFile {
+
+    public:
         virtual size_t size() = 0;
 
         virtual bool read(void* const dst, const size_t dst_size) = 0;
@@ -81,70 +83,187 @@ namespace dal::filesystem {
     };
 
 
-    class AssetManager {
+    class IFileWriteOnly : public IFile {
 
-#ifdef DAL_OS_ANDROID
+    public:
+        virtual bool write(const void* const data, const size_t data_size) = 0;
+
+    };
+
+
+    class FileReadOnly_STL : public dal::FileReadOnly {
+
     private:
-        void* m_ptr_asset_manager = nullptr;
+        std::ifstream m_file;
+        size_t m_size = 0;
 
     public:
-        void set_android_asset_manager(void* const ptr_asset_manager) {
-            this->m_ptr_asset_manager = ptr_asset_manager;
-        }
+        bool open(const std::filesystem::path& path);
 
-        void* get_android_asset_manager() const {
-            return this->m_ptr_asset_manager;
-        }
-#endif
+        void close() override;
 
-    public:
-        AssetManager() = default;
-        AssetManager(const AssetManager&) = delete;
-        AssetManager& operator=(const AssetManager&) = delete;
+        bool is_ready() override;
 
-    public:
-        std::vector<std::string> listfile(const dal::ResPath& path);
+        size_t size() override;
 
-        std::unique_ptr<FileReadOnly> open(const dal::ResPath& path);
+        bool read(void* const dst, const size_t dst_size) override;
 
     };
 
 
-    class UserDataManager {
+    class FileWriteOnly_STL : public dal::IFileWriteOnly {
+
+    private:
+        std::ofstream m_file;
 
     public:
-        UserDataManager() = default;
+        bool open(const std::filesystem::path& path);
 
-        UserDataManager(const UserDataManager&) = delete;
+        void close() override;
 
-        UserDataManager& operator=(const UserDataManager&) = delete;
+        bool is_ready() override;
 
-    public:
-        std::unique_ptr<FileReadOnly> open(const dal::ResPath& path);
+        bool write(const void* const data, const size_t data_size) override;
 
     };
 
-}
+
+    class IFileManager {
+
+    public:
+        virtual bool is_file(const ResPath& path) = 0;
+
+        virtual bool is_folder(const ResPath& path) = 0;
+
+        virtual size_t list_files(const ResPath& path, std::vector<std::string>& output) = 0;
+
+        virtual size_t list_folders(const ResPath& path, std::vector<std::string>& output) = 0;
+
+        virtual std::optional<ResPath> resolve(const ResPath& path) = 0;
+
+    };
 
 
-namespace dal {
+    class IFileManagerR : public IFileManager {
+
+    public:
+        virtual std::unique_ptr<FileReadOnly> open(const ResPath& path) = 0;
+
+    };
+
+
+    class IFileManagerRW : public IFileManager {
+
+    public:
+        virtual std::unique_ptr<FileReadOnly> open_read(const ResPath& path) = 0;
+
+        virtual std::unique_ptr<IFileWriteOnly> open_write(const ResPath& path) = 0;
+
+    };
+
+
+    class IAssetManager : public IFileManagerR {
+
+    };
+
+
+    class IUserDataManager : public IFileManagerR {
+
+    };
+
+
+    class IInternalManager : public IFileManagerRW {
+
+    };
+
 
     class Filesystem {
 
     private:
-        filesystem::AssetManager m_asset_man;
-        filesystem::UserDataManager m_ud_man;
+        std::unique_ptr<IAssetManager> m_asset_mgr;
+        std::unique_ptr<IUserDataManager> m_userdata_mgr;
+        std::unique_ptr<IInternalManager> m_internal_mgr;
 
     public:
-        auto& asset_mgr() {
-            return this->m_asset_man;
+        void init(
+            std::unique_ptr<IAssetManager>&& asset_mgr,
+            std::unique_ptr<IUserDataManager>&& userdata_mgr,
+            std::unique_ptr<IInternalManager>&& internal_mgr
+        ) {
+            this->m_asset_mgr = std::move(asset_mgr);
+            this->m_userdata_mgr = std::move(userdata_mgr);
+            this->m_internal_mgr = std::move(internal_mgr);
         }
 
-        [[nodiscard]]
-        std::optional<dal::ResPath> resolve_respath(const dal::ResPath& respath);
+        bool is_file(const ResPath& path);
 
-        std::unique_ptr<dal::filesystem::FileReadOnly> open(const dal::ResPath& path);
+        bool is_folder(const ResPath& path);
+
+        size_t list_files(const ResPath& path, std::vector<std::string>& output);
+
+        size_t list_folders(const ResPath& path, std::vector<std::string>& output);
+
+        std::vector<std::string> list_files(const ResPath& path) {
+            std::vector<std::string> output;
+            this->list_files(path, output);
+            return output;
+        }
+
+        std::vector<std::string> list_folders(const ResPath& path) {
+            std::vector<std::string> output;
+            this->list_folders(path, output);
+            return output;
+        }
+
+        std::optional<ResPath> resolve(const ResPath& path);
+
+        std::unique_ptr<FileReadOnly> open(const ResPath& path);
+
+        std::unique_ptr<IFileWriteOnly> open_write(const ResPath& path);
 
     };
+
+
+    bool is_char_separator(const char c);
+
+    bool is_char_wildcard(const char c);
+
+    bool is_str_wildcard(const char* const str);
+
+    bool is_valid_folder_name(const std::string& name);
+
+    template <typename _Iterator>
+    std::string join_path(const _Iterator dir_list_begin, const _Iterator dir_list_end, const char separator) {
+        std::string output;
+
+        for (auto ptr = dir_list_begin; ptr != dir_list_end; ++ptr) {
+            if (ptr->empty())
+                continue;
+
+            output += *ptr;
+            output += separator;
+        }
+
+        if (!output.empty())
+            output.pop_back();
+
+        return output;
+    }
+
+    std::string join_path(const std::initializer_list<std::string>& dir_list, const char seperator);
+
+    void split_path(const char* const path, std::vector<std::string>& output);
+
+    std::vector<std::string> split_path(const char* const path);
+
+    std::vector<std::string> remove_duplicate_question_marks(const std::vector<std::string>& list);
+
+    std::unique_ptr<FileReadOnly> make_file_read_only_null();
+
+    std::unique_ptr<IFileWriteOnly> make_file_write_only_null();
+
+    std::optional<std::string> resolve_path(const dal::ResPath& respath, const std::filesystem::path& start_dir, const size_t start_index);
+
+    void create_folders_of_path(const std::filesystem::path& path, const size_t exclude_last_n);
 
 }

@@ -32,6 +32,7 @@ TARGET_EXTENSIONS = [
     "h",
     "txt",
     "java",
+    "lua",
     "vert",
     "frag",
 ]

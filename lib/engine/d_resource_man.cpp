@@ -366,7 +366,7 @@ namespace dal {
     }
 
     HTexture ResourceManager::request_texture(const ResPath& respath) {
-        const auto resolved_respath = this->m_filesys.resolve_respath(respath);
+        const auto resolved_respath = this->m_filesys.resolve(respath);
         if (!resolved_respath.has_value()) {
             dalError(fmt::format("Failed to find texture file: {}", respath.make_str()).c_str());
             dalAssert(!!this->m_missing_tex);
@@ -389,7 +389,7 @@ namespace dal {
     }
 
     HRenModel ResourceManager::request_model(const ResPath& respath) {
-        const auto resolved_respath = this->m_filesys.resolve_respath(respath);
+        const auto resolved_respath = this->m_filesys.resolve(respath);
         if (!resolved_respath.has_value()) {
             dalError(fmt::format("Failed to find model file: {}", respath.make_str()).c_str());
             dalAssert(!!this->m_missing_model);
@@ -412,7 +412,7 @@ namespace dal {
     }
 
     HRenModelSkinned ResourceManager::request_model_skinned(const ResPath& respath) {
-        const auto resolved_respath = this->m_filesys.resolve_respath(respath);
+        const auto resolved_respath = this->m_filesys.resolve(respath);
         if (!resolved_respath.has_value()) {
             dalError(fmt::format("Failed to find skinned model file: {}", respath.make_str()).c_str());
             dalAssert(!!this->m_missing_model_skinned);

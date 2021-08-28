@@ -10,6 +10,7 @@
 
 #include "d_timer.h"
 #include "d_logger.h"
+#include "d_defines.h"
 #include "d_vert_data.h"
 #include "d_image_parser.h"
 #include "d_model_parser.h"
@@ -870,7 +871,7 @@ namespace dal {
         );
 
         this->m_pipelines.init(
-            this->m_filesys.asset_mgr(),
+            this->m_filesys,
             !this->m_swapchain.is_format_srgb(),
             this->m_phys_info.does_support_depth_clamp(),
             this->m_swapchain.identity_extent(),

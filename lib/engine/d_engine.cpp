@@ -6,6 +6,9 @@
 #include "d_renderer_create.h"
 
 
+#define DAL_TEST_FUNCTIONS false
+
+
 namespace {
 
     auto make_move_direc(const dal::KeyInputManager& im) {
@@ -209,6 +212,83 @@ namespace {
 
     } g_touch_view;
 
+
+#if DAL_TEST_FUNCTIONS
+
+    void test(dal::Filesystem& filesys) {
+        dalDebug("------------------------------------------------------");
+        dalDebug("TEST");
+        dalDebug("------------------------------------------------------");
+        {
+            auto file = filesys.open_write("_internal/hello/file/config2.json");
+            dalAssert(file->is_ready());
+            std::string test_data{ "Hello file!" };
+            file->write(test_data.data(), test_data.size());
+        }
+
+        {
+            const auto resolved_path = filesys.resolve("_internal/?/config2.json");
+            dalAssert(resolved_path.has_value());
+            dalDebug(resolved_path->make_str().c_str());
+
+            auto file = filesys.open(*resolved_path);
+            dalAssert(file->is_ready());
+            dalDebug(file->read_stl<std::string>()->c_str());
+        }
+
+        {
+            for (auto& x : filesys.list_files("_internal")) {
+                dalDebug(x.c_str());
+            }
+        }
+
+        dalDebug("------------------------------------------------------");
+    }
+
+#endif
+
+}
+
+
+namespace dal {
+
+    LogChannel_FileOutput::LogChannel_FileOutput(dal::Filesystem& filesys)
+        : m_filesys(filesys)
+    {
+
+    }
+
+    LogChannel_FileOutput::~LogChannel_FileOutput() {
+        this->flush();
+    }
+
+    void LogChannel_FileOutput::put(
+        const dal::LogLevel level, const char* const str,
+        const int line, const char* const func, const char* const file
+    ) {
+        std::unique_lock lck{ this->m_mut };
+
+        this->m_buffer += fmt::format("[{}, {}, {}, {}] {}\n", dal::get_log_level_str(level), line, func, file, str);
+
+        if (this->m_buffer.size() > this->FLUSH_SIZE) {
+            this->flush();
+        }
+    }
+
+    void LogChannel_FileOutput::flush() {
+        if (this->m_buffer.empty())
+            return;
+
+        const auto file_path = fmt::format("_internal/log/log-{}.txt", dal::get_cur_sec());
+        auto file = this->m_filesys.open_write(file_path);
+        if (!file->is_ready()) {
+            return;
+        }
+
+        file->write(this->m_buffer.data(), this->m_buffer.size());
+        this->m_buffer.clear();
+    }
+
 }
 
 
@@ -235,11 +315,18 @@ namespace dal {
         this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
         this->m_lua.exec("logger = require('logger'); logger.log(logger.INFO, 'Lua state initialized')");
 
-        auto file = this->m_create_info.m_filesystem->open("_asset/script/startup.lua");
-        const auto content = file->read_stl<std::string>();
-        dalAssert(content.has_value());
-        this->m_lua.exec(content->c_str());
-        this->m_lua.exec("on_engine_init()");
+        {
+            auto file = this->m_create_info.m_filesystem->open("_asset/script/startup.lua");
+            const auto content = file->read_stl<std::string>();
+            dalAssert(content.has_value());
+            this->m_lua.exec(content->c_str());
+            this->m_lua.exec("on_engine_init()");
+        }
+
+#if DAL_TEST_FUNCTIONS
+        ::test(*this->m_create_info.m_filesystem);
+#endif
+
     }
 
     Engine::~Engine() {
@@ -312,14 +399,18 @@ namespace dal {
         this->m_renderer->update(this->m_scene.m_euler_camera, render_list);
     }
 
-    void Engine::init_vulkan(const unsigned win_width, const unsigned win_height, const surface_create_func_t surface_create_func) {
+    void Engine::init_vulkan(
+        const unsigned win_width,
+        const unsigned win_height,
+        const surface_create_func_t surface_create_func,
+        const std::vector<std::string>& extensions_str
+    ) {
         this->m_screen_width = win_width;
         this->m_screen_height = win_height;
 
         std::vector<const char*> extensions;
-        for (const auto& x : this->m_create_info.m_extensions) {
+        for (const auto& x : extensions_str)
             extensions.push_back(x.c_str());
-        }
 
         this->m_renderer = dal::create_renderer_vulkan(
             this->m_create_info.m_window_title.c_str(),
