@@ -2,7 +2,10 @@
 
 #include <array>
 
+#include <fmt/format.h>
+
 #include "d_konsts.h"
+#include "d_logger.h"
 
 
 namespace {
@@ -91,6 +94,15 @@ namespace {
         }
 
         return std::nullopt;
+    }
+
+    size_t calc_path_length(const fs::path& path) {
+        size_t output = 0;
+
+        for (auto& x : path)
+            ++output;
+
+        return output;
     }
 
 }
@@ -239,6 +251,22 @@ namespace dal {
             return std::nullopt;
 
         return cur_path.generic_u8string().substr(start_dir.generic_u8string().size() + 1);
+    }
+
+    void create_folders_of_path(const std::filesystem::path& path, const size_t exclude_last_n) {
+        const auto path_length = ::calc_path_length(path);
+        fs::path cur_path;
+
+        size_t index = 0;
+        for (const auto& x : path) {
+            if ((path_length - (++index)) < exclude_last_n)
+                break;
+
+            cur_path /= x;
+
+            if (!fs::is_directory(cur_path))
+                fs::create_directory(cur_path);
+        }
     }
 
 }

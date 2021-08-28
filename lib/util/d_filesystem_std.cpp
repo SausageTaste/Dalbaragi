@@ -12,6 +12,8 @@
 
 #endif
 
+#include <fmt/format.h>
+
 #include "d_konsts.h"
 
 
@@ -199,7 +201,7 @@ namespace {
         if (!result.has_value())
             return std::nullopt;
 
-        return dal::ResPath{ result.value() };
+        return dal::ResPath{ fmt::format("{}/{}", dal::SPECIAL_NAMESPACE_INTERNAL, result.value()) };
     }
 
 }
@@ -415,6 +417,8 @@ namespace dal {
         const auto file_path = ::convert_internal_respath(path);
         if (!file_path.has_value())
             return make_file_write_only_null();
+
+        dal::create_folders_of_path(*file_path, 1);
 
         auto file = std::make_unique<dal::FileWriteOnly_STL>();
         file->open(*file_path);

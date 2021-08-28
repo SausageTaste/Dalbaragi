@@ -3,6 +3,8 @@
 #include <fstream>
 #include <filesystem>
 
+#include <fmt/format.h>
+
 #include <d_konsts.h>
 
 
@@ -591,7 +593,7 @@ namespace dal {
         if (!result.has_value())
             return std::nullopt;
 
-        return dal::ResPath{ result.value() };
+        return dal::ResPath{ fmt::format("{}/{}", dal::SPECIAL_NAMESPACE_INTERNAL, *result) };
     }
 
     std::unique_ptr<FileReadOnly> InternalManagerAndroid::open_read(const ResPath& path) {
@@ -612,6 +614,8 @@ namespace dal {
         const auto path_converted = ::convert_to_internal_path(path, this->m_domain_dir);
         if (!path_converted.has_value())
             return make_file_write_only_null();
+
+        dal::create_folders_of_path(*path_converted, 1);
 
         auto file = std::make_unique<dal::FileWriteOnly_STL>();
         file->open(*path_converted);

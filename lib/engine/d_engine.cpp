@@ -220,14 +220,18 @@ namespace {
         dalDebug("TEST");
         dalDebug("------------------------------------------------------");
         {
-            auto file = filesys.open_write("_internal/config.json");
+            auto file = filesys.open_write("_internal/hello/file/config2.json");
             dalAssert(file->is_ready());
             std::string test_data{ "Hello file!" };
             file->write(test_data.data(), test_data.size());
         }
 
         {
-            auto file = filesys.open("_internal/config.json");
+            const auto resolved_path = filesys.resolve("_internal/?/config2.json");
+            dalAssert(resolved_path.has_value());
+            dalDebug(resolved_path->make_str().c_str());
+
+            auto file = filesys.open(*resolved_path);
             dalAssert(file->is_ready());
             dalDebug(file->read_stl<std::string>()->c_str());
         }
@@ -238,14 +242,6 @@ namespace {
             }
         }
 
-        {
-            const auto a = filesys.resolve("_internal/?/config.json");
-            if (a.has_value()) {
-                dalDebug(a->make_str().c_str());
-            }
-            else
-                dalDebug("Failed to resolve internal path");
-        }
         dalDebug("------------------------------------------------------");
     }
 

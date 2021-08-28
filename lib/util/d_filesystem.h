@@ -264,4 +264,6 @@ namespace dal {
 
     std::optional<std::string> resolve_path(const dal::ResPath& respath, const std::filesystem::path& start_dir, const size_t start_index);
 
+    void create_folders_of_path(const std::filesystem::path& path, const size_t exclude_last_n);
+
 }
