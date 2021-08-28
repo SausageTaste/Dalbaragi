@@ -584,7 +584,14 @@ namespace dal {
     }
 
     std::optional<ResPath> InternalManagerAndroid::resolve(const ResPath& path) {
-        return std::nullopt;
+        if (path.dir_list().front() != dal::SPECIAL_NAMESPACE_INTERNAL)
+            return std::nullopt;
+
+        const auto result = dal::resolve_path(path, this->m_domain_dir, 1);
+        if (!result.has_value())
+            return std::nullopt;
+
+        return dal::ResPath{ result.value() };
     }
 
     std::unique_ptr<FileReadOnly> InternalManagerAndroid::open_read(const ResPath& path) {

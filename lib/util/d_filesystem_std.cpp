@@ -195,7 +195,7 @@ namespace {
         if (!start_dir.has_value())
             return std::nullopt;
 
-        const auto result = dal::resolve_path(respath, *start_dir, 0);
+        const auto result = dal::resolve_path(respath, *start_dir, 1);
         if (!result.has_value())
             return std::nullopt;
 
