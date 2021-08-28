@@ -5,7 +5,6 @@
 #include <fmt/format.h>
 
 #include "d_konsts.h"
-#include "d_logger.h"
 
 
 namespace {
