@@ -216,6 +216,9 @@ namespace {
 #if DAL_TEST_FUNCTIONS
 
     void test(dal::Filesystem& filesys) {
+        dalDebug("------------------------------------------------------");
+        dalDebug("TEST");
+        dalDebug("------------------------------------------------------");
         {
             auto file = filesys.open_write("_internal/config.json");
             dalAssert(file->is_ready());
@@ -226,14 +229,24 @@ namespace {
         {
             auto file = filesys.open("_internal/config.json");
             dalAssert(file->is_ready());
-            dalInfo(file->read_stl<std::string>()->c_str());
+            dalDebug(file->read_stl<std::string>()->c_str());
         }
 
         {
             for (auto& x : filesys.list_files("_internal")) {
-                dalWarn(x.c_str());
+                dalDebug(x.c_str());
             }
         }
+
+        {
+            const auto a = filesys.resolve("_internal/?/config.json");
+            if (a.has_value()) {
+                dalDebug(a->make_str().c_str());
+            }
+            else
+                dalDebug("Failed to resolve internal path");
+        }
+        dalDebug("------------------------------------------------------");
     }
 
 #endif
