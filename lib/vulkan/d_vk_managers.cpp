@@ -916,7 +916,7 @@ namespace dal {
         static_assert(3 == dal::MAX_DLIGHT_COUNT);
 
         std::array<bool, dal::MAX_DLIGHT_COUNT> output{ false };
-        const std::array<float, dal::MAX_DLIGHT_COUNT> intervals{ 0, 0.033, 1.3 };
+        const std::array<float, dal::MAX_DLIGHT_COUNT> intervals{ 0, 0.033, 0.17 };
 
         for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
             if (this->m_dlight_timers[i].get_elapsed() > intervals[i]) {
