@@ -61,7 +61,7 @@ namespace {
         return std::nullopt;
     }
 
-    std::optional<fs::path> find_userdata_dir() {
+    std::optional<fs::path> find_document_dir() {
 
 #if defined(DAL_OS_WINDOWS)
         WCHAR path[MAX_PATH];
@@ -69,17 +69,33 @@ namespace {
         if (S_OK != result)
             return std::nullopt;
 
-        auto output_path = fs::path{ path } / dal::APP_NAME;
+        return fs::path{ path };
+
 #elif defined(DAL_OS_LINUX)
         char username_buf[128];
         getlogin_r(username_buf, 128);
 
-        const fs::path output_path = fmt::format("/home/{}/Documents/{}", username_buf, dal::APP_NAME);
-#endif
-        if (!fs::is_directory(output_path))
-            fs::create_directory(output_path);
+        return fs::path{ fmt::format("/home/{}/Documents", username_buf) };
 
-        return output_path;
+#endif
+
+    }
+
+    std::optional<fs::path> find_userdata_dir() {
+        const auto document_path = ::find_document_dir();
+        if (!document_path.has_value())
+            return std::nullopt;
+
+        const auto app_area_path = *document_path / dal::APP_NAME;
+        const auto userdata_path = app_area_path / dal::FOLDER_NAME_USERDATA;
+
+        if (!fs::is_directory(app_area_path))
+            fs::create_directory(app_area_path);
+
+        if (!fs::is_directory(userdata_path))
+            fs::create_directory(userdata_path);
+
+        return userdata_path;
     }
 
     template <typename _Iterator>
