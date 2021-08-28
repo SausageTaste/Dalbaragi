@@ -56,8 +56,6 @@ namespace dal {
         TaskManager m_task_man;
         ResourceManager m_res_man;
 
-        std::shared_ptr<LogChannel_FileOutput> m_file_logger;
-
         Scene m_scene;
         std::unique_ptr<IRenderer> m_renderer;
 

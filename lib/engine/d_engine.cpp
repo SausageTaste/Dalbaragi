@@ -308,12 +308,9 @@ namespace dal {
 
     Engine::Engine(const EngineCreateInfo& create_info)
         : m_res_man(this->m_task_man, *create_info.m_filesystem)
-        , m_file_logger(std::make_shared<LogChannel_FileOutput>(*create_info.m_filesystem))
     {
         this->m_task_man.init(2);
         this->init(create_info);
-
-        dal::LoggerSingleton::inst().add_channel(m_file_logger);
 
         this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
         this->m_lua.exec("logger = require('logger'); logger.log(logger.INFO, 'Lua state initialized')");
@@ -333,7 +330,6 @@ namespace dal {
     }
 
     Engine::~Engine() {
-        dal::LoggerSingleton::inst().remove_channel(m_file_logger);
         this->m_lua.clear_dependencies();
         this->m_task_man.destroy();
         this->destroy();
