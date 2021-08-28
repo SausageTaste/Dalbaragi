@@ -52,6 +52,12 @@ namespace dal {
         this->m_outputs.push_back(ptr);
     }
 
+    void LoggerSingleton::remove_channel(std::shared_ptr<ILogChannel> ptr) {
+        auto position = std::find(this->m_outputs.begin(), this->m_outputs.end(), ptr);
+        if (position != this->m_outputs.end())
+            this->m_outputs.erase(position);
+    }
+
     void LoggerSingleton::put(
         const LogLevel level, const char* const str,
         const int line, const char* const func, const char* const file

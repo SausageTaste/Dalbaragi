@@ -1,14 +1,42 @@
 #pragma once
 
+#include <mutex>
+
 #include "d_resource_man.h"
 #include "d_inputs.h"
 #include "d_timer.h"
 #include "d_input_consumer.h"
 #include "d_scene.h"
 #include "d_script_engine.h"
+#include "d_logger.h"
 
 
 namespace dal {
+
+    class LogChannel_FileOutput : public dal::ILogChannel {
+
+    private:
+        const int FLUSH_SIZE = 1024;
+
+    private:
+        std::mutex m_mut;
+        std::string m_buffer;
+        dal::Filesystem& m_filesys;
+
+    public:
+        LogChannel_FileOutput(dal::Filesystem& filesys);
+
+        ~LogChannel_FileOutput();
+
+        void put(
+            const dal::LogLevel level, const char* const str,
+            const int line, const char* const func, const char* const file
+        ) override;
+
+        void flush() override;
+
+    };
+
 
     struct EngineCreateInfo {
         std::string                     m_window_title;
@@ -27,6 +55,8 @@ namespace dal {
         InputManager m_input_man;
         TaskManager m_task_man;
         ResourceManager m_res_man;
+
+        std::shared_ptr<LogChannel_FileOutput> m_file_logger;
 
         Scene m_scene;
         std::unique_ptr<IRenderer> m_renderer;

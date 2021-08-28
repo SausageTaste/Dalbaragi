@@ -252,6 +252,48 @@ namespace {
 
 namespace dal {
 
+    LogChannel_FileOutput::LogChannel_FileOutput(dal::Filesystem& filesys)
+        : m_filesys(filesys)
+    {
+
+    }
+
+    LogChannel_FileOutput::~LogChannel_FileOutput() {
+        this->flush();
+    }
+
+    void LogChannel_FileOutput::put(
+        const dal::LogLevel level, const char* const str,
+        const int line, const char* const func, const char* const file
+    ) {
+        std::unique_lock lck{ this->m_mut };
+
+        this->m_buffer += fmt::format("[{}, {}, {}, {}] {}\n", dal::get_log_level_str(level), line, func, file, str);
+
+        if (this->m_buffer.size() > this->FLUSH_SIZE) {
+            this->flush();
+        }
+    }
+
+    void LogChannel_FileOutput::flush() {
+        if (this->m_buffer.empty())
+            return;
+
+        const auto file_path = fmt::format("_internal/log/log-{}.txt", dal::get_cur_sec());
+        auto file = this->m_filesys.open_write(file_path);
+        if (!file->is_ready()) {
+            return;
+        }
+
+        file->write(this->m_buffer.data(), this->m_buffer.size());
+        this->m_buffer.clear();
+    }
+
+}
+
+
+namespace dal {
+
     bool EngineCreateInfo::check_validity() const {
         if (nullptr == this->m_filesystem)
             return false;
@@ -266,9 +308,12 @@ namespace dal {
 
     Engine::Engine(const EngineCreateInfo& create_info)
         : m_res_man(this->m_task_man, *create_info.m_filesystem)
+        , m_file_logger(std::make_shared<LogChannel_FileOutput>(*create_info.m_filesystem))
     {
         this->m_task_man.init(2);
         this->init(create_info);
+
+        dal::LoggerSingleton::inst().add_channel(m_file_logger);
 
         this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
         this->m_lua.exec("logger = require('logger'); logger.log(logger.INFO, 'Lua state initialized')");
@@ -288,6 +333,7 @@ namespace dal {
     }
 
     Engine::~Engine() {
+        dal::LoggerSingleton::inst().remove_channel(m_file_logger);
         this->m_lua.clear_dependencies();
         this->m_task_man.destroy();
         this->destroy();
