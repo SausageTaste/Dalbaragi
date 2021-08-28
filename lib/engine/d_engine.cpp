@@ -6,7 +6,7 @@
 #include "d_renderer_create.h"
 
 
-#define DAL_TEST_FUNCTIONS true
+#define DAL_TEST_FUNCTIONS false
 
 
 namespace {
