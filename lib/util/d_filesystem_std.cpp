@@ -3,8 +3,6 @@
 #if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
 
 #include <codecvt>
-#include <fstream>
-#include <filesystem>
 
 #if defined(DAL_OS_WINDOWS)
     #include <Shlobj.h>
@@ -155,145 +153,11 @@ namespace {
 
     }
 
-
-    class FileReadOnly_STL : public dal::FileReadOnly {
-
-    private:
-        std::ifstream m_file;
-        size_t m_size = 0;
-
-    public:
-        bool open(const fs::path& path) {
-            this->close();
-
-            this->m_file.open(path, std::ios::ate | std::ios::binary);
-            if (!this->m_file)
-                return false;
-
-            this->m_size = this->m_file.tellg();
-            return this->m_file.is_open();
-        }
-
-        void close() override {
-            this->m_file.close();
-            this->m_size = 0;
-        }
-
-        bool is_ready() override {
-            return this->m_file.is_open();
-        }
-
-        size_t size() override {
-            return this->m_size;
-        }
-
-        bool read(void* const dst, const size_t dst_size) override {
-            this->m_file.seekg(0);
-            this->m_file.read(reinterpret_cast<char*>(dst), dst_size);
-            return true;
-        }
-
-    };
-
-
-    class FileWriteOnly_STL : public dal::IFileWriteOnly {
-
-    private:
-        std::ofstream m_file;
-
-    public:
-        bool open(const fs::path& path) {
-            this->close();
-
-            this->m_file.open(path, std::ios::ate | std::ios::binary);
-            return this->is_ready();
-        }
-
-        void close() override {
-            this->m_file.close();
-        }
-
-        bool is_ready() override {
-            return this->m_file.is_open();
-        }
-
-        bool write(const void* const data, const size_t data_size) override {
-            this->m_file.write(reinterpret_cast<const char*>(data), data_size);
-            return true;
-        }
-
-    };
-
 }
 
 
 // Resolve functions
 namespace {
-
-    std::optional<fs::path> resolve_question_path(const fs::path& domain_dir, const std::string& entry_to_find) {
-        if (!fs::is_directory(domain_dir))
-            return std::nullopt;
-
-        for (auto& e : fs::recursive_directory_iterator(domain_dir)) {
-            if (e.path().filename().u8string() == entry_to_find) {
-                return e.path();
-            }
-        }
-
-        return std::nullopt;
-    }
-
-    std::optional<fs::path> resolve_asterisk_path(const fs::path& domain_dir, const std::string& entry_to_find) {
-        if (!fs::is_directory(domain_dir))
-            return std::nullopt;
-
-        for (auto& e0 : fs::directory_iterator(domain_dir)) {
-            for (auto& e1 : fs::directory_iterator(e0.path())) {
-                if (e1.path().filename().u8string() == entry_to_find) {
-                    return e1.path();
-                }
-            }
-        }
-
-        return std::nullopt;
-    }
-
-    std::optional<std::string> resolve_path(const dal::ResPath& respath, const fs::path& start_dir, const size_t start_index) {
-        auto cur_path = start_dir;
-
-        for (size_t i = start_index; i < respath.dir_list().size(); ++i) {
-            const auto dir_element = respath.dir_list().at(i);
-
-            if (dir_element == "?") {
-                const auto resolve_result = ::resolve_question_path(cur_path, respath.dir_list().at(i + 1));
-                if (!resolve_result.has_value()) {
-                    return std::nullopt;
-                }
-                else {
-                    cur_path = resolve_result.value();
-                    ++i;
-                }
-            }
-            else if (dir_element == "*") {
-                const auto resolve_result = ::resolve_asterisk_path(cur_path, respath.dir_list().at(i + 1));
-                if (!resolve_result.has_value()) {
-                    return std::nullopt;
-                }
-                else {
-                    cur_path = resolve_result.value();
-                    ++i;
-                }
-            }
-            else {
-                cur_path = cur_path / dir_element;
-            }
-        }
-
-        if (!fs::is_regular_file(cur_path))
-            return std::nullopt;
-
-        return cur_path.generic_u8string().substr(start_dir.generic_u8string().size() + 1);
-    }
 
     std::optional<dal::ResPath> resolve_asset_path(const dal::ResPath& respath) {
         if (respath.dir_list().front() != dal::SPECIAL_NAMESPACE_ASSET)
@@ -303,7 +167,7 @@ namespace {
         if (!start_dir.has_value())
             return std::nullopt;
 
-        const auto result = ::resolve_path(respath, *start_dir, 1);
+        const auto result = dal::resolve_path(respath, *start_dir, 1);
         if (!result.has_value())
             return std::nullopt;
 
@@ -316,7 +180,7 @@ namespace {
         if (!start_dir.has_value())
             return std::nullopt;
 
-        const auto result = ::resolve_path(respath, *start_dir, 0);
+        const auto result = dal::resolve_path(respath, *start_dir, 0);
         if (!result.has_value())
             return std::nullopt;
 
@@ -331,7 +195,7 @@ namespace {
         if (!start_dir.has_value())
             return std::nullopt;
 
-        const auto result = ::resolve_path(respath, *start_dir, 0);
+        const auto result = dal::resolve_path(respath, *start_dir, 0);
         if (!result.has_value())
             return std::nullopt;
 
@@ -402,7 +266,7 @@ namespace dal {
         if (!file_path.has_value())
             return make_file_read_only_null();
 
-        auto file = std::make_unique<::FileReadOnly_STL>();
+        auto file = std::make_unique<dal::FileReadOnly_STL>();
         file->open(*file_path);
 
         if (!file->is_ready())
@@ -470,7 +334,7 @@ namespace dal {
         if (!file_path.has_value())
             return make_file_read_only_null();
 
-        auto file = std::make_unique<::FileReadOnly_STL>();
+        auto file = std::make_unique<dal::FileReadOnly_STL>();
         file->open(*file_path);
 
         if (!file->is_ready())
@@ -538,7 +402,7 @@ namespace dal {
         if (!file_path.has_value())
             return make_file_read_only_null();
 
-        auto file = std::make_unique<::FileReadOnly_STL>();
+        auto file = std::make_unique<dal::FileReadOnly_STL>();
         file->open(*file_path);
 
         if (!file->is_ready())
@@ -552,7 +416,7 @@ namespace dal {
         if (!file_path.has_value())
             return make_file_write_only_null();
 
-        auto file = std::make_unique<::FileWriteOnly_STL>();
+        auto file = std::make_unique<dal::FileWriteOnly_STL>();
         file->open(*file_path);
 
         if (!file->is_ready())

@@ -3,45 +3,12 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <fstream>
 #include <optional>
+#include <filesystem>
 
 
 namespace dal {
-
-    bool is_char_separator(const char c);
-
-    bool is_char_wildcard(const char c);
-
-    bool is_str_wildcard(const char* const str);
-
-    bool is_valid_folder_name(const std::string& name);
-
-    template <typename _Iterator>
-    std::string join_path(const _Iterator dir_list_begin, const _Iterator dir_list_end, const char separator) {
-        std::string output;
-
-        for (auto ptr = dir_list_begin; ptr != dir_list_end; ++ptr) {
-            if (ptr->empty())
-                continue;
-
-            output += *ptr;
-            output += separator;
-        }
-
-        if (!output.empty())
-            output.pop_back();
-
-        return output;
-    }
-
-    std::string join_path(const std::initializer_list<std::string>& dir_list, const char seperator);
-
-    void split_path(const char* const path, std::vector<std::string>& output);
-
-    std::vector<std::string> split_path(const char* const path);
-
-    std::vector<std::string> remove_duplicate_question_marks(const std::vector<std::string>& list);
-
 
     class ResPath {
 
@@ -124,9 +91,41 @@ namespace dal {
     };
 
 
-    std::unique_ptr<FileReadOnly> make_file_read_only_null();
+    class FileReadOnly_STL : public dal::FileReadOnly {
 
-    std::unique_ptr<IFileWriteOnly> make_file_write_only_null();
+    private:
+        std::ifstream m_file;
+        size_t m_size = 0;
+
+    public:
+        bool open(const std::filesystem::path& path);
+
+        void close() override;
+
+        bool is_ready() override;
+
+        size_t size() override;
+
+        bool read(void* const dst, const size_t dst_size) override;
+
+    };
+
+
+    class FileWriteOnly_STL : public dal::IFileWriteOnly {
+
+    private:
+        std::ofstream m_file;
+
+    public:
+        bool open(const std::filesystem::path& path);
+
+        void close() override;
+
+        bool is_ready() override;
+
+        bool write(const void* const data, const size_t data_size) override;
+
+    };
 
 
     class IFileManager {
@@ -223,5 +222,46 @@ namespace dal {
         std::unique_ptr<IFileWriteOnly> open_write(const ResPath& path);
 
     };
+
+
+    bool is_char_separator(const char c);
+
+    bool is_char_wildcard(const char c);
+
+    bool is_str_wildcard(const char* const str);
+
+    bool is_valid_folder_name(const std::string& name);
+
+    template <typename _Iterator>
+    std::string join_path(const _Iterator dir_list_begin, const _Iterator dir_list_end, const char separator) {
+        std::string output;
+
+        for (auto ptr = dir_list_begin; ptr != dir_list_end; ++ptr) {
+            if (ptr->empty())
+                continue;
+
+            output += *ptr;
+            output += separator;
+        }
+
+        if (!output.empty())
+            output.pop_back();
+
+        return output;
+    }
+
+    std::string join_path(const std::initializer_list<std::string>& dir_list, const char seperator);
+
+    void split_path(const char* const path, std::vector<std::string>& output);
+
+    std::vector<std::string> split_path(const char* const path);
+
+    std::vector<std::string> remove_duplicate_question_marks(const std::vector<std::string>& list);
+
+    std::unique_ptr<FileReadOnly> make_file_read_only_null();
+
+    std::unique_ptr<IFileWriteOnly> make_file_write_only_null();
+
+    std::optional<std::string> resolve_path(const dal::ResPath& respath, const std::filesystem::path& start_dir, const size_t start_index);
 
 }

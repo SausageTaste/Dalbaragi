@@ -11,79 +11,6 @@ namespace fs = std::filesystem;
 
 namespace {
 
-    class FileReadOnly_STL : public dal::FileReadOnly {
-
-    private:
-        std::ifstream m_file;
-        size_t m_size = 0;
-
-    public:
-        bool open(const fs::path& path) {
-            this->close();
-
-            this->m_file.open(path, std::ios::ate | std::ios::binary);
-            if (!this->m_file)
-                return false;
-
-            this->m_size = this->m_file.tellg();
-            return this->m_file.is_open();
-        }
-
-        void close() override {
-            this->m_file.close();
-            this->m_size = 0;
-        }
-
-        bool is_ready() override {
-            return this->m_file.is_open();
-        }
-
-        size_t size() override {
-            return this->m_size;
-        }
-
-        bool read(void* const dst, const size_t dst_size) override {
-            this->m_file.seekg(0);
-            this->m_file.read(reinterpret_cast<char*>(dst), dst_size);
-            return true;
-        }
-
-    };
-
-
-    class FileWriteOnly_STL : public dal::IFileWriteOnly {
-
-    private:
-        std::ofstream m_file;
-
-    public:
-        bool open(const fs::path& path) {
-            this->close();
-
-            this->m_file.open(path, std::ios::ate | std::ios::binary);
-            return this->is_ready();
-        }
-
-        void close() override {
-            this->m_file.close();
-        }
-
-        bool is_ready() override {
-            return this->m_file.is_open();
-        }
-
-        bool write(const void* const data, const size_t data_size) override {
-            this->m_file.write(reinterpret_cast<const char*>(data), data_size);
-            return true;
-        }
-
-    };
-
-}
-
-
-namespace {
-
     class AssetFile {
 
     private:
@@ -665,7 +592,7 @@ namespace dal {
         if (!path_converted.has_value())
             return make_file_read_only_null();
 
-        auto file = std::make_unique<::FileReadOnly_STL>();
+        auto file = std::make_unique<dal::FileReadOnly_STL>();
         file->open(*path_converted);
 
         if (!file->is_ready())
@@ -679,7 +606,7 @@ namespace dal {
         if (!path_converted.has_value())
             return make_file_write_only_null();
 
-        auto file = std::make_unique<::FileWriteOnly_STL>();
+        auto file = std::make_unique<dal::FileWriteOnly_STL>();
         file->open(*path_converted);
 
         if (!file->is_ready())

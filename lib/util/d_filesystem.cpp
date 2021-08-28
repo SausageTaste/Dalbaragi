@@ -7,6 +7,9 @@
 
 namespace {
 
+    namespace fs = std::filesystem;
+
+
     class FileReadOnly_Null : public dal::FileReadOnly {
 
     public:
@@ -60,6 +63,34 @@ namespace {
             return ::FileType::internal;
         else
             return ::FileType::userdata;
+    }
+
+    std::optional<std::filesystem::path> resolve_question_path(const std::filesystem::path& domain_dir, const std::string& entry_to_find) {
+        if (!fs::is_directory(domain_dir))
+            return std::nullopt;
+
+        for (auto& e : fs::recursive_directory_iterator(domain_dir)) {
+            if (e.path().filename().u8string() == entry_to_find) {
+                return e.path();
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<std::filesystem::path> resolve_asterisk_path(const std::filesystem::path& domain_dir, const std::string& entry_to_find) {
+        if (!fs::is_directory(domain_dir))
+            return std::nullopt;
+
+        for (auto& e0 : fs::directory_iterator(domain_dir)) {
+            for (auto& e1 : fs::directory_iterator(e0.path())) {
+                if (e1.path().filename().u8string() == entry_to_find) {
+                    return e1.path();
+                }
+            }
+        }
+
+        return std::nullopt;
     }
 
 }
@@ -165,6 +196,51 @@ namespace dal {
         return output;
     }
 
+    std::unique_ptr<FileReadOnly> make_file_read_only_null() {
+        return std::unique_ptr<dal::FileReadOnly>{ new ::FileReadOnly_Null };
+    }
+
+    std::unique_ptr<IFileWriteOnly> make_file_write_only_null() {
+        return std::make_unique<FileWriteOnly_Null>();
+    }
+
+    std::optional<std::string> resolve_path(const dal::ResPath& respath, const std::filesystem::path& start_dir, const size_t start_index) {
+        auto cur_path = start_dir;
+
+        for (size_t i = start_index; i < respath.dir_list().size(); ++i) {
+            const auto dir_element = respath.dir_list().at(i);
+
+            if (dir_element == "?") {
+                const auto resolve_result = resolve_question_path(cur_path, respath.dir_list().at(i + 1));
+                if (!resolve_result.has_value()) {
+                    return std::nullopt;
+                }
+                else {
+                    cur_path = resolve_result.value();
+                    ++i;
+                }
+            }
+            else if (dir_element == "*") {
+                const auto resolve_result = resolve_asterisk_path(cur_path, respath.dir_list().at(i + 1));
+                if (!resolve_result.has_value()) {
+                    return std::nullopt;
+                }
+                else {
+                    cur_path = resolve_result.value();
+                    ++i;
+                }
+            }
+            else {
+                cur_path = cur_path / dir_element;
+            }
+        }
+
+        if (!fs::is_regular_file(cur_path))
+            return std::nullopt;
+
+        return cur_path.generic_u8string().substr(start_dir.generic_u8string().size() + 1);
+    }
+
 }
 
 
@@ -194,14 +270,63 @@ namespace dal {
 }
 
 
+// FileReadOnly_STL
 namespace dal {
 
-    std::unique_ptr<FileReadOnly> make_file_read_only_null() {
-        return std::unique_ptr<dal::FileReadOnly>{ new ::FileReadOnly_Null };
+    bool FileReadOnly_STL::open(const std::filesystem::path& path) {
+        this->close();
+
+        this->m_file.open(path, std::ios::ate | std::ios::binary);
+        if (!this->m_file)
+            return false;
+
+        this->m_size = this->m_file.tellg();
+        return this->m_file.is_open();
     }
 
-    std::unique_ptr<IFileWriteOnly> make_file_write_only_null() {
-        return std::make_unique<FileWriteOnly_Null>();
+    void FileReadOnly_STL::close() {
+        this->m_file.close();
+        this->m_size = 0;
+    }
+
+    bool FileReadOnly_STL::is_ready() {
+        return this->m_file.is_open();
+    }
+
+    size_t FileReadOnly_STL::size() {
+        return this->m_size;
+    }
+
+    bool FileReadOnly_STL::read(void* const dst, const size_t dst_size) {
+        this->m_file.seekg(0);
+        this->m_file.read(reinterpret_cast<char*>(dst), dst_size);
+        return true;
+    }
+
+}
+
+
+// FileWriteOnly_STL
+namespace dal {
+
+    bool FileWriteOnly_STL::open(const std::filesystem::path& path) {
+        this->close();
+
+        this->m_file.open(path, std::ios::ate | std::ios::binary);
+        return this->is_ready();
+    }
+
+    void FileWriteOnly_STL::close() {
+        this->m_file.close();
+    }
+
+    bool FileWriteOnly_STL::is_ready() {
+        return this->m_file.is_open();
+    }
+
+    bool FileWriteOnly_STL::write(const void* const data, const size_t data_size) {
+        this->m_file.write(reinterpret_cast<const char*>(data), data_size);
+        return true;
     }
 
 }
