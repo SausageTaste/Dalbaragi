@@ -20,12 +20,12 @@ int main(int argc, char** argv) {
     );
 
     dal::EngineCreateInfo engine_info;
-    engine_info.m_window_title = "Dalbrargi";
+    engine_info.m_window_title = dal::APP_NAME;
     engine_info.m_filesystem = &filesys;
 
     dal::Engine engine{ engine_info };
 
-    dal::WindowGLFW window("Dalbrargi");
+    dal::WindowGLFW window(dal::APP_NAME);
 
     engine.init_vulkan(
         window.width(),
