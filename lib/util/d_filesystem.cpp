@@ -7,6 +7,32 @@
 
 namespace {
 
+    class FileReadOnly_Null : public dal::FileReadOnly {
+
+    public:
+        void close() override {}
+
+        bool is_ready() override {
+            return false;
+        }
+
+        size_t size() override {
+            return 0;
+        }
+
+        bool read(void* const dst, const size_t dst_size) override {
+            return false;
+        }
+
+    };
+
+}
+
+
+
+// Library functions
+namespace dal {
+
     bool is_char_separator(const char c) {
         return '\\' == c || '/' == c;
     }
@@ -24,7 +50,7 @@ namespace {
         if ('\0' != str[1])
             return false;
         else
-            return ::is_char_wildcard(str[0]);
+            return dal::is_char_wildcard(str[0]);
     }
 
     bool is_valid_folder_name(const std::string& name) {
@@ -54,26 +80,8 @@ namespace {
         return true;
     }
 
-    template <typename _Iterator>
-    std::string join_path(const _Iterator dir_list_begin, const _Iterator dir_list_end, const char separator) {
-        std::string output;
-
-        for (auto ptr = dir_list_begin; ptr != dir_list_end; ++ptr) {
-            if (ptr->empty())
-                continue;
-
-            output += *ptr;
-            output += separator;
-        }
-
-        if (!output.empty())
-            output.pop_back();
-
-        return output;
-    }
-
     std::string join_path(const std::initializer_list<std::string>& dir_list, const char seperator) {
-        return ::join_path(dir_list.begin(), dir_list.end(), seperator);
+        return dal::join_path(dir_list.begin(), dir_list.end(), seperator);
     }
 
     void split_path(const char* const path, std::vector<std::string>& output) {
@@ -83,13 +91,19 @@ namespace {
         for (auto ptr = path; *ptr != '\0'; ++ptr) {
             const auto c = *ptr;
 
-            if (::is_char_separator(c)) {
+            if (dal::is_char_separator(c)) {
                 output.emplace_back();
             }
             else {
                 output.back().push_back(c);
             }
         }
+    }
+
+    std::vector<std::string> split_path(const char* const path) {
+        std::vector<std::string> output;
+        dal::split_path(path, output);
+        return output;
     }
 
     std::vector<std::string> remove_duplicate_question_marks(const std::vector<std::string>& list) {
@@ -115,26 +129,6 @@ namespace {
         return output;
     }
 
-
-    class FileReadOnly_Null : public dal::FileReadOnly {
-
-    public:
-        void close() override {}
-
-        bool is_ready() override {
-            return false;
-        }
-
-        size_t size() override {
-            return 0;
-        }
-
-        bool read(void* const dst, const size_t dst_size) override {
-            return false;
-        }
-
-    };
-
 }
 
 
@@ -144,21 +138,21 @@ namespace dal {
     ResPath::ResPath(const char* const path)
         : m_src_str(path)
     {
-        ::split_path(path, this->m_dir_list);
-        this->m_dir_list = ::remove_duplicate_question_marks(this->m_dir_list);
+        dal::split_path(path, this->m_dir_list);
+        this->m_dir_list = dal::remove_duplicate_question_marks(this->m_dir_list);
     }
 
     std::string ResPath::make_str() const {
-        return ::join_path(this->dir_list().begin(), this->dir_list().end(), this->SEPARATOR);
+        return dal::join_path(this->dir_list().begin(), this->dir_list().end(), this->SEPARATOR);
     }
 
     bool ResPath::is_valid() const {
         for (const auto& x : this->m_dir_list) {
-            if (!::is_valid_folder_name(x) && !::is_str_wildcard(x.c_str()))
+            if (!dal::is_valid_folder_name(x) && !dal::is_str_wildcard(x.c_str()))
                 return false;
         }
 
-        return !::is_str_wildcard(this->m_dir_list.back().c_str());
+        return !dal::is_str_wildcard(this->m_dir_list.back().c_str());
     }
 
 }

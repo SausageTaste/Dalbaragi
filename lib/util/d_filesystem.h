@@ -8,6 +8,41 @@
 
 namespace dal {
 
+    bool is_char_separator(const char c);
+
+    bool is_char_wildcard(const char c);
+
+    bool is_str_wildcard(const char* const str);
+
+    bool is_valid_folder_name(const std::string& name);
+
+    template <typename _Iterator>
+    std::string join_path(const _Iterator dir_list_begin, const _Iterator dir_list_end, const char separator) {
+        std::string output;
+
+        for (auto ptr = dir_list_begin; ptr != dir_list_end; ++ptr) {
+            if (ptr->empty())
+                continue;
+
+            output += *ptr;
+            output += separator;
+        }
+
+        if (!output.empty())
+            output.pop_back();
+
+        return output;
+    }
+
+    std::string join_path(const std::initializer_list<std::string>& dir_list, const char seperator);
+
+    void split_path(const char* const path, std::vector<std::string>& output);
+
+    std::vector<std::string> split_path(const char* const path);
+
+    std::vector<std::string> remove_duplicate_question_marks(const std::vector<std::string>& list);
+
+
     class ResPath {
 
     private:
