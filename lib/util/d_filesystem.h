@@ -74,15 +74,21 @@ namespace dal {
     };
 
 
-    class FileReadOnly {
+    class IFile {
 
     public:
-        virtual ~FileReadOnly() = default;
+        virtual ~IFile() = default;
 
         virtual void close() = 0;
 
         virtual bool is_ready() = 0;
 
+    };
+
+
+    class FileReadOnly : public IFile {
+
+    public:
         virtual size_t size() = 0;
 
         virtual bool read(void* const dst, const size_t dst_size) = 0;
@@ -110,7 +116,17 @@ namespace dal {
     };
 
 
+    class IFileWriteOnly : public IFile {
+
+    public:
+        virtual bool write(const uint8_t* const data, const size_t data_size) = 0;
+
+    };
+
+
     std::unique_ptr<FileReadOnly> make_file_read_only_null();
+
+    std::unique_ptr<IFileWriteOnly> make_file_write_only_null();
 
 
     class IFileManager {
@@ -126,17 +142,38 @@ namespace dal {
 
         virtual std::optional<ResPath> resolve(const ResPath& path) = 0;
 
+    };
+
+
+    class IFileManagerR : public IFileManager {
+
+    public:
         virtual std::unique_ptr<FileReadOnly> open(const ResPath& path) = 0;
 
     };
 
 
-    class IAssetManager : public IFileManager {
+    class IFileManagerRW : public IFileManager {
+
+    public:
+        virtual std::unique_ptr<FileReadOnly> open_read(const ResPath& path) = 0;
+
+        virtual std::unique_ptr<IFileWriteOnly> open_write(const ResPath& path) = 0;
 
     };
 
 
-    class IUserDataManager : public IFileManager {
+    class IAssetManager : public IFileManagerR {
+
+    };
+
+
+    class IUserDataManager : public IFileManagerR {
+
+    };
+
+
+    class IInternalManager : public IFileManagerRW {
 
     };
 
@@ -146,14 +183,17 @@ namespace dal {
     private:
         std::unique_ptr<IAssetManager> m_asset_mgr;
         std::unique_ptr<IUserDataManager> m_userdata_mgr;
+        std::unique_ptr<IInternalManager> m_internal_mgr;
 
     public:
         void init(
             std::unique_ptr<IAssetManager>&& asset_mgr,
-            std::unique_ptr<IUserDataManager>&& userdata_mgr
+            std::unique_ptr<IUserDataManager>&& userdata_mgr,
+            std::unique_ptr<IInternalManager>&& internal_mgr
         ) {
             this->m_asset_mgr = std::move(asset_mgr);
             this->m_userdata_mgr = std::move(userdata_mgr);
+            this->m_internal_mgr = std::move(internal_mgr);
         }
 
         std::optional<ResPath> resolve(const ResPath& path);

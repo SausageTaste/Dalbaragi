@@ -26,6 +26,22 @@ namespace {
 
     };
 
+
+    class FileWriteOnly_Null : public dal::IFileWriteOnly {
+
+    public:
+        void close() override {}
+
+        bool is_ready() override {
+            return false;
+        }
+
+        bool write(const uint8_t* const data, const size_t data_size) override {
+            return false;
+        }
+
+    };
+
 }
 
 
@@ -164,6 +180,10 @@ namespace dal {
         return std::unique_ptr<dal::FileReadOnly>{ new ::FileReadOnly_Null };
     }
 
+    std::unique_ptr<IFileWriteOnly> make_file_write_only_null() {
+        return std::make_unique<FileWriteOnly_Null>();
+    }
+
 }
 
 
@@ -177,6 +197,9 @@ namespace dal {
         if (path.dir_list().front() == dal::SPECIAL_NAMESPACE_ASSET) {
             return this->m_asset_mgr->resolve(path);
         }
+        else if (path.dir_list().front() == dal::SPECIAL_NAMESPACE_INTERNAL) {
+            return this->m_internal_mgr->resolve(path);
+        }
         else if (path.dir_list().front() == "?") {
             auto result_asset = this->m_asset_mgr->resolve(path);
             if (result_asset.has_value())
@@ -185,6 +208,10 @@ namespace dal {
             auto result_userdata = this->m_userdata_mgr->resolve(path);
             if (result_userdata.has_value())
                 return result_userdata;
+
+            auto result_internal = this->m_internal_mgr->resolve(path);
+            if (result_internal.has_value())
+                return result_internal;
         }
         else {
             return this->m_userdata_mgr->resolve(path);
@@ -199,6 +226,8 @@ namespace dal {
 
         if (path.dir_list().front() == dal::SPECIAL_NAMESPACE_ASSET)
             return this->m_asset_mgr->open(path);
+        else if (path.dir_list().front() == dal::SPECIAL_NAMESPACE_INTERNAL)
+            return this->m_internal_mgr->open_read(path);
         else
             return this->m_userdata_mgr->open(path);
 

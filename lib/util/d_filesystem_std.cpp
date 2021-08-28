@@ -81,21 +81,29 @@ namespace {
 
     }
 
-    std::optional<fs::path> find_userdata_dir() {
+    std::optional<fs::path> find_folder_in_document(const char* const folder_name) {
         const auto document_path = ::find_document_dir();
         if (!document_path.has_value())
             return std::nullopt;
 
         const auto app_area_path = *document_path / dal::APP_NAME;
-        const auto userdata_path = app_area_path / dal::FOLDER_NAME_USERDATA;
+        const auto output_path = app_area_path / folder_name;
 
         if (!fs::is_directory(app_area_path))
             fs::create_directory(app_area_path);
 
-        if (!fs::is_directory(userdata_path))
-            fs::create_directory(userdata_path);
+        if (!fs::is_directory(output_path))
+            fs::create_directory(output_path);
 
-        return userdata_path;
+        return output_path;
+    }
+
+    std::optional<fs::path> find_userdata_dir() {
+        return ::find_folder_in_document(dal::FOLDER_NAME_USERDATA);
+    }
+
+    std::optional<fs::path> find_internal_dir() {
+        return ::find_folder_in_document(dal::FOLDER_NAME_INTERNAL);
     }
 
     template <typename _Iterator>
@@ -429,6 +437,40 @@ namespace dal {
             return make_file_read_only_null();
         else
             return file;
+    }
+
+}
+
+
+// InternalManagerSTD
+namespace dal {
+
+    bool InternalManagerSTD::is_file(const dal::ResPath& path) {
+        return false;
+    }
+
+    bool InternalManagerSTD::is_folder(const dal::ResPath& path) {
+        return false;
+    }
+
+    size_t InternalManagerSTD::list_files(const dal::ResPath& path, std::vector<std::string>& output) {
+        return 0;
+    }
+
+    size_t InternalManagerSTD::list_folders(const dal::ResPath& path, std::vector<std::string>& output) {
+        return 0;
+    }
+
+    std::optional<ResPath> InternalManagerSTD::resolve(const ResPath& path) {
+        return std::nullopt;
+    }
+
+    std::unique_ptr<FileReadOnly> InternalManagerSTD::open_read(const ResPath& path) {
+        return dal::make_file_read_only_null();
+    }
+
+    std::unique_ptr<IFileWriteOnly> InternalManagerSTD::open_write(const ResPath& path) {
+        return dal::make_file_write_only_null();
     }
 
 }

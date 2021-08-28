@@ -15,7 +15,8 @@ namespace dal {
 
     const char* const FOLDER_NAME_ASSET = "asset";
     const char* const FOLDER_NAME_USERDATA = "userdata";
+    const char* const FOLDER_NAME_INTERNAL = "internal";
     const char* const SPECIAL_NAMESPACE_ASSET = "_asset";
-    const char* const SPECIAL_NAMESPACE_LOG = "_log";
+    const char* const SPECIAL_NAMESPACE_INTERNAL = "_internal";
 
 }

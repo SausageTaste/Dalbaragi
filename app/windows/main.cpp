@@ -15,7 +15,8 @@ int main(int argc, char** argv) {
     dal::Filesystem filesys;
     filesys.init(
         std::make_unique<dal::AssetManagerSTD>(),
-        std::make_unique<dal::UserDataManagerSTD>()
+        std::make_unique<dal::UserDataManagerSTD>(),
+        std::make_unique<dal::InternalManagerSTD>()
     );
 
     dal::WindowGLFW window("Dalbrargi");
