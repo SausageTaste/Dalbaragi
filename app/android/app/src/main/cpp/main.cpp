@@ -18,6 +18,11 @@ namespace {
 
     dal::surface_create_func_t g_surface_create_func;
 
+    const std::vector<std::string> INSTANCE_EXTENSIONS{
+        "VK_KHR_surface",
+        "VK_KHR_android_surface",
+    };
+
 
     class LogChannel_Logcat : public dal::ILogChannel {
 
@@ -64,16 +69,12 @@ namespace {
 
 
     void init(android_app* const state) {
-        //g_filesys.asset_mgr().set_android_asset_manager();
         g_filesys.init(
             std::make_unique<dal::AssetManagerAndroid>(state->activity->assetManager),
-            std::make_unique<dal::UserDataManagerAndroid>()
+            std::make_unique<dal::UserDataManagerAndroid>(),
+            std::make_unique<dal::InternalManagerAndroid>(state->activity->internalDataPath)
         );
 
-        const std::vector<std::string> instanceExt{
-            "VK_KHR_surface",
-            "VK_KHR_android_surface",
-        };
         g_surface_create_func = [state](void* vk_instance) -> uint64_t {
             VkAndroidSurfaceCreateInfoKHR create_info{
                 .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
@@ -103,7 +104,6 @@ namespace {
         dal::EngineCreateInfo engine_info;
         engine_info.m_window_title = "Dalbrargi Android";
         engine_info.m_filesystem = &g_filesys;
-        engine_info.m_extensions = instanceExt;
 
         dalAssert(nullptr == state->userData);
         state->userData = new dal::Engine(engine_info);
@@ -413,7 +413,8 @@ extern "C" {
                 engine.init_vulkan(
                     ANativeWindow_getWidth(state->window),
                     ANativeWindow_getHeight(state->window),
-                    g_surface_create_func
+                    g_surface_create_func,
+                    INSTANCE_EXTENSIONS
                 );
                 break;
             case APP_CMD_TERM_WINDOW:

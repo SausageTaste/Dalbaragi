@@ -206,8 +206,7 @@ namespace {
             this->close();
 
             this->m_file.open(path, std::ios::ate | std::ios::binary);
-            if (!this->m_file)
-                return false;
+            return this->is_ready();
         }
 
         void close() override {
