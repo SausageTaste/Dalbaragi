@@ -119,7 +119,7 @@ namespace dal {
     class IFileWriteOnly : public IFile {
 
     public:
-        virtual bool write(const uint8_t* const data, const size_t data_size) = 0;
+        virtual bool write(const void* const data, const size_t data_size) = 0;
 
     };
 
@@ -199,6 +199,8 @@ namespace dal {
         std::optional<ResPath> resolve(const ResPath& path);
 
         std::unique_ptr<FileReadOnly> open(const ResPath& path);
+
+        std::unique_ptr<IFileWriteOnly> open_write(const ResPath& path);
 
     };
 

@@ -106,30 +106,12 @@ namespace {
         return ::find_folder_in_document(dal::FOLDER_NAME_INTERNAL);
     }
 
-    template <typename _Iterator>
-    std::string join_path(const _Iterator dir_list_begin, const _Iterator dir_list_end, const char separator) {
-        std::string output;
-
-        for (auto ptr = dir_list_begin; ptr != dir_list_end; ++ptr) {
-            if (ptr->empty())
-                continue;
-
-            output += *ptr;
-            output += separator;
-        }
-
-        if (!output.empty())
-            output.pop_back();
-
-        return output;
-    }
-
     std::optional<fs::path> convert_asset_respath(const dal::ResPath& path) {
         const auto asset_dir = ::find_asset_dir();
         if (!asset_dir.has_value())
             return std::nullopt;
 
-        const auto asset_path = ::join_path(&path.dir_list().front() + 1, &path.dir_list().back() + 1, '/');
+        const auto asset_path = dal::join_path(&path.dir_list().front() + 1, &path.dir_list().back() + 1, '/');
 
 #if defined(DAL_OS_WINDOWS)
         const auto file_path = *asset_dir / ::utf8_to_utf16(asset_path).value();
@@ -145,7 +127,25 @@ namespace {
         if (!domain_dir.has_value())
             return std::nullopt;
 
-        const auto target_path = ::join_path(&path.dir_list().front(), &path.dir_list().back() + 1, '/');
+        const auto target_path = dal::join_path(&path.dir_list().front(), &path.dir_list().back() + 1, '/');
+
+#if defined(DAL_OS_WINDOWS)
+        return *domain_dir / ::utf8_to_utf16(target_path).value();
+#elif defined(DAL_OS_LINUX)
+        return *domain_dir / target_path;
+#endif
+
+    }
+
+    std::optional<fs::path> convert_internal_respath(const dal::ResPath& path) {
+        if (dal::SPECIAL_NAMESPACE_INTERNAL != path.dir_list().front())
+            return std::nullopt;
+
+        const auto domain_dir = ::find_internal_dir();
+        if (!domain_dir.has_value())
+            return std::nullopt;
+
+        const auto target_path = dal::join_path(&path.dir_list().front() + 1, &path.dir_list().back() + 1, '/');
 
 #if defined(DAL_OS_WINDOWS)
         return *domain_dir / ::utf8_to_utf16(target_path).value();
@@ -190,6 +190,36 @@ namespace {
         bool read(void* const dst, const size_t dst_size) override {
             this->m_file.seekg(0);
             this->m_file.read(reinterpret_cast<char*>(dst), dst_size);
+            return true;
+        }
+
+    };
+
+
+    class FileWriteOnly_STL : public dal::IFileWriteOnly {
+
+    private:
+        std::ofstream m_file;
+
+    public:
+        bool open(const fs::path& path) {
+            this->close();
+
+            this->m_file.open(path, std::ios::ate | std::ios::binary);
+            if (!this->m_file)
+                return false;
+        }
+
+        void close() override {
+            this->m_file.close();
+        }
+
+        bool is_ready() override {
+            return this->m_file.is_open();
+        }
+
+        bool write(const void* const data, const size_t data_size) override {
+            this->m_file.write(reinterpret_cast<const char*>(data), data_size);
             return true;
         }
 
@@ -284,6 +314,21 @@ namespace {
 
     std::optional<dal::ResPath> resolve_userdata_path(const dal::ResPath& respath) {
         const auto start_dir = ::find_userdata_dir();
+        if (!start_dir.has_value())
+            return std::nullopt;
+
+        const auto result = ::resolve_path(respath, *start_dir, 0);
+        if (!result.has_value())
+            return std::nullopt;
+
+        return dal::ResPath{ result.value() };
+    }
+
+    std::optional<dal::ResPath> resolve_internal_path(const dal::ResPath& respath) {
+        if (respath.dir_list().front() != dal::SPECIAL_NAMESPACE_INTERNAL)
+            return std::nullopt;
+
+        const auto start_dir = ::find_internal_dir();
         if (!start_dir.has_value())
             return std::nullopt;
 
@@ -462,15 +507,35 @@ namespace dal {
     }
 
     std::optional<ResPath> InternalManagerSTD::resolve(const ResPath& path) {
-        return std::nullopt;
+        return ::resolve_internal_path(path);
     }
 
     std::unique_ptr<FileReadOnly> InternalManagerSTD::open_read(const ResPath& path) {
-        return dal::make_file_read_only_null();
+        const auto file_path = ::convert_internal_respath(path);
+        if (!file_path.has_value())
+            return make_file_read_only_null();
+
+        auto file = std::make_unique<::FileReadOnly_STL>();
+        file->open(*file_path);
+
+        if (!file->is_ready())
+            return make_file_read_only_null();
+        else
+            return file;
     }
 
     std::unique_ptr<IFileWriteOnly> InternalManagerSTD::open_write(const ResPath& path) {
-        return dal::make_file_write_only_null();
+        const auto file_path = ::convert_internal_respath(path);
+        if (!file_path.has_value())
+            return make_file_write_only_null();
+
+        auto file = std::make_unique<::FileWriteOnly_STL>();
+        file->open(*file_path);
+
+        if (!file->is_ready())
+            return make_file_write_only_null();
+        else
+            return file;
     }
 
 }

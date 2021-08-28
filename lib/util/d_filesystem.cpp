@@ -36,7 +36,7 @@ namespace {
             return false;
         }
 
-        bool write(const uint8_t* const data, const size_t data_size) override {
+        bool write(const void* const data, const size_t data_size) override {
             return false;
         }
 
@@ -232,6 +232,16 @@ namespace dal {
             return this->m_userdata_mgr->open(path);
 
         return make_file_read_only_null();
+    }
+
+    std::unique_ptr<IFileWriteOnly> Filesystem::open_write(const ResPath& path) {
+        if (!path.is_valid())
+            return make_file_write_only_null();
+
+        if (dal::SPECIAL_NAMESPACE_INTERNAL == path.dir_list().front())
+            return this->m_internal_mgr->open_write(path);
+
+        return make_file_write_only_null();
     }
 
 }
