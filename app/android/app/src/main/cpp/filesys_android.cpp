@@ -514,6 +514,7 @@ namespace {
 }
 
 
+// AssetManagerAndroid
 namespace dal {
 
     AssetManagerAndroid::AssetManagerAndroid(AAssetManager* const asset_mgr_ptr)
@@ -528,7 +529,8 @@ namespace dal {
     }
 
     bool AssetManagerAndroid::is_folder(const dal::ResPath& path) {
-        return false;
+        const auto asset_path = ::make_asset_path(path);
+        return g_asset_folders.is_folder(asset_path.c_str());
     }
 
     size_t AssetManagerAndroid::list_files(const dal::ResPath& path, std::vector<std::string>& output) {
@@ -571,6 +573,7 @@ namespace dal {
 }
 
 
+// UserDataManagerAndroid
 namespace dal {
 
     bool UserDataManagerAndroid::is_file(const dal::ResPath& path) {
@@ -600,6 +603,7 @@ namespace dal {
 }
 
 
+// InternalManagerAndroid
 namespace dal {
 
     InternalManagerAndroid::InternalManagerAndroid(const char* const domain_dir)
@@ -609,19 +613,47 @@ namespace dal {
     }
 
     bool InternalManagerAndroid::is_file(const dal::ResPath& path) {
-        return false;
+        const auto normal_path = ::convert_to_internal_path(path, this->m_domain_dir);
+        if (!normal_path.has_value())
+            return false;
+
+        return fs::is_regular_file(*normal_path);
     }
 
     bool InternalManagerAndroid::is_folder(const dal::ResPath& path) {
-        return false;
+        const auto normal_path = ::convert_to_internal_path(path, this->m_domain_dir);
+        if (!normal_path.has_value())
+            return false;
+
+        return fs::is_directory(*normal_path);
     }
 
     size_t InternalManagerAndroid::list_files(const dal::ResPath& path, std::vector<std::string>& output) {
-        return 0;
+        const auto normal_path = ::convert_to_internal_path(path, this->m_domain_dir);
+        if (!normal_path.has_value())
+            return 0;
+
+        output.clear();
+        for (const auto& x : fs::directory_iterator(*normal_path)) {
+            if (fs::is_regular_file(x))
+                output.push_back(x.path().filename().u8string());
+        }
+
+        return output.size();
     }
 
     size_t InternalManagerAndroid::list_folders(const dal::ResPath& path, std::vector<std::string>& output) {
-        return 0;
+        const auto normal_path = ::convert_to_internal_path(path, this->m_domain_dir);
+        if (!normal_path.has_value())
+            return 0;
+
+        output.clear();
+        for (const auto& x : fs::directory_iterator(*normal_path)) {
+            if (fs::is_directory(x))
+                output.push_back(x.path().filename().u8string());
+        }
+
+        return output.size();
     }
 
     std::optional<ResPath> InternalManagerAndroid::resolve(const ResPath& path) {

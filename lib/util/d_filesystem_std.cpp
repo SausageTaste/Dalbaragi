@@ -361,12 +361,11 @@ namespace dal {
     }
 
     size_t AssetManagerSTD::list_files(const ResPath& path, std::vector<std::string>& output) {
-        output.clear();
-
         const auto normal_path = ::convert_asset_respath(path);
         if (!normal_path.has_value())
             return 0;
 
+        output.clear();
         for (const auto& x : fs::directory_iterator(*normal_path)) {
             if (fs::is_regular_file(x))
                 output.push_back(x.path().filename().u8string());
@@ -376,12 +375,11 @@ namespace dal {
     }
 
     size_t AssetManagerSTD::list_folders(const ResPath& path, std::vector<std::string>& output) {
-        output.clear();
-
         const auto normal_path = ::convert_asset_respath(path);
         if (!normal_path.has_value())
             return 0;
 
+        output.clear();
         for (const auto& x : fs::directory_iterator(*normal_path)) {
             if (fs::is_directory(x))
                 output.push_back(x.path().filename().u8string());
@@ -436,12 +434,11 @@ namespace dal {
     }
 
     size_t UserDataManagerSTD::list_files(const dal::ResPath& path, std::vector<std::string>& output) {
-        output.clear();
-
         const auto normal_path = ::convert_userdata_respath(path);
         if (!normal_path.has_value())
             return 0;
 
+        output.clear();
         for (const auto& x : fs::directory_iterator(*normal_path)) {
             if (fs::is_regular_file(x))
                 output.push_back(x.path().filename().u8string());
@@ -451,12 +448,11 @@ namespace dal {
     }
 
     size_t UserDataManagerSTD::list_folders(const dal::ResPath& path, std::vector<std::string>& output) {
-        output.clear();
-
         const auto normal_path = ::convert_userdata_respath(path);
         if (!normal_path.has_value())
             return 0;
 
+        output.clear();
         for (const auto& x : fs::directory_iterator(*normal_path)) {
             if (fs::is_directory(x))
                 output.push_back(x.path().filename().u8string());
@@ -490,19 +486,47 @@ namespace dal {
 namespace dal {
 
     bool InternalManagerSTD::is_file(const dal::ResPath& path) {
-        return false;
+        const auto normal_path = ::convert_internal_respath(path);
+        if (!normal_path.has_value())
+            return false;
+
+        return fs::is_regular_file(*normal_path);
     }
 
     bool InternalManagerSTD::is_folder(const dal::ResPath& path) {
-        return false;
+        const auto normal_path = ::convert_internal_respath(path);
+        if (!normal_path.has_value())
+            return false;
+
+        return fs::is_directory(*normal_path);
     }
 
     size_t InternalManagerSTD::list_files(const dal::ResPath& path, std::vector<std::string>& output) {
-        return 0;
+        const auto normal_path = ::convert_internal_respath(path);
+        if (!normal_path.has_value())
+            return 0;
+
+        output.clear();
+        for (const auto& x : fs::directory_iterator(*normal_path)) {
+            if (fs::is_regular_file(x))
+                output.push_back(x.path().filename().u8string());
+        }
+
+        return output.size();
     }
 
     size_t InternalManagerSTD::list_folders(const dal::ResPath& path, std::vector<std::string>& output) {
-        return 0;
+        const auto normal_path = ::convert_internal_respath(path);
+        if (!normal_path.has_value())
+            return 0;
+
+        output.clear();
+        for (const auto& x : fs::directory_iterator(*normal_path)) {
+            if (fs::is_directory(x))
+                output.push_back(x.path().filename().u8string());
+        }
+
+        return output.size();
     }
 
     std::optional<ResPath> InternalManagerSTD::resolve(const ResPath& path) {
