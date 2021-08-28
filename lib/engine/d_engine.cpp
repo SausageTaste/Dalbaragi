@@ -314,14 +314,18 @@ namespace dal {
         this->m_renderer->update(this->m_scene.m_euler_camera, render_list);
     }
 
-    void Engine::init_vulkan(const unsigned win_width, const unsigned win_height, const surface_create_func_t surface_create_func) {
+    void Engine::init_vulkan(
+        const unsigned win_width,
+        const unsigned win_height,
+        const surface_create_func_t surface_create_func,
+        const std::vector<std::string>& extensions_str
+    ) {
         this->m_screen_width = win_width;
         this->m_screen_height = win_height;
 
         std::vector<const char*> extensions;
-        for (const auto& x : this->m_create_info.m_extensions) {
+        for (const auto& x : extensions_str)
             extensions.push_back(x.c_str());
-        }
 
         this->m_renderer = dal::create_renderer_vulkan(
             this->m_create_info.m_window_title.c_str(),

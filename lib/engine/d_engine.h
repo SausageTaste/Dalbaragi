@@ -13,7 +13,6 @@ namespace dal {
     struct EngineCreateInfo {
         std::string                     m_window_title;
         dal::Filesystem*                m_filesystem = nullptr;
-        std::vector<std::string>        m_extensions;
 
         bool check_validity() const;
     };
@@ -45,7 +44,12 @@ namespace dal {
 
         void update();
 
-        void init_vulkan(const unsigned win_width, const unsigned win_height, const surface_create_func_t surface_create_func);
+        void init_vulkan(
+            const unsigned win_width,
+            const unsigned win_height,
+            const surface_create_func_t surface_create_func,
+            const std::vector<std::string>& extensions
+        );
 
         void destory_vulkan();
 
