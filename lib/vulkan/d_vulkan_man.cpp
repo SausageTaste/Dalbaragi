@@ -43,6 +43,13 @@ namespace {
         return (f * (z + n)) / (z * (f - n));
     }
 
+    template <typename T>
+    T calc_clip_depth_inv(const T depth, const T n, const T f) {
+        dalAssert(static_cast<T>(0) != n || static_cast<T>(0) != f);
+
+        return f*n / (depth*(f - n) - f);
+    }
+
 
     auto& actor_cast(dal::IActor& actor) {
         return dynamic_cast<dal::ActorVK&>(actor);
