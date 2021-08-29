@@ -108,7 +108,7 @@ float phase_mie(const float cos_theta, const float anisotropy) {
 vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 view_pos) {
     const int NUM_STEPS = 5;
     const float INTENSITY_DLIGHT = 0.6;
-    const float INTENSITY_SLIGHT = 0.6;
+    const float INTENSITY_SLIGHT = 0.9;
     const float MAX_SAMPLE_DIST = 100.0;
 
     const float frag_view_z = calc_view_z(frag_depth);
@@ -129,7 +129,7 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
 
     float slight_mie_factors[MAX_S_LIGHT_COUNT];
     for (uint i = 0; i < u_global_light.m_slight_count; ++i)
-        slight_mie_factors[i] = phase_mie(dot(view_to_frag_direc, u_global_light.m_slight_direc_n_fade_start[i].xyz), 0.2);
+        slight_mie_factors[i] = phase_mie(dot(view_to_frag_direc, u_global_light.m_slight_direc_n_fade_start[i].xyz), 0.3);
 
     const float dlight_factor = INTENSITY_DLIGHT * phase_mie(dot(view_to_frag_direc, u_global_light.m_dlight_direc[0].xyz), 0.7);
     const float slight_factor = INTENSITY_SLIGHT;
@@ -169,9 +169,16 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
         }
 
         for (uint i = 0; i < u_global_light.m_slight_count; ++i) {
-            const bool in_shadow = is_in_shadow(sample_pos, u_global_light.m_slight_mat[i], u_slight_shadow_maps[i]);
+            const vec4 sample_pos_in_light = u_global_light.m_slight_mat[i] * vec4(sample_pos, 1);
+            const vec3 proj_coords = sample_pos_in_light.xyz / sample_pos_in_light.w;
+            if (proj_coords.z > 1.0)
+                continue;
 
-            if (!in_shadow) {
+            const vec2 sample_coord = proj_coords.xy * 0.5 + 0.5;
+            const float closest_depth = texture(u_slight_shadow_maps[i], sample_coord).r;
+            const float current_depth = proj_coords.z;
+
+            if (current_depth < closest_depth) {
                 const float attenuation = calc_slight_attenuation(
                     sample_pos,
                     u_global_light.m_slight_pos_n_max_dist[i].xyz,
