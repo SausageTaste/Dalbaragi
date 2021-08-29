@@ -97,18 +97,18 @@ float get_dither_value() {
     return dither_pattern[index];
 }
 
-float phase_mie(float cos_theta) {
-    const float ANISOTROPY = 0.70;
+float phase_mie(const float cos_theta, const float anisotropy) {
     const float PI = 3.14;
 
-    float numer = 3.0 * (1.0 - ANISOTROPY*ANISOTROPY) * (1.0 + cos_theta * cos_theta);
-    float denom = 8.0*PI * (2.0 + ANISOTROPY*ANISOTROPY) * (1.0 + ANISOTROPY*ANISOTROPY - 2.0*ANISOTROPY*cos_theta);
+    float numer = 3.0 * (1.0 - anisotropy*anisotropy) * (1.0 + cos_theta * cos_theta);
+    float denom = 8.0*PI * (2.0 + anisotropy*anisotropy) * (1.0 + anisotropy*anisotropy - 2.0*anisotropy*cos_theta);
     return numer / denom;
 }
 
 vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 view_pos) {
     const int NUM_STEPS = 5;
-    const float INTENSITY = 0.6;
+    const float INTENSITY_DLIGHT = 0.6;
+    const float INTENSITY_SLIGHT = 0.6;
     const float MAX_SAMPLE_DIST = 100.0;
 
     const float frag_view_z = calc_view_z(frag_depth);
@@ -127,6 +127,13 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
     const vec3 step_pos = near_to_frag / float(NUM_STEPS + 1);
     const float step_view_z = (frag_view_z - near_view_z) / float(NUM_STEPS + 1);
 
+    float slight_mie_factors[MAX_S_LIGHT_COUNT];
+    for (uint i = 0; i < u_global_light.m_slight_count; ++i)
+        slight_mie_factors[i] = phase_mie(dot(view_to_frag_direc, u_global_light.m_slight_direc_n_fade_start[i].xyz), 0.2);
+
+    const float dlight_factor = INTENSITY_DLIGHT * phase_mie(dot(view_to_frag_direc, u_global_light.m_dlight_direc[0].xyz), 0.7);
+    const float slight_factor = INTENSITY_SLIGHT;
+
     vec3 sample_pos = near_pos;
     float sample_view_z = near_view_z;
     float accum_factor = 0;
@@ -137,31 +144,48 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
 
         const float sample_depth = calc_depth_of_z(sample_view_z);
 
-        uint selected_dlight = u_global_light.m_dlight_count - 1;
-        for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
-            if (u_global_light.m_dlight_clip_dist[i] > sample_depth) {
-                selected_dlight = i;
-                break;
+        {
+            uint selected_dlight = u_global_light.m_dlight_count - 1;
+            for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
+                if (u_global_light.m_dlight_clip_dist[i] > sample_depth) {
+                    selected_dlight = i;
+                    break;
+                }
+            }
+
+            const vec4 sample_pos_in_dlight = u_global_light.m_dlight_mat[selected_dlight] * vec4(sample_pos, 1);
+            const vec3 proj_coords = sample_pos_in_dlight.xyz / sample_pos_in_dlight.w;
+            if (proj_coords.z > 1.0) {
+                continue;
+            }
+
+            const vec2 sample_coord = proj_coords.xy * 0.5 + 0.5;
+            const float closest_depth = texture(u_dlight_shadow_maps[selected_dlight], sample_coord).r;
+            const float current_depth = proj_coords.z;
+
+            if (current_depth < closest_depth) {
+                accum_factor += dlight_factor;
             }
         }
 
-        const vec4 sample_pos_in_dlight = u_global_light.m_dlight_mat[selected_dlight] * vec4(sample_pos, 1);
-        const vec3 proj_coords = sample_pos_in_dlight.xyz / sample_pos_in_dlight.w;
-        if (proj_coords.z > 1.0) {
-            continue;
-        }
+        for (uint i = 0; i < u_global_light.m_slight_count; ++i) {
+            const bool in_shadow = is_in_shadow(sample_pos, u_global_light.m_slight_mat[i], u_slight_shadow_maps[i]);
 
-        const vec2 sample_coord = proj_coords.xy * 0.5 + 0.5;
-        const float closest_depth = texture(u_dlight_shadow_maps[selected_dlight], sample_coord).r;
-        const float current_depth = proj_coords.z;
+            if (!in_shadow) {
+                const float attenuation = calc_slight_attenuation(
+                    sample_pos,
+                    u_global_light.m_slight_pos_n_max_dist[i].xyz,
+                    -u_global_light.m_slight_direc_n_fade_start[i].xyz,
+                    u_global_light.m_slight_direc_n_fade_start[i].w,
+                    u_global_light.m_slight_color_n_fade_end[i].w
+                );
 
-        if (current_depth < closest_depth) {
-            accum_factor += 1;
+                accum_factor += slight_factor * attenuation * slight_mie_factors[i];
+            }
         }
     }
 
-    accum_factor *= INTENSITY / float(NUM_STEPS);
-    return u_global_light.m_dlight_color[0].xyz * accum_factor * phase_mie(dot(view_to_frag_direc, u_global_light.m_dlight_direc[0].xyz));
+    return u_global_light.m_dlight_color[0].xyz * accum_factor / float(NUM_STEPS);
 }
 
 
