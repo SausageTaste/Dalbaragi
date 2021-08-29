@@ -105,7 +105,9 @@ void main() {
     }
 
     for (uint i = 0; i < u_global_light.m_plight_count; ++i) {
-        const vec3 frag_to_light_direc = normalize(u_global_light.m_plight_pos_n_max_dist[i].xyz - world_pos);
+        const vec3 frag_to_light = u_global_light.m_plight_pos_n_max_dist[i].xyz - world_pos;
+        const float light_distance = length(frag_to_light);
+        const vec3 frag_to_light_direc = frag_to_light / light_distance;
 
         light += calc_pbr_illumination(
             material.x,
@@ -115,7 +117,7 @@ void main() {
             F0,
             view_direc,
             frag_to_light_direc,
-            1,
+            light_distance,
             u_global_light.m_plight_color[i].xyz
         );
     }
@@ -143,6 +145,10 @@ void main() {
             1,
             u_global_light.m_slight_color_n_fade_end[i].xyz
         ) * (attenuation * shadow);
+    }
+
+    {
+
     }
 
     out_color = vec4(light, 1);
