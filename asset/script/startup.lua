@@ -87,6 +87,11 @@ function before_rendering_every_frame()
     local t = sysinfo.time()
 
     do
+        local light = scene.get_dlight_handle()
+        light:set_direction_to_light(1, 10 * math.sin(t * 0.5), 1 * math.cos(t * 0.5));
+    end
+
+    do
         local light = scene.get_slight_at(0)
         light:set_direction_to_light(math.sin(t * 0.7), 1, math.cos(t * 0.7));
     end
