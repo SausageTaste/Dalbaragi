@@ -32,6 +32,11 @@ function on_engine_init()
         local light = scene.create_plight()
         light:get_color():set_xyz(0.5, 0.5, 0.5)
     end
+
+    do
+        local light = scene.get_ambient_light()
+        light:set_xyz(0.03, 0.03, 0.03)
+    end
 end
 
 

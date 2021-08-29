@@ -39,7 +39,7 @@ namespace dal {
 
         output.m_plights = this->m_plights;
         output.m_slights = this->m_slights;
-        output.m_ambient_color = glm::vec3{0.01};
+        output.m_ambient_color = this->m_ambient_light;
 
         return output;
     }
