@@ -40,6 +40,9 @@ layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
     mat4 m_view_inv;
     mat4 m_proj_inv;
     vec4 m_view_pos;
+
+    float m_near;
+    float m_far;
 } u_per_frame_composition;
 
 layout(set = 0, binding = 6) uniform sampler2D u_dlight_shadow_maps[MAX_D_LIGHT_COUNT];
@@ -67,6 +70,100 @@ vec3 fix_color(const vec3 color) {
     return mapped;
 }
 
+float calc_view_z(const float depth) {
+    const float n = u_per_frame_composition.m_near;
+    const float f = u_per_frame_composition.m_far;
+    return f*n / (depth*(f - n) - f);
+}
+
+float calc_depth_of_z(const float view_z) {
+    const float n = u_per_frame_composition.m_near;
+    const float f = u_per_frame_composition.m_far;
+    return (f * (view_z + n)) / (view_z * (f - n));
+}
+
+float get_dither_value() {
+    float dither_pattern[16] = float[](
+        0.0   , 0.5   , 0.125 , 0.625 ,
+        0.75  , 0.22  , 0.875 , 0.375 ,
+        0.1875, 0.6875, 0.0625, 0.5625,
+        0.9375, 0.4375, 0.8125, 0.3125
+    );
+
+    int i = int(gl_FragCoord.x) % 4;
+    int j = int(gl_FragCoord.y) % 4;
+
+    int index = 4 * i + j;
+    return dither_pattern[index];
+}
+
+float phase_mie(float cos_theta) {
+    const float ANISOTROPY = 0.70;
+    const float PI = 3.14;
+
+    float numer = 3.0 * (1.0 - ANISOTROPY*ANISOTROPY) * (1.0 + cos_theta * cos_theta);
+    float denom = 8.0*PI * (2.0 + ANISOTROPY*ANISOTROPY) * (1.0 + ANISOTROPY*ANISOTROPY - 2.0*ANISOTROPY*cos_theta);
+    return numer / denom;
+}
+
+vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 view_pos) {
+    const int NUM_STEPS = 5;
+    const float INTENSITY = 0.6;
+    const float MAX_SAMPLE_DIST = 100.0;
+
+    const float frag_view_z = calc_view_z(frag_depth);
+
+    const vec3 view_to_frag = frag_pos - view_pos;
+    const float view_to_frag_dist = length(view_to_frag);
+    const vec3 view_to_frag_direc = view_to_frag / view_to_frag_dist;
+
+    const vec3 near_pos = view_pos + (view_to_frag_direc * u_per_frame_composition.m_near);
+    const float near_view_z = -u_per_frame_composition.m_near;
+
+    const vec3 near_to_frag = frag_pos - near_pos;
+    const float near_to_frag_dist = view_to_frag_dist - u_per_frame_composition.m_near;
+    const vec3 near_to_frag_direc = near_to_frag / near_to_frag_dist;
+
+    const vec3 step_pos = near_to_frag / float(NUM_STEPS + 1);
+    const float step_view_z = (frag_view_z - near_view_z) / float(NUM_STEPS + 1);
+
+    vec3 sample_pos = near_pos;
+    float sample_view_z = near_view_z;
+    float accum_factor = 0;
+
+    for (uint i = 0; i < NUM_STEPS; ++i) {
+        sample_pos += step_pos * get_dither_value();
+        sample_view_z += step_view_z * get_dither_value();
+
+        const float sample_depth = calc_depth_of_z(sample_view_z);
+
+        uint selected_dlight = u_global_light.m_dlight_count - 1;
+        for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
+            if (u_global_light.m_dlight_clip_dist[i] > sample_depth) {
+                selected_dlight = i;
+                break;
+            }
+        }
+
+        const vec4 sample_pos_in_dlight = u_global_light.m_dlight_mat[selected_dlight] * vec4(sample_pos, 1);
+        const vec3 proj_coords = sample_pos_in_dlight.xyz / sample_pos_in_dlight.w;
+        if (proj_coords.z > 1.0) {
+            continue;
+        }
+
+        const vec2 sample_coord = proj_coords.xy * 0.5 + 0.5;
+        const float closest_depth = texture(u_dlight_shadow_maps[selected_dlight], sample_coord).r;
+        const float current_depth = proj_coords.z;
+
+        if (current_depth < closest_depth) {
+            accum_factor += 1;
+        }
+    }
+
+    accum_factor *= INTENSITY / float(NUM_STEPS);
+    return u_global_light.m_dlight_color[0].xyz * accum_factor * phase_mie(dot(view_to_frag_direc, u_global_light.m_dlight_direc[0].xyz));
+}
+
 
 void main() {
     const float depth = subpassLoad(input_depth).x;
@@ -75,7 +172,9 @@ void main() {
     const vec2 material = subpassLoad(input_material).xy;
 
     const vec3 world_pos = calc_world_pos(depth);
-    const vec3 view_direc = normalize(u_per_frame_composition.m_view_pos.xyz - world_pos);
+    const vec3 view_vec = u_per_frame_composition.m_view_pos.xyz - world_pos;
+    const float view_distance = length(view_vec);
+    const vec3 view_direc = view_vec / view_distance;
     const vec3 F0 = mix(vec3(0.04), albedo, material.y);
 
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;
@@ -147,11 +246,8 @@ void main() {
         ) * (attenuation * shadow);
     }
 
-    {
-
-    }
-
     out_color = vec4(light, 1);
+    out_color.xyz += calc_scattering(world_pos, depth, u_per_frame_composition.m_view_pos.xyz);
 
 #ifdef DAL_GAMMA_CORRECT
     out_color.xyz = fix_color(out_color.xyz);
