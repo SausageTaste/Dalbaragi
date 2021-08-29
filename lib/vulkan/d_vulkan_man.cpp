@@ -40,14 +40,7 @@ namespace {
         dalAssert(static_cast<T>(0) != z);
         dalAssert(f != n);
 
-        const auto a = f / (n - f);
-		const auto b = (f * n) / (n - f);
-		const auto c = -static_cast<T>(1);
-
-        const auto c_z = a*z + b;
-        const auto c_w = c*z;
-
-        return c_z / c_w;
+        return (f * (z + n)) / (z * (f - n));
     }
 
 
