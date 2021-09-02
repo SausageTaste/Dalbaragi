@@ -8,6 +8,9 @@
 #include "d_filesystem_std.h"
 
 
+#define DAL_CATCH_EXCEPTION false
+
+
 int main(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
         std::cout << "Argument[" << i << "] " << argv[i] << std::endl;
@@ -51,12 +54,15 @@ int main(int argc, char** argv) {
 
     dalInfo("Done init");
 
+#if DAL_CATCH_EXCEPTION
     try {
+#endif
         while (!window.should_close()) {
             window.update_input_gamepad(engine.input_manager().gamepad_manager());
             window.do_frame();
             engine.update();
         }
+#if DAL_CATCH_EXCEPTION
     }
     catch (const std::exception& e) {
         dalAbort(fmt::format("An exception caught: {}", e.what()).c_str());
@@ -64,6 +70,7 @@ int main(int argc, char** argv) {
     catch (...) {
         dalAbort("Unknown exception caught");
     }
+#endif
 
     return 0;
 }
