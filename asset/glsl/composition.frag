@@ -134,24 +134,28 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
     const float dlight_factor = INTENSITY_DLIGHT * phase_mie(dot(view_to_frag_direc, u_global_light.m_dlight_direc[0].xyz), 0.7);
     const float slight_factor = INTENSITY_SLIGHT;
 
+    const float dither_value = get_dither_value();
+
     vec3 sample_pos = near_pos;
     float sample_view_z = near_view_z;
     float accum_factor = 0;
+    uint last_selected_dlight = 0;
 
     for (uint i = 0; i < NUM_STEPS; ++i) {
-        sample_pos += step_pos * get_dither_value();
-        sample_view_z += step_view_z * get_dither_value();
+        sample_pos += step_pos * dither_value;
+        sample_view_z += step_view_z * dither_value;
 
         const float sample_depth = calc_depth_of_z(sample_view_z);
 
         {
             uint selected_dlight = u_global_light.m_dlight_count - 1;
-            for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
+            for (uint i = last_selected_dlight; i < u_global_light.m_dlight_count; ++i) {
                 if (u_global_light.m_dlight_clip_dist[i] > sample_depth) {
                     selected_dlight = i;
                     break;
                 }
             }
+            last_selected_dlight = selected_dlight;
 
             const vec4 sample_pos_in_dlight = u_global_light.m_dlight_mat[selected_dlight] * vec4(sample_pos, 1);
             const vec3 proj_coords = sample_pos_in_dlight.xyz / sample_pos_in_dlight.w;
