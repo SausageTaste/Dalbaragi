@@ -214,6 +214,7 @@ void main() {
 
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;
 
+    // Directional lights
     {
         uint selected_dlight = u_global_light.m_dlight_count - 1;
         for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
@@ -238,6 +239,7 @@ void main() {
         ) * shadow;
     }
 
+    // Point lights
     for (uint i = 0; i < u_global_light.m_plight_count; ++i) {
         const vec3 frag_to_light = u_global_light.m_plight_pos_n_max_dist[i].xyz - world_pos;
         const float light_distance = length(frag_to_light);
@@ -256,6 +258,7 @@ void main() {
         );
     }
 
+    // Spot lights
     for (uint i = 0; i < u_global_light.m_slight_count; ++i) {
         const float shadow = how_much_not_in_shadow_pcf_bilinear(world_pos, u_global_light.m_slight_mat[i], u_slight_shadow_maps[i]);
         const vec3 frag_to_light_direc = normalize(u_global_light.m_slight_pos_n_max_dist[i].xyz - world_pos);
