@@ -72,5 +72,7 @@ int main(int argc, char** argv) {
     }
 #endif
 
+    dal::LoggerSingleton::inst().flush();
+
     return 0;
 }

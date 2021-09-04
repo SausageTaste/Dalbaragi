@@ -259,7 +259,7 @@ namespace dal {
     }
 
     LogChannel_FileOutput::~LogChannel_FileOutput() {
-        this->flush();
+
     }
 
     void LogChannel_FileOutput::put(
