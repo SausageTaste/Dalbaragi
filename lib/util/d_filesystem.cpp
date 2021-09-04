@@ -263,7 +263,7 @@ namespace dal {
 
             cur_path /= x;
 
-            if (!fs::is_directory(cur_path))
+            if (!fs::is_directory(cur_path) && cur_path.u8string().size() > 3)
                 fs::create_directory(cur_path);
         }
     }

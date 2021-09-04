@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <iostream>
+#include <algorithm>
 
 
 namespace {

@@ -89,10 +89,10 @@ namespace {
         const auto app_area_path = *document_path / dal::APP_NAME;
         const auto output_path = app_area_path / folder_name;
 
-        if (!fs::is_directory(app_area_path))
+        if (!fs::is_directory(app_area_path) && app_area_path.u8string().size() > 3)
             fs::create_directory(app_area_path);
 
-        if (!fs::is_directory(output_path))
+        if (!fs::is_directory(output_path) && output_path.u8string().size() > 3)
             fs::create_directory(output_path);
 
         return output_path;
