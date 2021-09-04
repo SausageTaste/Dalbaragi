@@ -172,6 +172,7 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
             }
         }
 
+#ifdef DAL_VOLUMETRIC_SPOT_LIGHT
         for (uint i = 0; i < u_global_light.m_slight_count; ++i) {
             const vec4 sample_pos_in_light = u_global_light.m_slight_mat[i] * vec4(sample_pos, 1);
             const vec3 proj_coords = sample_pos_in_light.xyz / sample_pos_in_light.w;
@@ -194,6 +195,8 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
                 accum_factor += slight_factor * attenuation * slight_mie_factors[i];
             }
         }
+#endif
+
     }
 
     return u_global_light.m_dlight_color[0].xyz * accum_factor / float(NUM_STEPS);
