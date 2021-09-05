@@ -68,39 +68,6 @@ vec3 fix_color(const vec3 color) {
     return mapped;
 }
 
-float calc_view_z(const float depth) {
-    const float n = u_per_frame_composition.m_near;
-    const float f = u_per_frame_composition.m_far;
-    return f*n / (depth*(f - n) - f);
-}
-
-float calc_depth_of_z(const float view_z) {
-    const float n = u_per_frame_composition.m_near;
-    const float f = u_per_frame_composition.m_far;
-    return (f * (view_z + n)) / (view_z * (f - n));
-}
-
-float get_dither_value() {
-    const float dither_pattern[16] = float[](
-        0.0   , 0.5   , 0.125 , 0.625 ,
-        0.75  , 0.22  , 0.875 , 0.375 ,
-        0.1875, 0.6875, 0.0625, 0.5625,
-        0.9375, 0.4375, 0.8125, 0.3125
-    );
-
-    const int i = int(gl_FragCoord.x) % 4;
-    const int j = int(gl_FragCoord.y) % 4;
-    return dither_pattern[4 * i + j];
-}
-
-float phase_mie(const float cos_theta, const float anisotropy) {
-    const float PI = 3.14;
-
-    float numer = 3.0 * (1.0 - anisotropy*anisotropy) * (1.0 + cos_theta * cos_theta);
-    float denom = 8.0*PI * (2.0 + anisotropy*anisotropy) * (1.0 + anisotropy*anisotropy - 2.0*anisotropy*cos_theta);
-    return numer / denom;
-}
-
 vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 view_pos) {
     const int NUM_STEPS = 5;
     const float INTENSITY_DLIGHT = 0.6;
@@ -116,7 +83,7 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
     const float near_view_z = -u_per_frame_composition.m_near;
 
     const vec3 step_pos = (sample_end_dist - u_per_frame_composition.m_near) / float(NUM_STEPS + 1) * sample_direc;
-    const float step_view_z = (calc_view_z(frag_depth) - near_view_z) / float(NUM_STEPS + 1);
+    const float step_view_z = (calc_view_z(frag_depth, u_per_frame_composition.m_near, u_per_frame_composition.m_far) - near_view_z) / float(NUM_STEPS + 1);
 
 #ifdef DAL_VOLUMETRIC_SPOT_LIGHT
     float slight_mie_factors[MAX_S_LIGHT_COUNT];
@@ -133,7 +100,7 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
 
     for (uint i = 0; i < NUM_STEPS; ++i) {
         const float dither_factor = float(i) + dither_value;
-        const float sample_depth = calc_depth_of_z(step_view_z * dither_factor + near_view_z);
+        const float sample_depth = calc_depth_of_z(step_view_z * dither_factor + near_view_z, u_per_frame_composition.m_near, u_per_frame_composition.m_far);
         const vec3 sample_pos = step_pos * dither_factor + near_pos;
 
         {
