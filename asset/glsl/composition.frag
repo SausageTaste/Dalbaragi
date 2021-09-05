@@ -109,29 +109,26 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
     const int NUM_STEPS = 5;
     const float INTENSITY_DLIGHT = 0.6;
     const float INTENSITY_SLIGHT = 0.9;
-    const float MAX_SAMPLE_DIST = 100.0;
-
-    const float frag_view_z = calc_view_z(frag_depth);
+    const float MAX_SAMPLE_DIST = 50.0;
 
     const vec3 view_to_frag = frag_pos - view_pos;
     const float view_to_frag_dist = length(view_to_frag);
-    const vec3 view_to_frag_direc = view_to_frag / view_to_frag_dist;
+    const vec3 sample_direc = view_to_frag / view_to_frag_dist;
+    const float sample_end_dist = min(view_to_frag_dist, MAX_SAMPLE_DIST);
 
-    const vec3 near_pos = view_pos + (view_to_frag_direc * u_per_frame_composition.m_near);
+    const vec3 near_pos = view_pos + (sample_direc * u_per_frame_composition.m_near);
     const float near_view_z = -u_per_frame_composition.m_near;
 
-    const vec3 near_to_frag = frag_pos - near_pos;
-    const float near_to_frag_dist = view_to_frag_dist - u_per_frame_composition.m_near;
-    const vec3 near_to_frag_direc = near_to_frag / near_to_frag_dist;
+    const vec3 step_pos = (sample_end_dist - u_per_frame_composition.m_near) / float(NUM_STEPS + 1) * sample_direc;
+    const float step_view_z = (calc_view_z(frag_depth) - near_view_z) / float(NUM_STEPS + 1);
 
-    const vec3 step_pos = near_to_frag / float(NUM_STEPS + 1);
-    const float step_view_z = (frag_view_z - near_view_z) / float(NUM_STEPS + 1);
-
+#ifdef DAL_VOLUMETRIC_SPOT_LIGHT
     float slight_mie_factors[MAX_S_LIGHT_COUNT];
     for (uint i = 0; i < u_global_light.m_slight_count; ++i)
-        slight_mie_factors[i] = phase_mie(dot(view_to_frag_direc, u_global_light.m_slight_direc_n_fade_start[i].xyz), 0.3);
+        slight_mie_factors[i] = phase_mie(dot(sample_direc, u_global_light.m_slight_direc_n_fade_start[i].xyz), 0.3);
+#endif
 
-    const float dlight_factor = INTENSITY_DLIGHT * phase_mie(dot(view_to_frag_direc, u_global_light.m_dlight_direc[0].xyz), 0.7);
+    const float dlight_factor = INTENSITY_DLIGHT * phase_mie(dot(sample_direc, u_global_light.m_dlight_direc[0].xyz), 0.7);
     const float slight_factor = INTENSITY_SLIGHT;
     const float dither_value = get_dither_value();
 
@@ -140,8 +137,8 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
 
     for (uint i = 0; i < NUM_STEPS; ++i) {
         const float dither_factor = float(i) + dither_value;
-        const vec3  sample_pos    = step_pos    * dither_factor + near_pos;
-        const float sample_depth  = calc_depth_of_z(step_view_z * dither_factor + near_view_z);
+        const float sample_depth = calc_depth_of_z(step_view_z * dither_factor + near_view_z);
+        const vec3 sample_pos = step_pos * dither_factor + near_pos;
 
         {
             uint selected_dlight = u_global_light.m_dlight_count - 1;
