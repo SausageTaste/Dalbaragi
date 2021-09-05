@@ -50,14 +50,12 @@ layout(set = 0, binding = 7) uniform sampler2D u_slight_shadow_maps[MAX_S_LIGHT_
 
 
 vec3 calc_world_pos(const float z) {
-    const vec4 clipSpacePosition = vec4(v_device_coord, z, 1);
+    const vec4 clip_space_position = vec4(v_device_coord, z, 1);
 
-    vec4 viewSpacePosition = u_per_frame_composition.m_proj_inv * clipSpacePosition;
-    viewSpacePosition /= viewSpacePosition.w;
+    vec4 view_space_position = u_per_frame_composition.m_proj_inv * clip_space_position;
+    view_space_position /= view_space_position.w;
 
-    const vec4 worldSpacePosition = u_per_frame_composition.m_view_inv * viewSpacePosition;
-
-    return worldSpacePosition.xyz;
+    return (u_per_frame_composition.m_view_inv * view_space_position).xyz;
 }
 
 vec3 fix_color(const vec3 color) {
@@ -83,18 +81,16 @@ float calc_depth_of_z(const float view_z) {
 }
 
 float get_dither_value() {
-    float dither_pattern[16] = float[](
+    const float dither_pattern[16] = float[](
         0.0   , 0.5   , 0.125 , 0.625 ,
         0.75  , 0.22  , 0.875 , 0.375 ,
         0.1875, 0.6875, 0.0625, 0.5625,
         0.9375, 0.4375, 0.8125, 0.3125
     );
 
-    int i = int(gl_FragCoord.x) % 4;
-    int j = int(gl_FragCoord.y) % 4;
-
-    int index = 4 * i + j;
-    return dither_pattern[index];
+    const int i = int(gl_FragCoord.x) % 4;
+    const int j = int(gl_FragCoord.y) % 4;
+    return dither_pattern[4 * i + j];
 }
 
 float phase_mie(const float cos_theta, const float anisotropy) {
@@ -192,7 +188,7 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
 
     }
 
-    return u_global_light.m_dlight_color[0].xyz * accum_factor / float(NUM_STEPS);
+    return u_global_light.m_dlight_color[0].xyz * (accum_factor / float(NUM_STEPS));
 }
 
 
