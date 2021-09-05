@@ -1,4 +1,6 @@
+from ntpath import join
 import os
+import multiprocessing
 from typing import Iterable
 
 import local_tools.path_tools as ptt
@@ -32,45 +34,59 @@ def _work_for_one(output_file_name_ext, shader_src_name_ext, macro_definitions: 
         macro_definitions,
     )
 
-    if 0 != os.system(cmd_str):
-        raise RuntimeError("- failed {}".format(shader_src_name_ext))
-    else:
-        print("- done {} -> {}".format(src_path, dst_path))
+    os.system(cmd_str)
 
+
+class WorkDef:
+    def __init__(self, output_file_name_ext, shader_src_name_ext, macro_definitions: Iterable[str]) -> None:
+        self.m_output_file_name_ext = str(output_file_name_ext)
+        self.m_shader_src_name_ext = str(shader_src_name_ext)
+        self.m_macro_definitions = list(macro_definitions)
+
+
+def _work_for_one_def(work: WorkDef):
+    _work_for_one(work.m_output_file_name_ext, work.m_shader_src_name_ext, work.m_macro_definitions)
 
 
 def main():
-    _work_for_one("gbuf_v.spv", "gbuf.vert", [])
+    jobs = [
+        WorkDef("gbuf_v.spv", "gbuf.vert", []),
 
-    _work_for_one("gbuf_f.spv", "gbuf.frag", [])
+        WorkDef("gbuf_f.spv", "gbuf.frag", []),
 
-    _work_for_one("gbuf_animated_v.spv", "gbuf_animated.vert", [])
+        WorkDef("gbuf_animated_v.spv", "gbuf_animated.vert", []),
 
-    _work_for_one("fill_screen_v.spv", "fill_screen.vert", [])
+        WorkDef("fill_screen_v.spv", "fill_screen.vert", []),
 
-    _work_for_one("fill_screen_f.spv", "fill_screen.frag", [])
+        WorkDef("fill_screen_f.spv", "fill_screen.frag", []),
 
-    _work_for_one("composition_v.spv", "composition.vert", [])
+        WorkDef("composition_v.spv", "composition.vert", []),
 
-    _work_for_one("composition_f.spv", "composition.frag", [])
+        WorkDef("composition_f.spv", "composition.frag", []),
 
-    _work_for_one("composition_gamma_f.spv", "composition.frag", ["DAL_GAMMA_CORRECT"])
+        WorkDef("composition_gamma_f.spv", "composition.frag", ["DAL_GAMMA_CORRECT"]),
 
-    _work_for_one("alpha_v.spv", "alpha.vert", [])
+        WorkDef("alpha_v.spv", "alpha.vert", []),
 
-    _work_for_one("alpha_animated_v.spv", "alpha_animated.vert", [])
+        WorkDef("alpha_animated_v.spv", "alpha_animated.vert", []),
 
-    _work_for_one("alpha_f.spv", "alpha.frag", [])
+        WorkDef("alpha_f.spv", "alpha.frag", []),
 
-    _work_for_one("alpha_gamma_f.spv", "alpha.frag", ["DAL_GAMMA_CORRECT"])
+        WorkDef("alpha_gamma_f.spv", "alpha.frag", ["DAL_GAMMA_CORRECT"]),
 
-    _work_for_one("shadow_v.spv", "shadow.vert", [])
+        WorkDef("shadow_v.spv", "shadow.vert", []),
 
-    _work_for_one("shadow_f.spv", "shadow.frag", [])
+        WorkDef("shadow_f.spv", "shadow.frag", []),
 
-    _work_for_one("shadow_animated_v.spv", "shadow_animated.vert", [])
+        WorkDef("shadow_animated_v.spv", "shadow_animated.vert", []),
+    ]
 
-    print("All done")
+    pool = multiprocessing.Pool()
+    pool.map(_work_for_one_def, jobs)
+    pool.close()
+    pool.join()
+
+    print("\nDone")
 
 
 if "__main__" == __name__:

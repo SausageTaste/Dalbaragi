@@ -18,8 +18,6 @@
 
 namespace {
 
-    constexpr float DLIGHT_HALF_BOX_SIZE = 30;
-
     constexpr float PROJ_NEAR = 0.1;
     constexpr float PROJ_FAR = 50;
 
@@ -32,9 +30,24 @@ namespace {
     }
 
     float calc_clip_depth(const float z, const glm::mat4& proj_mat) {
-        const auto a = proj_mat * glm::vec4{0, 0, -z, 1};
+        const auto a = proj_mat * glm::vec4{0, 0, z, 1};
         const auto output = a.z / a.w;
         return output;
+    }
+
+    template <typename T>
+    T calc_clip_depth(const T z, const T n, const T f) {
+        dalAssert(static_cast<T>(0) != z);
+        dalAssert(f != n);
+
+        return (f * (z + n)) / (z * (f - n));
+    }
+
+    template <typename T>
+    T calc_clip_depth_inv(const T depth, const T n, const T f) {
+        dalAssert(static_cast<T>(0) != n || static_cast<T>(0) != f);
+
+        return f*n / (depth*(f - n) - f);
     }
 
 
@@ -391,7 +404,7 @@ namespace dal {
                         ::PROJ_NEAR + far_dist
                     );
 
-                    this->m_shadow_maps.m_dlight_clip_dists[index] = ::calc_clip_depth(::PROJ_NEAR + far_dist, cam_proj_mat);
+                    this->m_shadow_maps.m_dlight_clip_dists[index] = ::calc_clip_depth(-(::PROJ_NEAR + far_dist), ::PROJ_NEAR, ::PROJ_FAR);
 
                     this->m_shadow_maps.m_dlight_matrices[index] = render_list.m_dlights[0].make_light_mat(
                         frustum_vertices[index].data(), frustum_vertices[index].data() + frustum_vertices[index].size()
@@ -409,7 +422,7 @@ namespace dal {
                 ::PROJ_NEAR + far_dist
             );
 
-            this->m_shadow_maps.m_dlight_clip_dists[0] = ::calc_clip_depth(::PROJ_NEAR + far_dist, cam_proj_mat);
+            this->m_shadow_maps.m_dlight_clip_dists[0] = ::calc_clip_depth(-(::PROJ_NEAR + far_dist), ::PROJ_NEAR, ::PROJ_FAR);
 
             this->m_shadow_maps.m_dlight_matrices[0] = render_list.m_dlights[0].make_light_mat(
                 frustum_vertices[0].data(), frustum_vertices[0].data() + frustum_vertices[0].size()
@@ -430,6 +443,8 @@ namespace dal {
             ubuf_data_composition.m_view_inv = glm::inverse(cam_view_mat);
             ubuf_data_composition.m_proj_inv = glm::inverse(cam_proj_mat);
             ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
+            ubuf_data_composition.m_near = ::PROJ_NEAR;
+            ubuf_data_composition.m_far = ::PROJ_FAR;
             this->m_ubuf_man.m_ub_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
         }
 

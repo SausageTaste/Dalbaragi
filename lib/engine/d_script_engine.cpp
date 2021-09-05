@@ -344,6 +344,15 @@ namespace {
             return 1;
         }
 
+        int get_ambient_light(lua_State* const L) {
+            dalAssert(::are_dependencies_ready());
+
+            auto& obj = ::push_meta_object<glm::vec3*>(L, ::DAL_VEC3_VIEW);
+            obj = &g_scene->m_ambient_light;
+
+            return 1;
+        }
+
     }
 
 
@@ -809,13 +818,15 @@ namespace {
             LuaFuncListBuilder func_list;
             func_list.add("create_actor_static", ::scene::create_actor_static);
             func_list.add("create_actor_skinned", ::scene::create_actor_skinned);
-            func_list.add("get_dlight_handle", scene::get_dlight_handle);
-            func_list.add("get_slight_count", scene::get_slight_count);
-            func_list.add("get_slight_at", scene::get_slight_at);
-            func_list.add("create_slight", scene::create_slight);
-            func_list.add("get_plight_count", scene::get_plight_count);
-            func_list.add("get_plight_at", scene::get_plight_at);
-            func_list.add("create_plight", scene::create_plight);
+            func_list.add("get_dlight_handle", ::scene::get_dlight_handle);
+            func_list.add("get_slight_count", ::scene::get_slight_count);
+            func_list.add("get_slight_at", ::scene::get_slight_at);
+            func_list.add("create_slight", ::scene::create_slight);
+            func_list.add("get_plight_count", ::scene::get_plight_count);
+            func_list.add("get_plight_at", ::scene::get_plight_at);
+            func_list.add("create_plight", ::scene::create_plight);
+            func_list.add("get_ambient_light", ::scene::get_ambient_light);
+
             luaL_newlib(L, func_list.data());
         }
 

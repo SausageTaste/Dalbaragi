@@ -205,7 +205,7 @@ namespace dal {
 namespace dal {
 
     glm::mat4 make_perspective_proj_mat(const float fov, const float ratio, const float near, const float far) {
-        auto mat = glm::perspective<float>(fov, ratio, near, far);
+        auto mat = glm::perspectiveRH_ZO<float>(fov, ratio, near, far);
         mat[1][1] *= -1;
         return mat;
     }

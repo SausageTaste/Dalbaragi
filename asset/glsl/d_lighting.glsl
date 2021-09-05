@@ -7,6 +7,36 @@ const int MAX_P_LIGHT_COUNT = 3;
 const int MAX_S_LIGHT_COUNT = 3;
 
 
+float calc_view_z(const float depth, const float n, const float f) {
+    return f*n / (depth*(f - n) - f);
+}
+
+float calc_depth_of_z(const float view_z, const float n, const float f) {
+    return (f * (view_z + n)) / (view_z * (f - n));
+}
+
+float get_dither_value() {
+    const float dither_pattern[16] = float[](
+        0.0   , 0.5   , 0.125 , 0.625 ,
+        0.75  , 0.22  , 0.875 , 0.375 ,
+        0.1875, 0.6875, 0.0625, 0.5625,
+        0.9375, 0.4375, 0.8125, 0.3125
+    );
+
+    const int i = int(gl_FragCoord.x) % 4;
+    const int j = int(gl_FragCoord.y) % 4;
+    return dither_pattern[4 * i + j];
+}
+
+float phase_mie(const float cos_theta, const float anisotropy) {
+    const float PI = 3.14;
+
+    float numer = 3.0 * (1.0 - anisotropy*anisotropy) * (1.0 + cos_theta * cos_theta);
+    float denom = 8.0*PI * (2.0 + anisotropy*anisotropy) * (1.0 + anisotropy*anisotropy - 2.0*anisotropy*cos_theta);
+    return numer / denom;
+}
+
+
 float calc_slight_attenuation(const vec3 frag_pos, const vec3 light_pos, const vec3 light_direc, const float fade_start, const float fade_end) {
     const vec3 fragToLight_n = normalize(light_pos - frag_pos);
     const float theta        = dot(-fragToLight_n, light_direc);

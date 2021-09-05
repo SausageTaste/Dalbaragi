@@ -55,22 +55,18 @@ namespace dal {
     dal::ITaskListener* TaskManager::TaskRegistry::unregister(const dal::ITask* const task) {
         const auto ptr = reinterpret_cast<const void*>(task);
 
-        {
-            auto iter = this->m_listers.find(ptr);
-            if (iter != this->m_listers.end()) {
-                const auto listener = iter->second;
-                this->m_listers.erase(iter);
-                return listener;
-            }
+        if (auto iter = this->m_listers.find(ptr); iter != this->m_listers.end()) {
+            const auto listener = iter->second;
+            this->m_listers.erase(iter);
+            return listener;
         }
 
-        {
-            auto iter = this->m_orphan_tasks.find(ptr);
-            if (iter != this->m_orphan_tasks.end()) {
-                this->m_orphan_tasks.erase(iter);
-                return nullptr;
-            }
+        if (auto iter = this->m_orphan_tasks.find(ptr); iter != this->m_orphan_tasks.end()) {
+            this->m_orphan_tasks.erase(iter);
+            return nullptr;
         }
+
+        return nullptr;
     }
 
 }
