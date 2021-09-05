@@ -88,7 +88,7 @@ function before_rendering_every_frame()
 
     do
         local light = scene.get_dlight_handle()
-        --light:set_direction_to_light(1, 10 * math.sin(t * 0.5), 1 * math.cos(t * 0.5));
+        light:set_direction_to_light(1, 10 * math.sin(t * 0.5), 1 * math.cos(t * 0.5));
     end
 
     do
