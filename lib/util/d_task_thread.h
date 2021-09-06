@@ -14,12 +14,43 @@
 
 namespace dal {
 
+    enum class PriorityClass {
+        most_wanted,
+        within_frame,
+        can_be_delayed,
+        easy,
+        least_wanted,
+    };
+
+
     class ITask {
 
     public:
         virtual ~ITask() = default;
 
-        virtual void run() = 0;
+        virtual void on_delay() = 0;
+
+        virtual bool work() = 0;
+
+        virtual float evaluate_priority() = 0;
+
+    };
+
+
+    class IPriorityTask : public ITask {
+
+    private:
+        size_t m_delayed_count = 0;
+        PriorityClass m_priority = PriorityClass::most_wanted;
+
+    public:
+        void on_delay() override {
+            ++this->m_delayed_count;
+        }
+
+        float evaluate_priority() override {
+            return static_cast<float>(PriorityClass::least_wanted) - static_cast<float>(this->m_priority);
+        }
 
     };
 

@@ -14,7 +14,7 @@ namespace {
     const char* const MISSING_MODEL_PATH = "_asset/model/missing_model.dmd";
 
 
-    class Task_LoadImage : public dal::ITask {
+    class Task_LoadImage : public dal::IPriorityTask {
 
     public:
         dal::Filesystem& m_filesys;
@@ -31,7 +31,7 @@ namespace {
 
         }
 
-        void run() override {
+        bool work() override {
             dal::Timer timer;
 
             auto file = this->m_filesys.open(this->m_respath);
@@ -40,12 +40,14 @@ namespace {
             dalAssert(file_data.has_value());
             this->out_image_data = dal::parse_image_stb(file_data->data(), file_data->size());
             //dalInfo(fmt::format("Image res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
+
+            return true;
         }
 
     };
 
 
-    class Task_LoadModel : public dal::ITask {
+    class Task_LoadModel : public dal::IPriorityTask {
 
     public:
         dal::Filesystem& m_filesys;
@@ -61,28 +63,30 @@ namespace {
 
         }
 
-        void run() override {
+        bool work() override {
             dal::Timer timer;
 
             auto file = this->m_filesys.open(this->m_respath);
             if (!file->is_ready()) {
                 out_model_data = std::nullopt;
-                return;
+                return true;
             }
 
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
             if (!model_content.has_value()) {
                 out_model_data = std::nullopt;
-                return;
+                return true;
             }
 
             this->out_model_data = dal::parse_model_dmd(model_content->data(), model_content->size());
+
+            return true;
         }
 
     };
 
 
-    class Task_LoadModelSkinned : public dal::ITask {
+    class Task_LoadModelSkinned : public dal::IPriorityTask {
 
     public:
         dal::Filesystem& m_filesys;
@@ -98,22 +102,24 @@ namespace {
 
         }
 
-        void run() override {
+        bool work() override {
             dal::Timer timer;
 
             auto file = this->m_filesys.open(this->m_respath);
             if (!file->is_ready()) {
                 out_model_data = std::nullopt;
-                return;
+                return true;
             }
 
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
             if (!model_content.has_value()) {
                 out_model_data = std::nullopt;
-                return;
+                return true;
             }
 
             this->out_model_data = dal::parse_model_skinned_dmd(model_content->data(), model_content->size());
+
+            return true;
         }
 
     };

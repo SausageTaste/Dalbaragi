@@ -131,7 +131,7 @@ namespace dal {
                     continue;
                 }
 
-                task->run();
+                while (!task->work());
                 this->m_done_queue->push(std::move(task));
 
                 dal::sleep_for(0.1);
