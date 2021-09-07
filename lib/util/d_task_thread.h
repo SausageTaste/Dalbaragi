@@ -115,6 +115,8 @@ namespace dal {
 
             HTask pop();
 
+            HTask pick_higher_priority(HTask& t);
+
             size_t size();
 
         };

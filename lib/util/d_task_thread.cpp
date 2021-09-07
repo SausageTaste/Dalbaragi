@@ -7,7 +7,6 @@
 
 #ifdef DAL_MULTITHREADING
 
-
 //TaskManager :: TaskQueue
 namespace dal {
 
@@ -27,6 +26,30 @@ namespace dal {
             const auto v = this->m_q.top();
             this->m_q.pop();
             return v;
+        }
+    }
+
+    HTask TaskManager::TaskQueue::pick_higher_priority(HTask& t) {
+        std::unique_lock<std::mutex> lck{ this->m_mut };
+
+        if (this->m_q.empty()) {
+            return t;
+        }
+
+        if (!t) {
+            const auto output = this->m_q.top();
+            this->m_q.pop();
+            return output;
+        }
+
+        if (t->evaluate_priority() < this->m_q.top()->evaluate_priority()) {
+            t->on_delay();
+            auto output = this->m_q.top();
+            this->m_q.push(t);
+            return output;
+        }
+        else {
+            return t;
         }
     }
 
@@ -71,7 +94,6 @@ namespace dal {
     }
 
 }
-
 
 
 namespace dal {
@@ -121,21 +143,22 @@ namespace dal {
         }
 
         void operator()() {
-            while (true) {
-                if (this->m_flag_exit) {
-                    return;
-                }
+            HTask current_task{ nullptr };
 
-                auto task = this->m_wait_queue->pop();
-                if (nullptr == task) {
+            while (true) {
+                if (this->m_flag_exit)
+                    return;
+
+                current_task = this->m_wait_queue->pick_higher_priority(current_task);
+                if (!current_task) {
                     dal::sleep_for(0.1);
                     continue;
                 }
 
-                while (!task->work());
-                this->m_done_queue->push(task);
-
-                dal::sleep_for(0.1);
+                if (current_task->work()) {
+                    this->m_done_queue->push(current_task);
+                    current_task = nullptr;
+                }
             }
         }
 
