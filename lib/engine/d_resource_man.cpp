@@ -144,7 +144,7 @@ namespace dal {
         this->m_renderer = nullptr;
     }
 
-    void TextureBuilder::notify_task_done(std::unique_ptr<ITask> task) {
+    void TextureBuilder::notify_task_done(HTask& task) {
         auto& task_result = *reinterpret_cast<Task_LoadImage*>(task.get());
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
@@ -161,9 +161,9 @@ namespace dal {
     void TextureBuilder::start(const ResPath& respath, HTexture h_texture, Filesystem& filesys, TaskManager& task_man) {
         dalAssert(nullptr != this->m_renderer);
 
-        auto task = std::make_unique<::Task_LoadImage>(respath, filesys);
+        auto task = std::make_shared<::Task_LoadImage>(respath, filesys);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_texture);
-        task_man.order_task(std::move(task), this);
+        task_man.order_task(task, this);
     }
 
 }
@@ -199,7 +199,7 @@ namespace dal {
         this->m_renderer = nullptr;
     }
 
-    void ModelBuilder::notify_task_done(std::unique_ptr<ITask> task) {
+    void ModelBuilder::notify_task_done(HTask& task) {
         auto& task_result = *reinterpret_cast<Task_LoadModel*>(task.get());
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
@@ -263,7 +263,7 @@ namespace dal {
         this->m_renderer = nullptr;
     }
 
-    void ModelSkinnedBuilder::notify_task_done(std::unique_ptr<ITask> task) {
+    void ModelSkinnedBuilder::notify_task_done(HTask& task) {
         auto& task_result = *reinterpret_cast<Task_LoadModelSkinned*>(task.get());
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 

@@ -10,26 +10,26 @@
 //TaskManager :: TaskQueue
 namespace dal {
 
-    void TaskManager::TaskQueue::push(std::unique_ptr<dal::ITask> t) {
+    void TaskManager::TaskQueue::push(HTask& t) {
         std::unique_lock<std::mutex> lck{ this->m_mut };
 
-        m_q.push(std::move(t));
+        m_q.push(t);
     }
 
-    std::unique_ptr<dal::ITask> TaskManager::TaskQueue::pop(void) {
+    HTask TaskManager::TaskQueue::pop() {
         std::unique_lock<std::mutex> lck{ this->m_mut };
 
-        if ( m_q.empty() ) {
+        if (m_q.empty()) {
             return nullptr;
         }
         else {
-            auto v = std::move(m_q.front());
-            m_q.pop();
+            const auto v = this->m_q.front();
+            this->m_q.pop();
             return v;
         }
     }
 
-    size_t TaskManager::TaskQueue::size(void) {
+    size_t TaskManager::TaskQueue::size() {
         std::unique_lock<std::mutex> lck{ this->m_mut };
 
         return m_q.size();
@@ -132,13 +132,13 @@ namespace dal {
                 }
 
                 while (!task->work());
-                this->m_done_queue->push(std::move(task));
+                this->m_done_queue->push(task);
 
                 dal::sleep_for(0.1);
             }
         }
 
-        void order_to_get_terminated(void) {
+        void order_to_get_terminated() {
             this->m_flag_exit = true;
         }
 
@@ -175,7 +175,7 @@ namespace dal {
 
     }
 
-    void TaskManager::update(void) {
+    void TaskManager::update() {
 
 #ifdef DAL_MULTITHREADING
         auto task = this->m_done_queue.pop();
@@ -185,7 +185,7 @@ namespace dal {
 
         auto listener = this->m_registry.unregister(task.get());
         if (nullptr != listener) {
-            listener->notify_task_done(std::move(task));
+            listener->notify_task_done(task);
             return;
         }
 #endif
@@ -207,15 +207,15 @@ namespace dal {
 
     }
 
-    void TaskManager::order_task(std::unique_ptr<ITask>&& task, ITaskListener* const client) {
+    void TaskManager::order_task(HTask task, ITaskListener* const client) {
 
 #ifdef DAL_MULTITHREADING
         this->m_registry.registerTask(task.get(), client);
-        this->m_wait_queue.push(std::move(task));
+        this->m_wait_queue.push(task);
 #else
-        task->run();
+        task->work();
         if (nullptr != client) {
-            client->notify_task_done(std::move(task));
+            client->notify_task_done(task);
         }
 #endif
 

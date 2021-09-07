@@ -32,9 +32,11 @@ namespace dal {
 
         virtual bool work() = 0;
 
-        virtual float evaluate_priority() = 0;
+        virtual float evaluate_priority() const = 0;
 
     };
+
+    using HTask = std::shared_ptr<ITask>;
 
 
     class IPriorityTask : public ITask {
@@ -48,7 +50,7 @@ namespace dal {
             ++this->m_delayed_count;
         }
 
-        float evaluate_priority() override {
+        float evaluate_priority() const override {
             return static_cast<float>(PriorityClass::least_wanted) - static_cast<float>(this->m_priority);
         }
 
@@ -66,7 +68,7 @@ namespace dal {
         ITaskListener& operator=(const ITaskListener&) = delete;
         ITaskListener& operator=(ITaskListener&&) = delete;
 
-        virtual void notify_task_done(std::unique_ptr<ITask> task) = 0;
+        virtual void notify_task_done(HTask& task) = 0;
 
     };
 
@@ -80,13 +82,15 @@ namespace dal {
         class TaskQueue {
 
         private:
-            std::queue<std::unique_ptr<dal::ITask>> m_q;
+            std::queue<HTask> m_q;
             std::mutex m_mut;
 
         public:
-            void push(std::unique_ptr<dal::ITask> t);
-            std::unique_ptr<dal::ITask> pop(void);
-            size_t size(void);
+            void push(HTask& t);
+
+            HTask pop();
+
+            size_t size();
 
         };
 
@@ -102,8 +106,10 @@ namespace dal {
             TaskRegistry& operator=(const TaskRegistry&) = delete;
 
         public:
-            TaskRegistry(void) = default;
+            TaskRegistry() = default;
+
             void registerTask(const dal::ITask* const task, dal::ITaskListener* const listener);
+
             dal::ITaskListener* unregister(const dal::ITask* const task);
 
         };
@@ -135,7 +141,7 @@ namespace dal {
         void update();
 
         // If client is null, there will be no notification and ITask object will be deleted.
-        void order_task(std::unique_ptr<ITask>&& task, ITaskListener* const client);
+        void order_task(HTask task, ITaskListener* const client);
 
     };
 
