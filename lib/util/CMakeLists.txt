@@ -9,7 +9,6 @@ add_library(libdal_util STATIC
     d_model_data.h          d_model_data.cpp
     d_image_parser.h        d_image_parser.cpp
     d_timer.h               d_timer.cpp
-    d_model_parser.h        d_model_parser.cpp
     d_actor.h               d_actor.cpp
     d_task_thread.h         d_task_thread.cpp
     d_input_consumer.h      d_input_consumer.cpp
