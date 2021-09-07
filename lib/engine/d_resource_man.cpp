@@ -127,6 +127,28 @@ namespace {
 
     };
 
+
+    class Task_SlowTest : public dal::IPriorityTask {
+
+    private:
+        size_t m_counter = 0;
+        size_t m_upper_bound = 3;
+
+    public:
+        Task_SlowTest()
+            : dal::IPriorityTask(dal::PriorityClass::least_wanted)
+        {
+
+        }
+
+        bool work() override {
+            dalInfo(fmt::format("{}", this->m_counter).c_str());
+            dal::sleep_for(1);
+            return ++this->m_counter >= this->m_upper_bound;
+        }
+
+    };
+
 }
 
 
@@ -166,6 +188,7 @@ namespace dal {
 
         auto task = std::make_shared<::Task_LoadImage>(respath, filesys);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_texture);
+        task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
         task_man.order_task(task, this);
     }
 
@@ -230,6 +253,7 @@ namespace dal {
 
         auto task = std::make_unique<::Task_LoadModel>(respath, filesys);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
+        task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
         task_man.order_task(std::move(task), this);
     }
 
@@ -298,6 +322,7 @@ namespace dal {
 
         auto task = std::make_unique<::Task_LoadModelSkinned>(respath, filesys);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
+        task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
         task_man.order_task(std::move(task), this);
     }
 
