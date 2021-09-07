@@ -53,7 +53,12 @@ namespace dal {
         PriorityClass m_priority = PriorityClass::most_wanted;
 
     public:
-        void set_priority_class(const PriorityClass priority) {
+        explicit
+        IPriorityTask(const PriorityClass priority) noexcept {
+            this->set_priority_class(priority);
+        }
+
+        void set_priority_class(const PriorityClass priority) noexcept {
             this->m_priority = priority;
         }
 

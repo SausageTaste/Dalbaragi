@@ -24,11 +24,12 @@ namespace {
 
     public:
         Task_LoadImage(const dal::ResPath& respath, dal::Filesystem& filesys)
-            : m_filesys(filesys)
+            : dal::IPriorityTask(dal::PriorityClass::can_be_delayed)
+            , m_filesys(filesys)
             , m_respath(respath)
             , out_image_data(std::nullopt)
         {
-            this->set_priority_class(dal::PriorityClass::can_be_delayed);
+
         }
 
         bool work() override {
@@ -57,10 +58,11 @@ namespace {
 
     public:
         Task_LoadModel(const dal::ResPath& respath, dal::Filesystem& filesys)
-            : m_filesys(filesys)
+            : dal::IPriorityTask(dal::PriorityClass::can_be_delayed)
+            , m_filesys(filesys)
             , m_respath(respath)
         {
-            this->set_priority_class(dal::PriorityClass::can_be_delayed);
+
         }
 
         bool work() override {
@@ -96,7 +98,8 @@ namespace {
 
     public:
         Task_LoadModelSkinned(const dal::ResPath& respath, dal::Filesystem& filesys)
-            : m_filesys(filesys)
+            : dal::IPriorityTask(dal::PriorityClass::can_be_delayed)
+            , m_filesys(filesys)
             , m_respath(respath)
         {
             this->set_priority_class(dal::PriorityClass::can_be_delayed);
