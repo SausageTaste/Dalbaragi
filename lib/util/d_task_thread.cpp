@@ -5,7 +5,7 @@
 #include "d_timer.h"
 
 
-#ifdef DAL_MULTITHREADING
+#if DAL_MULTITHREADING
 
 //TaskManager :: TaskQueue
 namespace dal {
@@ -184,7 +184,7 @@ namespace dal {
     void TaskManager::init(const size_t thread_count) {
         this->destroy();
 
-#ifdef DAL_MULTITHREADING
+#if DAL_MULTITHREADING
         this->m_workers.reserve(thread_count);
         this->m_threads.reserve(thread_count);
 
@@ -201,7 +201,7 @@ namespace dal {
 
     void TaskManager::update() {
 
-#ifdef DAL_MULTITHREADING
+#if DAL_MULTITHREADING
         auto task = this->m_done_queue.pop();
         if (nullptr == task) {
             return;
@@ -218,7 +218,7 @@ namespace dal {
 
     void TaskManager::destroy() {
 
-#ifdef DAL_MULTITHREADING
+#if DAL_MULTITHREADING
         for (auto& worker : this->m_workers) {
             worker.order_to_get_terminated();
         }
@@ -233,11 +233,12 @@ namespace dal {
 
     void TaskManager::order_task(HTask task, ITaskListener* const client) {
 
-#ifdef DAL_MULTITHREADING
+#if DAL_MULTITHREADING
         this->m_registry.registerTask(task.get(), client);
         this->m_wait_queue.push(task);
 #else
-        task->work();
+        while (!task->work());
+
         if (nullptr != client) {
             client->notify_task_done(task);
         }

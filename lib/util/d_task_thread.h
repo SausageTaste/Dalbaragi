@@ -9,7 +9,7 @@
 #include <unordered_set>
 
 
-#define DAL_MULTITHREADING
+#define DAL_MULTITHREADING true
 
 
 namespace dal {
@@ -91,7 +91,7 @@ namespace dal {
 
     class TaskManager {
 
-#ifdef DAL_MULTITHREADING
+#if DAL_MULTITHREADING
     private:
         class Worker;
 
