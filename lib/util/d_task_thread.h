@@ -91,9 +91,29 @@ namespace dal {
 
     class TaskManager {
 
-#if DAL_MULTITHREADING
     private:
         class Worker;
+
+
+        class TaskRegistry {
+
+        private:
+            std::unordered_map<const void*, dal::ITaskListener*> m_listers;
+            std::unordered_set<const void*> m_orphan_tasks;
+
+        public:
+            TaskRegistry(const TaskRegistry&) = delete;
+            TaskRegistry& operator=(const TaskRegistry&) = delete;
+
+        public:
+            TaskRegistry() = default;
+
+            void registerTask(const dal::ITask* const task, dal::ITaskListener* const listener);
+
+            dal::ITaskListener* unregister(const dal::ITask* const task);
+
+        };
+
 
         class TaskQueue {
 
@@ -122,33 +142,17 @@ namespace dal {
         };
 
 
-        class TaskRegistry {
-
-        private:
-            std::unordered_map<const void*, dal::ITaskListener*> m_listers;
-            std::unordered_set<const void*> m_orphan_tasks;
-
-        public:
-            TaskRegistry(const TaskRegistry&) = delete;
-            TaskRegistry& operator=(const TaskRegistry&) = delete;
-
-        public:
-            TaskRegistry() = default;
-
-            void registerTask(const dal::ITask* const task, dal::ITaskListener* const listener);
-
-            dal::ITaskListener* unregister(const dal::ITask* const task);
-
-        };
-
-
     private:
+
+#if DAL_MULTITHREADING
         std::vector<Worker> m_workers;
         std::vector<std::thread> m_threads;
-
-        TaskQueue m_wait_queue, m_done_queue;
-        TaskRegistry m_registry;
+        TaskQueue m_done_queue;
+#else
+        HTask m_current_task = nullptr;
 #endif
+        TaskRegistry m_registry;
+        TaskQueue m_wait_queue;
 
     public:
         TaskManager(const TaskManager&) = delete;

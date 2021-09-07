@@ -5,19 +5,21 @@
 #include "d_timer.h"
 
 
-#if DAL_MULTITHREADING
-
 //TaskManager :: TaskQueue
 namespace dal {
 
     void TaskManager::TaskQueue::push(HTask& t) {
+#if DAL_MULTITHREADING
         std::unique_lock<std::mutex> lck{ this->m_mut };
+#endif
 
         m_q.push(t);
     }
 
     HTask TaskManager::TaskQueue::pop() {
+#if DAL_MULTITHREADING
         std::unique_lock<std::mutex> lck{ this->m_mut };
+#endif
 
         if (m_q.empty()) {
             return nullptr;
@@ -30,7 +32,9 @@ namespace dal {
     }
 
     HTask TaskManager::TaskQueue::pick_higher_priority(HTask& t) {
+#if DAL_MULTITHREADING
         std::unique_lock<std::mutex> lck{ this->m_mut };
+#endif
 
         if (this->m_q.empty()) {
             return t;
@@ -54,7 +58,9 @@ namespace dal {
     }
 
     size_t TaskManager::TaskQueue::size() {
+#if DAL_MULTITHREADING
         std::unique_lock<std::mutex> lck{ this->m_mut };
+#endif
 
         return m_q.size();
     }
@@ -96,6 +102,9 @@ namespace dal {
 }
 
 
+#if DAL_MULTITHREADING
+
+// TaskManager :: Worker
 namespace dal {
 
     class TaskManager::Worker {
@@ -212,6 +221,18 @@ namespace dal {
             listener->notify_task_done(task);
             return;
         }
+#else
+        this->m_current_task = this->m_wait_queue.pick_higher_priority(this->m_current_task);
+        if (!this->m_current_task)
+            return;
+
+        if (this->m_current_task->work()) {
+            auto listener = this->m_registry.unregister(this->m_current_task.get());
+            if (nullptr != listener)
+                listener->notify_task_done(this->m_current_task);
+
+            this->m_current_task = nullptr;
+        }
 #endif
 
     }
@@ -232,18 +253,8 @@ namespace dal {
     }
 
     void TaskManager::order_task(HTask task, ITaskListener* const client) {
-
-#if DAL_MULTITHREADING
         this->m_registry.registerTask(task.get(), client);
         this->m_wait_queue.push(task);
-#else
-        while (!task->work());
-
-        if (nullptr != client) {
-            client->notify_task_done(task);
-        }
-#endif
-
     }
 
 }
