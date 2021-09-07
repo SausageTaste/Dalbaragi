@@ -49,26 +49,18 @@ namespace dal {
     class IPriorityTask : public ITask {
 
     private:
-        size_t m_delayed_count = 0;
-        PriorityClass m_priority = PriorityClass::most_wanted;
+        size_t m_delayed_count;
+        PriorityClass m_priority;
 
     public:
         explicit
-        IPriorityTask(const PriorityClass priority) noexcept {
-            this->set_priority_class(priority);
-        }
+        IPriorityTask(const PriorityClass priority) noexcept;
 
-        void set_priority_class(const PriorityClass priority) noexcept {
-            this->m_priority = priority;
-        }
+        void set_priority_class(const PriorityClass priority) noexcept;
 
-        void on_delay() override {
-            ++this->m_delayed_count;
-        }
+        void on_delay() override;
 
-        float evaluate_priority() const override {
-            return static_cast<float>(PriorityClass::least_wanted) - static_cast<float>(this->m_priority);
-        }
+        float evaluate_priority() const override;
 
     };
 

@@ -5,6 +5,33 @@
 #include "d_timer.h"
 
 
+// IPriorityTask
+namespace dal {
+
+    IPriorityTask::IPriorityTask(const PriorityClass priority) noexcept
+        : m_delayed_count(0)
+        , m_priority(priority)
+    {
+
+    }
+
+    void IPriorityTask::set_priority_class(const PriorityClass priority) noexcept {
+        this->m_priority = priority;
+    }
+
+    void IPriorityTask::on_delay() {
+        ++this->m_delayed_count;
+    }
+
+    float IPriorityTask::evaluate_priority() const {
+        const auto priority_score = static_cast<double>(static_cast<int>(PriorityClass::least_wanted) - static_cast<int>(this->m_priority));
+        const auto delay_score = static_cast<double>(this->m_delayed_count) / 3.0;
+        return static_cast<float>(priority_score + delay_score);
+    }
+
+}
+
+
 //TaskManager :: TaskQueue
 namespace dal {
 
