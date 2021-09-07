@@ -5,32 +5,89 @@
 #include "d_timer.h"
 
 
-#ifdef DAL_MULTITHREADING
+// IPriorityTask
+namespace dal {
+
+    IPriorityTask::IPriorityTask(const PriorityClass priority) noexcept
+        : m_delayed_count(0)
+        , m_priority(priority)
+    {
+
+    }
+
+    void IPriorityTask::set_priority_class(const PriorityClass priority) noexcept {
+        this->m_priority = priority;
+    }
+
+    void IPriorityTask::on_delay() {
+        ++this->m_delayed_count;
+    }
+
+    float IPriorityTask::evaluate_priority() const {
+        const auto priority_score = static_cast<double>(static_cast<int>(PriorityClass::least_wanted) - static_cast<int>(this->m_priority));
+        const auto delay_score = static_cast<double>(this->m_delayed_count) / 3.0;
+        return static_cast<float>(priority_score + delay_score);
+    }
+
+}
+
 
 //TaskManager :: TaskQueue
 namespace dal {
 
-    void TaskManager::TaskQueue::push(std::unique_ptr<dal::ITask> t) {
+    void TaskManager::TaskQueue::push(HTask& t) {
+#if DAL_MULTITHREADING
         std::unique_lock<std::mutex> lck{ this->m_mut };
+#endif
 
-        m_q.push(std::move(t));
+        m_q.push(t);
     }
 
-    std::unique_ptr<dal::ITask> TaskManager::TaskQueue::pop(void) {
+    HTask TaskManager::TaskQueue::pop() {
+#if DAL_MULTITHREADING
         std::unique_lock<std::mutex> lck{ this->m_mut };
+#endif
 
-        if ( m_q.empty() ) {
+        if (m_q.empty()) {
             return nullptr;
         }
         else {
-            auto v = std::move(m_q.front());
-            m_q.pop();
+            const auto v = this->m_q.top();
+            this->m_q.pop();
             return v;
         }
     }
 
-    size_t TaskManager::TaskQueue::size(void) {
+    HTask TaskManager::TaskQueue::pick_higher_priority(HTask& t) {
+#if DAL_MULTITHREADING
         std::unique_lock<std::mutex> lck{ this->m_mut };
+#endif
+
+        if (this->m_q.empty()) {
+            return t;
+        }
+
+        if (!t) {
+            const auto output = this->m_q.top();
+            this->m_q.pop();
+            return output;
+        }
+
+        if (t->evaluate_priority() < this->m_q.top()->evaluate_priority()) {
+            t->on_delay();
+            auto output = this->m_q.top();
+            this->m_q.push(t);
+            return output;
+        }
+        else {
+            return t;
+        }
+    }
+
+    size_t TaskManager::TaskQueue::size() {
+#if DAL_MULTITHREADING
+        std::unique_lock<std::mutex> lck{ this->m_mut };
+#endif
 
         return m_q.size();
     }
@@ -72,7 +129,9 @@ namespace dal {
 }
 
 
+#if DAL_MULTITHREADING
 
+// TaskManager :: Worker
 namespace dal {
 
     class TaskManager::Worker {
@@ -120,25 +179,26 @@ namespace dal {
         }
 
         void operator()() {
-            while (true) {
-                if (this->m_flag_exit) {
-                    return;
-                }
+            HTask current_task{ nullptr };
 
-                auto task = this->m_wait_queue->pop();
-                if (nullptr == task) {
+            while (true) {
+                if (this->m_flag_exit)
+                    return;
+
+                current_task = this->m_wait_queue->pick_higher_priority(current_task);
+                if (!current_task) {
                     dal::sleep_for(0.1);
                     continue;
                 }
 
-                task->run();
-                this->m_done_queue->push(std::move(task));
-
-                dal::sleep_for(0.1);
+                if (current_task->work()) {
+                    this->m_done_queue->push(current_task);
+                    current_task = nullptr;
+                }
             }
         }
 
-        void order_to_get_terminated(void) {
+        void order_to_get_terminated() {
             this->m_flag_exit = true;
         }
 
@@ -160,7 +220,7 @@ namespace dal {
     void TaskManager::init(const size_t thread_count) {
         this->destroy();
 
-#ifdef DAL_MULTITHREADING
+#if DAL_MULTITHREADING
         this->m_workers.reserve(thread_count);
         this->m_threads.reserve(thread_count);
 
@@ -175,9 +235,9 @@ namespace dal {
 
     }
 
-    void TaskManager::update(void) {
+    void TaskManager::update() {
 
-#ifdef DAL_MULTITHREADING
+#if DAL_MULTITHREADING
         auto task = this->m_done_queue.pop();
         if (nullptr == task) {
             return;
@@ -185,8 +245,20 @@ namespace dal {
 
         auto listener = this->m_registry.unregister(task.get());
         if (nullptr != listener) {
-            listener->notify_task_done(std::move(task));
+            listener->notify_task_done(task);
             return;
+        }
+#else
+        this->m_current_task = this->m_wait_queue.pick_higher_priority(this->m_current_task);
+        if (!this->m_current_task)
+            return;
+
+        if (this->m_current_task->work()) {
+            auto listener = this->m_registry.unregister(this->m_current_task.get());
+            if (nullptr != listener)
+                listener->notify_task_done(this->m_current_task);
+
+            this->m_current_task = nullptr;
         }
 #endif
 
@@ -194,7 +266,7 @@ namespace dal {
 
     void TaskManager::destroy() {
 
-#ifdef DAL_MULTITHREADING
+#if DAL_MULTITHREADING
         for (auto& worker : this->m_workers) {
             worker.order_to_get_terminated();
         }
@@ -207,18 +279,9 @@ namespace dal {
 
     }
 
-    void TaskManager::order_task(std::unique_ptr<ITask>&& task, ITaskListener* const client) {
-
-#ifdef DAL_MULTITHREADING
+    void TaskManager::order_task(HTask task, ITaskListener* const client) {
         this->m_registry.registerTask(task.get(), client);
-        this->m_wait_queue.push(std::move(task));
-#else
-        task->run();
-        if (nullptr != client) {
-            client->notify_task_done(std::move(task));
-        }
-#endif
-
+        this->m_wait_queue.push(task);
     }
 
 }

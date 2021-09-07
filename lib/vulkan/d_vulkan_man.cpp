@@ -13,7 +13,6 @@
 #include "d_defines.h"
 #include "d_vert_data.h"
 #include "d_image_parser.h"
-#include "d_model_parser.h"
 
 
 namespace {

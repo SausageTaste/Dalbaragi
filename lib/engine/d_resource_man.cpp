@@ -2,10 +2,12 @@
 
 #include <fmt/format.h>
 
+#include <dal_model_parser.h>
+#include <dal_modifier.h>
+
 #include "d_timer.h"
 #include "d_logger.h"
 #include "d_image_parser.h"
-#include "d_model_parser.h"
 
 
 namespace {
@@ -14,106 +16,414 @@ namespace {
     const char* const MISSING_MODEL_PATH = "_asset/model/missing_model.dmd";
 
 
-    class Task_LoadImage : public dal::ITask {
+    template <typename _VertType>
+    glm::vec3 calc_weight_center(const std::vector<_VertType>& vertices) {
+        double x_sum = 0.0;
+        double y_sum = 0.0;
+        double z_sum = 0.0;
+
+        for (const auto& v : vertices) {
+            x_sum += v.m_pos.x;
+            y_sum += v.m_pos.y;
+            z_sum += v.m_pos.z;
+        }
+
+        const double vert_count = static_cast<double>(vertices.size());
+
+        return glm::vec3{
+            x_sum / vert_count,
+            y_sum / vert_count,
+            z_sum / vert_count,
+        };
+    }
+
+    void copy_material(dal::Material& dst, const dal::parser::Material& src) {
+        dst.m_roughness = src.m_roughness;
+        dst.m_metallic = src.m_metallic;
+        dst.m_albedo_map = src.m_albedo_map;
+        dst.m_alpha_blending = src.alpha_blend;
+    }
+
+
+    class Task_LoadImage : public dal::IPriorityTask {
 
     public:
         dal::Filesystem& m_filesys;
         dal::ResPath m_respath;
 
-        std::optional<dal::ImageData> out_image_data;
+        std::vector<uint8_t> m_file_data;
+        std::optional<dal::ImageData> out_image;
+
+    private:
+        int m_stage = 0;
 
     public:
         Task_LoadImage(const dal::ResPath& respath, dal::Filesystem& filesys)
-            : m_filesys(filesys)
+            : dal::IPriorityTask(dal::PriorityClass::can_be_delayed)
+            , m_filesys(filesys)
             , m_respath(respath)
-            , out_image_data(std::nullopt)
+            , out_image(std::nullopt)
         {
 
         }
 
-        void run() override {
-            dal::Timer timer;
+        bool work() override {
+            switch (this->m_stage) {
+                case 0:
+                    return this->stage_0();
+                case 1:
+                    return this->stage_1();
+                default:
+                    return true;
+            }
+        }
 
+    private:
+        bool stage_0() {
             auto file = this->m_filesys.open(this->m_respath);
-            dalAssert(file->is_ready());
-            const auto file_data = file->read_stl<std::vector<uint8_t>>();
-            dalAssert(file_data.has_value());
-            this->out_image_data = dal::parse_image_stb(file_data->data(), file_data->size());
-            //dalInfo(fmt::format("Image res loaded ({}): {}", timer.check_get_elapsed(), this->m_respath.make_str()).c_str());
+            if (!file->is_ready())
+                return true;
+
+            if (!file->read_stl<std::vector<uint8_t>>(this->m_file_data))
+                return true;
+
+            this->m_stage = 1;
+            return false;
+        }
+
+        bool stage_1() {
+            this->out_image = dal::parse_image_stb(this->m_file_data.data(), this->m_file_data.size());
+
+            this->m_stage = 2;
+            return true;
         }
 
     };
 
 
-    class Task_LoadModel : public dal::ITask {
+    class Task_LoadModel : public dal::IPriorityTask {
 
     public:
         dal::Filesystem& m_filesys;
         dal::ResPath m_respath;
 
-        std::optional<dal::ModelStatic> out_model_data;
+        dal::parser::Model m_parsed_model;
+        std::optional<dal::ModelStatic> out_model;
+
+    private:
+        int m_stage = 0;
 
     public:
         Task_LoadModel(const dal::ResPath& respath, dal::Filesystem& filesys)
-            : m_filesys(filesys)
+            : dal::IPriorityTask(dal::PriorityClass::can_be_delayed)
+            , m_filesys(filesys)
             , m_respath(respath)
         {
 
         }
 
-        void run() override {
-            dal::Timer timer;
+        bool work() override {
+            switch (this->m_stage) {
+                case 0:
+                    return this->stage_0();
+                case 1:
+                    return this->stage_1();
+                case 2:
+                    return this->stage_2();
+                case 3:
+                    return this->stage_3();
+                case 4:
+                    return this->stage_4();
+                default:
+                    return true;
+            }
+        }
 
+    private:
+        bool stage_0() {
             auto file = this->m_filesys.open(this->m_respath);
             if (!file->is_ready()) {
-                out_model_data = std::nullopt;
-                return;
+                out_model = std::nullopt;
+                return true;
             }
 
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
             if (!model_content.has_value()) {
-                out_model_data = std::nullopt;
-                return;
+                out_model = std::nullopt;
+                return true;
             }
 
-            this->out_model_data = dal::parse_model_dmd(model_content->data(), model_content->size());
+            const auto unzipped = dal::parser::unzip_dmd(model_content->data(), model_content->size());
+            if (!unzipped) {
+                out_model = std::nullopt;
+                return true;
+            }
+
+            const auto parse_result = dal::parser::parse_dmd(this->m_parsed_model, unzipped->data(), unzipped->size());
+            if (dal::parser::ModelParseResult::success != parse_result) {
+                out_model = std::nullopt;
+                return true;
+            }
+
+            this->out_model = dal::ModelStatic{};
+
+            this->m_stage = 1;
+            return false;
+        }
+
+        bool stage_1() {
+            static_assert(sizeof(dal::parser::Vertex) == sizeof(dal::VertexStatic));
+            static_assert(offsetof(dal::parser::Vertex, m_position) == offsetof(dal::VertexStatic, m_pos));
+            static_assert(offsetof(dal::parser::Vertex, m_normal) == offsetof(dal::VertexStatic, m_normal));
+            static_assert(offsetof(dal::parser::Vertex, m_uv_coords) == offsetof(dal::VertexStatic, m_uv_coord));
+
+            for (const auto& src_unit : this->m_parsed_model.m_units_indexed) {
+                auto& dst_unit = this->out_model->m_units.emplace_back();
+
+                dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+                memcpy(dst_unit.m_vertices.data(), src_unit.m_mesh.m_vertices.data(), dst_unit.m_vertices.size() * sizeof(dal::VertexStatic));
+
+                dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
+                ::copy_material(dst_unit.m_material, src_unit.m_material);
+                dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
+            }
+
+            this->m_stage = 2;
+            return false;
+        }
+
+        bool stage_2() {
+            for (const auto& src_unit : this->m_parsed_model.m_units_indexed_joint) {
+                auto& dst_unit = this->out_model->m_units.emplace_back();
+
+                dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+                for (size_t i = 0; i < dst_unit.m_vertices.size(); ++i) {
+                    auto& out_vert = dst_unit.m_vertices[i];
+                    auto& in_vert = src_unit.m_mesh.m_vertices[i];
+
+                    out_vert.m_pos = in_vert.m_position;
+                    out_vert.m_normal = in_vert.m_normal;
+                    out_vert.m_uv_coord = in_vert.m_uv_coords;
+                }
+
+                dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
+                ::copy_material(dst_unit.m_material, src_unit.m_material);
+                dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
+            }
+
+            this->m_stage = 3;
+            return false;
+        }
+
+        bool stage_3() {
+            if (!this->m_parsed_model.m_units_straight.empty())
+                dalWarn("Not supported vertex data: straight");
+
+            this->m_stage = 4;
+            return false;
+        }
+
+        bool stage_4() {
+            if (!this->m_parsed_model.m_units_straight_joint.empty())
+                dalWarn("Not supported vertex data: straight joint");
+
+            this->m_stage = 5;
+            return true;
         }
 
     };
 
 
-    class Task_LoadModelSkinned : public dal::ITask {
+    class Task_LoadModelSkinned : public dal::IPriorityTask {
 
     public:
         dal::Filesystem& m_filesys;
         dal::ResPath m_respath;
 
-        std::optional<dal::ModelSkinned> out_model_data;
+        dal::parser::Model m_parsed_model;
+        std::optional<dal::ModelSkinned> out_model;
+
+    private:
+        int m_stage = 0;
 
     public:
         Task_LoadModelSkinned(const dal::ResPath& respath, dal::Filesystem& filesys)
-            : m_filesys(filesys)
+            : dal::IPriorityTask(dal::PriorityClass::can_be_delayed)
+            , m_filesys(filesys)
             , m_respath(respath)
         {
-
+            this->set_priority_class(dal::PriorityClass::can_be_delayed);
         }
 
-        void run() override {
-            dal::Timer timer;
+        bool work() override {
+            switch (this->m_stage) {
+                case 0:
+                    return this->stage_0();
+                case 1:
+                    return this->stage_1();
+                case 2:
+                    return this->stage_2();
+                case 3:
+                    return this->stage_3();
+                case 4:
+                    return this->stage_4();
+                case 5:
+                    return this->stage_5();
+                default:
+                    return true;
+            }
+        }
 
+    private:
+        bool stage_0() {
             auto file = this->m_filesys.open(this->m_respath);
             if (!file->is_ready()) {
-                out_model_data = std::nullopt;
-                return;
+                out_model = std::nullopt;
+                return true;
             }
 
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
             if (!model_content.has_value()) {
-                out_model_data = std::nullopt;
-                return;
+                out_model = std::nullopt;
+                return true;
             }
 
-            this->out_model_data = dal::parse_model_skinned_dmd(model_content->data(), model_content->size());
+            const auto unzipped = dal::parser::unzip_dmd(model_content->data(), model_content->size());
+            if (!unzipped) {
+                out_model = std::nullopt;
+                return true;
+            }
+
+            const auto parse_result = dal::parser::parse_dmd(this->m_parsed_model, unzipped->data(), unzipped->size());
+            if (dal::parser::ModelParseResult::success != parse_result) {
+                out_model = std::nullopt;
+                return true;
+            }
+
+            this->out_model = dal::ModelSkinned{};
+
+            this->m_stage = 1;
+            return false;
+        }
+
+        bool stage_1() {
+            for (const auto& src_unit : this->m_parsed_model.m_units_indexed) {
+                auto& dst_unit = this->out_model->m_units.emplace_back();
+
+                dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+                for (size_t i = 0; i < dst_unit.m_vertices.size(); ++i) {
+                    auto& dst_vert = dst_unit.m_vertices[i];
+                    auto& src_vert = src_unit.m_mesh.m_vertices[i];
+
+                    dst_vert.m_joint_ids     = glm::ivec4{-1, -1, -1, -1};
+                    dst_vert.m_joint_weights = glm::vec4{0, 0, 0, 0};
+                    dst_vert.m_pos           = src_vert.m_position;
+                    dst_vert.m_normal        = src_vert.m_normal;
+                    dst_vert.m_uv_coord      = src_vert.m_uv_coords;
+                }
+
+                dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
+                ::copy_material(dst_unit.m_material, src_unit.m_material);
+                dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
+            }
+
+            this->m_stage = 2;
+            return false;
+        }
+
+        bool stage_2() {
+            for (const auto& src_unit : this->m_parsed_model.m_units_indexed_joint) {
+                auto& dst_unit = this->out_model->m_units.emplace_back();
+
+                dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+                for (size_t i = 0; i < dst_unit.m_vertices.size(); ++i) {
+                    auto& dst_vert = dst_unit.m_vertices[i];
+                    auto& src_vert = src_unit.m_mesh.m_vertices[i];
+
+                    dst_vert.m_joint_ids     = src_vert.m_joint_indices;
+                    dst_vert.m_joint_weights = src_vert.m_joint_weights;
+                    dst_vert.m_pos           = src_vert.m_position;
+                    dst_vert.m_normal        = src_vert.m_normal;
+                    dst_vert.m_uv_coord      = src_vert.m_uv_coords;
+                }
+
+                dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
+                ::copy_material(dst_unit.m_material, src_unit.m_material);
+                dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
+            }
+
+            this->m_stage = 3;
+            return false;
+        }
+
+        bool stage_3() {
+            for (auto& src_anim : this->m_parsed_model.m_animations) {
+                if (src_anim.m_joints.size() > dal::MAX_JOINT_COUNT) {
+                    dalWarn(fmt::format("Joint count {} is bigger than limit {}", src_anim.m_joints.size(), dal::MAX_JOINT_COUNT).c_str());
+                }
+
+                auto& dst_anim = this->out_model->m_animations.emplace_back(src_anim.m_name, src_anim.m_ticks_par_sec, src_anim.m_duration_tick);
+                for (auto& out_joint : src_anim.m_joints) {
+                    dst_anim.new_joint().m_data = out_joint;
+                }
+            }
+
+            this->m_stage = 4;
+            return false;
+        }
+
+        bool stage_4() {
+            for (auto& src_joint : this->m_parsed_model.m_skeleton.m_joints) {
+                const auto jid = this->out_model->m_skeleton.get_or_make_index_of(src_joint.m_name);
+                auto& dst_joint = this->out_model->m_skeleton.at(jid);
+                dst_joint.set(src_joint);
+            }
+
+            this->m_stage = 5;
+            return false;
+        }
+
+        bool stage_5() {
+            if (this->out_model->m_skeleton.size() > 0) {
+                // Character lies on ground without this line.
+                this->out_model->m_skeleton.at(0).set_parent_mat(this->out_model->m_skeleton.at(0).offset());
+
+                for ( int i = 1; i < this->out_model->m_skeleton.size(); ++i ) {
+                    auto& thisInfo = this->out_model->m_skeleton.at(i);
+                    const auto& parentInfo = this->out_model->m_skeleton.at(thisInfo.parent_index());
+                    thisInfo.set_parent_mat(parentInfo);
+                }
+            }
+
+            if (!this->m_parsed_model.m_units_straight.empty())
+                dalWarn("Not supported vertex data: straight");
+            if (!this->m_parsed_model.m_units_straight_joint.empty())
+                dalWarn("Not supported vertex data: straight joint");
+
+            this->m_stage = 6;
+            return true;
+        }
+
+    };
+
+
+    class Task_SlowTest : public dal::IPriorityTask {
+
+    private:
+        size_t m_counter = 0;
+        size_t m_upper_bound = 3;
+
+    public:
+        Task_SlowTest()
+            : dal::IPriorityTask(dal::PriorityClass::least_wanted)
+        {
+
+        }
+
+        bool work() override {
+            dalInfo(fmt::format("{}", this->m_counter).c_str());
+            dal::sleep_for(1);
+            return ++this->m_counter >= this->m_upper_bound;
         }
 
     };
@@ -138,14 +448,14 @@ namespace dal {
         this->m_renderer = nullptr;
     }
 
-    void TextureBuilder::notify_task_done(std::unique_ptr<ITask> task) {
+    void TextureBuilder::notify_task_done(HTask& task) {
         auto& task_result = *reinterpret_cast<Task_LoadImage*>(task.get());
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
         if (this->m_waiting_file.end() != found) {
             this->m_renderer->init(
                 *found->second.get(),
-                task_result.out_image_data.value()
+                task_result.out_image.value()
             );
 
             this->m_waiting_file.erase(found);
@@ -155,9 +465,10 @@ namespace dal {
     void TextureBuilder::start(const ResPath& respath, HTexture h_texture, Filesystem& filesys, TaskManager& task_man) {
         dalAssert(nullptr != this->m_renderer);
 
-        auto task = std::make_unique<::Task_LoadImage>(respath, filesys);
+        auto task = std::make_shared<::Task_LoadImage>(respath, filesys);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_texture);
-        task_man.order_task(std::move(task), this);
+        //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
+        task_man.order_task(task, this);
     }
 
 }
@@ -193,15 +504,15 @@ namespace dal {
         this->m_renderer = nullptr;
     }
 
-    void ModelBuilder::notify_task_done(std::unique_ptr<ITask> task) {
+    void ModelBuilder::notify_task_done(HTask& task) {
         auto& task_result = *reinterpret_cast<Task_LoadModel*>(task.get());
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
         if (this->m_waiting_file.end() != found) {
-            if (task_result.out_model_data.has_value()) {
+            if (task_result.out_model.has_value()) {
                 this->m_renderer->init(
                     *found->second.get(),
-                    task_result.out_model_data.value(),
+                    task_result.out_model.value(),
                     task_result.m_respath.dir_list().front().c_str()
                 );
 
@@ -221,6 +532,7 @@ namespace dal {
 
         auto task = std::make_unique<::Task_LoadModel>(respath, filesys);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
+        //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
         task_man.order_task(std::move(task), this);
     }
 
@@ -257,15 +569,15 @@ namespace dal {
         this->m_renderer = nullptr;
     }
 
-    void ModelSkinnedBuilder::notify_task_done(std::unique_ptr<ITask> task) {
+    void ModelSkinnedBuilder::notify_task_done(HTask& task) {
         auto& task_result = *reinterpret_cast<Task_LoadModelSkinned*>(task.get());
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
         if (this->m_waiting_file.end() != found) {
-            if (task_result.out_model_data.has_value()) {
+            if (task_result.out_model.has_value()) {
                 this->m_renderer->init(
                     *found->second.get(),
-                    task_result.out_model_data.value(),
+                    task_result.out_model.value(),
                     task_result.m_respath.dir_list().front().c_str()
                 );
 
@@ -289,6 +601,7 @@ namespace dal {
 
         auto task = std::make_unique<::Task_LoadModelSkinned>(respath, filesys);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
+        //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
         task_man.order_task(std::move(task), this);
     }
 

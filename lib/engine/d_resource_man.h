@@ -23,7 +23,7 @@ namespace dal {
 
         void invalidate_renderer();
 
-        void notify_task_done(std::unique_ptr<ITask> task) override;
+        void notify_task_done(HTask& task) override;
 
         void start(const ResPath& respath, HTexture h_texture, Filesystem& filesys, TaskManager& task_man);
 
@@ -45,7 +45,7 @@ namespace dal {
 
         void invalidate_renderer();
 
-        void notify_task_done(std::unique_ptr<ITask> task) override;
+        void notify_task_done(HTask& task) override;
 
         void start(const ResPath& respath, HRenModel h_model, Filesystem& filesys, TaskManager& task_man);
 
@@ -67,7 +67,7 @@ namespace dal {
 
         void invalidate_renderer();
 
-        void notify_task_done(std::unique_ptr<ITask> task) override;
+        void notify_task_done(HTask& task) override;
 
         void start(const ResPath& respath, HRenModelSkinned h_model, Filesystem& filesys, TaskManager& task_man);
 
