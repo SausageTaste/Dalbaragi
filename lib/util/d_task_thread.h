@@ -38,6 +38,13 @@ namespace dal {
 
     using HTask = std::shared_ptr<ITask>;
 
+    inline auto compare_task_priority = [](const HTask& one, const HTask& other) {
+        if (one == other)
+            return false;
+        else
+            return one->evaluate_priority() < other->evaluate_priority();
+    };
+
 
     class IPriorityTask : public ITask {
 
@@ -46,6 +53,10 @@ namespace dal {
         PriorityClass m_priority = PriorityClass::most_wanted;
 
     public:
+        void set_priority_class(const PriorityClass priority) {
+            this->m_priority = priority;
+        }
+
         void on_delay() override {
             ++this->m_delayed_count;
         }
@@ -82,10 +93,19 @@ namespace dal {
         class TaskQueue {
 
         private:
-            std::queue<HTask> m_q;
+            using queue_t = std::priority_queue<HTask, std::vector<HTask>, decltype(compare_task_priority)>;
+
+        private:
+            queue_t m_q;
             std::mutex m_mut;
 
         public:
+            TaskQueue()
+                : m_q(compare_task_priority)
+            {
+
+            }
+
             void push(HTask& t);
 
             HTask pop();

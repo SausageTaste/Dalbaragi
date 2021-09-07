@@ -7,6 +7,7 @@
 
 #ifdef DAL_MULTITHREADING
 
+
 //TaskManager :: TaskQueue
 namespace dal {
 
@@ -23,7 +24,7 @@ namespace dal {
             return nullptr;
         }
         else {
-            const auto v = this->m_q.front();
+            const auto v = this->m_q.top();
             this->m_q.pop();
             return v;
         }

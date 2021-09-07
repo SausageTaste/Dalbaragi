@@ -28,7 +28,7 @@ namespace {
             , m_respath(respath)
             , out_image_data(std::nullopt)
         {
-
+            this->set_priority_class(dal::PriorityClass::can_be_delayed);
         }
 
         bool work() override {
@@ -60,7 +60,7 @@ namespace {
             : m_filesys(filesys)
             , m_respath(respath)
         {
-
+            this->set_priority_class(dal::PriorityClass::can_be_delayed);
         }
 
         bool work() override {
@@ -99,7 +99,7 @@ namespace {
             : m_filesys(filesys)
             , m_respath(respath)
         {
-
+            this->set_priority_class(dal::PriorityClass::can_be_delayed);
         }
 
         bool work() override {
