@@ -167,9 +167,8 @@ void main() {
     const vec2 material = subpassLoad(input_material).xy;
 
     const vec3 world_pos = calc_world_pos(depth);
-    const vec3 view_vec = u_per_frame_composition.m_view_pos.xyz - world_pos;
-    const float view_distance = length(view_vec);
-    const vec3 view_direc = view_vec / view_distance;
+    const vec3 view_vec = world_pos - u_per_frame_composition.m_view_pos.xyz;
+    const vec3 view_direc = normalize(view_vec);
     const vec3 F0 = mix(vec3(0.04), albedo, material.y);
 
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;
@@ -192,7 +191,7 @@ void main() {
             albedo,
             normal,
             F0,
-            view_direc,
+            -view_direc,
             u_global_light.m_dlight_direc[selected_dlight].xyz,
             1,
             u_global_light.m_dlight_color[selected_dlight].xyz
@@ -211,7 +210,7 @@ void main() {
             albedo,
             normal,
             F0,
-            view_direc,
+            -view_direc,
             frag_to_light_direc,
             light_distance,
             u_global_light.m_plight_color[i].xyz
@@ -237,7 +236,7 @@ void main() {
             albedo,
             normal,
             F0,
-            view_direc,
+            -view_direc,
             frag_to_light_direc,
             1,
             u_global_light.m_slight_color_n_fade_end[i].xyz
@@ -255,9 +254,9 @@ void main() {
             view_direc,
             (1.0 != depth) ? distance(u_per_frame_composition.m_view_pos.xyz, world_pos) : 1e12,
             out_color.xyz,
-            -u_global_light.m_dlight_direc[0].xyz,
+            u_global_light.m_dlight_direc[0].xyz,
             vec3(40.0),
-            vec3(u_per_frame_composition.m_view_pos.x, PLANET_RADIUS, u_per_frame_composition.m_view_pos.z),
+            vec3(u_per_frame_composition.m_view_pos.x, -PLANET_RADIUS, u_per_frame_composition.m_view_pos.z),
             PLANET_RADIUS,
             ATMOS_RADIUS,
             RAY_BETA,
