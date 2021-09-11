@@ -6,6 +6,14 @@ namespace dal {
     Scene::Scene() {
         this->m_euler_camera.m_pos = { 2.68, 1.91, 0 };
         this->m_euler_camera.m_rotations = { -0.22, glm::radians<float>(90), 0 };
+
+        {
+            this->m_sun_light.m_atmos_intensity = 40;
+            this->m_sun_light.m_color = glm::vec3{2};
+
+            this->m_moon_light.m_atmos_intensity = 0.05;
+            this->m_moon_light.m_color = glm::vec3{0.05, 0.05, 0.15};
+        }
     }
 
     void Scene::update() {
@@ -19,6 +27,8 @@ namespace dal {
 
     RenderList Scene::make_render_list() {
         RenderList output;
+
+        const auto t = dal::get_cur_sec();
 
         {
             auto view = this->m_registry.view<cpnt::ActorStatic>();
@@ -34,8 +44,20 @@ namespace dal {
             });
         }
 
-        output.m_dlights.push_back(this->m_dlight);
-        output.m_dlights.back().m_pos = this->m_euler_camera.m_pos;
+        {
+            const auto sun_direc = glm::normalize(glm::vec3{ 10.0 * cos(t * 0.1), 10.0 * sin(t * 0.1), 2 });
+            const auto is_sun = glm::dot(glm::vec3(0, 1, 0), sun_direc) >= -0.1;
+
+            if (is_sun) {
+                output.m_dlights.push_back(this->m_sun_light);
+                output.m_dlights.back().set_direc_to_light(sun_direc);
+            }
+            else {
+                output.m_dlights.push_back(this->m_moon_light);
+                output.m_dlights.back().set_direc_to_light(-sun_direc);
+            }
+            output.m_dlights.back().m_pos = this->m_euler_camera.m_pos;
+        }
 
         output.m_plights = this->m_plights;
         output.m_slights = this->m_slights;

@@ -33,6 +33,8 @@ layout(set = 0, binding = 1) uniform U_GlobalLight {
 
     vec4 m_dlight_clip_dist;
 
+    float m_atmos_intensity;
+
     uint m_dlight_count;
     uint m_plight_count;
     uint m_slight_count;

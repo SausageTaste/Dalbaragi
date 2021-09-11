@@ -32,6 +32,8 @@ layout(set = 0, binding = 4) uniform U_GlobalLight {
 
     vec4 m_dlight_clip_dist;
 
+    float m_atmos_intensity;
+
     uint m_dlight_count;
     uint m_plight_count;
     uint m_slight_count;
@@ -490,7 +492,7 @@ void main() {
                 distance(u_per_frame_composition.m_view_pos.xyz, world_pos),
                 out_color.xyz,
                 u_global_light.m_dlight_direc[0].xyz,
-                vec3(40.0),
+                vec3(u_global_light.m_atmos_intensity),
                 vec3(u_per_frame_composition.m_view_pos.x, -PLANET_RADIUS, u_per_frame_composition.m_view_pos.z),
                 PLANET_RADIUS,
                 ATMOS_RADIUS,
@@ -514,7 +516,7 @@ void main() {
                 1e12,
                 out_color.xyz,
                 u_global_light.m_dlight_direc[0].xyz,
-                vec3(40.0),
+                vec3(u_global_light.m_atmos_intensity),
                 vec3(u_per_frame_composition.m_view_pos.x, -PLANET_RADIUS, u_per_frame_composition.m_view_pos.z),
                 PLANET_RADIUS,
                 ATMOS_RADIUS,

@@ -482,6 +482,7 @@ namespace dal {
                 }
 
                 data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };
+                data_glight.m_atmos_intensity = render_list.m_dlights[0].m_atmos_intensity;
             }
 
             this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(data_glight, this->m_logi_device.get());

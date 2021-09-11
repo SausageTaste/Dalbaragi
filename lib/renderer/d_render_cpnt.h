@@ -48,6 +48,9 @@ namespace dal {
     class DLight : public ILight, public IDirectionalLight {
 
     public:
+        float m_atmos_intensity;
+
+    public:
         glm::mat4 make_light_mat(const float half_proj_box_edge_length) const;
 
         glm::mat4 make_light_mat(const glm::vec3* const begin, const glm::vec3* const end) const;

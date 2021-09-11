@@ -282,12 +282,22 @@ namespace {
             return 1;
         }
 
-        // scene.get_dlight_handle() -> DLight
-        int get_dlight_handle(lua_State* const L) {
+        // scene.get_sun_light_handle() -> DLight
+        int get_sun_light_handle(lua_State* const L) {
             dalAssert(::are_dependencies_ready());
 
             auto& obj = ::push_meta_object<dal::DLight*>(L, ::DAL_DLIGHT);
-            obj = &g_scene->m_dlight;
+            obj = &g_scene->m_sun_light;
+
+            return 1;
+        }
+
+        // scene.get_moon_light_handle() -> DLight
+        int get_moon_light_handle(lua_State* const L) {
+            dalAssert(::are_dependencies_ready());
+
+            auto& obj = ::push_meta_object<dal::DLight*>(L, ::DAL_DLIGHT);
+            obj = &g_scene->m_moon_light;
 
             return 1;
         }
@@ -937,7 +947,8 @@ namespace {
             LuaFuncListBuilder func_list;
             func_list.add("create_actor_static", ::scene::create_actor_static);
             func_list.add("create_actor_skinned", ::scene::create_actor_skinned);
-            func_list.add("get_dlight_handle", ::scene::get_dlight_handle);
+            func_list.add("get_sun_light_handle", ::scene::get_sun_light_handle);
+            func_list.add("get_moon_light_handle", ::scene::get_moon_light_handle);
             func_list.add("get_slight_count", ::scene::get_slight_count);
             func_list.add("get_slight_at", ::scene::get_slight_at);
             func_list.add("create_slight", ::scene::create_slight);
