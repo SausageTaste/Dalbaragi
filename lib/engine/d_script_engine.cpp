@@ -98,6 +98,15 @@ namespace {
         return *static_cast<T*>(ud);
     }
 
+    template <typename T>
+    T* test_udata(lua_State* const L, const int index, const char* const type_name) {
+        void* const ud = luaL_testudata(L, index, type_name);
+        if (nullptr != ud)
+            return static_cast<T*>(ud);
+        else
+            return nullptr;
+    }
+
     void add_metatable_definition(lua_State* const L, const char* const name, const luaL_Reg* const functions) {
         luaL_newmetatable(L, name);
         lua_pushstring(L, "__index");
@@ -188,6 +197,7 @@ namespace {
 // Lua lib: scene
 namespace {
 
+    const char* const DAL_VEC3 = "dalbaragi.Vec3";
     const char* const DAL_VEC3_VIEW = "dalbaragi.Vec3View";
     const char* const DAL_DLIGHT = "dalbaragi.DLight";
     const char* const DAL_SLIGHT = "dalbaragi.SLight";
@@ -198,7 +208,11 @@ namespace {
 
 
     glm::vec3& check_vec3(lua_State* const L, const int index = 1) {
-        return *::check_udata<glm::vec3*>(L, index, ::DAL_VEC3_VIEW);
+        const auto p_vec3view = ::test_udata<glm::vec3*>(L, index, ::DAL_VEC3_VIEW);
+        if (nullptr != p_vec3view)
+            return **p_vec3view;
+
+        return ::check_udata<glm::vec3>(L, index, ::DAL_VEC3);
     }
 
     dal::DLight& check_dlight(lua_State* const L, const int index = 1) {
@@ -353,10 +367,20 @@ namespace {
             return 1;
         }
 
+        int Vec3(lua_State* const L) {
+            auto& obj = ::push_meta_object<glm::vec3>(L, ::DAL_VEC3);
+
+            obj.x = static_cast<float>(lua_tonumberx(L, 1, nullptr));
+            obj.y = static_cast<float>(lua_tonumberx(L, 2, nullptr));
+            obj.z = static_cast<float>(lua_tonumberx(L, 3, nullptr));
+
+            return 1;
+        }
+
     }
 
 
-    namespace scene::vec3_view {
+    namespace scene::vec3 {
 
         int to_string(lua_State* const L) {
             const auto& v = ::check_vec3(L);
@@ -419,6 +443,92 @@ namespace {
             v.z = z;
 
             return 0;
+        }
+
+        int unary_minus(lua_State* const L) {
+            const auto& a = ::check_vec3(L);
+            auto& output = ::push_meta_object<glm::vec3>(L, ::DAL_VEC3);
+
+            output = -a;
+            return 1;
+        }
+
+        int add(lua_State* const L) {
+            const auto& a = ::check_vec3(L);
+            const auto& b = ::check_vec3(L, 2);
+            auto& output = ::push_meta_object<glm::vec3>(L, ::DAL_VEC3);
+
+            output = a + b;
+            return 1;
+        }
+
+        int sub(lua_State* const L) {
+            const auto& a = ::check_vec3(L);
+            const auto& b = ::check_vec3(L, 2);
+            auto& output = ::push_meta_object<glm::vec3>(L, ::DAL_VEC3);
+
+            output = a - b;
+            return 1;
+        }
+
+        int mul(lua_State* const L) {
+            const auto& a = ::check_vec3(L);
+            auto& output = ::push_meta_object<glm::vec3>(L, ::DAL_VEC3);
+
+            if (lua_isnumber(L, 2)) {
+                const auto b = lua_tonumberx(L, 2, nullptr);
+                output = a * static_cast<float>(b);
+            }
+            else {
+                const auto& b = ::check_vec3(L, 2);
+                output = a * b;
+            }
+
+            return 1;
+        }
+
+        int div(lua_State* const L) {
+            const auto& a = ::check_vec3(L);
+            auto& output = ::push_meta_object<glm::vec3>(L, ::DAL_VEC3);
+
+            if (lua_isnumber(L, 2)) {
+                const auto b = lua_tonumberx(L, 2, nullptr);
+                output = a / static_cast<float>(b);
+            }
+            else {
+                const auto& b = ::check_vec3(L, 2);
+                output = a / b;
+            }
+
+            return 1;
+        }
+
+        int dot(lua_State* const L) {
+            const auto& a = check_vec3(L, 1);
+            const auto& b = check_vec3(L, 2);
+
+            lua_pushnumber(L, glm::dot(a, b));
+
+            return 1;
+        }
+
+        int cross(lua_State* const L) {
+            const auto& a = check_vec3(L, 1);
+            const auto& b = check_vec3(L, 2);
+            auto& output = ::push_meta_object<glm::vec3>(L, ::DAL_VEC3);
+
+            output = glm::cross(a, b);
+
+            return 1;
+        }
+
+        int normalize(lua_State* const L) {
+            const auto& a = check_vec3(L, 1);
+            auto& output = ::push_meta_object<glm::vec3>(L, ::DAL_VEC3);
+
+            output = glm::normalize(a);
+
+            return 1;
         }
 
     }
@@ -737,13 +847,22 @@ namespace {
         // Vec3
         {
             LuaFuncListBuilder methods;
-            methods.add("__tostring", scene::vec3_view::to_string);
-            methods.add("get_xyz", scene::vec3_view::get_xyz);
-            methods.add("set_x", scene::vec3_view::set_x);
-            methods.add("set_y", scene::vec3_view::set_y);
-            methods.add("set_z", scene::vec3_view::set_z);
-            methods.add("set_xyz", scene::vec3_view::set_xyz);
+            methods.add("__tostring", scene::vec3::to_string);
+            methods.add("get_xyz", scene::vec3::get_xyz);
+            methods.add("set_x", scene::vec3::set_x);
+            methods.add("set_y", scene::vec3::set_y);
+            methods.add("set_z", scene::vec3::set_z);
+            methods.add("set_xyz", scene::vec3::set_xyz);
+            methods.add("__unm", scene::vec3::unary_minus);
+            methods.add("__add", scene::vec3::add);
+            methods.add("__sub", scene::vec3::sub);
+            methods.add("__mul", scene::vec3::mul);
+            methods.add("__div", scene::vec3::div);
+            methods.add("dot", scene::vec3::dot);
+            methods.add("cross", scene::vec3::cross);
+            methods.add("normalize", scene::vec3::normalize);
 
+            add_metatable_definition(L, ::DAL_VEC3, methods.data());
             add_metatable_definition(L, ::DAL_VEC3_VIEW, methods.data());
         }
 
@@ -826,6 +945,7 @@ namespace {
             func_list.add("get_plight_at", ::scene::get_plight_at);
             func_list.add("create_plight", ::scene::create_plight);
             func_list.add("get_ambient_light", ::scene::get_ambient_light);
+            func_list.add("Vec3", ::scene::Vec3);
 
             luaL_newlib(L, func_list.data());
         }
