@@ -5,12 +5,6 @@ sysinfo = require('sysinfo')
 
 function on_engine_init()
     do
-        local light = scene.get_dlight_handle()
-        light:set_direction_to_light(1, 10, 1);
-        light:get_color():set_xyz(2, 2, 2)
-    end
-
-    do
         local light = scene.create_slight()
         light:get_pos():set_xyz(6, 2, 0)
         light:get_color():set_xyz(3, 3, 3)
@@ -35,7 +29,7 @@ function on_engine_init()
 
     do
         local light = scene.get_ambient_light()
-        light:set_xyz(0.03, 0.03, 0.03)
+        light:set_xyz(0.02, 0.02, 0.02)
     end
 end
 
@@ -85,11 +79,6 @@ end
 
 function before_rendering_every_frame()
     local t = sysinfo.time()
-
-    do
-        local light = scene.get_dlight_handle()
-        light:set_direction_to_light(1, 10 * math.sin(t * 0.5), 1 * math.cos(t * 0.5));
-    end
 
     do
         local light = scene.get_slight_at(0)

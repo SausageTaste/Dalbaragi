@@ -439,6 +439,7 @@ namespace dal {
             this->m_ubuf_man.m_ub_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
             U_PerFrame_Composition ubuf_data_composition{};
+            ubuf_data_composition.m_view_mat = cam_view_mat;
             ubuf_data_composition.m_view_inv = glm::inverse(cam_view_mat);
             ubuf_data_composition.m_proj_inv = glm::inverse(cam_proj_mat);
             ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
@@ -481,6 +482,8 @@ namespace dal {
                 }
 
                 data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };
+                data_glight.m_atmos_intensity = render_list.m_dlights[0].m_atmos_intensity;
+                data_glight.m_mie_scattering_coeff = 221e-6;
             }
 
             this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(data_glight, this->m_logi_device.get());

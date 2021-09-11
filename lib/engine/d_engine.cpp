@@ -14,24 +14,26 @@ namespace {
     auto make_move_direc(const dal::KeyInputManager& im) {
         glm::vec3 result{ 0, 0, 0 };
 
+        const float move_factor = im.key_state_of(dal::KeyCode::lshfit).m_pressed ? 10.f : 1.f;
+
         if (im.key_state_of(dal::KeyCode::a).m_pressed) {
-            result.x -= 1;
+            result.x -= move_factor;
         }
         if (im.key_state_of(dal::KeyCode::d).m_pressed) {
-            result.x += 1;
+            result.x += move_factor;
         }
         if (im.key_state_of(dal::KeyCode::w).m_pressed) {
-            result.z -= 1;
+            result.z -= move_factor;
         }
         if (im.key_state_of(dal::KeyCode::s).m_pressed) {
-            result.z += 1;
+            result.z += move_factor;
         }
 
         if (im.key_state_of(dal::KeyCode::space).m_pressed) {
-            result.y += 1;
+            result.y += move_factor;
         }
         if (im.key_state_of(dal::KeyCode::lctrl).m_pressed) {
-            result.y -= 1;
+            result.y -= move_factor;
         }
 
         return result;
