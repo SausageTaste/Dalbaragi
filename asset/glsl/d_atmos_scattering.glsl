@@ -62,7 +62,7 @@ Note: 	Because rayleigh is a long word to type, I use ray instead on most variab
 #define ATMOS_RADIUS 6471e3 /* radius of the atmosphere */
 // scattering coeffs
 #define RAY_BETA vec3(5.5e-6, 13.0e-6, 22.4e-6) /* rayleigh, affects the color of the sky */
-#define MIE_BETA vec3(21e-6) /* mie, affects the color of the blob around the sun */
+#define MIE_BETA vec3(301e-6) /* mie, affects the color of the blob around the sun */
 #define AMBIENT_BETA vec3(0.0) /* ambient, affects the scattering color when there is no lighting from the sun */
 #define ABSORPTION_BETA vec3(2.04e-5, 4.97e-5, 1.95e-6) /* what color gets absorbed by the atmosphere (Due to things like ozone) */
 #define G 0.7 /* mie scattering direction, or how big the blob around the sun is */
@@ -73,8 +73,8 @@ Note: 	Because rayleigh is a long word to type, I use ray instead on most variab
 #define ABSORPTION_FALLOFF 4e3 /* how much the absorption decreases the further away it gets from the maximum height */
 // and the steps (more looks better, but is slower)
 // the primary step has the most effect on looks
-#define PRIMARY_STEPS 32 /* primary steps, affects quality the most */
-#define LIGHT_STEPS 8 /* light steps, how much steps in the light direction are taken */
+#define PRIMARY_STEPS 8 /* primary steps, affects quality the most */
+#define LIGHT_STEPS 4 /* light steps, how much steps in the light direction are taken */
 
 /*
 Next we'll define the main scattering function.
