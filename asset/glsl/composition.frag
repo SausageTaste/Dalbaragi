@@ -505,8 +505,8 @@ void main() {
                 HEIGHT_MIE,
                 HEIGHT_ABSORPTION,
                 ABSORPTION_FALLOFF,
-                PRIMARY_STEPS,
-                LIGHT_STEPS
+                8,
+                4
             );
         }
         else {
@@ -529,8 +529,8 @@ void main() {
                 HEIGHT_MIE,
                 HEIGHT_ABSORPTION,
                 ABSORPTION_FALLOFF,
-                PRIMARY_STEPS,
-                LIGHT_STEPS
+                8,
+                4
             );
         }
     }

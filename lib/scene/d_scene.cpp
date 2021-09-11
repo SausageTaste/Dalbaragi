@@ -54,7 +54,7 @@ namespace dal {
             }
             else {
                 output.m_dlights.push_back(this->m_moon_light);
-                output.m_dlights.back().set_direc_to_light(-sun_direc);
+                output.m_dlights.back().set_direc_to_light(glm::vec3{0, 1, 0} - sun_direc);
             }
             output.m_dlights.back().m_pos = this->m_euler_camera.m_pos;
         }
