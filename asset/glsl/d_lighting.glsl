@@ -1,5 +1,7 @@
 
-const float PI = 3.14159265359;
+#define DAL_PI 3.14159265359
+
+const float PI = DAL_PI;
 const vec3 TO_LIGHT_DIRECTION = normalize(vec3(1, 1, 1));
 
 const int MAX_D_LIGHT_COUNT = 3;
