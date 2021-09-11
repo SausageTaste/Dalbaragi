@@ -21,7 +21,9 @@ namespace dal {
     };
 
     struct U_PerFrame_Composition {
-        glm::mat4 m_view_inv{1}, m_proj_inv{1};
+        glm::mat4 m_view_mat{1};
+        glm::mat4 m_view_inv{1};
+        glm::mat4 m_proj_inv{1};
         glm::vec4 m_view_pos{};
 
         float m_near, m_far;

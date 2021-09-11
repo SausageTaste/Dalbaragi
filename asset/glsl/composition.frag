@@ -38,6 +38,7 @@ layout(set = 0, binding = 4) uniform U_GlobalLight {
 } u_global_light;
 
 layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
+    mat4 m_view_mat;
     mat4 m_view_inv;
     mat4 m_proj_inv;
     vec4 m_view_pos;
@@ -60,7 +61,7 @@ vec3 calc_world_pos(const float z) {
 }
 
 float calc_view_z_of(const vec3 p) {
-    const mat4 m = inverse(u_per_frame_composition.m_view_inv);
+    const mat4 m = u_per_frame_composition.m_view_mat;
     return dot(vec3(m[0].z, m[1].z, m[2].z), p) + m[3].z;
 }
 

@@ -439,6 +439,7 @@ namespace dal {
             this->m_ubuf_man.m_ub_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
 
             U_PerFrame_Composition ubuf_data_composition{};
+            ubuf_data_composition.m_view_mat = cam_view_mat;
             ubuf_data_composition.m_view_inv = glm::inverse(cam_view_mat);
             ubuf_data_composition.m_proj_inv = glm::inverse(cam_proj_mat);
             ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
