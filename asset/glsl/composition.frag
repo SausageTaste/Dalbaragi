@@ -222,12 +222,6 @@ vec3 calculate_dlight_scattering(
     // get the step size of the ray
     const float step_size_i = (ray_length.y - ray_length.x) / float(steps_i);
 
-    // next, set how far we are along the ray, so we can calculate the position of the sample
-    // if the camera is outside the atmosphere, the ray should start at the edge of the atmosphere
-    // if it's inside, it should start at the position of the camera
-    // the min statement makes sure of that
-    float ray_pos_i = ray_length.x + step_size_i * 0.5;
-
     // these are the values we use to gather all the scattered light
     vec3 total_ray = vec3(0.0); // for rayleigh
     vec3 total_mie = vec3(0.0); // for mie
@@ -253,12 +247,24 @@ vec3 calculate_dlight_scattering(
     const float phase_ray = 3.0 / (50.2654824574 /* (16 * pi) */) * (1.0 + mumu);
     const float phase_mie = allow_mie ? 3.0 / (25.1327412287 /* (8 * pi) */) * ((1.0 - gg) * (mumu + 1.0)) / (pow(1.0 + gg - 2.0 * mu * g, 1.5) * (2.0 + gg)) : 0.0;
 
+#ifdef DAL_ATMOS_DITHERING
+    const float dither_value = get_dither_value();
+#endif
+
     // now we need to sample the 'primary' ray. this ray gathers the light that gets scattered onto it
     for (int i = 0; i < steps_i; ++i) {
 
+        // calculate where we are along this ray
+#ifdef DAL_ATMOS_DITHERING
+        const float index_factor = float(i) + dither_value + 0.5;
+#else
+        const float index_factor = float(i) + 0.5;
+#endif
+        const vec3 pos_i = start + dir * (ray_length.x + step_size_i * index_factor);
+
 #ifdef DAL_VOLUMETRIC_ATMOS
         bool in_shadow_i = false;
-        const vec3 world_pos_i = view_pos + dir * ray_pos_i;
+        const vec3 world_pos_i = pos_i + planet_position;
         const float depth_i = calc_depth_of_z(calc_view_z_of(world_pos_i), u_per_frame_composition.m_near, u_per_frame_composition.m_far);
 
         uint selected_dlight = u_global_light.m_dlight_count - 1;
@@ -280,9 +286,6 @@ vec3 calculate_dlight_scattering(
             }
         }
 #endif
-
-        // calculate where we are along this ray
-        const vec3 pos_i = start + dir * ray_pos_i;
 
         // and how high we are above the surface
         const float height_i = length(pos_i) - planet_radius;
@@ -376,9 +379,6 @@ vec3 calculate_dlight_scattering(
         }
 #endif
 
-        // and increment the position on this ray
-        ray_pos_i += step_size_i;
-
     }
 
     // calculate how much light can pass through the atmosphere
@@ -445,12 +445,6 @@ vec3 calculate_dlight_scattering_sky(
     // get the step size of the ray
     const float step_size_i = (ray_length.y - ray_length.x) / float(steps_i);
 
-    // next, set how far we are along the ray, so we can calculate the position of the sample
-    // if the camera is outside the atmosphere, the ray should start at the edge of the atmosphere
-    // if it's inside, it should start at the position of the camera
-    // the min statement makes sure of that
-    float ray_pos_i = ray_length.x + step_size_i * 0.5;
-
     // these are the values we use to gather all the scattered light
     vec3 total_ray = vec3(0.0); // for rayleigh
     vec3 total_mie = vec3(0.0); // for mie
@@ -479,8 +473,9 @@ vec3 calculate_dlight_scattering_sky(
     // now we need to sample the 'primary' ray. this ray gathers the light that gets scattered onto it
     for (int i = 0; i < steps_i; ++i) {
 
-        // calculate where we are along this ray
-        const vec3 pos_i = start + dir * ray_pos_i;
+        // calculate where we are along this
+        const float index_factor = float(i) + 0.5;
+        const vec3 pos_i = start + dir * (ray_length.x + step_size_i *index_factor);
 
         // and how high we are above the surface
         const float height_i = length(pos_i) - planet_radius;
@@ -567,9 +562,6 @@ vec3 calculate_dlight_scattering_sky(
         // accumulate the scattered light (how much will be scattered towards the camera)
         total_ray += density.x * attn;
         total_mie += density.y * attn;
-
-        // and increment the position on this ray
-        ray_pos_i += step_size_i;
 
     }
 

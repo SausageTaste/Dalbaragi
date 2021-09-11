@@ -64,6 +64,7 @@ def main():
 
         WorkDef("composition_f.spv", "composition.frag", [
             "DAL_VOLUMETRIC_ATMOS",
+            "DAL_ATMOS_DITHERING",
         ]),
 
         WorkDef("composition_gamma_f.spv", "composition.frag", ["DAL_GAMMA_CORRECT"]),
