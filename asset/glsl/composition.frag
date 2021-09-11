@@ -1,6 +1,7 @@
 #version 450
 
 #include "d_lighting.glsl"
+#include "d_atmos_scattering.glsl"
 
 
 layout(location = 0) in vec2 v_device_coord;
@@ -244,7 +245,36 @@ void main() {
     }
 
     out_color = vec4(light, 1);
-    out_color.xyz += calc_scattering(world_pos, depth, u_per_frame_composition.m_view_pos.xyz);
+
+    if (dot(vec3(0, 1, 0), u_global_light.m_dlight_direc[0].xyz) >= -0.2) {
+        //out_color.xyz += calc_scattering(world_pos, depth, u_per_frame_composition.m_view_pos.xyz);
+        out_color.xyz += clamp(skylight(world_pos, normal, u_global_light.m_dlight_direc[0].xyz, vec3(0.0)) * vec3(0.0, 0.25, 0.05), 0.0, 1.0);
+
+        out_color.xyz = calculate_scattering(
+            u_per_frame_composition.m_view_pos.xyz,
+            view_direc,
+            (1.0 != depth) ? distance(u_per_frame_composition.m_view_pos.xyz, world_pos) : 1e12,
+            out_color.xyz,
+            -u_global_light.m_dlight_direc[0].xyz,
+            vec3(40.0),
+            vec3(u_per_frame_composition.m_view_pos.x, PLANET_RADIUS, u_per_frame_composition.m_view_pos.z),
+            PLANET_RADIUS,
+            ATMOS_RADIUS,
+            RAY_BETA,
+            MIE_BETA,
+            ABSORPTION_BETA,
+            AMBIENT_BETA,
+            G,
+            HEIGHT_RAY,
+            HEIGHT_MIE,
+            HEIGHT_ABSORPTION,
+            ABSORPTION_FALLOFF,
+            PRIMARY_STEPS,
+            LIGHT_STEPS
+        );
+    }
+
+    out_color.xyz = 1.0 - exp(-out_color.xyz);
 
 #ifdef DAL_GAMMA_CORRECT
     out_color.xyz = fix_color(out_color.xyz);

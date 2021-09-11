@@ -84,25 +84,25 @@ because the color that reaches the sample also changes due to scattering
 */
 vec3 calculate_scattering(
 	vec3 start, 				// the start of the ray (the camera position)
-    vec3 dir, 					// the direction of the ray (the camera vector)
-    float max_dist, 			// the maximum distance the ray can travel (because something is in the way, like an object)
-    vec3 scene_color,			// the color of the scene
-    vec3 light_dir, 			// the direction of the light
-    vec3 light_intensity,		// how bright the light is, affects the brightness of the atmosphere
-    vec3 planet_position, 		// the position of the planet
-    float planet_radius, 		// the radius of the planet
-    float atmo_radius, 			// the radius of the atmosphere
-    vec3 beta_ray, 				// the amount rayleigh scattering scatters the colors (for earth: causes the blue atmosphere)
-    vec3 beta_mie, 				// the amount mie scattering scatters colors
-    vec3 beta_absorption,   	// how much air is absorbed
-    vec3 beta_ambient,			// the amount of scattering that always occurs, cna help make the back side of the atmosphere a bit brighter
-    float g, 					// the direction mie scatters the light in (like a cone). closer to -1 means more towards a single direction
-    float height_ray, 			// how high do you have to go before there is no rayleigh scattering?
-    float height_mie, 			// the same, but for mie
-    float height_absorption,	// the height at which the most absorption happens
-    float absorption_falloff,	// how fast the absorption falls off from the absorption height
-    int steps_i, 				// the amount of steps along the 'primary' ray, more looks better but slower
-    int steps_l 				// the amount of steps along the light ray, more looks better but slower
+    const vec3 dir, 					// the direction of the ray (the camera vector)
+    const float max_dist, 			// the maximum distance the ray can travel (because something is in the way, like an object)
+    const vec3 scene_color,			// the color of the scene
+    const vec3 light_dir, 			// the direction of the light
+    const vec3 light_intensity,		// how bright the light is, affects the brightness of the atmosphere
+    const vec3 planet_position, 		// the position of the planet
+    const float planet_radius, 		// the radius of the planet
+    const float atmo_radius, 			// the radius of the atmosphere
+    const vec3 beta_ray, 				// the amount rayleigh scattering scatters the colors (for earth: causes the blue atmosphere)
+    const vec3 beta_mie, 				// the amount mie scattering scatters colors
+    const vec3 beta_absorption,   	// how much air is absorbed
+    const vec3 beta_ambient,			// the amount of scattering that always occurs, cna help make the back side of the atmosphere a bit brighter
+    const float g, 					// the direction mie scatters the light in (like a cone). closer to -1 means more towards a single direction
+    const float height_ray, 			// how high do you have to go before there is no rayleigh scattering?
+    const float height_mie, 			// the same, but for mie
+    const float height_absorption,	// the height at which the most absorption happens
+    const float absorption_falloff,	// how fast the absorption falls off from the absorption height
+    const int steps_i, 				// the amount of steps along the 'primary' ray, more looks better but slower
+    const int steps_l 				// the amount of steps along the light ray, more looks better but slower
 ) {
     // add an offset to the camera position, so that the atmosphere is in the correct position
     start -= planet_position;
