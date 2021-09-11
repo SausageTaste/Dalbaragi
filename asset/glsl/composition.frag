@@ -211,7 +211,11 @@ vec3 calculate_dlight_scattering(
     // if the ray did not hit the atmosphere, return a black color
     if (ray_length.x > ray_length.y) return scene_color;
     // prevent the mie glow from appearing if there's an object in front of the camera
+#ifdef DAL_VOLUMETRIC_ATMOS
     const bool allow_mie = true;
+#else
+    const bool allow_mie = max_dist > ray_length.y;
+#endif
     // make sure the ray is no longer than allowed
     ray_length.y = min(ray_length.y, max_dist);
     ray_length.x = max(ray_length.x, 0.0);
@@ -251,6 +255,8 @@ vec3 calculate_dlight_scattering(
 
     // now we need to sample the 'primary' ray. this ray gathers the light that gets scattered onto it
     for (int i = 0; i < steps_i; ++i) {
+
+#ifdef DAL_VOLUMETRIC_ATMOS
         bool in_shadow_i = false;
         const vec3 world_pos_i = view_pos + dir * ray_pos_i;
         const float depth_i = calc_depth_of_z(calc_view_z_of(world_pos_i), u_per_frame_composition.m_near, u_per_frame_composition.m_far);
@@ -273,6 +279,7 @@ vec3 calculate_dlight_scattering(
                 in_shadow_i = true;
             }
         }
+#endif
 
         // calculate where we are along this ray
         const vec3 pos_i = start + dir * ray_pos_i;
@@ -300,7 +307,9 @@ vec3 calculate_dlight_scattering(
         // and update the previous density
         prev_density = density;
 
+#ifdef DAL_VOLUMETRIC_ATMOS
         if (!in_shadow_i) {
+#endif
             // Calculate the step size of the light ray.
             // again with a ray sphere intersect
             // a, b, c and d are already defined
@@ -363,7 +372,9 @@ vec3 calculate_dlight_scattering(
             // accumulate the scattered light (how much will be scattered towards the camera)
             total_ray += density.x * attn;
             total_mie += density.y * attn;
+#ifdef DAL_VOLUMETRIC_ATMOS
         }
+#endif
 
         // and increment the position on this ray
         ray_pos_i += step_size_i;
