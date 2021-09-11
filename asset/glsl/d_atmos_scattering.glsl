@@ -8,7 +8,6 @@
 vec3 calculate_dlight_scattering_sky(
     const vec3 view_pos,
     const vec3 dir,
-    const vec3 scene_color,
     const vec3 light_dir,
     const vec3 light_intensity,
     const vec3 planet_position,
@@ -29,7 +28,8 @@ vec3 calculate_dlight_scattering_sky(
     float d = (b * b) - 4.0 * a * c;
 
     // stop early if there is no intersect
-    if (d < 0.0) return scene_color;
+    if (d < 0.0)
+        return vec3(0);
 
     // calculate the ray length
     vec2 ray_length = vec2(
@@ -38,9 +38,9 @@ vec3 calculate_dlight_scattering_sky(
     );
 
     // if the ray did not hit the atmosphere, return a black color
-    if (ray_length.x > ray_length.y) return scene_color;
-    // prevent the mie glow from appearing if there's an object in front of the camera
-    const bool allow_mie = true;
+    if (ray_length.x > ray_length.y)
+        return vec3(0);
+
     // make sure the ray is no longer than allowed
     ray_length.y = min(ray_length.y, DAL_ATMOS_MAX_DIST);
     ray_length.x = max(ray_length.x, 0.0);
@@ -56,7 +56,7 @@ vec3 calculate_dlight_scattering_sky(
     const float mu = dot(dir, light_dir);
     const float mumu = mu * mu;
     const float phase_ray = 3.0 / (16.0 * DAL_PI) * (1.0 + mumu);
-    const float phase_mie = allow_mie ? 3.0 / (8.0 * DAL_PI) * ((1.0 - DAL_ANISOTROPY_SQR) * (mumu + 1.0)) / (pow(1.0 + DAL_ANISOTROPY_SQR - 2.0 * mu * G, 1.5) * (2.0 + DAL_ANISOTROPY_SQR)) : 0.0;
+    const float phase_mie = 3.0 / (8.0 * DAL_PI) * ((1.0 - DAL_ANISOTROPY_SQR) * (mumu + 1.0)) / (pow(1.0 + DAL_ANISOTROPY_SQR - 2.0 * mu * G, 1.5) * (2.0 + DAL_ANISOTROPY_SQR));
 
     for (int i = 0; i < steps_i; ++i) {
 
@@ -152,13 +152,10 @@ vec3 calculate_dlight_scattering_sky(
 
     }
 
-    // calculate how much light can pass through the atmosphere
-    const vec3 opacity = exp(-(beta_mie * opt_i.y + beta_ray * opt_i.x + ABSORPTION_BETA * opt_i.z));
-
     // calculate and return the final color
     return (
           phase_ray * beta_ray * total_ray          // rayleigh color
         + phase_mie * beta_mie * total_mie          // mie
         + opt_i.x   * AMBIENT_BETA                  // and ambient
-    ) * light_intensity + scene_color * opacity;    // now make sure the background is rendered correctly
+    ) * light_intensity;
 }

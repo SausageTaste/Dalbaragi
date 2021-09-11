@@ -514,7 +514,6 @@ void main() {
             out_color.xyz = calculate_dlight_scattering_sky(
                 u_per_frame_composition.m_view_pos.xyz,
                 view_direc,
-                out_color.xyz,
                 u_global_light.m_dlight_direc[0].xyz,
                 vec3(u_global_light.m_atmos_intensity),
                 vec3(u_per_frame_composition.m_view_pos.x, -PLANET_RADIUS, u_per_frame_composition.m_view_pos.z),
