@@ -260,15 +260,15 @@ vec3 calculate_dlight_scattering(
 
         // calculate where we are along this ray
 #ifdef DAL_ATMOS_DITHERING
-        const float index_factor = float(i) + dither_value + 0.5;
+        const vec3 sample_offset = dir * (ray_length.x + step_size_i * (float(i) + dither_value + 0.5));
 #else
-        const float index_factor = float(i) + 0.5;
+        const vec3 sample_offset = dir * (ray_length.x + step_size_i * (float(i) + 0.5));
 #endif
-        const vec3 pos_i = start + dir * (ray_length.x + step_size_i * index_factor);
+        const vec3 world_pos_i   = view_pos + sample_offset;
+        const vec3 pos_i         = start + sample_offset;
 
 #ifdef DAL_VOLUMETRIC_ATMOS
         bool in_shadow_i = false;
-        const vec3 world_pos_i = pos_i + planet_position;
         const float depth_i = calc_depth_of_z(calc_view_z_of(world_pos_i), u_per_frame_composition.m_near, u_per_frame_composition.m_far);
 
         uint selected_dlight = u_global_light.m_dlight_count - 1;
@@ -514,22 +514,12 @@ void main() {
             out_color.xyz = calculate_dlight_scattering_sky(
                 u_per_frame_composition.m_view_pos.xyz,
                 view_direc,
-                1e12,
                 out_color.xyz,
                 u_global_light.m_dlight_direc[0].xyz,
                 vec3(u_global_light.m_atmos_intensity),
                 vec3(u_per_frame_composition.m_view_pos.x, -PLANET_RADIUS, u_per_frame_composition.m_view_pos.z),
-                PLANET_RADIUS,
-                ATMOS_RADIUS,
                 RAY_BETA,
                 vec3(u_global_light.m_mie_scattering_coeff),
-                ABSORPTION_BETA,
-                AMBIENT_BETA,
-                G,
-                HEIGHT_RAY,
-                HEIGHT_MIE,
-                HEIGHT_ABSORPTION,
-                ABSORPTION_FALLOFF,
                 8,
                 4
             );
