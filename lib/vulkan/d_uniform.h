@@ -61,6 +61,7 @@ namespace dal {
         glm::vec4 m_dlight_clip_dist;
 
         float m_atmos_intensity;
+        float m_mie_scattering_coeff;
 
         uint32_t m_dlight_count = 0;
         uint32_t m_plight_count = 0;

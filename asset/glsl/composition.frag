@@ -33,6 +33,7 @@ layout(set = 0, binding = 4) uniform U_GlobalLight {
     vec4 m_dlight_clip_dist;
 
     float m_atmos_intensity;
+    float m_mie_scattering_coeff;
 
     uint m_dlight_count;
     uint m_plight_count;
@@ -497,7 +498,7 @@ void main() {
                 PLANET_RADIUS,
                 ATMOS_RADIUS,
                 RAY_BETA,
-                MIE_BETA,
+                vec3(u_global_light.m_mie_scattering_coeff),
                 ABSORPTION_BETA,
                 AMBIENT_BETA,
                 G,
@@ -521,7 +522,7 @@ void main() {
                 PLANET_RADIUS,
                 ATMOS_RADIUS,
                 RAY_BETA,
-                MIE_BETA,
+                vec3(u_global_light.m_mie_scattering_coeff),
                 ABSORPTION_BETA,
                 AMBIENT_BETA,
                 G,
