@@ -19,6 +19,7 @@ FOLDERS_TO_EXCLUDE = [
 
 FILES_TO_EXCLUDE = [
     "vulkan_wrapper",
+    "d_atmos_scattering_copied.glsl",
 ]
 
 TARGET_DIRS = [
@@ -33,6 +34,7 @@ TARGET_EXTENSIONS = [
     "txt",
     "java",
     "lua",
+    "glsl",
     "vert",
     "frag",
 ]
