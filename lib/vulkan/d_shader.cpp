@@ -13,8 +13,14 @@
 #include "d_vert_data.h"
 
 
+#define DAL_HASH_SHADER_CACHE_NAME false
+
+
 // Shader module tools
 namespace {
+
+    const std::filesystem::path SHADER_CACHE_DIR = "_internal/spv";
+
 
     enum class ShaderKind {
         vert,
@@ -99,19 +105,41 @@ namespace {
         shaderc::CompileOptions m_options;
         std::set<std::string> m_macro_def;
 
+        size_t m_hash;
+
     public:
         ShaderCompileOption(dal::Filesystem& filesys) {
             this->m_options.SetIncluder(std::make_unique<ShaderIncluder>(filesys));
             this->m_options.SetOptimizationLevel(shaderc_optimization_level_performance);
+
+            this->update_hash();
         }
 
         void add_macro_def(const std::string& def) {
             this->m_macro_def.insert(def);
             this->m_options.AddMacroDefinition(def);
+
+            this->update_hash();
         }
 
         auto& get() const {
             return this->m_options;
+        }
+
+        auto& hash_value() const {
+            return this->m_hash;
+        }
+
+    private:
+        void update_hash() {
+            std::string accum;
+
+            for (auto& x : this->m_macro_def) {
+                accum += x;
+                accum += ' ';
+            }
+
+            this->m_hash = std::hash<std::string>{}(accum);
         }
 
     };
@@ -269,29 +297,79 @@ namespace {
 
         }
 
-        std::vector<uint8_t> load(const std::string& path, const ::ShaderKind shader_kind) {
+        std::vector<uint8_t> load(const dal::ResPath& path, const ::ShaderKind shader_kind) {
+            const auto cache_path = this->make_shader_cache_path(path, shader_kind);
+
+            if (this->m_filesys.is_file(cache_path)) {
+                auto file = this->m_filesys.open(cache_path);
+                return file->read_stl<std::vector<uint8_t>>().value();
+            }
+            else {
+                const auto output = this->load_compile_shader(path, shader_kind);
+
+                auto file = this->m_filesys.open_write(cache_path);
+                if (file->is_ready()) {
+                    file->write(output.data(), output.size());
+                }
+
+                return output;
+            }
+        }
+
+    private:
+        std::vector<uint8_t> load_compile_shader(const dal::ResPath& path, const ::ShaderKind shader_kind) const {
+            const auto path_str = path.make_str();
+
             auto file = this->m_filesys.open(path);
             if (!file->is_ready())
-                dalAbort(fmt::format("Failed to open shader file: {}", path).c_str());
+                dalAbort(fmt::format("Failed to open shader file: {}", path_str).c_str());
 
             const auto data = file->read_stl<std::string>();
             if (!data.has_value())
-                dalAbort(fmt::format("Failed to read shader file: {}", path).c_str());
+                dalAbort(fmt::format("Failed to read shader file: {}", path_str).c_str());
 
             std::vector<uint8_t> output;
             const auto [compile_result, compile_err_msg] = this->m_compiler.compile(
                 data->data(),
                 data->size(),
                 shader_kind,
-                path.c_str(),
+                path_str.c_str(),
                 this->m_options,
                 output
             );
 
             if (!compile_result)
-                dalAbort(fmt::format("Failed to compile shader: {}\n{}", path, compile_err_msg).c_str());
+                dalAbort(fmt::format("Failed to compile shader: {}\n{}", path_str, compile_err_msg).c_str());
 
+            dalInfo(fmt::format("Shader compiled: {}", path_str).c_str());
             return output;
+        }
+
+        std::string make_shader_cache_path(const dal::ResPath& path, const ::ShaderKind shader_kind) const {
+            std::string accum;
+
+            for (auto& x : path.dir_list()) {
+                accum += x;
+                accum += '-';
+            }
+
+            switch (shader_kind) {
+                case ::ShaderKind::vert:
+                    accum += "vert";
+                    break;
+                case ::ShaderKind::frag:
+                    accum += "frag";
+                    break;
+                default:
+                    dalAbort("Unknown shader kind");
+            }
+
+#if DAL_HASH_SHADER_CACHE_NAME
+            const auto hashed = std::hash<std::string>{}(accum);
+#else
+            const auto& hashed = accum;
+#endif
+            return fmt::format("{}/{}/{}.spv", ::SHADER_CACHE_DIR.u8string(), this->m_options.hash_value(), hashed);
         }
 
     };
