@@ -14,6 +14,54 @@
 // Shader module tools
 namespace {
 
+    enum class ShaderKind {
+        vert,
+        frag,
+    };
+
+
+    class ShaderCompiler {
+
+    private:
+        shaderc::Compiler m_compiler;
+
+    public:
+        template <typename T>
+        std::vector<T> load(const std::string& path, const ::ShaderKind shader_kind, dal::Filesystem& filesys) const {
+            static_assert(sizeof(T) == 4 || sizeof(T) == 2 || sizeof(T) == 1);
+
+            auto file = filesys.open(path);
+            if (!file->is_ready())
+                dalAbort(fmt::format("Failed to load shader file: {}", path).c_str());
+
+            const auto data = file->read_stl<std::string>();
+            if (!data.has_value())
+                dalAbort(fmt::format("Failed to read shader file: {}", path).c_str());
+
+            shaderc::CompileOptions options;
+
+            const auto result = this->m_compiler.CompileGlslToSpv(data.value(), this->convert_shader_kind(shader_kind), path.c_str(), options);
+            if (shaderc_compilation_status_success != result.GetCompilationStatus())
+                dalAbort(fmt::format("Failed to compile shader: {}\n{}", path, result.GetErrorMessage()).c_str());
+
+            return std::vector<T>{ reinterpret_cast<const T*>(result.cbegin()), reinterpret_cast<const T*>(result.cend()) };
+        }
+
+    private:
+        static shaderc_shader_kind convert_shader_kind(const ::ShaderKind shader_kind) {
+            switch (shader_kind) {
+                case ::ShaderKind::vert:
+                    return shaderc_glsl_default_vertex_shader;
+                case ::ShaderKind::frag:
+                    return shaderc_glsl_default_fragment_shader;
+                default:
+                    return shaderc_glsl_infer_from_source;
+            }
+        }
+
+    };
+
+
     class ShaderModule {
 
     private:
@@ -27,23 +75,46 @@ namespace {
 
         }
 
-        ShaderModule(const VkDevice logi_device, const char* const source_str, const uint32_t source_size)
+        template <typename T>
+        ShaderModule(const VkDevice logi_device, const T* const source_str, const size_t source_size)
             : m_parent_device(logi_device)
         {
             this->init(source_str, source_size);
+        }
+
+        template <typename T>
+        ShaderModule(const VkDevice logi_device, const std::vector<T>& source)
+            : m_parent_device(logi_device)
+        {
+            this->init(source);
         }
 
         ~ShaderModule() {
             this->destroy();
         }
 
-        void init(const char* const source_str, const uint32_t source_size) {
+        template <typename T>
+        void init(const T* const source_str, const size_t source_size) {
             this->destroy();
 
             VkShaderModuleCreateInfo create_info{};
             create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             create_info.codeSize = source_size;
             create_info.pCode = reinterpret_cast<const uint32_t*>(source_str);
+
+            if (VK_SUCCESS != vkCreateShaderModule(this->m_parent_device, &create_info, nullptr, &this->m_module)) {
+                dalAbort("Failed to create shader module");
+            }
+        }
+
+        template <typename T>
+        void init(const std::vector<T>& source) {
+            this->destroy();
+
+            VkShaderModuleCreateInfo create_info{};
+            create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            create_info.codeSize = source.size() * sizeof(T);
+            create_info.pCode = reinterpret_cast<const uint32_t*>(source.data());
 
             if (VK_SUCCESS != vkCreateShaderModule(this->m_parent_device, &create_info, nullptr, &this->m_module)) {
                 dalAbort("Failed to create shader module");
@@ -340,6 +411,7 @@ namespace {
 namespace {
 
     dal::ShaderPipeline make_pipeline_gbuf(
+        ShaderCompiler& compiler,
         dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -350,18 +422,12 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = filesys.open("_asset/spv/gbuf_v.spv")->read_stl<std::vector<char>>();
-        if (!vert_src) {
-            dalAbort("Vertex shader 'gbuf_v.spv' not found");
-        }
-        const auto frag_src = filesys.open("_asset/spv/gbuf_f.spv")->read_stl<std::vector<char>>();
-        if (!frag_src) {
-            dalAbort("Fragment shader 'gbuf_f.spv' not found");
-        }
+        const auto vert_src = compiler.load<float>("_asset/glsl/gbuf.vert", ::ShaderKind::vert, filesys);
+        const auto frag_src = compiler.load<uint16_t>("_asset/glsl/gbuf.frag", ::ShaderKind::frag, filesys);
 
         // Shaders
-        const ShaderModule vert_shader_module(logi_device, vert_src->data(), vert_src->size());
-        const ShaderModule frag_shader_module(logi_device, frag_src->data(), frag_src->size());
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
@@ -425,6 +491,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_gbuf_animated(
+        ShaderCompiler& compiler,
         dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -436,18 +503,12 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = filesys.open("_asset/spv/gbuf_animated_v.spv")->read_stl<std::vector<char>>();
-        if (!vert_src) {
-            dalAbort("Vertex shader 'gbuf_animated_v.spv' not found");
-        }
-        const auto frag_src = filesys.open("_asset/spv/gbuf_f.spv")->read_stl<std::vector<char>>();
-        if (!frag_src) {
-            dalAbort("Fragment shader 'gbuf_f.spv' not found");
-        }
+        const auto vert_src = compiler.load<float>("_asset/glsl/gbuf_animated.vert", ::ShaderKind::vert, filesys);
+        const auto frag_src = compiler.load<float>("_asset/glsl/gbuf.frag", ::ShaderKind::frag, filesys);
 
         // Shaders
-        const ShaderModule vert_shader_module(logi_device, vert_src->data(), vert_src->size());
-        const ShaderModule frag_shader_module(logi_device, frag_src->data(), frag_src->size());
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
@@ -511,6 +572,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_composition(
+        ShaderCompiler& compiler,
         dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
@@ -594,6 +656,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_final(
+        ShaderCompiler& compiler,
         dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
@@ -670,6 +733,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_alpha(
+        ShaderCompiler& compiler,
         dal::Filesystem& filesys,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
@@ -760,6 +824,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_alpha_animated(
+        ShaderCompiler& compiler,
         dal::Filesystem& filesys,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
@@ -852,6 +917,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_shadow(
+        ShaderCompiler& compiler,
         dal::Filesystem& filesys,
         const bool does_support_depth_clamp,
         const VkExtent2D& extent,
@@ -933,6 +999,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_shadow_animated(
+        ShaderCompiler& compiler,
         dal::Filesystem& filesys,
         const bool does_support_depth_clamp,
         const VkExtent2D& extent,
@@ -1039,10 +1106,10 @@ namespace dal {
     ) {
         this->destroy(logi_device);
 
-        shaderc::Compiler compiler;
-        dalInfo(fmt::format("Shader compiler ready: {}", compiler.IsValid()).c_str());
+        ::ShaderCompiler compiler;
 
         this->m_gbuf = ::make_pipeline_gbuf(
+            compiler,
             filesys,
             need_gamma_correction,
             gbuf_extent,
@@ -1054,6 +1121,7 @@ namespace dal {
         );
 
         this->m_gbuf_animated = ::make_pipeline_gbuf_animated(
+            compiler,
             filesys,
             need_gamma_correction,
             gbuf_extent,
@@ -1066,6 +1134,7 @@ namespace dal {
         );
 
         this->m_composition = ::make_pipeline_composition(
+            compiler,
             filesys,
             need_gamma_correction,
             gbuf_extent,
@@ -1075,6 +1144,7 @@ namespace dal {
         );
 
         this->m_final = ::make_pipeline_final(
+            compiler,
             filesys,
             need_gamma_correction,
             swapchain_extent,
@@ -1084,6 +1154,7 @@ namespace dal {
         );
 
         this->m_alpha = ::make_pipeline_alpha(
+            compiler,
             filesys,
             rp_alpha,
             need_gamma_correction,
@@ -1095,6 +1166,7 @@ namespace dal {
         );
 
         this->m_alpha_animated = ::make_pipeline_alpha_animated(
+            compiler,
             filesys,
             rp_alpha,
             need_gamma_correction,
@@ -1107,6 +1179,7 @@ namespace dal {
         );
 
         this->m_shadow = ::make_pipeline_shadow(
+            compiler,
             filesys,
             does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
@@ -1115,6 +1188,7 @@ namespace dal {
         );
 
         this->m_shadow_animated = ::make_pipeline_shadow_animated(
+            compiler,
             filesys,
             does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
