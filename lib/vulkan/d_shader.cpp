@@ -23,7 +23,7 @@ namespace {
     const std::filesystem::path SHADER_CACHE_DIR = "_internal/spv";
 
 #if DAL_INVALIDATE_CACHE_ONCE
-        std::unordered_set<std::string> g_refreshed_ones;
+    std::unordered_set<std::string> g_refreshed_ones;
 #endif
 
 
@@ -303,26 +303,28 @@ namespace {
         }
 
         std::vector<uint8_t> load(const dal::ResPath& path, const ::ShaderKind shader_kind) {
+            std::vector<uint8_t> output;
             const auto cache_path = this->make_shader_cache_path(path, shader_kind);
 
             if (!this->need_to_compile(cache_path)) {
                 auto file = this->m_filesys.open(cache_path);
-                return file->read_stl<std::vector<uint8_t>>().value();
+                const auto read_result = file->read_stl(output);
+                dalAssert(read_result);
             }
             else {
-                const auto output = this->load_compile_shader(path, shader_kind);
+                this->load_compile_shader(path, shader_kind, output);
 
                 auto file = this->m_filesys.open_write(cache_path);
                 if (file->is_ready()) {
                     file->write(output.data(), output.size());
                 }
-
-                return output;
             }
+
+            return output;
         }
 
     private:
-        std::vector<uint8_t> load_compile_shader(const dal::ResPath& path, const ::ShaderKind shader_kind) const {
+        void load_compile_shader(const dal::ResPath& path, const ::ShaderKind shader_kind, std::vector<uint8_t>& output) const {
             const auto path_str = path.make_str();
 
             auto file = this->m_filesys.open(path);
@@ -333,7 +335,6 @@ namespace {
             if (!data.has_value())
                 dalAbort(fmt::format("Failed to read shader file: {}", path_str).c_str());
 
-            std::vector<uint8_t> output;
             const auto [compile_result, compile_err_msg] = this->m_compiler.compile(
                 data->data(),
                 data->size(),
@@ -347,7 +348,6 @@ namespace {
                 dalAbort(fmt::format("Failed to compile shader: {}\n{}", path_str, compile_err_msg).c_str());
 
             dalInfo(fmt::format("Shader compiled: {}", path_str).c_str());
-            return output;
         }
 
         std::string make_shader_cache_path(const dal::ResPath& path, const ::ShaderKind shader_kind) const {
