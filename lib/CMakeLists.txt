@@ -5,6 +5,9 @@ include(FetchContent)
 set(extern_dir ./../extern)
 
 
+# Define external libraries
+#-------------------------------------------------------------------------------
+
 FetchContent_Declare(
     fetch_fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt
@@ -16,6 +19,10 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/glfw/glfw
     GIT_TAG        3.3.2
 )
+option(GLFW_BUILD_DOCS off)
+option(GLFW_BUILD_EXAMPLES off)
+option(GLFW_BUILD_TESTS off)
+option(GLFW_USE_HYBRID_HPG on)
 
 FetchContent_Declare(
     fetch_glm
@@ -49,6 +56,19 @@ FetchContent_Declare(
     GIT_TAG        v5.4.3
 )
 
+# SPIRV-Tools
+set(SPIRV_SKIP_EXECUTABLES on)
+set(SPIRV_SKIP_TESTS on)
+
+# shaderc
+set(SHADERC_ENABLE_SHARED_CRT on)
+set(SHADERC_SKIP_EXAMPLES on)
+set(SHADERC_SKIP_INSTALL on)
+set(SHADERC_SKIP_TESTS on)
+
+
+# Import libraries
+#-------------------------------------------------------------------------------
 
 FetchContent_MakeAvailable(fetch_fmt)
 FetchContent_MakeAvailable(fetch_glm)
@@ -56,6 +76,11 @@ FetchContent_MakeAvailable(fetch_stb)
 FetchContent_MakeAvailable(fetch_entt)
 FetchContent_MakeAvailable(fetch_dal_blender)
 FetchContent_MakeAvailable(fetch_lua)
+
+add_subdirectory(${extern_dir}/glslang ${CMAKE_CURRENT_BINARY_DIR}/glslang)
+add_subdirectory(${extern_dir}/SPIRV-Headers ${CMAKE_CURRENT_BINARY_DIR}/SPIRV-Headers)
+add_subdirectory(${extern_dir}/SPIRV-Tools ${CMAKE_CURRENT_BINARY_DIR}/SPIRV-Tools)
+add_subdirectory(${extern_dir}/shaderc ${CMAKE_CURRENT_BINARY_DIR}/shaderc)
 
 if (WIN32)
     find_package(Vulkan REQUIRED)
@@ -66,7 +91,6 @@ elseif ("${CMAKE_SYSTEM}" MATCHES "Linux")
     FetchContent_MakeAvailable(fetch_glfw)
 
 elseif (ANDROID)
-
 endif()
 
 
@@ -106,6 +130,9 @@ add_library(lua_static STATIC
 )
 target_include_directories(lua_static PUBLIC ${fetch_lua_SOURCE_DIR})
 
+
+# Add project directories
+#-------------------------------------------------------------------------------
 
 add_subdirectory(./util)
 add_subdirectory(./scene)
