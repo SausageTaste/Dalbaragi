@@ -1,5 +1,6 @@
 #include "d_shader.h"
 
+#include <list>
 #include <array>
 
 #include <fmt/format.h>
@@ -20,6 +21,76 @@ namespace {
     };
 
 
+    class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface {
+
+    private:
+        struct ResultData {
+
+        public:
+            std::string m_content;
+            std::string m_source_name;
+
+        private:
+            shaderc_include_result m_result;
+
+            void update_result() noexcept {
+                this->m_result.content              = this->m_content.c_str();
+                this->m_result.content_length       = this->m_content.size();
+                this->m_result.source_name          = this->m_source_name.c_str();
+                this->m_result.source_name_length   = this->m_source_name.size();
+                this->m_result.user_data            = nullptr;
+            }
+
+        public:
+            shaderc_include_result& update_get_result() noexcept {
+                this->update_result();
+                return this->m_result;
+            }
+
+        };
+
+    private:
+        dal::Filesystem& m_filesys;
+        std::list<ResultData> m_list_result;
+
+    public:
+        ShaderIncluder(dal::Filesystem& filesys)
+            : m_filesys(filesys)
+        {
+
+        }
+
+        shaderc_include_result* GetInclude(
+            const char* const requested_source,
+            const shaderc_include_type type,
+            const char* const requesting_source,
+            const size_t include_depth
+        ) override {
+            auto& output = this->m_list_result.emplace_back();
+
+            const auto requested_file_path = std::filesystem::path{ requesting_source }.remove_filename() / requested_source;
+            output.m_source_name = requested_file_path.string();
+
+            auto file = this->m_filesys.open(output.m_source_name);
+            if (!file->is_ready()) {
+                output.m_content = fmt::format("Failed to open shader file: {}", output.m_source_name);
+            }
+            else {
+                if (!file->read_stl(output.m_content)) {
+                    output.m_content = fmt::format("Failed to read shader file: {}", output.m_source_name);
+                }
+            }
+
+            return &output.update_get_result();
+        }
+
+        void ReleaseInclude(shaderc_include_result* const data) override {
+
+        }
+
+    };
+
+
     class ShaderCompiler {
 
     private:
@@ -32,13 +103,14 @@ namespace {
 
             auto file = filesys.open(path);
             if (!file->is_ready())
-                dalAbort(fmt::format("Failed to load shader file: {}", path).c_str());
+                dalAbort(fmt::format("Failed to open shader file: {}", path).c_str());
 
             const auto data = file->read_stl<std::string>();
             if (!data.has_value())
                 dalAbort(fmt::format("Failed to read shader file: {}", path).c_str());
 
             shaderc::CompileOptions options;
+            options.SetIncluder(std::make_unique<::ShaderIncluder>(filesys));
 
             const auto result = this->m_compiler.CompileGlslToSpv(data.value(), this->convert_shader_kind(shader_kind), path.c_str(), options);
             if (shaderc_compilation_status_success != result.GetCompilationStatus())
@@ -581,20 +653,12 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = filesys.open("_asset/spv/composition_v.spv")->read_stl<std::vector<char>>();
-        if (!vert_src) {
-            dalAbort("Vertex shader 'composition_v.spv' not found");
-        }
-        const auto frag_src = need_gamma_correction ?
-            filesys.open("_asset/spv/composition_gamma_f.spv")->read_stl<std::vector<char>>() :
-            filesys.open("_asset/spv/composition_f.spv")->read_stl<std::vector<char>>();
-        if (!frag_src) {
-            dalAbort("Fragment shader 'composition_f.spv' not found");
-        }
+        const auto vert_src = compiler.load<float>("_asset/glsl/composition.vert", ::ShaderKind::vert, filesys);
+        const auto frag_src = compiler.load<float>("_asset/glsl/composition.frag", ::ShaderKind::frag, filesys);
 
         // Shaders
-        const ShaderModule vert_shader_module(logi_device, vert_src->data(), vert_src->size());
-        const ShaderModule frag_shader_module(logi_device, frag_src->data(), frag_src->size());
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
