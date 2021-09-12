@@ -95,13 +95,27 @@ namespace {
 
     private:
         shaderc::Compiler m_compiler;
+        shaderc::CompileOptions m_options;
+
+        dal::Filesystem& m_filesys;
 
     public:
+        ShaderCompiler(dal::Filesystem& filesys)
+            : m_filesys(filesys)
+        {
+            this->m_options.SetIncluder(std::make_unique<::ShaderIncluder>(filesys));
+            this->m_options.SetOptimizationLevel(shaderc_optimization_level_performance);
+        }
+
+        void add_macro_def(const std::string& def) {
+            this->m_options.AddMacroDefinition(def);
+        }
+
         template <typename T>
-        std::vector<T> load(const std::string& path, const ::ShaderKind shader_kind, dal::Filesystem& filesys) const {
+        std::vector<T> load(const std::string& path, const ::ShaderKind shader_kind) const {
             static_assert(sizeof(T) == 4 || sizeof(T) == 2 || sizeof(T) == 1);
 
-            auto file = filesys.open(path);
+            auto file = this->m_filesys.open(path);
             if (!file->is_ready())
                 dalAbort(fmt::format("Failed to open shader file: {}", path).c_str());
 
@@ -109,10 +123,7 @@ namespace {
             if (!data.has_value())
                 dalAbort(fmt::format("Failed to read shader file: {}", path).c_str());
 
-            shaderc::CompileOptions options;
-            options.SetIncluder(std::make_unique<::ShaderIncluder>(filesys));
-
-            const auto result = this->m_compiler.CompileGlslToSpv(data.value(), this->convert_shader_kind(shader_kind), path.c_str(), options);
+            const auto result = this->m_compiler.CompileGlslToSpv(data.value(), this->convert_shader_kind(shader_kind), path.c_str(), this->m_options);
             if (shaderc_compilation_status_success != result.GetCompilationStatus())
                 dalAbort(fmt::format("Failed to compile shader: {}\n{}", path, result.GetErrorMessage()).c_str());
 
@@ -494,8 +505,8 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/gbuf.vert", ::ShaderKind::vert, filesys);
-        const auto frag_src = compiler.load<uint16_t>("_asset/glsl/gbuf.frag", ::ShaderKind::frag, filesys);
+        const auto vert_src = compiler.load<float>("_asset/glsl/gbuf.vert", ::ShaderKind::vert);
+        const auto frag_src = compiler.load<uint16_t>("_asset/glsl/gbuf.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -575,8 +586,8 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/gbuf_animated.vert", ::ShaderKind::vert, filesys);
-        const auto frag_src = compiler.load<float>("_asset/glsl/gbuf.frag", ::ShaderKind::frag, filesys);
+        const auto vert_src = compiler.load<float>("_asset/glsl/gbuf_animated.vert", ::ShaderKind::vert);
+        const auto frag_src = compiler.load<float>("_asset/glsl/gbuf.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -653,8 +664,8 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/composition.vert", ::ShaderKind::vert, filesys);
-        const auto frag_src = compiler.load<float>("_asset/glsl/composition.frag", ::ShaderKind::frag, filesys);
+        const auto vert_src = compiler.load<float>("_asset/glsl/composition.vert", ::ShaderKind::vert);
+        const auto frag_src = compiler.load<float>("_asset/glsl/composition.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -1170,7 +1181,12 @@ namespace dal {
     ) {
         this->destroy(logi_device);
 
-        ::ShaderCompiler compiler;
+        ::ShaderCompiler compiler{ filesys };
+
+        compiler.add_macro_def("DAL_VOLUMETRIC_ATMOS");
+        compiler.add_macro_def("DAL_ATMOS_DITHERING");
+        if (need_gamma_correction)
+            compiler.add_macro_def("DAL_GAMMA_CORRECT");
 
         this->m_gbuf = ::make_pipeline_gbuf(
             compiler,
