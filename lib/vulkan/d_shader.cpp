@@ -2,6 +2,9 @@
 
 #include <array>
 
+#include <fmt/format.h>
+#include <shaderc/shaderc.hpp>
+
 #include "d_logger.h"
 #include "d_uniform.h"
 #include "d_filesystem.h"
@@ -1035,6 +1038,9 @@ namespace dal {
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
+
+        shaderc::Compiler compiler;
+        dalInfo(fmt::format("Shader compiler ready: {}", compiler.IsValid()).c_str());
 
         this->m_gbuf = ::make_pipeline_gbuf(
             filesys,

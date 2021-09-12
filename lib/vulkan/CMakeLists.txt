@@ -23,9 +23,10 @@ target_include_directories(libdal_vulkan PUBLIC ./)
 
 if (ANDROID)
     target_sources(libdal_vulkan
-    PRIVATE
-        vulkan_wrapper.h     vulkan_wrapper.cpp
+        PRIVATE
+            vulkan_wrapper.h     vulkan_wrapper.cpp
     )
+
 endif()
 
 
@@ -35,6 +36,7 @@ target_link_libraries(libdal_vulkan
     PUBLIC
         libdal_util
         libdal_renderer
+        shaderc
 )
 
 

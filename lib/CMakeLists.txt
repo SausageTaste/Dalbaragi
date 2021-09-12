@@ -56,6 +56,16 @@ FetchContent_Declare(
     GIT_TAG        v5.4.3
 )
 
+# SPIRV-Tools
+set(SPIRV_SKIP_EXECUTABLES on)
+set(SPIRV_SKIP_TESTS on)
+
+# shaderc
+set(SHADERC_ENABLE_SHARED_CRT on)
+set(SHADERC_SKIP_EXAMPLES on)
+set(SHADERC_SKIP_INSTALL on)
+set(SHADERC_SKIP_TESTS on)
+
 
 # Import libraries
 #-------------------------------------------------------------------------------
@@ -66,6 +76,11 @@ FetchContent_MakeAvailable(fetch_stb)
 FetchContent_MakeAvailable(fetch_entt)
 FetchContent_MakeAvailable(fetch_dal_blender)
 FetchContent_MakeAvailable(fetch_lua)
+
+add_subdirectory(${extern_dir}/glslang ${CMAKE_CURRENT_BINARY_DIR}/glslang)
+add_subdirectory(${extern_dir}/SPIRV-Headers ${CMAKE_CURRENT_BINARY_DIR}/SPIRV-Headers)
+add_subdirectory(${extern_dir}/SPIRV-Tools ${CMAKE_CURRENT_BINARY_DIR}/SPIRV-Tools)
+add_subdirectory(${extern_dir}/shaderc ${CMAKE_CURRENT_BINARY_DIR}/shaderc)
 
 if (WIN32)
     find_package(Vulkan REQUIRED)
