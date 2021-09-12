@@ -495,7 +495,6 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_gbuf(
         ShaderCompiler& compiler,
-        dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
@@ -575,7 +574,6 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_gbuf_animated(
         ShaderCompiler& compiler,
-        dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
@@ -656,7 +654,6 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_composition(
         ShaderCompiler& compiler,
-        dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
         const VkDescriptorSetLayout desc_layout_composition,
@@ -732,25 +729,18 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_final(
         ShaderCompiler& compiler,
-        dal::Filesystem& filesys,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
         const VkDescriptorSetLayout desc_layout_final,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
-        const auto vert_src = filesys.open("_asset/spv/fill_screen_v.spv")->read_stl<std::vector<char>>();
-        if (!vert_src) {
-            dalAbort("Vertex shader 'fill_screen_v.spv' not found");
-        }
-        const auto frag_src = filesys.open("_asset/spv/fill_screen_f.spv")->read_stl<std::vector<char>>();
-        if (!frag_src) {
-            dalAbort("Fragment shader 'fill_screen_f.spv' not found");
-        }
+        const auto vert_src = compiler.load<float>("_asset/glsl/fill_screen.vert", ::ShaderKind::vert);
+        const auto frag_src = compiler.load<float>("_asset/glsl/fill_screen.frag", ::ShaderKind::frag);
 
         // Shaders
-        const ShaderModule vert_shader_module(logi_device, vert_src->data(), vert_src->size());
-        const ShaderModule frag_shader_module(logi_device, frag_src->data(), frag_src->size());
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
@@ -809,7 +799,6 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_alpha(
         ShaderCompiler& compiler,
-        dal::Filesystem& filesys,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -818,20 +807,12 @@ namespace {
         const VkDescriptorSetLayout desc_layout_per_actor,
         const VkDevice logi_device
     ) {
-        const auto vert_src = filesys.open("_asset/spv/alpha_v.spv")->read_stl<std::vector<char>>();
-        if (!vert_src) {
-            dalAbort("Vertex shader 'alpha_v.spv' not found");
-        }
-        const auto frag_src = need_gamma_correction ?
-            filesys.open("_asset/spv/alpha_gamma_f.spv")->read_stl<std::vector<char>>() :
-            filesys.open("_asset/spv/alpha_f.spv")->read_stl<std::vector<char>>();
-        if (!frag_src) {
-            dalAbort("Fragment shader 'alpha_f.spv' not found");
-        }
+        const auto vert_src = compiler.load<float>("_asset/glsl/alpha.vert", ::ShaderKind::vert);
+        const auto frag_src = compiler.load<float>("_asset/glsl/alpha.frag", ::ShaderKind::frag);
 
         // Shaders
-        const ShaderModule vert_shader_module(logi_device, vert_src->data(), vert_src->size());
-        const ShaderModule frag_shader_module(logi_device, frag_src->data(), frag_src->size());
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
@@ -900,7 +881,6 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_alpha_animated(
         ShaderCompiler& compiler,
-        dal::Filesystem& filesys,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -910,20 +890,12 @@ namespace {
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDevice logi_device
     ) {
-        const auto vert_src = filesys.open("_asset/spv/alpha_animated_v.spv")->read_stl<std::vector<char>>();
-        if (!vert_src) {
-            dalAbort("Vertex shader 'alpha_animated_v.spv' not found");
-        }
-        const auto frag_src = need_gamma_correction ?
-            filesys.open("_asset/spv/alpha_gamma_f.spv")->read_stl<std::vector<char>>() :
-            filesys.open("_asset/spv/alpha_f.spv")->read_stl<std::vector<char>>();
-        if (!frag_src) {
-            dalAbort("Fragment shader 'alpha_f.spv' not found");
-        }
+        const auto vert_src = compiler.load<float>("_asset/glsl/alpha_animated.vert", ::ShaderKind::vert);
+        const auto frag_src = compiler.load<float>("_asset/glsl/alpha.frag", ::ShaderKind::frag);
 
         // Shaders
-        const ShaderModule vert_shader_module(logi_device, vert_src->data(), vert_src->size());
-        const ShaderModule frag_shader_module(logi_device, frag_src->data(), frag_src->size());
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
@@ -993,24 +965,17 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_shadow(
         ShaderCompiler& compiler,
-        dal::Filesystem& filesys,
         const bool does_support_depth_clamp,
         const VkExtent2D& extent,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
-        const auto vert_src = filesys.open("_asset/spv/shadow_v.spv")->read_stl<std::vector<char>>();
-        if (!vert_src) {
-            dalAbort("Vertex shader 'shadow_v.spv' not found");
-        }
-        const auto frag_src = filesys.open("_asset/spv/shadow_f.spv")->read_stl<std::vector<char>>();
-        if (!frag_src) {
-            dalAbort("Fragment shader 'shadow_f.spv' not found");
-        }
+        const auto vert_src = compiler.load<float>("_asset/glsl/shadow.vert", ::ShaderKind::vert);
+        const auto frag_src = compiler.load<float>("_asset/glsl/shadow.frag", ::ShaderKind::frag);
 
         // Shaders
-        const ShaderModule vert_shader_module(logi_device, vert_src->data(), vert_src->size());
-        const ShaderModule frag_shader_module(logi_device, frag_src->data(), frag_src->size());
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
@@ -1075,23 +1040,18 @@ namespace {
 
     dal::ShaderPipeline make_pipeline_shadow_animated(
         ShaderCompiler& compiler,
-        dal::Filesystem& filesys,
         const bool does_support_depth_clamp,
         const VkExtent2D& extent,
         const VkRenderPass renderpass,
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDevice logi_device
     ) {
-        const auto vert_src = filesys.open("_asset/spv/shadow_animated_v.spv")->read_stl<std::vector<char>>();
-        if (!vert_src)
-            dalAbort("Vertex shader 'shadow_animated_v.spv' not found");
-        const auto frag_src = filesys.open("_asset/spv/shadow_f.spv")->read_stl<std::vector<char>>();
-        if (!frag_src)
-            dalAbort("Fragment shader 'shadow_f.spv' not found");
+        const auto vert_src = compiler.load<float>("_asset/glsl/shadow_animated.vert", ::ShaderKind::vert);
+        const auto frag_src = compiler.load<float>("_asset/glsl/shadow.frag", ::ShaderKind::frag);
 
         // Shaders
-        const ShaderModule vert_shader_module(logi_device, vert_src->data(), vert_src->size());
-        const ShaderModule frag_shader_module(logi_device, frag_src->data(), frag_src->size());
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
@@ -1190,7 +1150,6 @@ namespace dal {
 
         this->m_gbuf = ::make_pipeline_gbuf(
             compiler,
-            filesys,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_per_global,
@@ -1202,7 +1161,6 @@ namespace dal {
 
         this->m_gbuf_animated = ::make_pipeline_gbuf_animated(
             compiler,
-            filesys,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_per_global,
@@ -1215,7 +1173,6 @@ namespace dal {
 
         this->m_composition = ::make_pipeline_composition(
             compiler,
-            filesys,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_composition,
@@ -1225,7 +1182,6 @@ namespace dal {
 
         this->m_final = ::make_pipeline_final(
             compiler,
-            filesys,
             need_gamma_correction,
             swapchain_extent,
             desc_layout_final,
@@ -1235,7 +1191,6 @@ namespace dal {
 
         this->m_alpha = ::make_pipeline_alpha(
             compiler,
-            filesys,
             rp_alpha,
             need_gamma_correction,
             gbuf_extent,
@@ -1247,7 +1202,6 @@ namespace dal {
 
         this->m_alpha_animated = ::make_pipeline_alpha_animated(
             compiler,
-            filesys,
             rp_alpha,
             need_gamma_correction,
             gbuf_extent,
@@ -1260,7 +1214,6 @@ namespace dal {
 
         this->m_shadow = ::make_pipeline_shadow(
             compiler,
-            filesys,
             does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
             rp_shadow.get(),
@@ -1269,7 +1222,6 @@ namespace dal {
 
         this->m_shadow_animated = ::make_pipeline_shadow_animated(
             compiler,
-            filesys,
             does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
             rp_shadow.get(),
