@@ -14,12 +14,17 @@
 
 
 #define DAL_HASH_SHADER_CACHE_NAME false
+#define DAL_INVALIDATE_CACHE_ONCE false
 
 
 // Shader module tools
 namespace {
 
     const std::filesystem::path SHADER_CACHE_DIR = "_internal/spv";
+
+#if DAL_INVALIDATE_CACHE_ONCE
+        std::unordered_set<std::string> g_refreshed_ones;
+#endif
 
 
     enum class ShaderKind {
@@ -300,7 +305,7 @@ namespace {
         std::vector<uint8_t> load(const dal::ResPath& path, const ::ShaderKind shader_kind) {
             const auto cache_path = this->make_shader_cache_path(path, shader_kind);
 
-            if (this->m_filesys.is_file(cache_path)) {
+            if (!this->need_to_compile(cache_path)) {
                 auto file = this->m_filesys.open(cache_path);
                 return file->read_stl<std::vector<uint8_t>>().value();
             }
@@ -370,6 +375,20 @@ namespace {
             const auto& hashed = accum;
 #endif
             return fmt::format("{}/{}/{}.spv", ::SHADER_CACHE_DIR.u8string(), this->m_options.hash_value(), hashed);
+        }
+
+        bool need_to_compile(const std::string& cache_path) {
+            if (!this->m_filesys.is_file(cache_path))
+                return true;
+
+#if DAL_INVALIDATE_CACHE_ONCE
+            if (::g_refreshed_ones.end() == ::g_refreshed_ones.find(cache_path)) {
+                ::g_refreshed_ones.insert(cache_path);
+                return true;
+            }
+#endif
+
+            return false;
         }
 
     };
