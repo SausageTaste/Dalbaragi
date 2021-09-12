@@ -1,5 +1,6 @@
 #include "d_shader.h"
 
+#include <set>
 #include <list>
 #include <array>
 
@@ -21,7 +22,7 @@ namespace {
     };
 
 
-    class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface {
+    class ShaderCompileOption {
 
     private:
         struct ResultData {
@@ -49,43 +50,68 @@ namespace {
 
         };
 
+
+        class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface {
+
+        private:
+            dal::Filesystem& m_filesys;
+            std::list<ResultData> m_list_result;
+
+        public:
+            ShaderIncluder(dal::Filesystem& filesys)
+                : m_filesys(filesys)
+            {
+
+            }
+
+            shaderc_include_result* GetInclude(
+                const char* const requested_source,
+                const shaderc_include_type type,
+                const char* const requesting_source,
+                const size_t include_depth
+            ) override {
+                auto& output = this->m_list_result.emplace_back();
+
+                const auto requested_file_path = std::filesystem::path{ requesting_source }.remove_filename() / requested_source;
+                output.m_source_name = requested_file_path.string();
+
+                auto file = this->m_filesys.open(output.m_source_name);
+                if (!file->is_ready()) {
+                    output.m_content = fmt::format("Failed to open shader file: {}", output.m_source_name);
+                }
+                else {
+                    if (!file->read_stl(output.m_content)) {
+                        output.m_content = fmt::format("Failed to read shader file: {}", output.m_source_name);
+                    }
+                }
+
+                return &output.update_get_result();
+            }
+
+            void ReleaseInclude(shaderc_include_result* const data) override {
+
+            }
+
+        };
+
+
     private:
-        dal::Filesystem& m_filesys;
-        std::list<ResultData> m_list_result;
+        shaderc::CompileOptions m_options;
+        std::set<std::string> m_macro_def;
 
     public:
-        ShaderIncluder(dal::Filesystem& filesys)
-            : m_filesys(filesys)
-        {
-
+        ShaderCompileOption(dal::Filesystem& filesys) {
+            this->m_options.SetIncluder(std::make_unique<ShaderIncluder>(filesys));
+            this->m_options.SetOptimizationLevel(shaderc_optimization_level_performance);
         }
 
-        shaderc_include_result* GetInclude(
-            const char* const requested_source,
-            const shaderc_include_type type,
-            const char* const requesting_source,
-            const size_t include_depth
-        ) override {
-            auto& output = this->m_list_result.emplace_back();
-
-            const auto requested_file_path = std::filesystem::path{ requesting_source }.remove_filename() / requested_source;
-            output.m_source_name = requested_file_path.string();
-
-            auto file = this->m_filesys.open(output.m_source_name);
-            if (!file->is_ready()) {
-                output.m_content = fmt::format("Failed to open shader file: {}", output.m_source_name);
-            }
-            else {
-                if (!file->read_stl(output.m_content)) {
-                    output.m_content = fmt::format("Failed to read shader file: {}", output.m_source_name);
-                }
-            }
-
-            return &output.update_get_result();
+        void add_macro_def(const std::string& def) {
+            this->m_macro_def.insert(def);
+            this->m_options.AddMacroDefinition(def);
         }
 
-        void ReleaseInclude(shaderc_include_result* const data) override {
-
+        auto& get() const {
+            return this->m_options;
         }
 
     };
@@ -95,39 +121,43 @@ namespace {
 
     private:
         shaderc::Compiler m_compiler;
-        shaderc::CompileOptions m_options;
-
-        dal::Filesystem& m_filesys;
 
     public:
-        ShaderCompiler(dal::Filesystem& filesys)
-            : m_filesys(filesys)
-        {
-            this->m_options.SetIncluder(std::make_unique<::ShaderIncluder>(filesys));
-            this->m_options.SetOptimizationLevel(shaderc_optimization_level_performance);
-        }
-
-        void add_macro_def(const std::string& def) {
-            this->m_options.AddMacroDefinition(def);
-        }
-
         template <typename T>
-        std::vector<T> load(const std::string& path, const ::ShaderKind shader_kind) const {
+        std::pair<bool, std::string> compile(
+            const char* const src_data,
+            const size_t src_size,
+            const ::ShaderKind shader_kind,
+            const char* const src_path,
+            const ::ShaderCompileOption& options,
+            std::vector<T>& output
+        ) const {
             static_assert(sizeof(T) == 4 || sizeof(T) == 2 || sizeof(T) == 1);
+            std::pair<bool, std::string> result_output;
 
-            auto file = this->m_filesys.open(path);
-            if (!file->is_ready())
-                dalAbort(fmt::format("Failed to open shader file: {}", path).c_str());
+            const auto result_data = this->m_compiler.CompileGlslToSpv(
+                src_data,
+                src_size,
+                this->convert_shader_kind(shader_kind),
+                src_path,
+                options.get()
+            );
 
-            const auto data = file->read_stl<std::string>();
-            if (!data.has_value())
-                dalAbort(fmt::format("Failed to read shader file: {}", path).c_str());
+            if (shaderc_compilation_status_success != result_data.GetCompilationStatus()) {
+                result_output.first = false;
+                result_output.second = result_data.GetErrorMessage();
+            }
+            else {
+                output.insert(
+                    output.end(),
+                    reinterpret_cast<const T*>(result_data.cbegin()),
+                    reinterpret_cast<const T*>(result_data.cend())
+                );
 
-            const auto result = this->m_compiler.CompileGlslToSpv(data.value(), this->convert_shader_kind(shader_kind), path.c_str(), this->m_options);
-            if (shaderc_compilation_status_success != result.GetCompilationStatus())
-                dalAbort(fmt::format("Failed to compile shader: {}\n{}", path, result.GetErrorMessage()).c_str());
+                result_output.first = true;
+            }
 
-            return std::vector<T>{ reinterpret_cast<const T*>(result.cbegin()), reinterpret_cast<const T*>(result.cend()) };
+            return result_output;
         }
 
     private:
@@ -217,6 +247,51 @@ namespace {
 
         VkShaderModule operator*() const {
             return this->get();
+        }
+
+    };
+
+
+    class ShaderSrcManager {
+
+    public:
+        ::ShaderCompileOption m_options;
+
+    private:
+        ::ShaderCompiler m_compiler;
+        dal::Filesystem& m_filesys;
+
+    public:
+        ShaderSrcManager(dal::Filesystem& filesys)
+            : m_filesys(filesys)
+            , m_options(filesys)
+        {
+
+        }
+
+        std::vector<uint8_t> load(const std::string& path, const ::ShaderKind shader_kind) {
+            auto file = this->m_filesys.open(path);
+            if (!file->is_ready())
+                dalAbort(fmt::format("Failed to open shader file: {}", path).c_str());
+
+            const auto data = file->read_stl<std::string>();
+            if (!data.has_value())
+                dalAbort(fmt::format("Failed to read shader file: {}", path).c_str());
+
+            std::vector<uint8_t> output;
+            const auto [compile_result, compile_err_msg] = this->m_compiler.compile(
+                data->data(),
+                data->size(),
+                shader_kind,
+                path.c_str(),
+                this->m_options,
+                output
+            );
+
+            if (!compile_result)
+                dalAbort(fmt::format("Failed to compile shader: {}\n{}", path, compile_err_msg).c_str());
+
+            return output;
         }
 
     };
@@ -494,7 +569,7 @@ namespace {
 namespace {
 
     dal::ShaderPipeline make_pipeline_gbuf(
-        ShaderCompiler& compiler,
+        ShaderSrcManager& shader_mgr,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
@@ -504,8 +579,8 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/gbuf.vert", ::ShaderKind::vert);
-        const auto frag_src = compiler.load<uint16_t>("_asset/glsl/gbuf.frag", ::ShaderKind::frag);
+        const auto vert_src = shader_mgr.load("_asset/glsl/gbuf.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/gbuf.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -573,7 +648,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_gbuf_animated(
-        ShaderCompiler& compiler,
+        ShaderSrcManager& shader_mgr,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
@@ -584,8 +659,8 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/gbuf_animated.vert", ::ShaderKind::vert);
-        const auto frag_src = compiler.load<float>("_asset/glsl/gbuf.frag", ::ShaderKind::frag);
+        const auto vert_src = shader_mgr.load("_asset/glsl/gbuf_animated.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/gbuf.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -653,7 +728,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_composition(
-        ShaderCompiler& compiler,
+        ShaderSrcManager& shader_mgr,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
         const VkDescriptorSetLayout desc_layout_composition,
@@ -661,8 +736,8 @@ namespace {
         const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/composition.vert", ::ShaderKind::vert);
-        const auto frag_src = compiler.load<float>("_asset/glsl/composition.frag", ::ShaderKind::frag);
+        const auto vert_src = shader_mgr.load("_asset/glsl/composition.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/composition.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -728,15 +803,15 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_final(
-        ShaderCompiler& compiler,
+        ShaderSrcManager& shader_mgr,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
         const VkDescriptorSetLayout desc_layout_final,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/fill_screen.vert", ::ShaderKind::vert);
-        const auto frag_src = compiler.load<float>("_asset/glsl/fill_screen.frag", ::ShaderKind::frag);
+        const auto vert_src = shader_mgr.load("_asset/glsl/fill_screen.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/fill_screen.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -798,7 +873,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_alpha(
-        ShaderCompiler& compiler,
+        ShaderSrcManager& shader_mgr,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -807,8 +882,8 @@ namespace {
         const VkDescriptorSetLayout desc_layout_per_actor,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/alpha.vert", ::ShaderKind::vert);
-        const auto frag_src = compiler.load<float>("_asset/glsl/alpha.frag", ::ShaderKind::frag);
+        const auto vert_src = shader_mgr.load("_asset/glsl/alpha.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/alpha.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -880,7 +955,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_alpha_animated(
-        ShaderCompiler& compiler,
+        ShaderSrcManager& shader_mgr,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -890,8 +965,8 @@ namespace {
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/alpha_animated.vert", ::ShaderKind::vert);
-        const auto frag_src = compiler.load<float>("_asset/glsl/alpha.frag", ::ShaderKind::frag);
+        const auto vert_src = shader_mgr.load("_asset/glsl/alpha_animated.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/alpha.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -964,14 +1039,14 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_shadow(
-        ShaderCompiler& compiler,
+        ShaderSrcManager& shader_mgr,
         const bool does_support_depth_clamp,
         const VkExtent2D& extent,
         const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/shadow.vert", ::ShaderKind::vert);
-        const auto frag_src = compiler.load<float>("_asset/glsl/shadow.frag", ::ShaderKind::frag);
+        const auto vert_src = shader_mgr.load("_asset/glsl/shadow.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/shadow.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -1039,15 +1114,15 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_shadow_animated(
-        ShaderCompiler& compiler,
+        ShaderSrcManager& shader_mgr,
         const bool does_support_depth_clamp,
         const VkExtent2D& extent,
         const VkRenderPass renderpass,
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDevice logi_device
     ) {
-        const auto vert_src = compiler.load<float>("_asset/glsl/shadow_animated.vert", ::ShaderKind::vert);
-        const auto frag_src = compiler.load<float>("_asset/glsl/shadow.frag", ::ShaderKind::frag);
+        const auto vert_src = shader_mgr.load("_asset/glsl/shadow_animated.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/shadow.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -1141,15 +1216,15 @@ namespace dal {
     ) {
         this->destroy(logi_device);
 
-        ::ShaderCompiler compiler{ filesys };
+        ::ShaderSrcManager shader_mgr{ filesys };
 
-        compiler.add_macro_def("DAL_VOLUMETRIC_ATMOS");
-        compiler.add_macro_def("DAL_ATMOS_DITHERING");
+        shader_mgr.m_options.add_macro_def("DAL_VOLUMETRIC_ATMOS");
+        shader_mgr.m_options.add_macro_def("DAL_ATMOS_DITHERING");
         if (need_gamma_correction)
-            compiler.add_macro_def("DAL_GAMMA_CORRECT");
+            shader_mgr.m_options.add_macro_def("DAL_GAMMA_CORRECT");
 
         this->m_gbuf = ::make_pipeline_gbuf(
-            compiler,
+            shader_mgr,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_per_global,
@@ -1160,7 +1235,7 @@ namespace dal {
         );
 
         this->m_gbuf_animated = ::make_pipeline_gbuf_animated(
-            compiler,
+            shader_mgr,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_per_global,
@@ -1172,7 +1247,7 @@ namespace dal {
         );
 
         this->m_composition = ::make_pipeline_composition(
-            compiler,
+            shader_mgr,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_composition,
@@ -1181,7 +1256,7 @@ namespace dal {
         );
 
         this->m_final = ::make_pipeline_final(
-            compiler,
+            shader_mgr,
             need_gamma_correction,
             swapchain_extent,
             desc_layout_final,
@@ -1190,7 +1265,7 @@ namespace dal {
         );
 
         this->m_alpha = ::make_pipeline_alpha(
-            compiler,
+            shader_mgr,
             rp_alpha,
             need_gamma_correction,
             gbuf_extent,
@@ -1201,7 +1276,7 @@ namespace dal {
         );
 
         this->m_alpha_animated = ::make_pipeline_alpha_animated(
-            compiler,
+            shader_mgr,
             rp_alpha,
             need_gamma_correction,
             gbuf_extent,
@@ -1213,7 +1288,7 @@ namespace dal {
         );
 
         this->m_shadow = ::make_pipeline_shadow(
-            compiler,
+            shader_mgr,
             does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
             rp_shadow.get(),
@@ -1221,7 +1296,7 @@ namespace dal {
         );
 
         this->m_shadow_animated = ::make_pipeline_shadow_animated(
-            compiler,
+            shader_mgr,
             does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
             rp_shadow.get(),
