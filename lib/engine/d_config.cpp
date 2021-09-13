@@ -1,6 +1,6 @@
 #include "d_config.h"
 
-#include <nlohmann/json.hpp>
+#include "d_json_util.h"
 
 
 namespace {
@@ -11,16 +11,6 @@ namespace {
     const char* const KEY_WINDOW_HEIGHT = "window_height";
     const char* const KEY_FULL_SCREEN = "full_screen";
     const char* const KEY_STARTUP_SCRIPT_PATH = "startup_script_path";
-
-
-    template <typename T>
-    void try_set_value(T& dst, const char* const key, const nlohmann::json& json_data) {
-        const auto iter = json_data.find(key);
-
-        if (json_data.end() != iter) {
-            dst = iter.value();
-        }
-    }
 
 }
 
@@ -37,15 +27,14 @@ namespace dal {
     }
 
     void MainConfig::load_json(const uint8_t* const buf, const size_t buf_size) {
-        if (0 == buf_size)
+        const auto json_data = try_parse_json(buf, buf_size);
+        if (!json_data)
             return;
 
-        const auto json_data = nlohmann::json::parse(buf, buf + buf_size);
-
-        ::try_set_value(this->m_window_width, KEY_WINDOW_WIDTH, json_data);
-        ::try_set_value(this->m_window_height, KEY_WINDOW_HEIGHT, json_data);
-        ::try_set_value(this->m_full_screen, KEY_FULL_SCREEN, json_data);
-        ::try_set_value(this->m_startup_script_path, KEY_STARTUP_SCRIPT_PATH, json_data);
+        try_set_json_value(this->m_window_width, KEY_WINDOW_WIDTH, *json_data);
+        try_set_json_value(this->m_window_height, KEY_WINDOW_HEIGHT, *json_data);
+        try_set_json_value(this->m_full_screen, KEY_FULL_SCREEN, *json_data);
+        try_set_json_value(this->m_startup_script_path, KEY_STARTUP_SCRIPT_PATH, *json_data);
     }
 
     std::string MainConfig::export_json() const {
