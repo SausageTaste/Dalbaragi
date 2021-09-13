@@ -7,9 +7,10 @@ namespace dal {
 
     class MainConfig {
 
-    private:
+    public:
         uint32_t m_window_width;
         uint32_t m_window_height;
+        bool m_full_screen;
 
         std::string m_startup_script_path;
 
