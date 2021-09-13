@@ -6,6 +6,7 @@
 
 #include <fmt/format.h>
 #include <shaderc/shaderc.hpp>
+#include <nlohmann/json.hpp>
 
 #include "d_logger.h"
 #include "d_uniform.h"
