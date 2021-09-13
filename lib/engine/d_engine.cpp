@@ -271,6 +271,9 @@ namespace dal {
         const dal::LogLevel level, const char* const str,
         const int line, const char* const func, const char* const file
     ) {
+        if (level < dal::LogLevel::error)
+            return;
+
         std::unique_lock lck{ this->m_mut };
 
         this->m_buffer += fmt::format("[{}, {}, {}, {}] {}\n", dal::get_log_level_str(level), line, func, file, str);
