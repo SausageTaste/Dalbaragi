@@ -29,24 +29,12 @@ namespace {
     };
 
 
-    bool is_file_info_correct(const std::string& path, const size_t file_size, const size_t content_hash, dal::Filesystem& filesys) {
-        auto file = filesys.open(path);
-        auto content = file->read_stl<std::string>();
-
-        if (!content.has_value())
-            return false;
-        if (file_size != file->size())
-            return false;
-        if (content_hash != std::hash<std::string>{}(content.value()))
-            return false;
-
-        return true;
-    }
-
-
     class ShaderSourceFileDB {
 
     private:
+        const char* const KEY_FILE_SIZE = "file_size";
+        const char* const KEY_CONTENT_HASH = "file_content_hash";
+
         struct SourceFileInfo {
             size_t m_file_size = 0;
             size_t m_content_hash = 0;
@@ -65,15 +53,56 @@ namespace {
             }
         }
 
+        bool import_check_shader_cache_info_valid(const std::string& cache_dir_path, dal::Filesystem& filesys) {
+            const auto file_content = filesys.open(cache_dir_path + "/source_info.json")->read_stl<std::string>();
+            if (!file_content.has_value())
+                return false;
+
+            bool result = true;
+            const auto json_data = nlohmann::json::parse(file_content.value());
+
+            for (const auto& x : json_data.items()) {
+                const size_t file_size = x.value()[this->KEY_FILE_SIZE];
+                const size_t content_hash = x.value()[this->KEY_CONTENT_HASH];
+
+                if (this->is_file_info_correct(x.key(), file_size, content_hash, filesys)) {
+                    auto& record = this->get_record(x.key());
+                    record.m_file_size = file_size;
+                    record.m_content_hash = content_hash;
+                }
+                else {
+                    dalInfo(fmt::format("A shader file modification detected: {}", x.key()).c_str());
+                    result = false;
+                }
+            }
+
+            return result;
+        }
+
         std::string export_json() const {
             nlohmann::json json_data;
             for (auto& [path, info] : this->m_records) {
-                json_data[path]["file_size"] = info.m_file_size;
-                json_data[path]["file_content_hash"] = info.m_content_hash;
+                json_data[path][this->KEY_FILE_SIZE] = info.m_file_size;
+                json_data[path][this->KEY_CONTENT_HASH] = info.m_content_hash;
             }
 
             return json_data.dump(4);
         };
+
+    private:
+        static bool is_file_info_correct(const std::string& path, const size_t file_size, const size_t content_hash, dal::Filesystem& filesys) {
+            auto file = filesys.open(path);
+            auto content = file->read_stl<std::string>();
+
+            if (!content.has_value())
+                return false;
+            if (file_size != file->size())
+                return false;
+            if (content_hash != std::hash<std::string>{}(content.value()))
+                return false;
+
+            return true;
+        }
 
     };
 
@@ -352,11 +381,10 @@ namespace {
             : m_filesys(filesys)
             , m_options(filesys, this->m_src_db)
         {
-            for (auto& x : macro_definitions) {
+            for (auto& x : macro_definitions)
                 this->m_options.add_macro_def(x);
-            }
 
-            this->import_check_shader_cache_info_valid();
+            this->m_need_recompile = !this->m_src_db.import_check_shader_cache_info_valid(this->make_shader_cache_dir_path(), this->m_filesys);
         }
 
         ~ShaderSrcManager() {
@@ -388,34 +416,6 @@ namespace {
         }
 
     private:
-        bool import_check_shader_cache_info_valid() {
-            this->m_need_recompile = false;
-
-            auto file_content = this->m_filesys.open(this->make_shader_cache_dir_path() + "/source_info.json")->read_stl<std::string>();
-            if (!file_content.has_value()) {
-                this->m_need_recompile = true;
-                return false;
-            }
-
-            const auto json_data = nlohmann::json::parse(file_content.value());
-            for (auto x : json_data.items()) {
-                const size_t file_size = x.value()["file_size"];
-                const size_t content_hash = x.value()["file_content_hash"];
-
-                if (::is_file_info_correct(x.key(), file_size, content_hash, this->m_filesys)) {
-                    auto& record = this->m_src_db.get_record(x.key());
-                    record.m_file_size = file_size;
-                    record.m_content_hash = content_hash;
-                }
-                else {
-                    dalInfo(fmt::format("A shader file modification detected: {}", x.key()).c_str());
-                    this->m_need_recompile = true;
-                }
-            }
-
-            return !this->m_need_recompile;
-        }
-
         std::pair<size_t, size_t> load_compile_shader(const dal::ResPath& path, const ::ShaderKind shader_kind, std::vector<uint8_t>& output) const {
             std::pair<size_t, size_t> result;
             const auto path_str = path.make_str();
