@@ -339,9 +339,9 @@ namespace dal {
 
         this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
         {
-            auto file = this->m_create_info.m_filesystem->open(this->m_config.m_startup_script_path);
+            auto file = this->m_create_info.m_filesystem->open(this->m_config.m_misc.m_startup_script_path);
             const auto content = file->read_stl<std::string>();
-            dalAssertm(content.has_value(), fmt::format("Failed to find startup script file: {}", this->m_config.m_startup_script_path).c_str());
+            dalAssertm(content.has_value(), fmt::format("Failed to find startup script file: {}", this->m_config.m_misc.m_startup_script_path).c_str());
             this->m_lua.exec(content->c_str());
             this->m_lua.call_void_func("on_engine_init");
         }
@@ -354,7 +354,7 @@ namespace dal {
 
     Engine::~Engine() {
         if (auto file = this->m_create_info.m_filesystem->open_write(::MAIN_CONFIG_PATH); file->is_ready()) {
-            const auto data = this->m_config.export_json();
+            const auto data = this->m_config.export_str();
             file->write(data.data(), data.size());
         }
 

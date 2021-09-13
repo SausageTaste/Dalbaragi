@@ -714,11 +714,9 @@ namespace dal {
         dalVerbose(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
     }
 
-/*
     void VulkanState::apply_config(const RendererConfig& config) {
         dalAbort("Not implemented");
     }
-*/
 
     HTexture VulkanState::create_texture() {
         return std::make_shared<TextureUnit>();
