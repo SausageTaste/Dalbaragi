@@ -56,6 +56,12 @@ FetchContent_Declare(
     GIT_TAG        v5.4.3
 )
 
+FetchContent_Declare(
+    fetch_json
+    GIT_REPOSITORY https://github.com/nlohmann/json
+    GIT_TAG        v3.10.2
+)
+
 # SPIRV-Tools
 set(SPIRV_SKIP_EXECUTABLES on)
 set(SPIRV_SKIP_TESTS on)
@@ -76,6 +82,7 @@ FetchContent_MakeAvailable(fetch_stb)
 FetchContent_MakeAvailable(fetch_entt)
 FetchContent_MakeAvailable(fetch_dal_blender)
 FetchContent_MakeAvailable(fetch_lua)
+FetchContent_MakeAvailable(fetch_json)
 
 add_subdirectory(${extern_dir}/glslang ${CMAKE_CURRENT_BINARY_DIR}/glslang)
 add_subdirectory(${extern_dir}/SPIRV-Headers ${CMAKE_CURRENT_BINARY_DIR}/SPIRV-Headers)

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <vector>
 
 
 namespace dal {
@@ -19,7 +18,7 @@ namespace dal {
 
         void load_json(const uint8_t* const buf, const size_t buf_size);
 
-        std::vector<uint8_t> export_json() const;
+        std::string export_json() const;
 
     };
 
