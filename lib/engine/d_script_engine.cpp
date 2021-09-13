@@ -1021,6 +1021,11 @@ namespace dal {
     void LuaState::call_void_func(const char* const func_name) {
         lua_getglobal(this->m_lua, func_name);
 
+        if (lua_isnil(this->m_lua, -1)) {
+            lua_pop(this->m_lua, 1);
+            return;
+        }
+
         if (0 != lua_pcall(this->m_lua, 0, 0, 0)) {
             dalError(
                 fmt::format(
