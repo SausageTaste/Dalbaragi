@@ -328,14 +328,12 @@ namespace dal {
         }
 
         this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
-        this->m_lua.exec("logger = require('logger'); logger.log(logger.INFO, 'Lua state initialized')");
-
         {
             auto file = this->m_create_info.m_filesystem->open(this->m_config.m_startup_script_path);
             const auto content = file->read_stl<std::string>();
             dalAssertm(content.has_value(), fmt::format("Failed to find startup script file: {}", this->m_config.m_startup_script_path).c_str());
             this->m_lua.exec(content->c_str());
-            this->m_lua.exec("on_engine_init()");
+            this->m_lua.call_void_func("on_engine_init");
         }
 
 #if DAL_TEST_FUNCTIONS
@@ -413,7 +411,7 @@ namespace dal {
         this->m_res_man.update();
         this->m_scene.update();
 
-        this->m_lua.exec("before_rendering_every_frame()");
+        this->m_lua.call_void_func("before_rendering_every_frame");
 
         auto render_list = this->m_scene.make_render_list();
         this->m_renderer->update(this->m_scene.m_euler_camera, render_list);
@@ -446,7 +444,7 @@ namespace dal {
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
         if (this->m_scene.m_registry.empty()) {
-            this->m_lua.exec("on_renderer_init()");
+            this->m_lua.call_void_func("on_renderer_init");
         }
     }
 
