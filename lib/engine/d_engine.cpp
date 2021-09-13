@@ -331,9 +331,9 @@ namespace dal {
         this->m_lua.exec("logger = require('logger'); logger.log(logger.INFO, 'Lua state initialized')");
 
         {
-            auto file = this->m_create_info.m_filesystem->open("_asset/script/startup.lua");
+            auto file = this->m_create_info.m_filesystem->open(this->m_config.m_startup_script_path);
             const auto content = file->read_stl<std::string>();
-            dalAssert(content.has_value());
+            dalAssertm(content.has_value(), fmt::format("Failed to find startup script file: {}", this->m_config.m_startup_script_path).c_str());
             this->m_lua.exec(content->c_str());
             this->m_lua.exec("on_engine_init()");
         }

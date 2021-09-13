@@ -32,7 +32,12 @@ int main(int argc, char** argv) {
 
     dal::Engine engine{ engine_info };
 
-    dal::WindowGLFW window(dal::APP_NAME);
+    dal::WindowGLFW window(
+        dal::APP_NAME,
+        engine.m_config.m_full_screen,
+        engine.m_config.m_window_width,
+        engine.m_config.m_window_height
+    );
 
     engine.init_vulkan(
         window.width(),

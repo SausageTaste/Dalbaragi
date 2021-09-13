@@ -11,14 +11,7 @@
 #include "d_defines.h"
 
 
-#define DAL_START_AS_FULLSCREEN false
-
-
 namespace {
-
-    constexpr int DEFAULT_WINDOW_WIDTH = 1600;
-    constexpr int DEFAULT_WINDOW_HEIGHT = 900;
-
 
     GLFWwindow* window_cast(void* const ptr) {
         return reinterpret_cast<GLFWwindow*>(ptr);
@@ -43,14 +36,14 @@ namespace {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
 
-        return glfwCreateWindow(::DEFAULT_WINDOW_WIDTH, ::DEFAULT_WINDOW_HEIGHT, title, nullptr, nullptr);
+        return glfwCreateWindow(width, height, title, nullptr, nullptr);
     }
 
-    GLFWwindow* create_glfw_window_resizable(const char* const title, const bool full_screen) {
+    GLFWwindow* create_glfw_window_resizable(const char* const title, const bool full_screen, const uint32_t width, const uint32_t height) {
         if (full_screen)
             return ::create_glfw_window_fullscreen(title, true);
         else
-            return create_glfw_window_windowed(title, true, ::DEFAULT_WINDOW_WIDTH, ::DEFAULT_WINDOW_HEIGHT);
+            return create_glfw_window_windowed(title, true, width, height);
     }
 
     VkSurfaceKHR create_vk_surface(const VkInstance instance, GLFWwindow* const window) {
@@ -298,13 +291,13 @@ namespace {
 
 namespace dal {
 
-    WindowGLFW::WindowGLFW(const char* const title)
-        : m_window(::create_glfw_window_resizable(title, DAL_START_AS_FULLSCREEN))
+    WindowGLFW::WindowGLFW(const char* const title, const bool full_screen, const uint32_t width, const uint32_t height)
+        : m_window(::create_glfw_window_resizable(title, full_screen, width, height))
         , m_title(title)
         , m_windowed_xpos(64)
         , m_windowed_ypos(64)
-        , m_windowed_width(800)
-        , m_windowed_height(450)
+        , m_windowed_width(width)
+        , m_windowed_height(height)
     {
         ::fill_glfw_window(::window_cast(this->m_window), *this);
     }
