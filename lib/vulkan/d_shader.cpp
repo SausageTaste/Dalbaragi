@@ -343,17 +343,20 @@ namespace {
         dal::Filesystem& m_filesys;
         ::ShaderCompiler m_compiler;
         ::ShaderSourceFileDB m_src_db;
+        ::ShaderCompileOption m_options;
 
         bool m_need_recompile = false;
 
     public:
-        ::ShaderCompileOption m_options;
-
-        ShaderSrcManager(dal::Filesystem& filesys)
+        ShaderSrcManager(const std::vector<std::string>& macro_definitions, dal::Filesystem& filesys)
             : m_filesys(filesys)
             , m_options(filesys, this->m_src_db)
         {
+            for (auto& x : macro_definitions) {
+                this->m_options.add_macro_def(x);
+            }
 
+            this->import_check_shader_cache_info_valid();
         }
 
         ~ShaderSrcManager() {
@@ -384,6 +387,7 @@ namespace {
             return output;
         }
 
+    private:
         bool import_check_shader_cache_info_valid() {
             this->m_need_recompile = false;
 
@@ -412,7 +416,6 @@ namespace {
             return !this->m_need_recompile;
         }
 
-    private:
         std::pair<size_t, size_t> load_compile_shader(const dal::ResPath& path, const ::ShaderKind shader_kind, std::vector<uint8_t>& output) const {
             std::pair<size_t, size_t> result;
             const auto path_str = path.make_str();
@@ -1407,14 +1410,19 @@ namespace dal {
     ) {
         this->destroy(logi_device);
 
-        ::ShaderSrcManager shader_mgr{ filesys };
+        const auto macros = [need_gamma_correction]() {
+            std::vector<std::string> output;
 
-        shader_mgr.m_options.add_macro_def("DAL_VOLUMETRIC_ATMOS");
-        shader_mgr.m_options.add_macro_def("DAL_ATMOS_DITHERING");
-        if (need_gamma_correction)
-            shader_mgr.m_options.add_macro_def("DAL_GAMMA_CORRECT");
+            output.push_back("DAL_VOLUMETRIC_ATMOS");
+            output.push_back("DAL_ATMOS_DITHERING");
 
-        shader_mgr.import_check_shader_cache_info_valid();
+            if (need_gamma_correction)
+                output.push_back("DAL_GAMMA_CORRECT");
+
+            return output;
+        }();
+
+        ::ShaderSrcManager shader_mgr{ macros, filesys };
 
         this->m_gbuf = ::make_pipeline_gbuf(
             shader_mgr,
