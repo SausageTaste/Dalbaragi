@@ -37,7 +37,6 @@ target_link_libraries(libdal_vulkan
         libdal_util
         libdal_renderer
         shaderc
-        nlohmann_json::nlohmann_json
 )
 
 

@@ -22,7 +22,6 @@ target_link_libraries(libdal_engine
     PUBLIC
         libdal_scene
         libdal_renderer
-        nlohmann_json::nlohmann_json
     PRIVATE
         lua_static
 )

@@ -3,38 +3,18 @@
 #include <set>
 #include <list>
 #include <array>
-#include <type_traits>
 
 #include <fmt/format.h>
 #include <shaderc/shaderc.hpp>
-#include <nlohmann/json.hpp>
 
 #include "d_logger.h"
 #include "d_uniform.h"
 #include "d_filesystem.h"
 #include "d_vert_data.h"
+#include "d_json_util.h"
 
 
 #define DAL_HASH_SHADER_CACHE_NAME false
-
-
-namespace {
-
-    template <typename T>
-    T get_json_number_or(const char* const key, const T fallback, const nlohmann::json& json_data) {
-        static_assert(std::is_arithmetic<T>::value);
-
-        const auto iter = json_data.find(key);
-
-        if (json_data.end() != iter && iter.value().is_number()) {
-            return iter.value();
-        }
-        else {
-            return fallback;
-        }
-    }
-
-}
 
 
 // Shader module tools
@@ -78,20 +58,17 @@ namespace {
             if (!file_content.has_value())
                 return false;
 
-            nlohmann::json json_data;
-            try {
-                json_data = nlohmann::json::parse(file_content.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                dalWarn(fmt::format("Cache file corrupted: {}", e.what()).c_str());
+            const auto json_data = dal::try_parse_json(*file_content);
+            if (!json_data.has_value()) {
+                dalWarn("Cache file corrupted");
                 return false;
             }
 
             bool result = true;
 
-            for (const auto& x : json_data.items()) {
-                const size_t file_size    = ::get_json_number_or<size_t>(this->KEY_FILE_SIZE,    0, x.value());
-                const size_t content_hash = ::get_json_number_or<size_t>(this->KEY_CONTENT_HASH, 0, x.value());
+            for (const auto& x : json_data->items()) {
+                const size_t file_size    = dal::get_json_number_or<size_t>(this->KEY_FILE_SIZE,    0, x.value());
+                const size_t content_hash = dal::get_json_number_or<size_t>(this->KEY_CONTENT_HASH, 0, x.value());
 
                 if (this->is_file_info_correct(x.key(), file_size, content_hash, filesys)) {
                     auto& record = this->get_record(x.key());
