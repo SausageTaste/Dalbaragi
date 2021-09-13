@@ -15,17 +15,12 @@
 
 
 #define DAL_HASH_SHADER_CACHE_NAME false
-#define DAL_INVALIDATE_CACHE_ONCE true
 
 
 // Shader module tools
 namespace {
 
     const std::filesystem::path SHADER_CACHE_DIR = "_internal/spv";
-
-#if DAL_INVALIDATE_CACHE_ONCE
-    std::unordered_set<std::string> g_refreshed_ones;
-#endif
 
 
     enum class ShaderKind {
@@ -34,17 +29,27 @@ namespace {
     };
 
 
+    bool is_file_info_correct(const std::string& path, const size_t file_size, const size_t content_hash, dal::Filesystem& filesys) {
+        auto file = filesys.open(path);
+        auto content = file->read_stl<std::string>();
+
+        if (!content.has_value())
+            return false;
+        if (file_size != file->size())
+            return false;
+        if (content_hash != std::hash<std::string>{}(content.value()))
+            return false;
+
+        return true;
+    }
+
+
     class ShaderSourceFileDB {
 
     private:
         struct SourceFileInfo {
             size_t m_file_size = 0;
             size_t m_content_hash = 0;
-            size_t m_used_count = 0;
-
-            bool is_data_available() const {
-                return 0 != this->m_content_hash;
-            }
         };
 
         std::unordered_map<std::string, SourceFileInfo> m_records;
@@ -59,6 +64,16 @@ namespace {
                 return this->m_records.emplace(src_file_path, SourceFileInfo{}).first->second;
             }
         }
+
+        std::string export_json() const {
+            nlohmann::json json_data;
+            for (auto& [path, info] : this->m_records) {
+                json_data[path]["file_size"] = info.m_file_size;
+                json_data[path]["file_content_hash"] = info.m_content_hash;
+            }
+
+            return json_data.dump(4);
+        };
 
     };
 
@@ -128,7 +143,6 @@ namespace {
                     }
                     else {
                         auto& file_info = this->m_src_db.get_record(output.m_source_name);
-                        ++file_info.m_used_count;
                         file_info.m_file_size = file->size();
                         file_info.m_content_hash = std::hash<std::string>{}(output.m_content);
                     }
@@ -330,6 +344,8 @@ namespace {
         ::ShaderCompiler m_compiler;
         ::ShaderSourceFileDB m_src_db;
 
+        bool m_need_recompile = false;
+
     public:
         ::ShaderCompileOption m_options;
 
@@ -340,12 +356,15 @@ namespace {
 
         }
 
+        ~ShaderSrcManager() {
+            const auto output_str = this->m_src_db.export_json();
+            auto file = this->m_filesys.open_write(this->make_shader_cache_dir_path() + "/source_info.json");
+            file->write(output_str.data(), output_str.size());
+        }
+
         std::vector<uint8_t> load(const dal::ResPath& path, const ::ShaderKind shader_kind) {
             std::vector<uint8_t> output;
-            const auto cache_path = this->make_shader_cache_path(path, shader_kind);
-            auto& file_info = this->m_src_db.get_record(path.make_str());
-
-            ++file_info.m_used_count;
+            const auto cache_path = this->make_shader_cache_file_path(path, shader_kind);
 
             if (!this->need_to_compile(cache_path)) {
                 auto file = this->m_filesys.open(cache_path);
@@ -353,6 +372,7 @@ namespace {
                 dalAssert(read_result);
             }
             else {
+                auto& file_info = this->m_src_db.get_record(path.make_str());
                 std::tie(file_info.m_file_size, file_info.m_content_hash) = this->load_compile_shader(path, shader_kind, output);
 
                 auto file = this->m_filesys.open_write(cache_path);
@@ -362,6 +382,34 @@ namespace {
             }
 
             return output;
+        }
+
+        bool import_check_shader_cache_info_valid() {
+            this->m_need_recompile = false;
+
+            auto file_content = this->m_filesys.open(this->make_shader_cache_dir_path() + "/source_info.json")->read_stl<std::string>();
+            if (!file_content.has_value()) {
+                this->m_need_recompile = true;
+                return false;
+            }
+
+            const auto json_data = nlohmann::json::parse(file_content.value());
+            for (auto x : json_data.items()) {
+                const size_t file_size = x.value()["file_size"];
+                const size_t content_hash = x.value()["file_content_hash"];
+
+                if (::is_file_info_correct(x.key(), file_size, content_hash, this->m_filesys)) {
+                    auto& record = this->m_src_db.get_record(x.key());
+                    record.m_file_size = file_size;
+                    record.m_content_hash = content_hash;
+                }
+                else {
+                    dalInfo(fmt::format("A shader file modification detected: {}", x.key()).c_str());
+                    this->m_need_recompile = true;
+                }
+            }
+
+            return !this->m_need_recompile;
         }
 
     private:
@@ -396,7 +444,11 @@ namespace {
             return result;
         }
 
-        std::string make_shader_cache_path(const dal::ResPath& path, const ::ShaderKind shader_kind) const {
+        std::string make_shader_cache_dir_path() const {
+            return fmt::format("{}/{}", ::SHADER_CACHE_DIR.u8string(), this->m_options.hash_value());
+        }
+
+        std::string make_shader_cache_file_path(const dal::ResPath& path, const ::ShaderKind shader_kind) const {
             std::string accum;
 
             for (auto& x : path.dir_list()) {
@@ -420,19 +472,15 @@ namespace {
 #else
             const auto& hashed = accum;
 #endif
-            return fmt::format("{}/{}/{}.spv", ::SHADER_CACHE_DIR.u8string(), this->m_options.hash_value(), hashed);
+            return fmt::format("{}/{}.spv", this->make_shader_cache_dir_path(), hashed);
         }
 
         bool need_to_compile(const std::string& cache_path) {
-            if (!this->m_filesys.is_file(cache_path))
+            if (this->m_need_recompile)
                 return true;
 
-#if DAL_INVALIDATE_CACHE_ONCE
-            if (::g_refreshed_ones.end() == ::g_refreshed_ones.find(cache_path)) {
-                ::g_refreshed_ones.insert(cache_path);
+            if (!this->m_filesys.is_file(cache_path))
                 return true;
-            }
-#endif
 
             return false;
         }
@@ -1365,6 +1413,8 @@ namespace dal {
         shader_mgr.m_options.add_macro_def("DAL_ATMOS_DITHERING");
         if (need_gamma_correction)
             shader_mgr.m_options.add_macro_def("DAL_GAMMA_CORRECT");
+
+        shader_mgr.import_check_shader_cache_info_valid();
 
         this->m_gbuf = ::make_pipeline_gbuf(
             shader_mgr,
