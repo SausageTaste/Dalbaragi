@@ -15,7 +15,7 @@
 
 
 #define DAL_HASH_SHADER_CACHE_NAME false
-#define DAL_INVALIDATE_CACHE_ONCE false
+#define DAL_INVALIDATE_CACHE_ONCE true
 
 
 // Shader module tools
@@ -31,6 +31,35 @@ namespace {
     enum class ShaderKind {
         vert,
         frag,
+    };
+
+
+    class ShaderSourceFileDB {
+
+    private:
+        struct SourceFileInfo {
+            size_t m_file_size = 0;
+            size_t m_content_hash = 0;
+            size_t m_used_count = 0;
+
+            bool is_data_available() const {
+                return 0 != this->m_content_hash;
+            }
+        };
+
+        std::unordered_map<std::string, SourceFileInfo> m_records;
+
+    public:
+        SourceFileInfo& get_record(const std::string& src_file_path) {
+            auto iter = this->m_records.find(src_file_path);
+            if (this->m_records.end() != iter) {
+                return iter->second;
+            }
+            else {
+                return this->m_records.emplace(src_file_path, SourceFileInfo{}).first->second;
+            }
+        }
+
     };
 
 
@@ -67,11 +96,13 @@ namespace {
 
         private:
             dal::Filesystem& m_filesys;
+            ::ShaderSourceFileDB& m_src_db;
             std::list<ResultData> m_list_result;
 
         public:
-            ShaderIncluder(dal::Filesystem& filesys)
+            ShaderIncluder(dal::Filesystem& filesys, ::ShaderSourceFileDB& src_db)
                 : m_filesys(filesys)
+                , m_src_db(src_db)
             {
 
             }
@@ -95,6 +126,12 @@ namespace {
                     if (!file->read_stl(output.m_content)) {
                         output.m_content = fmt::format("Failed to read shader file: {}", output.m_source_name);
                     }
+                    else {
+                        auto& file_info = this->m_src_db.get_record(output.m_source_name);
+                        ++file_info.m_used_count;
+                        file_info.m_file_size = file->size();
+                        file_info.m_content_hash = std::hash<std::string>{}(output.m_content);
+                    }
                 }
 
                 return &output.update_get_result();
@@ -114,8 +151,8 @@ namespace {
         size_t m_hash;
 
     public:
-        ShaderCompileOption(dal::Filesystem& filesys) {
-            this->m_options.SetIncluder(std::make_unique<ShaderIncluder>(filesys));
+        ShaderCompileOption(dal::Filesystem& filesys, ::ShaderSourceFileDB& src_db) {
+            this->m_options.SetIncluder(std::make_unique<ShaderIncluder>(filesys, src_db));
             this->m_options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
             this->update_hash();
@@ -288,17 +325,17 @@ namespace {
 
     class ShaderSrcManager {
 
+    private:
+        dal::Filesystem& m_filesys;
+        ::ShaderCompiler m_compiler;
+        ::ShaderSourceFileDB m_src_db;
+
     public:
         ::ShaderCompileOption m_options;
 
-    private:
-        ::ShaderCompiler m_compiler;
-        dal::Filesystem& m_filesys;
-
-    public:
         ShaderSrcManager(dal::Filesystem& filesys)
             : m_filesys(filesys)
-            , m_options(filesys)
+            , m_options(filesys, this->m_src_db)
         {
 
         }
@@ -306,6 +343,9 @@ namespace {
         std::vector<uint8_t> load(const dal::ResPath& path, const ::ShaderKind shader_kind) {
             std::vector<uint8_t> output;
             const auto cache_path = this->make_shader_cache_path(path, shader_kind);
+            auto& file_info = this->m_src_db.get_record(path.make_str());
+
+            ++file_info.m_used_count;
 
             if (!this->need_to_compile(cache_path)) {
                 auto file = this->m_filesys.open(cache_path);
@@ -313,7 +353,7 @@ namespace {
                 dalAssert(read_result);
             }
             else {
-                this->load_compile_shader(path, shader_kind, output);
+                std::tie(file_info.m_file_size, file_info.m_content_hash) = this->load_compile_shader(path, shader_kind, output);
 
                 auto file = this->m_filesys.open_write(cache_path);
                 if (file->is_ready()) {
@@ -325,7 +365,8 @@ namespace {
         }
 
     private:
-        void load_compile_shader(const dal::ResPath& path, const ::ShaderKind shader_kind, std::vector<uint8_t>& output) const {
+        std::pair<size_t, size_t> load_compile_shader(const dal::ResPath& path, const ::ShaderKind shader_kind, std::vector<uint8_t>& output) const {
+            std::pair<size_t, size_t> result;
             const auto path_str = path.make_str();
 
             auto file = this->m_filesys.open(path);
@@ -348,7 +389,11 @@ namespace {
             if (!compile_result)
                 dalAbort(fmt::format("Failed to compile shader: {}\n{}", path_str, compile_err_msg).c_str());
 
+            result.first = file->size();
+            result.second = std::hash<std::string>{}(*data);
+
             dalInfo(fmt::format("Shader compiled: {}", path_str).c_str());
+            return result;
         }
 
         std::string make_shader_cache_path(const dal::ResPath& path, const ::ShaderKind shader_kind) const {
