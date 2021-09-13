@@ -54,6 +54,7 @@ namespace dal {
 
     public:
         MainConfig m_config;
+        RendererConfig m_render_config;
 
     private:
         LuaState m_lua;

@@ -63,6 +63,7 @@ namespace dal {
     public:
         void init(
             dal::Filesystem& filesys,
+            const dal::ShaderConfig& config,
             const bool need_gamma_correction,
             const bool does_support_depth_clamp,
             const VkExtent2D& swapchain_extent,

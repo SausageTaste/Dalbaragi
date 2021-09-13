@@ -320,6 +320,7 @@ namespace dal {
         this->m_task_man.init(2);
         this->init(create_info);
 
+        // Load main config
         {
             auto file = create_info.m_filesystem->open(MAIN_CONFIG_PATH);
             if (file->is_ready()) {
@@ -328,6 +329,12 @@ namespace dal {
                     this->m_config.load_json(buffer->data(), buffer->size());
                 }
             }
+        }
+
+        // Update renderer config
+        {
+            this->m_render_config.m_shader.m_atmos_dithering = true;
+            this->m_render_config.m_shader.m_volumetric_atmos = true;
         }
 
         this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
@@ -437,6 +444,7 @@ namespace dal {
             this->m_create_info.m_window_title.c_str(),
             win_width,
             win_height,
+            this->m_render_config,
             *this->m_create_info.m_filesystem,
             this->m_task_man,
             this->m_res_man,

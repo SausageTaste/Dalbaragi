@@ -11,6 +11,7 @@
 #include "d_model_data.h"
 #include "d_render_cpnt.h"
 #include "d_image_parser.h"
+#include "d_render_config.h"
 
 
 namespace dal {
@@ -142,6 +143,8 @@ namespace dal {
         virtual void wait_idle() {}
 
         virtual void on_screen_resize(const unsigned width, const unsigned height) {}
+
+        virtual void apply_config(const RendererConfig& config) {};
 
         virtual HTexture create_texture() { return nullptr; }
 

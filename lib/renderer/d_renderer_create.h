@@ -16,6 +16,7 @@ namespace dal {
         const char* const window_title,
         const unsigned init_width,
         const unsigned init_height,
+        const dal::RendererConfig& config,
         dal::Filesystem& filesys,
         dal::TaskManager& task_man,
         dal::ITextureManager& texture_man,

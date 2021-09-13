@@ -1396,6 +1396,7 @@ namespace dal {
 
     void PipelineManager::init(
         dal::Filesystem& filesys,
+        const dal::ShaderConfig& config,
         const bool need_gamma_correction,
         const bool does_support_depth_clamp,
         const VkExtent2D& swapchain_extent,
@@ -1415,11 +1416,14 @@ namespace dal {
     ) {
         this->destroy(logi_device);
 
-        const auto macros = [need_gamma_correction]() {
+        const auto macros = [&config, need_gamma_correction]() {
             std::vector<std::string> output;
 
-            output.push_back("DAL_VOLUMETRIC_ATMOS");
-            output.push_back("DAL_ATMOS_DITHERING");
+            if (config.m_volumetric_atmos)
+                output.push_back("DAL_VOLUMETRIC_ATMOS");
+
+            if (config.m_atmos_dithering)
+                output.push_back("DAL_ATMOS_DITHERING");
 
             if (need_gamma_correction)
                 output.push_back("DAL_GAMMA_CORRECT");
