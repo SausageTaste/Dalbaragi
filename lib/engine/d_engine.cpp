@@ -333,8 +333,8 @@ namespace dal {
 
         // Update renderer config
         {
-            this->m_render_config.m_shader.m_atmos_dithering = true;
-            this->m_render_config.m_shader.m_volumetric_atmos = true;
+            this->m_render_config.m_shader.m_atmos_dithering = this->m_config.m_renderer.m_atmos_dithering;
+            this->m_render_config.m_shader.m_volumetric_atmos = this->m_config.m_renderer.m_volumetric_atmos;
         }
 
         this->m_lua.give_dependencies(this->m_scene, this->m_res_man);

@@ -33,17 +33,46 @@ namespace dal {
 }
 
 
+// ConfigGroup_Renderer
+namespace {
+
+    const char* const KEY_VOLUMETRIC_ATMOS = "volumetric_atmos";
+    const char* const KEY_ATMOS_DITHERING = "m_atmos_dithering";
+
+}
+namespace dal {
+
+    void ConfigGroup_Renderer::import_json(const nlohmann::json& json_data) {
+        try_set_json_value(this->m_volumetric_atmos, KEY_VOLUMETRIC_ATMOS, json_data);
+        try_set_json_value(this->m_atmos_dithering, KEY_ATMOS_DITHERING, json_data);
+    }
+
+    nlohmann::json ConfigGroup_Renderer::export_json() const {
+        nlohmann::json output;
+
+        output[KEY_VOLUMETRIC_ATMOS] = this->m_volumetric_atmos;
+        output[KEY_ATMOS_DITHERING] = this->m_atmos_dithering;
+
+        return output;
+    }
+
+}
+
+
+// MainConfig
 namespace {
 
     auto make_config_group_list(dal::MainConfig& config) {
         return std::vector<dal::IConfigGroup*>{
             &config.m_misc,
+            &config.m_renderer,
         };
     }
 
     auto make_config_group_list(const dal::MainConfig& config) {
         return std::vector<const dal::IConfigGroup*>{
             &config.m_misc,
+            &config.m_renderer,
         };
     }
 

@@ -30,11 +30,26 @@ namespace dal {
         std::string m_startup_script_path = "_asset/script/startup.lua";
 
     public:
+        virtual std::string key_name() const {
+            return "misc";
+        }
+
+        void import_json(const nlohmann::json& json_data) override;
+
+        nlohmann::json export_json() const override;
+
+    };
+
+
+    class ConfigGroup_Renderer : public IConfigGroup {
+
+    public:
         bool m_volumetric_atmos = true;
         bool m_atmos_dithering = true;
 
+    public:
         virtual std::string key_name() const {
-            return "misc";
+            return "renderer";
         }
 
         void import_json(const nlohmann::json& json_data) override;
@@ -48,6 +63,7 @@ namespace dal {
 
     public:
         ConfigGroup_Misc m_misc;
+        ConfigGroup_Renderer m_renderer;
 
     public:
         void load_json(const uint8_t* const buf, const size_t buf_size);
