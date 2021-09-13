@@ -11,6 +11,9 @@
 #include "d_defines.h"
 
 
+#define DAL_ASSERT_JID(jid) { dalAssertm(::is_joystick_id_valid(jid), fmt::format("Invalid joystick id: {}", (jid)).c_str()); }
+
+
 namespace {
 
     GLFWwindow* window_cast(void* const ptr) {
@@ -85,6 +88,11 @@ namespace {
 
         glfwSetWindowMonitor(window, nullptr, xpos, ypos, width, height, 0);
         dalInfo(fmt::format("Set window mode: width={}, height={}, xpos={}, ypos={}", width, height, xpos, ypos).c_str());
+    }
+
+
+    constexpr bool is_joystick_id_valid(const int jid) {
+        return (jid >= GLFW_JOYSTICK_1) && (jid <= GLFW_JOYSTICK_LAST);
     }
 
 }
@@ -249,6 +257,8 @@ namespace {
 
     dal::GamepadConnectionEvent make_gamepad_connection_event(const int jid) {
         dal::GamepadConnectionEvent e;
+        DAL_ASSERT_JID(jid);
+
         e.m_id = jid;
 
         if (GLFW_TRUE == glfwJoystickPresent(jid)) {
@@ -382,7 +392,7 @@ namespace dal {
     void WindowGLFW::set_callback_gamepad_connection(std::function<void(const dal::GamepadConnectionEvent&)> func) {
         g_callback_func_gamepad_connection = func;
 
-        for (auto i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
+        for (auto i = GLFW_JOYSTICK_1; i <= GLFW_JOYSTICK_LAST; ++i) {
             const bool present = 0 != glfwJoystickPresent(i);
             if (present) {
                 const auto e = ::make_gamepad_connection_event(i);
@@ -399,6 +409,8 @@ namespace dal {
             const auto end = gamepad_manager.pad_list().end();
             if (iter == end)
                 break;
+
+            DAL_ASSERT_JID(iter->first);
 
             if (GLFW_TRUE != glfwJoystickPresent(iter->first)) {
                 if (gamepad_manager.pad_list().size() <= 1) {
