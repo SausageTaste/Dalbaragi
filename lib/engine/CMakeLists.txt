@@ -6,6 +6,7 @@ add_library(libdal_engine STATIC
     d_inputs.h                  d_inputs.cpp
     d_resource_man.h            d_resource_man.cpp
     d_script_engine.h           d_script_engine.cpp
+    d_config.h                  d_config.cpp
 )
 
 target_compile_features(libdal_engine PUBLIC cxx_std_17)

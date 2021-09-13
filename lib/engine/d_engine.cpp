@@ -11,6 +11,9 @@
 
 namespace {
 
+    const char* const MAIN_CONFIG_PATH = "_internal/config.json";
+
+
     auto make_move_direc(const dal::KeyInputManager& im) {
         glm::vec3 result{ 0, 0, 0 };
 
@@ -314,6 +317,16 @@ namespace dal {
         this->m_task_man.init(2);
         this->init(create_info);
 
+        {
+            auto file = create_info.m_filesystem->open(MAIN_CONFIG_PATH);
+            if (file->is_ready()) {
+                const auto buffer = file->read_stl<std::vector<uint8_t>>();
+                if (buffer.has_value()) {
+                    this->m_config.load_json(buffer->data(), buffer->size());
+                }
+            }
+        }
+
         this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
         this->m_lua.exec("logger = require('logger'); logger.log(logger.INFO, 'Lua state initialized')");
 
@@ -332,6 +345,11 @@ namespace dal {
     }
 
     Engine::~Engine() {
+        if (auto file = this->m_create_info.m_filesystem->open_write(::MAIN_CONFIG_PATH); file->is_ready()) {
+            const auto data = this->m_config.export_json();
+            file->write(data.data(), data.size());
+        }
+
         this->m_lua.clear_dependencies();
         this->m_task_man.destroy();
         this->destroy();

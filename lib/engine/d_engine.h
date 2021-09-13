@@ -9,6 +9,7 @@
 #include "d_scene.h"
 #include "d_script_engine.h"
 #include "d_logger.h"
+#include "d_config.h"
 
 
 namespace dal {
@@ -51,6 +52,10 @@ namespace dal {
     private:
         EngineCreateInfo m_create_info;
 
+    public:
+        MainConfig m_config;
+
+    private:
         LuaState m_lua;
         InputManager m_input_man;
         TaskManager m_task_man;
