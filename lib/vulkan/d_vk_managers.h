@@ -185,42 +185,6 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        void record_simple(
-            const FrameInFlightIndex& flight_frame_index,
-            const RenderListVK& render_list,
-            const VkDescriptorSet desc_set_per_frame,
-            const VkDescriptorSet desc_set_composition,
-            const VkExtent2D& swapchain_extent,
-            const VkFramebuffer swapchain_fbuf,
-            const ShaderPipeline& pipeline_gbuf,
-            const ShaderPipeline& pipeline_gbuf_animated,
-            const ShaderPipeline& pipeline_composition,
-            const RenderPass_Gbuf& render_pass
-        );
-
-        void record_final(
-            const size_t index,
-            const dal::Fbuf_Final& fbuf,
-            const VkExtent2D& extent,
-            const VkDescriptorSet desc_set_final,
-            const VkPipelineLayout pipe_layout_final,
-            const VkPipeline pipeline_final,
-            const RenderPass_Final& renderpass
-        );
-
-        void record_alpha(
-            const FrameInFlightIndex& flight_frame_index,
-            const glm::vec3& view_pos,
-            const RenderListVK& render_list,
-            const VkDescriptorSet desc_set_per_global,
-            const VkDescriptorSet desc_set_composition,
-            const VkExtent2D& swapchain_extent,
-            const VkFramebuffer swapchain_fbuf,
-            const ShaderPipeline& pipeline_alpha,
-            const ShaderPipeline& pipeline_alpha_animated,
-            const RenderPass_Alpha& render_pass
-        );
-
         auto& cmd_simple_at(const size_t index) const {
             return this->m_cmd_simple.at(index);
         }
@@ -313,15 +277,6 @@ namespace dal {
         );
 
         void destroy(CommandPool& cmd_pool, const VkDevice logi_device);
-
-        void record_cmd_buf(
-            const FrameInFlightIndex& flight_frame_index,
-            const RenderListVK& render_list,
-            const glm::mat4& light_mat,
-            const ShaderPipeline& pipeline_shadow,
-            const ShaderPipeline& pipeline_shadow_animated,
-            const RenderPass_ShadowMap& render_pass
-        );
 
         auto& cmd_buf_at(const size_t index) const {
             return this->m_cmd_buf.at(index);

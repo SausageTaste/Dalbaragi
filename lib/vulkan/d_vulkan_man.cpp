@@ -473,9 +473,14 @@ namespace dal {
                 if (!dlight_update_flags[i])
                     continue;
 
-                this->m_shadow_maps.m_dlights[i].record_cmd_buf(
+                auto& shadow_map = this->m_shadow_maps.m_dlights[i];
+
+                record_cmd_shadow(
+                    shadow_map.cmd_buf_at(this->m_flight_frame_index.get()),
                     this->m_flight_frame_index,
                     render_list_vk,
+                    shadow_map.extent(),
+                    shadow_map.fbuf().get(),
                     this->m_shadow_maps.m_dlight_matrices[i],
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
