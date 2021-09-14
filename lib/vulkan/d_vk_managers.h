@@ -131,7 +131,7 @@ namespace dal {
         const dal::ShaderPipeline& pipeline_gbuf,
         const dal::ShaderPipeline& pipeline_gbuf_animated,
         const dal::ShaderPipeline& pipeline_composition,
-        const VkFramebuffer swapchain_fbuf,
+        const dal::Fbuf_Gbuf& fbuf,
         const dal::RenderPass_Gbuf& render_pass
     );
 
@@ -212,7 +212,7 @@ namespace dal {
     class FbufManager {
 
     private:
-        std::vector<dal::Fbuf_Simple> m_fbuf_simple;
+        std::vector<dal::Fbuf_Gbuf> m_fbuf_simple;
         std::vector<dal::Fbuf_Final> m_fbuf_final;
         std::vector<dal::Fbuf_Alpha> m_fbuf_alpha;
 
@@ -230,7 +230,9 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        std::vector<VkFramebuffer> swapchain_fbuf() const;
+        auto& fbuf_gbuf_at(const dal::SwapchainIndex index) const {
+            return this->m_fbuf_simple.at(*index);
+        }
 
         auto& fbuf_final_at(const dal::SwapchainIndex index) const {
             return this->m_fbuf_final.at(*index);

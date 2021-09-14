@@ -102,7 +102,7 @@ namespace dal {
         const dal::ShaderPipeline& pipeline_gbuf,
         const dal::ShaderPipeline& pipeline_gbuf_animated,
         const dal::ShaderPipeline& pipeline_composition,
-        const VkFramebuffer swapchain_fbuf,
+        const dal::Fbuf_Gbuf& fbuf,
         const dal::RenderPass_Gbuf& render_pass
     ) {
         VkCommandBufferBeginInfo begin_info{};
@@ -123,7 +123,7 @@ namespace dal {
         VkRenderPassBeginInfo render_pass_info{};
         render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         render_pass_info.renderPass = render_pass.get();
-        render_pass_info.framebuffer = swapchain_fbuf;
+        render_pass_info.framebuffer = fbuf.get();
         render_pass_info.renderArea.offset = {0, 0};
         render_pass_info.renderArea.extent = swapchain_extent;
         render_pass_info.clearValueCount = clear_colors.size();
@@ -667,16 +667,6 @@ namespace dal {
         for (auto& fbuf : this->m_fbuf_alpha)
             fbuf.destroy(logi_device);
         this->m_fbuf_alpha.clear();
-    }
-
-    std::vector<VkFramebuffer> FbufManager::swapchain_fbuf() const {
-        std::vector<VkFramebuffer> output;
-
-        for (auto& x : this->m_fbuf_simple) {
-            output.push_back(x.get());
-        }
-
-        return output;
     }
 
 }

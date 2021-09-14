@@ -212,7 +212,7 @@ namespace dal {
 // Framebuffer implementaions
 namespace dal {
 
-    void Fbuf_Simple::init(
+    void Fbuf_Gbuf::init(
         const dal::RenderPass_Gbuf& renderpass,
         const VkExtent2D& swapchain_extent,
         const VkImageView color_view,

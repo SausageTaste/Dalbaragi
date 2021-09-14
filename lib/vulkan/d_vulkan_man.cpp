@@ -558,7 +558,7 @@ namespace dal {
                 this->m_pipelines.gbuf(),
                 this->m_pipelines.gbuf_animated(),
                 this->m_pipelines.composition(),
-                this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
+                this->m_fbuf_man.fbuf_gbuf_at(swapchain_index),
                 this->m_renderpasses.rp_gbuf()
             );
 

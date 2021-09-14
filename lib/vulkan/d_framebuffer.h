@@ -148,7 +148,7 @@ namespace dal {
     };
 
 
-    class Fbuf_Simple : public Framebuffer {
+    class Fbuf_Gbuf : public Framebuffer {
 
     public:
         void init(
