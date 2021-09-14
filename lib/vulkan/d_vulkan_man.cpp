@@ -505,9 +505,12 @@ namespace dal {
             for (size_t i = 0; i < render_list.m_slights.size(); ++i) {
                 auto& shadow_map = this->m_shadow_maps.m_slights[i];
 
-                shadow_map.record_cmd_buf(
+                record_cmd_shadow(
+                    shadow_map.cmd_buf_at(this->m_flight_frame_index.get()),
                     this->m_flight_frame_index,
                     render_list_vk,
+                    shadow_map.extent(),
+                    shadow_map.fbuf().get(),
                     render_list.m_slights[i].make_light_mat(),
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
@@ -540,7 +543,8 @@ namespace dal {
             std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_img_available.at(this->m_flight_frame_index).get() };
             std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
 
-            this->m_cmd_man.record_simple(
+            record_cmd_gbuf(
+                this->m_cmd_man.cmd_simple_at(this->m_flight_frame_index.get()),
                 this->m_flight_frame_index,
                 render_list_vk,
                 this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
@@ -578,7 +582,8 @@ namespace dal {
             std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
             std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
 
-            this->m_cmd_man.record_alpha(
+            record_cmd_alpha(
+                this->m_cmd_man.cmd_alpha_at(this->m_flight_frame_index.get()),
                 this->m_flight_frame_index,
                 camera.view_pos(),
                 render_list_vk,
@@ -619,7 +624,8 @@ namespace dal {
 
             fence.wait_reset(this->m_logi_device.get());
 
-            this->m_cmd_man.record_final(
+            record_cmd_final(
+                this->m_cmd_man.cmd_final_at(this->m_flight_frame_index.get()),
                 this->m_flight_frame_index.get(),
                 this->m_fbuf_man.fbuf_final_at(swapchain_index),
                 this->m_swapchain.identity_extent(),

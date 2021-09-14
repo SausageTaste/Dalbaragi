@@ -87,6 +87,488 @@ namespace dal {
 }
 
 
+// Record commands
+namespace dal {
+
+    void record_cmd_gbuf(
+        const VkCommandBuffer cmd_buf,
+        const FrameInFlightIndex& flight_frame_index,
+        const RenderListVK& render_list,
+        const VkDescriptorSet desc_set_per_frame,
+        const VkDescriptorSet desc_set_composition,
+        const VkExtent2D& swapchain_extent,
+        const VkFramebuffer swapchain_fbuf,
+        const ShaderPipeline& pipeline_gbuf,
+        const ShaderPipeline& pipeline_gbuf_animated,
+        const ShaderPipeline& pipeline_composition,
+        const RenderPass_Gbuf& render_pass
+    ) {
+        VkCommandBufferBeginInfo begin_info{};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags = 0;
+        begin_info.pInheritanceInfo = nullptr;
+
+        if (vkBeginCommandBuffer(cmd_buf, &begin_info) != VK_SUCCESS)
+            dalAbort("failed to begin recording command buffer!");
+
+        std::array<VkClearValue, 5> clear_colors{};
+        clear_colors[0].color = { 0, 0, 0, 1 };
+        clear_colors[1].depthStencil = { 1, 0 };
+        clear_colors[2].color = { 0, 0, 0, 1 };
+        clear_colors[3].color = { 0, 0, 0, 1 };
+        clear_colors[4].color = { 0, 0, 0, 1 };
+
+        VkRenderPassBeginInfo render_pass_info{};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_info.renderPass = render_pass.get();
+        render_pass_info.framebuffer = swapchain_fbuf;
+        render_pass_info.renderArea.offset = {0, 0};
+        render_pass_info.renderArea.extent = swapchain_extent;
+        render_pass_info.clearValueCount = clear_colors.size();
+        render_pass_info.pClearValues = clear_colors.data();
+
+        vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        // Gbuf of static models
+        {
+            auto& pipeline = pipeline_gbuf;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline.layout(),
+                0,
+                1, &desc_set_per_frame,
+                0, nullptr
+            );
+
+            for (auto& render_pair : render_list.m_static_models) {
+                for (auto& unit : render_pair.m_model->render_units()) {
+                    dalAssert(!unit.m_material.m_alpha_blend);
+
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipeline.layout(),
+                        1,
+                        1, &unit.m_material.m_descset.get(),
+                        0, nullptr
+                    );
+
+                    for (auto& actor : render_pair.m_actors) {
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            2,
+                            1, &actor->desc_set_raw(),
+                            0, nullptr
+                        );
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        // Gbuf of animated models
+        {
+            auto& pipeline = pipeline_gbuf_animated;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline.layout(),
+                0,
+                1, &desc_set_per_frame,
+                0, nullptr
+            );
+
+            for (auto& render_pair : render_list.m_skinned_models) {
+                for (auto& unit : render_pair.m_model->render_units()) {
+                    dalAssert(!unit.m_material.m_alpha_blend);
+
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipeline.layout(),
+                        1,
+                        1, &unit.m_material.m_descset.get(),
+                        0, nullptr
+                    );
+
+                    for (auto& actor : render_pair.m_actors) {
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            2,
+                            1, &actor->desc_per_actor(flight_frame_index),
+                            0, nullptr
+                        );
+
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            3,
+                            1, &actor->desc_animation(flight_frame_index),
+                            0, nullptr
+                        );
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        // Composition
+        {
+            auto& pipeline = pipeline_composition;
+
+            vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline.layout(),
+                0,
+                1, &desc_set_composition,
+                0, nullptr
+            );
+
+            vkCmdDraw(cmd_buf, 6, 1, 0, 0);
+        }
+
+        vkCmdEndRenderPass(cmd_buf);
+        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS)
+            dalAbort("failed to record command buffer!");
+    }
+
+    void record_cmd_final(
+        const VkCommandBuffer cmd_buf,
+        const size_t index,
+        const dal::Fbuf_Final& fbuf,
+        const VkExtent2D& extent,
+        const VkDescriptorSet desc_set_final,
+        const VkPipelineLayout pipe_layout_final,
+        const VkPipeline pipeline_final,
+        const RenderPass_Final& renderpass
+    ) {
+        VkCommandBufferBeginInfo begin_info{};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags = 0;
+        begin_info.pInheritanceInfo = nullptr;
+
+        if (vkBeginCommandBuffer(cmd_buf, &begin_info) != VK_SUCCESS) {
+            dalAbort("failed to begin recording command buffer!");
+        }
+
+        std::array<VkClearValue, 1> clear_colors{};
+        clear_colors[0].color = { 1, 0, 0, 1 };
+
+        VkRenderPassBeginInfo render_pass_info{};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_info.renderPass = renderpass.get();
+        render_pass_info.framebuffer = fbuf.get();
+        render_pass_info.renderArea.offset = {0, 0};
+        render_pass_info.renderArea.extent = extent;
+        render_pass_info.clearValueCount = clear_colors.size();
+        render_pass_info.pClearValues = clear_colors.data();
+
+        vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+        {
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_final);
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipe_layout_final,
+                0,
+                1, &desc_set_final,
+                0, nullptr
+            );
+
+            vkCmdDraw(cmd_buf, 3, 1, 0, 0);
+        }
+        vkCmdEndRenderPass(cmd_buf);
+
+        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS) {
+            dalAbort("failed to record command buffer!");
+        }
+
+    }
+
+    void record_cmd_alpha(
+        const VkCommandBuffer cmd_buf,
+        const FrameInFlightIndex& flight_frame_index,
+        const glm::vec3& view_pos,
+        const RenderListVK& render_list,
+        const VkDescriptorSet desc_set_per_global,
+        const VkDescriptorSet desc_set_composition,
+        const VkExtent2D& swapchain_extent,
+        const VkFramebuffer swapchain_fbuf,
+        const ShaderPipeline& pipeline_alpha,
+        const ShaderPipeline& pipeline_alpha_animated,
+        const RenderPass_Alpha& render_pass
+    ) {
+        VkCommandBufferBeginInfo begin_info{};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags = 0;
+        begin_info.pInheritanceInfo = nullptr;
+
+        if (vkBeginCommandBuffer(cmd_buf, &begin_info) != VK_SUCCESS) {
+            dalAbort("failed to begin recording command buffer!");
+        }
+
+        std::array<VkClearValue, 5> clear_colors{};
+        clear_colors[0].color = { 0, 0, 0, 1 };
+        clear_colors[1].depthStencil = { 1, 0 };
+        clear_colors[2].color = { 0, 0, 0, 1 };
+        clear_colors[3].color = { 0, 0, 0, 1 };
+        clear_colors[4].color = { 0, 0, 0, 1 };
+
+        VkRenderPassBeginInfo render_pass_info{};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_info.renderPass = render_pass.get();
+        render_pass_info.framebuffer = swapchain_fbuf;
+        render_pass_info.renderArea.offset = {0, 0};
+        render_pass_info.renderArea.extent = swapchain_extent;
+        render_pass_info.clearValueCount = clear_colors.size();
+        render_pass_info.pClearValues = clear_colors.data();
+
+        vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        {
+            auto& pipeline = pipeline_alpha;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline.layout(),
+                0,
+                1, &desc_set_per_global,
+                0, nullptr
+            );
+
+            for (auto& render_tuple : render_list.m_static_alpha_models) {
+                std::array<VkBuffer, 1> vert_bufs{ render_tuple.m_unit->m_vert_buffer.vertex_buffer() };
+                vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                vkCmdBindIndexBuffer(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.layout(),
+                    1,
+                    1, &render_tuple.m_unit->m_material.m_descset.get(),
+                    0, nullptr
+                );
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.layout(),
+                    2,
+                    1, &render_tuple.m_actor->desc_set_raw(),
+                    0, nullptr
+                );
+
+                vkCmdDrawIndexed(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_size(), 1, 0, 0, 0);
+            }
+        }
+
+        {
+            auto& pipeline = pipeline_alpha_animated;
+
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline.layout(),
+                0,
+                1, &desc_set_per_global,
+                0, nullptr
+            );
+
+            for (auto& render_tuple : render_list.m_skinned_alpha_models) {
+                std::array<VkBuffer, 1> vert_bufs{ render_tuple.m_unit->m_vert_buffer.vertex_buffer() };
+                vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                vkCmdBindIndexBuffer(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.layout(),
+                    1,
+                    1, &render_tuple.m_unit->m_material.m_descset.get(),
+                    0, nullptr
+                );
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.layout(),
+                    2,
+                    1, &render_tuple.m_actor->desc_per_actor(flight_frame_index),
+                    0, nullptr
+                );
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.layout(),
+                    3,
+                    1, &render_tuple.m_actor->desc_animation(flight_frame_index),
+                    0, nullptr
+                );
+
+                vkCmdDrawIndexed(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_size(), 1, 0, 0, 0);
+            }
+        }
+
+        vkCmdEndRenderPass(cmd_buf);
+
+        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS) {
+            dalAbort("failed to record command buffer!");
+        }
+    }
+
+    void record_cmd_shadow(
+        const VkCommandBuffer cmd_buf,
+        const FrameInFlightIndex& flight_frame_index,
+        const RenderListVK& render_list,
+        const VkExtent2D& shadow_map_extent,
+        const VkFramebuffer shadow_map_fbuf,
+        const glm::mat4& light_mat,
+        const ShaderPipeline& pipeline_shadow,
+        const ShaderPipeline& pipeline_shadow_animated,
+        const RenderPass_ShadowMap& render_pass
+    ) {
+        VkCommandBufferBeginInfo begin_info{};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags = 0;
+        begin_info.pInheritanceInfo = nullptr;
+
+        if (VK_SUCCESS != vkBeginCommandBuffer(cmd_buf, &begin_info))
+            dalAbort("failed to begin recording command buffer!");
+
+        std::array<VkClearValue, 5> clear_colors{};
+        clear_colors[0].depthStencil = { 1, 0 };
+
+        VkRenderPassBeginInfo render_pass_info{};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_info.renderPass = render_pass.get();
+        render_pass_info.framebuffer = shadow_map_fbuf;
+        render_pass_info.renderArea.offset = {0, 0};
+        render_pass_info.renderArea.extent = shadow_map_extent;
+        render_pass_info.clearValueCount = clear_colors.size();
+        render_pass_info.pClearValues = clear_colors.data();
+
+        vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        {
+            auto& pipeline = pipeline_shadow;
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            const auto [viewport, scissor] = ::create_info_viewport_scissor(shadow_map_extent);
+            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            for (auto& render_tuple : render_list.m_static_models) {
+                auto& model = *render_tuple.m_model;
+
+                for (auto& unit : model.render_units()) {
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    for (auto& actor : render_tuple.m_actors) {
+                        U_PC_Shadow pc_data;
+                        pc_data.m_model_mat = actor->m_transform.make_mat4();
+                        pc_data.m_light_mat = light_mat;
+                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Shadow), &pc_data);
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        {
+            auto& pipeline = pipeline_shadow_animated;
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            const auto [viewport, scissor] = ::create_info_viewport_scissor(shadow_map_extent);
+            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            for (auto& render_tuple : render_list.m_skinned_models) {
+                auto& model = *render_tuple.m_model;
+
+                for (auto& unit : model.render_units()) {
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    for (auto& actor : render_tuple.m_actors) {
+                        U_PC_Shadow pc_data;
+                        pc_data.m_model_mat = actor->m_transform.make_mat4();
+                        pc_data.m_light_mat = light_mat;
+                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Shadow), &pc_data);
+
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            0,
+                            1, &actor->desc_animation(flight_frame_index),
+                            0, nullptr
+                        );
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        vkCmdEndRenderPass(cmd_buf);
+
+        if (vkEndCommandBuffer(cmd_buf) != VK_SUCCESS)
+            dalAbort("failed to record command buffer!");
+    }
+
+}
+
+
 // CmdPoolManager
 namespace dal {
 
@@ -805,9 +1287,15 @@ namespace dal {
         std::array<VkSemaphore, 0> signal_semaphores{};
 
         for (size_t i = 0; i < this->m_dlights.size(); ++i) {
-            this->m_dlights[i].record_cmd_buf(
+            auto& shadow_map = this->m_dlights[i];
+            auto& cmd_buf = shadow_map.cmd_buf_at(index0.get());
+
+            record_cmd_shadow(
+                cmd_buf,
                 index0,
                 render_list,
+                shadow_map.extent(),
+                shadow_map.fbuf().get(),
                 glm::mat4{1},
                 pipelines.shadow(),
                 pipelines.shadow_animated(),
@@ -816,7 +1304,7 @@ namespace dal {
 
             VkSubmitInfo submit_info{};
             submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submit_info.pCommandBuffers = &this->m_dlights[i].cmd_buf_at(index0.get());
+            submit_info.pCommandBuffers = &cmd_buf;
             submit_info.commandBufferCount = 1;
             submit_info.waitSemaphoreCount = wait_semaphores.size();
             submit_info.pWaitSemaphores = wait_semaphores.data();
@@ -836,10 +1324,14 @@ namespace dal {
 
         for (size_t i = 0; i < this->m_slights.size(); ++i) {
             auto& shadow_map = this->m_slights[i];
+            auto& cmd_buf = shadow_map.cmd_buf_at(index0.get());
 
-            shadow_map.record_cmd_buf(
+            record_cmd_shadow(
+                cmd_buf,
                 index0,
                 render_list,
+                shadow_map.extent(),
+                shadow_map.fbuf().get(),
                 glm::mat4{1},
                 pipelines.shadow(),
                 pipelines.shadow_animated(),
@@ -848,7 +1340,7 @@ namespace dal {
 
             VkSubmitInfo submit_info{};
             submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submit_info.pCommandBuffers = &shadow_map.cmd_buf_at(index0.get());
+            submit_info.pCommandBuffers = &cmd_buf;
             submit_info.commandBufferCount = 1;
             submit_info.waitSemaphoreCount = wait_semaphores.size();
             submit_info.pWaitSemaphores = wait_semaphores.data();
