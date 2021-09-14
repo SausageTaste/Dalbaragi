@@ -307,3 +307,87 @@ namespace dal {
     }
 
 }
+
+
+namespace dal {
+
+    void FbufBundle_Gbuf::init_attachments(
+        const uint32_t width,
+        const uint32_t height,
+        const VkFormat depth_format,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->m_color.init(
+            width,
+            height,
+            dal::FbufAttachment::Usage::color_attachment,
+            VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+            phys_device,
+            logi_device
+        );
+
+        this->m_depth.init(
+            width,
+            height,
+            dal::FbufAttachment::Usage::depth_attachment,
+            depth_format,
+            phys_device,
+            logi_device
+        );
+
+        this->m_albedo.init(
+            width,
+            height,
+            dal::FbufAttachment::Usage::color_attachment,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            phys_device,
+            logi_device
+        );
+
+        this->m_materials.init(
+            width,
+            height,
+            dal::FbufAttachment::Usage::color_attachment,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            phys_device,
+            logi_device
+        );
+
+        this->m_normal.init(
+            width,
+            height,
+            dal::FbufAttachment::Usage::color_attachment,
+            VK_FORMAT_R8G8B8A8_UNORM,
+            phys_device,
+            logi_device
+        );
+    }
+
+    void FbufBundle_Gbuf::init_fbuf(
+        const dal::RenderPass_Gbuf& renderpass,
+        const VkDevice logi_device
+    ) {
+        this->m_fbuf.init(
+            renderpass,
+            this->m_color.extent(),
+            this->m_color.view().get(),
+            this->m_depth.view().get(),
+            this->m_albedo.view().get(),
+            this->m_materials.view().get(),
+            this->m_normal.view().get(),
+            logi_device
+        );
+    }
+
+    void FbufBundle_Gbuf::destroy(const VkDevice logi_device) {
+        this->m_fbuf.destroy(logi_device);
+
+        this->m_color.destroy(logi_device);
+        this->m_depth.destroy(logi_device);
+        this->m_albedo.destroy(logi_device);
+        this->m_materials.destroy(logi_device);
+        this->m_normal.destroy(logi_device);
+    }
+
+}
