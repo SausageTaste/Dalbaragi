@@ -54,7 +54,7 @@ namespace dal {
     };
 
 
-    class AttachmentManager {
+    class AttachmentBundle_Gbuf {
 
     private:
         FbufAttachment m_color;

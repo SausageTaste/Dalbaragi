@@ -616,7 +616,7 @@ namespace dal {
 
     void FbufManager::init(
         const std::vector<dal::ImageView>& swapchain_views,
-        const dal::AttachmentManager& attach_man,
+        const dal::AttachmentBundle_Gbuf& attach_man,
         const VkExtent2D& swapchain_extent,
         const VkExtent2D& gbuf_extent,
         const dal::RenderPass_Gbuf& rp_gbuf,

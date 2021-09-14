@@ -32,7 +32,7 @@ namespace dal {
 
         SwapchainManager m_swapchain;
         PipelineManager m_pipelines;
-        AttachmentManager m_attach_man;
+        AttachmentBundle_Gbuf m_attach_man;
         RenderPassManager m_renderpasses;
         FbufManager m_fbuf_man;
         CmdPoolManager m_cmd_man;

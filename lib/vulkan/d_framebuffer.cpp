@@ -93,10 +93,10 @@ namespace dal {
 }
 
 
-// AttachmentManager
+// AttachmentBundle_Gbuf
 namespace dal {
 
-    void AttachmentManager::init(
+    void AttachmentBundle_Gbuf::init(
         const VkExtent2D& extent,
         const dal::RenderPass_Gbuf& renderpass,
         const VkPhysicalDevice phys_device,
@@ -152,7 +152,7 @@ namespace dal {
         );
     }
 
-    void AttachmentManager::destroy(const VkDevice logi_device) {
+    void AttachmentBundle_Gbuf::destroy(const VkDevice logi_device) {
         this->m_color.destroy(logi_device);
         this->m_depth.destroy(logi_device);
         this->m_albedo.destroy(logi_device);
