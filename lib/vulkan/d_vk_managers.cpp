@@ -92,16 +92,18 @@ namespace dal {
 
     void record_cmd_gbuf(
         const VkCommandBuffer cmd_buf,
-        const FrameInFlightIndex& flight_frame_index,
-        const RenderListVK& render_list,
+
+        const dal::RenderListVK& render_list,
+        const dal::FrameInFlightIndex& flight_frame_index,
+
+        const VkExtent2D& swapchain_extent,
         const VkDescriptorSet desc_set_per_frame,
         const VkDescriptorSet desc_set_composition,
-        const VkExtent2D& swapchain_extent,
+        const dal::ShaderPipeline& pipeline_gbuf,
+        const dal::ShaderPipeline& pipeline_gbuf_animated,
+        const dal::ShaderPipeline& pipeline_composition,
         const VkFramebuffer swapchain_fbuf,
-        const ShaderPipeline& pipeline_gbuf,
-        const ShaderPipeline& pipeline_gbuf_animated,
-        const ShaderPipeline& pipeline_composition,
-        const RenderPass_Gbuf& render_pass
+        const dal::RenderPass_Gbuf& render_pass
     ) {
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -264,13 +266,13 @@ namespace dal {
 
     void record_cmd_final(
         const VkCommandBuffer cmd_buf,
-        const size_t index,
-        const dal::Fbuf_Final& fbuf,
+
         const VkExtent2D& extent,
         const VkDescriptorSet desc_set_final,
-        const VkPipelineLayout pipe_layout_final,
         const VkPipeline pipeline_final,
-        const RenderPass_Final& renderpass
+        const VkPipelineLayout pipe_layout_final,
+        const dal::Fbuf_Final& fbuf,
+        const dal::RenderPass_Final& renderpass
     ) {
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -318,16 +320,18 @@ namespace dal {
 
     void record_cmd_alpha(
         const VkCommandBuffer cmd_buf,
-        const FrameInFlightIndex& flight_frame_index,
+
+        const dal::RenderListVK& render_list,
+        const dal::FrameInFlightIndex& flight_frame_index,
         const glm::vec3& view_pos,
-        const RenderListVK& render_list,
+
+        const VkExtent2D& swapchain_extent,
         const VkDescriptorSet desc_set_per_global,
         const VkDescriptorSet desc_set_composition,
-        const VkExtent2D& swapchain_extent,
+        const dal::ShaderPipeline& pipeline_alpha,
+        const dal::ShaderPipeline& pipeline_alpha_animated,
         const VkFramebuffer swapchain_fbuf,
-        const ShaderPipeline& pipeline_alpha,
-        const ShaderPipeline& pipeline_alpha_animated,
-        const RenderPass_Alpha& render_pass
+        const dal::RenderPass_Alpha& render_pass
     ) {
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -460,14 +464,16 @@ namespace dal {
 
     void record_cmd_shadow(
         const VkCommandBuffer cmd_buf,
-        const FrameInFlightIndex& flight_frame_index,
-        const RenderListVK& render_list,
-        const VkExtent2D& shadow_map_extent,
-        const VkFramebuffer shadow_map_fbuf,
+
+        const dal::RenderListVK& render_list,
+        const dal::FrameInFlightIndex& flight_frame_index,
         const glm::mat4& light_mat,
-        const ShaderPipeline& pipeline_shadow,
-        const ShaderPipeline& pipeline_shadow_animated,
-        const RenderPass_ShadowMap& render_pass
+
+        const VkExtent2D& shadow_map_extent,
+        const dal::ShaderPipeline& pipeline_shadow,
+        const dal::ShaderPipeline& pipeline_shadow_animated,
+        const VkFramebuffer shadow_map_fbuf,
+        const dal::RenderPass_ShadowMap& render_pass
     ) {
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -814,13 +820,13 @@ namespace dal {
 
             record_cmd_shadow(
                 cmd_buf,
-                index0,
                 render_list,
-                shadow_map.extent(),
-                shadow_map.fbuf().get(),
+                index0,
                 glm::mat4{1},
+                shadow_map.extent(),
                 pipelines.shadow(),
                 pipelines.shadow_animated(),
+                shadow_map.fbuf().get(),
                 render_pass
             );
 
@@ -850,13 +856,13 @@ namespace dal {
 
             record_cmd_shadow(
                 cmd_buf,
-                index0,
                 render_list,
-                shadow_map.extent(),
-                shadow_map.fbuf().get(),
+                index0,
                 glm::mat4{1},
+                shadow_map.extent(),
                 pipelines.shadow(),
                 pipelines.shadow_animated(),
+                shadow_map.fbuf().get(),
                 render_pass
             );
 

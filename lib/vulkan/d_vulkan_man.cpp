@@ -477,13 +477,13 @@ namespace dal {
 
                 record_cmd_shadow(
                     shadow_map.cmd_buf_at(this->m_flight_frame_index.get()),
-                    this->m_flight_frame_index,
                     render_list_vk,
-                    shadow_map.extent(),
-                    shadow_map.fbuf().get(),
+                    this->m_flight_frame_index,
                     this->m_shadow_maps.m_dlight_matrices[i],
+                    shadow_map.extent(),
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
+                    shadow_map.fbuf().get(),
                     this->m_renderpasses.rp_shadow()
                 );
 
@@ -512,13 +512,13 @@ namespace dal {
 
                 record_cmd_shadow(
                     shadow_map.cmd_buf_at(this->m_flight_frame_index.get()),
-                    this->m_flight_frame_index,
                     render_list_vk,
-                    shadow_map.extent(),
-                    shadow_map.fbuf().get(),
+                    this->m_flight_frame_index,
                     render_list.m_slights[i].make_light_mat(),
+                    shadow_map.extent(),
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
+                    shadow_map.fbuf().get(),
                     this->m_renderpasses.rp_shadow()
                 );
 
@@ -550,15 +550,15 @@ namespace dal {
 
             record_cmd_gbuf(
                 this->m_cmd_man.cmd_simple_at(this->m_flight_frame_index.get()),
-                this->m_flight_frame_index,
                 render_list_vk,
+                this->m_flight_frame_index,
+                this->m_attach_man.color().extent(),
                 this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
-                this->m_attach_man.color().extent(),
-                this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
                 this->m_pipelines.gbuf(),
                 this->m_pipelines.gbuf_animated(),
                 this->m_pipelines.composition(),
+                this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
                 this->m_renderpasses.rp_gbuf()
             );
 
@@ -589,15 +589,15 @@ namespace dal {
 
             record_cmd_alpha(
                 this->m_cmd_man.cmd_alpha_at(this->m_flight_frame_index.get()),
+                render_list_vk,
                 this->m_flight_frame_index,
                 camera.view_pos(),
-                render_list_vk,
+                this->m_attach_man.color().extent(),
                 this->m_desc_man.desc_set_alpha_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
-                this->m_attach_man.color().extent(),
-                this->m_fbuf_man.fbuf_alpha_at(swapchain_index).get(),
                 this->m_pipelines.alpha(),
                 this->m_pipelines.alpha_animated(),
+                this->m_fbuf_man.fbuf_alpha_at(swapchain_index).get(),
                 this->m_renderpasses.rp_alpha()
             );
 
@@ -631,12 +631,11 @@ namespace dal {
 
             record_cmd_final(
                 this->m_cmd_man.cmd_final_at(this->m_flight_frame_index.get()),
-                this->m_flight_frame_index.get(),
-                this->m_fbuf_man.fbuf_final_at(swapchain_index),
                 this->m_swapchain.identity_extent(),
                 this->m_desc_man.desc_set_final_at(this->m_flight_frame_index.get()),
-                this->m_pipelines.final().layout(),
                 this->m_pipelines.final().pipeline(),
+                this->m_pipelines.final().layout(),
+                this->m_fbuf_man.fbuf_final_at(swapchain_index),
                 this->m_renderpasses.rp_final()
             );
 
