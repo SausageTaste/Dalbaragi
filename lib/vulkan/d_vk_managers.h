@@ -15,6 +15,55 @@
 
 namespace dal {
 
+    inline auto& actor_cast(dal::IActor& actor) {
+        return dynamic_cast<dal::ActorVK&>(actor);
+    }
+
+    inline auto& actor_cast(const dal::IActor& actor) {
+        return dynamic_cast<const dal::ActorVK&>(actor);
+    }
+
+    inline auto& actor_cast(dal::HActor& actor) {
+        return dynamic_cast<dal::ActorVK&>(*actor.get());
+    }
+
+    inline auto& actor_cast(const dal::HActor& actor) {
+        return dynamic_cast<const dal::ActorVK&>(*actor.get());
+    }
+
+    inline auto& actor_cast(dal::IActorSkinned& actor) {
+        return dynamic_cast<dal::ActorSkinnedVK&>(actor);
+    }
+
+    inline auto& actor_cast(const dal::IActorSkinned& actor) {
+        return dynamic_cast<const dal::ActorSkinnedVK&>(actor);
+    }
+
+    inline auto& actor_cast(dal::HActorSkinned& actor) {
+        return dynamic_cast<dal::ActorSkinnedVK&>(*actor.get());
+    }
+
+    inline auto& actor_cast(const dal::HActorSkinned& actor) {
+        return dynamic_cast<const dal::ActorSkinnedVK&>(*actor.get());
+    }
+
+    inline auto& model_cast(dal::IRenModel& model) {
+        return dynamic_cast<dal::ModelRenderer&>(model);
+    }
+
+    inline auto& model_cast(const dal::IRenModel& model) {
+        return dynamic_cast<const dal::ModelRenderer&>(model);
+    }
+
+    inline auto& model_cast(dal::HRenModel& model) {
+        return dynamic_cast<dal::ModelRenderer&>(*model);
+    }
+
+    inline auto& model_cast(const dal::HRenModel& model) {
+        return dynamic_cast<const dal::ModelRenderer&>(*model);
+    }
+
+
     class CmdPoolManager {
 
     private:

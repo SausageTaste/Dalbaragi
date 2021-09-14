@@ -50,38 +50,6 @@ namespace {
     }
 
 
-    auto& actor_cast(dal::IActor& actor) {
-        return dynamic_cast<dal::ActorVK&>(actor);
-    }
-
-    auto& actor_cast(const dal::IActor& actor) {
-        return dynamic_cast<const dal::ActorVK&>(actor);
-    }
-
-    auto& actor_cast(dal::HActor& actor) {
-        return dynamic_cast<dal::ActorVK&>(*actor.get());
-    }
-
-    auto& actor_cast(const dal::HActor& actor) {
-        return dynamic_cast<const dal::ActorVK&>(*actor.get());
-    }
-
-    auto& actor_cast(dal::IActorSkinned& actor) {
-        return dynamic_cast<dal::ActorSkinnedVK&>(actor);
-    }
-
-    auto& actor_cast(const dal::IActorSkinned& actor) {
-        return dynamic_cast<const dal::ActorSkinnedVK&>(actor);
-    }
-
-    auto& actor_cast(dal::HActorSkinned& actor) {
-        return dynamic_cast<dal::ActorSkinnedVK&>(*actor.get());
-    }
-
-    auto& actor_cast(const dal::HActorSkinned& actor) {
-        return dynamic_cast<const dal::ActorSkinnedVK&>(*actor.get());
-    }
-
 }
 
 
@@ -362,14 +330,14 @@ namespace dal {
         {
             for (auto& x : render_list.m_static_models) {
                 for (auto& a : x.m_actors) {
-                    auto& actor = ::actor_cast(a);
+                    auto& actor = dal::actor_cast(a);
                     actor.apply_changes();
                 }
             }
 
             for (auto& x : render_list.m_skinned_models) {
                 for (auto& a : x.m_actors) {
-                    auto& actor = ::actor_cast(a);
+                    auto& actor = dal::actor_cast(a);
                     actor.apply_animation(this->in_flight_index());
                     actor.apply_transform(this->in_flight_index());
                 }
@@ -791,7 +759,7 @@ namespace dal {
     }
 
     bool VulkanState::init(IActor& actor) {
-        auto& a = ::actor_cast(actor);
+        auto& a = dal::actor_cast(actor);
 
         a.init(
             this->m_desc_allocator,
@@ -804,7 +772,7 @@ namespace dal {
     }
 
     bool VulkanState::init(IActorSkinned& actor) {
-        auto& a = ::actor_cast(actor);
+        auto& a = dal::actor_cast(actor);
 
         a.init(
             this->m_desc_allocator,
