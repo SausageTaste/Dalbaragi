@@ -842,20 +842,16 @@ namespace dal {
         if (!result_swapchain)
             return false;
 
-        this->m_attach_man.init(
-            ::calc_smaller_extent(this->m_new_extent, 0.9),
+        this->m_renderpasses.init(
+            this->m_swapchain.format(),
             this->m_phys_device.find_depth_format(),
-            this->m_phys_device.get(),
             this->m_logi_device.get()
         );
 
-        this->m_renderpasses.init(
-            this->m_swapchain.format(),
-            this->m_attach_man.color().format(),
-            this->m_attach_man.depth().format(),
-            this->m_attach_man.albedo().format(),
-            this->m_attach_man.materials().format(),
-            this->m_attach_man.normal().format(),
+        this->m_attach_man.init(
+            ::calc_smaller_extent(this->m_new_extent, 0.9),
+            this->m_renderpasses.rp_gbuf(),
+            this->m_phys_device.get(),
             this->m_logi_device.get()
         );
 

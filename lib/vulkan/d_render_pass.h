@@ -38,6 +38,13 @@ namespace dal {
 
     class RenderPass_Gbuf : public IRenderPass {
 
+    private:
+        VkFormat m_format_color = VK_FORMAT_UNDEFINED;
+        VkFormat m_format_depth = VK_FORMAT_UNDEFINED;
+        VkFormat m_format_albedo = VK_FORMAT_UNDEFINED;
+        VkFormat m_format_materials = VK_FORMAT_UNDEFINED;
+        VkFormat m_format_normal = VK_FORMAT_UNDEFINED;
+
     public:
         void init(
             const VkFormat format_color,
@@ -48,18 +55,49 @@ namespace dal {
             const VkDevice logi_device
         );
 
+        auto format_color() const {
+            return this->m_format_color;
+        }
+
+        auto format_depth() const {
+            return this->m_format_depth;
+        }
+
+        auto format_albedo() const {
+            return this->m_format_albedo;
+        }
+
+        auto format_materials() const {
+            return this->m_format_materials;
+        }
+
+        auto format_normal() const {
+            return this->m_format_normal;
+        }
+
     };
 
 
     class RenderPass_Final : public IRenderPass {
 
+    private:
+        VkFormat m_format_swapchain = VK_FORMAT_UNDEFINED;
+
     public:
         void init(const VkFormat swapchain_img_format, const VkDevice logi_device);
+
+        auto format_swapchain() const {
+            return this->m_format_swapchain;
+        }
 
     };
 
 
     class RenderPass_Alpha : public IRenderPass {
+
+    private:
+        VkFormat m_format_color = VK_FORMAT_UNDEFINED;
+        VkFormat m_format_depth = VK_FORMAT_UNDEFINED;
 
     public:
         void init(
@@ -68,16 +106,31 @@ namespace dal {
             const VkDevice logi_device
         );
 
+        auto format_color() const {
+            return this->m_format_color;
+        }
+
+        auto format_depth() const {
+            return this->m_format_depth;
+        }
+
     };
 
 
     class RenderPass_ShadowMap : public IRenderPass {
+
+    private:
+        VkFormat m_format_shadow_map = VK_FORMAT_UNDEFINED;
 
     public:
         void init(
             const VkFormat format_shadow_map,
             const VkDevice logi_device
         );
+
+        auto format_shadow_map() const {
+            return this->m_format_shadow_map;
+        }
 
     };
 
@@ -101,11 +154,7 @@ namespace dal {
     public:
         void init(
             const VkFormat format_swapchain,
-            const VkFormat format_color,
             const VkFormat format_depth,
-            const VkFormat format_albedo,
-            const VkFormat format_materials,
-            const VkFormat format_normal,
             const VkDevice logi_device
         );
 

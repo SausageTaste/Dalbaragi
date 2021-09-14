@@ -388,7 +388,21 @@ namespace dal {
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
-        this->m_handle = ::create_renderpass_gbuf(format_color, format_depth, format_albedo, format_materials, format_normal, logi_device);
+
+        this->m_format_color = format_color;
+        this->m_format_depth = format_depth;
+        this->m_format_albedo = format_albedo;
+        this->m_format_materials = format_materials;
+        this->m_format_normal = format_normal;
+
+        this->m_handle = ::create_renderpass_gbuf(
+            format_color,
+            format_depth,
+            format_albedo,
+            format_materials,
+            format_normal,
+            logi_device
+        );
     }
 
     void RenderPass_Final::init(
@@ -396,6 +410,9 @@ namespace dal {
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
+
+        this->m_format_swapchain = swapchain_img_format;
+
         this->m_handle = ::create_renderpass_final(swapchain_img_format, logi_device);
     }
 
@@ -405,6 +422,10 @@ namespace dal {
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
+
+        this->m_format_color = format_color;
+        this->m_format_depth = format_depth;
+
         this->m_handle = ::create_renderpass_alpha(format_color, format_depth, logi_device);
     }
 
@@ -413,6 +434,9 @@ namespace dal {
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
+
+        this->m_format_shadow_map = format_shadow_map;
+
         this->m_handle = ::create_renderpass_shadow_map(format_shadow_map, logi_device);
     }
 
@@ -423,13 +447,14 @@ namespace dal {
 
     void RenderPassManager::init(
         const VkFormat format_swapchain,
-        const VkFormat format_color,
         const VkFormat format_depth,
-        const VkFormat format_albedo,
-        const VkFormat format_materials,
-        const VkFormat format_normal,
         const VkDevice logi_device
     ) {
+        const auto format_color = VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+        const auto format_albedo = VK_FORMAT_R8G8B8A8_UNORM;
+        const auto format_materials = VK_FORMAT_R8G8B8A8_UNORM;
+        const auto format_normal = VK_FORMAT_R8G8B8A8_UNORM;
+
         this->m_rp_gbuf.init(format_color, format_depth, format_albedo, format_materials, format_normal, logi_device);
         this->m_rp_final.init(format_swapchain, logi_device);
         this->m_rp_alpha.init(format_color, format_depth, logi_device);

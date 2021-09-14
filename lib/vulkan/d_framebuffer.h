@@ -68,7 +68,7 @@ namespace dal {
     public:
         void init(
             const VkExtent2D& extent,
-            const VkFormat depth_format,
+            const dal::RenderPass_Gbuf& renderpass,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
@@ -76,11 +76,11 @@ namespace dal {
         void init(
             const uint32_t width,
             const uint32_t height,
-            const VkFormat depth_format,
+            const dal::RenderPass_Gbuf& renderpass,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         ) {
-            this->init(VkExtent2D{ width, height }, depth_format, phys_device, logi_device);
+            this->init(VkExtent2D{ width, height }, renderpass, phys_device, logi_device);
         }
 
         void destroy(const VkDevice logi_device);
@@ -200,35 +200,6 @@ namespace dal {
             const VkImageView shadow_map_view,
             const VkDevice logi_device
         );
-
-    };
-
-
-    class FbufBundle_Gbuf {
-
-    public:
-        FbufAttachment m_color;
-        FbufAttachment m_depth;
-        FbufAttachment m_albedo;
-        FbufAttachment m_materials;
-        FbufAttachment m_normal;
-
-        Fbuf_Gbuf m_fbuf;
-
-        void init_attachments(
-            const uint32_t width,
-            const uint32_t height,
-            const VkFormat depth_format,
-            const VkPhysicalDevice phys_device,
-            const VkDevice logi_device
-        );
-
-        void init_fbuf(
-            const dal::RenderPass_Gbuf& renderpass,
-            const VkDevice logi_device
-        );
-
-        void destroy(const VkDevice logi_device);
 
     };
 
