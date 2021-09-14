@@ -768,14 +768,14 @@ namespace {
 namespace {
 
     dal::ShaderPipeline make_pipeline_gbuf(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_Gbuf& renderpass,
+        const uint32_t subpass_index,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
-        const VkRenderPass renderpass,
-        const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/gbuf.vert", ::ShaderKind::vert);
@@ -833,7 +833,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = nullptr;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = subpass_index;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -847,15 +847,15 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_gbuf_animated(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_Gbuf& renderpass,
+        const uint32_t subpass_index,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSetLayout desc_layout_simple,
         const VkDescriptorSetLayout desc_layout_per_material,
         const VkDescriptorSetLayout desc_layout_per_actor,
         const VkDescriptorSetLayout desc_layout_animation,
-        const VkRenderPass renderpass,
-        const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/gbuf_animated.vert", ::ShaderKind::vert);
@@ -913,7 +913,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = nullptr;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = subpass_index;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -927,12 +927,12 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_composition(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_Gbuf& renderpass,
+        const uint32_t subpass_index,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
         const VkDescriptorSetLayout desc_layout_composition,
-        const VkRenderPass renderpass,
-        const uint32_t subpass_index,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/composition.vert", ::ShaderKind::vert);
@@ -988,7 +988,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = nullptr;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = subpass_index;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -1002,11 +1002,11 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_final(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_Final& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
         const VkDescriptorSetLayout desc_layout_final,
-        const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/fill_screen.vert", ::ShaderKind::vert);
@@ -1058,7 +1058,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = nullptr;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = 0;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -1072,7 +1072,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_alpha(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -1154,7 +1154,7 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_alpha_animated(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
@@ -1238,10 +1238,10 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_shadow(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_ShadowMap& renderpass,
         const bool does_support_depth_clamp,
         const VkExtent2D& extent,
-        const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/shadow.vert", ::ShaderKind::vert);
@@ -1300,7 +1300,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = &dynamic_state_info;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = 0;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -1313,10 +1313,9 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_shadow_animated(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_ShadowMap& renderpass,
         const bool does_support_depth_clamp,
-        const VkExtent2D& extent,
-        const VkRenderPass renderpass,
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDevice logi_device
     ) {
@@ -1337,7 +1336,7 @@ namespace {
         const VkPipelineInputAssemblyStateCreateInfo input_assembly = ::create_info_input_assembly();
 
         // Viewports and scissors
-        const auto [viewport, scissor] = ::create_info_viewport_scissor(extent);
+        const auto [viewport, scissor] = ::create_info_viewport_scissor(VkExtent2D{512, 512});
         const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
@@ -1376,7 +1375,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = &dynamic_state_info;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = 0;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -1435,42 +1434,42 @@ namespace dal {
 
         this->m_gbuf = ::make_pipeline_gbuf(
             shader_mgr,
+            rp_gbuf, 0,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_per_global,
             desc_layout_per_material,
             desc_layout_per_actor,
-            rp_gbuf.get(), 0,
             logi_device
         );
 
         this->m_gbuf_animated = ::make_pipeline_gbuf_animated(
             shader_mgr,
+            rp_gbuf, 0,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_per_global,
             desc_layout_per_material,
             desc_layout_per_actor,
             desc_layout_animation,
-            rp_gbuf.get(), 0,
             logi_device
         );
 
         this->m_composition = ::make_pipeline_composition(
             shader_mgr,
+            rp_gbuf, 1,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_composition,
-            rp_gbuf.get(), 1,
             logi_device
         );
 
         this->m_final = ::make_pipeline_final(
             shader_mgr,
+            rp_final,
             need_gamma_correction,
             swapchain_extent,
             desc_layout_final,
-            rp_final.get(),
             logi_device
         );
 
@@ -1499,17 +1498,16 @@ namespace dal {
 
         this->m_shadow = ::make_pipeline_shadow(
             shader_mgr,
+            rp_shadow,
             does_support_depth_clamp,
             VkExtent2D{ 512, 512 },
-            rp_shadow.get(),
             logi_device
         );
 
         this->m_shadow_animated = ::make_pipeline_shadow_animated(
             shader_mgr,
+            rp_shadow,
             does_support_depth_clamp,
-            VkExtent2D{ 512, 512 },
-            rp_shadow.get(),
             desc_layout_animation,
             logi_device
         );
