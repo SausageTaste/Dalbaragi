@@ -910,3 +910,96 @@ namespace dal {
     }
 
 }
+
+
+// ReflectionPlane
+namespace dal {
+
+    void ReflectionPlane::init(
+        const uint32_t width,
+        const uint32_t height,
+        const uint32_t max_in_flight_count,
+        CommandPool& cmd_pool,
+        const dal::RenderPass_Simple& renderpass,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->destroy(cmd_pool, logi_device);
+
+        this->m_color.init(
+            width, height,
+            dal::FbufAttachment::Usage::color_attachment,
+            renderpass.format_color(),
+            phys_device,
+            logi_device
+        );
+
+        this->m_depth.init(
+            width, height,
+            dal::FbufAttachment::Usage::depth_attachment,
+            renderpass.format_depth(),
+            phys_device,
+            logi_device
+        );
+
+        this->m_fbuf.init(
+            renderpass,
+            VkExtent2D{ width, height },
+            this->m_color.view().get(),
+            this->m_depth.view().get(),
+            logi_device
+        );
+
+        this->m_cmd_buf = cmd_pool.allocate(max_in_flight_count, logi_device);
+    }
+
+    void ReflectionPlane::destroy(CommandPool& cmd_pool, const VkDevice logi_device) {
+        if (!this->m_cmd_buf.empty()) {
+            cmd_pool.free(this->m_cmd_buf, logi_device);
+            this->m_cmd_buf.clear();
+        }
+
+        this->m_fbuf.destroy(logi_device);
+        this->m_depth.destroy(logi_device);
+        this->m_color.destroy(logi_device);
+    }
+
+}
+
+
+// PlanarReflectionManager
+namespace dal {
+
+    void PlanarReflectionManager::init(
+        const uint32_t width,
+        const uint32_t height,
+        const dal::RenderPass_Simple& renderpass,
+        const VkPhysicalDevice phys_device,
+        const LogicalDevice& logi_device
+    ) {
+        this->destroy(logi_device.get());
+
+        this->m_cmd_pool.init(logi_device.indices().graphics_family(), logi_device.get());
+
+        for (int i = 0; i < 1; ++i) {
+            this->m_planes.emplace_back().init(
+                width,
+                height,
+                dal::MAX_FRAMES_IN_FLIGHT,
+                this->m_cmd_pool,
+                renderpass,
+                phys_device,
+                logi_device.get()
+            );
+        }
+    }
+
+    void PlanarReflectionManager::destroy(const VkDevice logi_device) {
+        for (auto& x : this->m_planes)
+            x.destroy(this->m_cmd_pool, logi_device);
+        this->m_planes.clear();
+
+        this->m_cmd_pool.destroy(logi_device);
+    }
+
+}

@@ -266,6 +266,7 @@ namespace dal {
     VulkanState::~VulkanState() {
         this->wait_idle();
 
+        this->m_ref_planes.destroy(this->m_logi_device.get());
         this->m_shadow_maps.destroy(this->m_logi_device.get());
         this->m_desc_allocator.destroy(this->m_logi_device.get());
         this->m_sampler_man.destroy(this->m_logi_device.get());
@@ -848,14 +849,24 @@ namespace dal {
             this->m_logi_device.get()
         );
 
+        const auto extent9 = ::calc_smaller_extent(this->m_new_extent, 0.9);
+        const auto extent5 = ::calc_smaller_extent(this->m_new_extent, 0.5);
+
         this->m_attach_man.init(
-            ::calc_smaller_extent(this->m_new_extent, 0.9),
+            extent9,
             this->m_renderpasses.rp_gbuf(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
 
         this->m_shadow_maps.init(this->m_renderpasses.rp_shadow(), this->m_phys_device, this->m_logi_device);
+
+        this->m_ref_planes.init(
+            extent5.width, extent5.height,
+            this->m_renderpasses.rp_simple(),
+            this->m_phys_device.get(),
+            this->m_logi_device
+        );
 
         this->m_fbuf_man.init(
             this->m_swapchain.views(),

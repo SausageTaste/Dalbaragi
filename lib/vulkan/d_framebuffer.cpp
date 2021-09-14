@@ -306,4 +306,27 @@ namespace dal {
         dalAssert(result);
     }
 
+    void Fbuf_Simple::init(
+        const dal::RenderPass_Simple& renderpass,
+        const VkExtent2D& extent,
+        const VkImageView color_view,
+        const VkImageView depth_view,
+        const VkDevice logi_device
+    ) {
+        const std::array<VkImageView, 2> attachments{
+            color_view,
+            depth_view,
+        };
+
+        const auto result = this->create(
+            attachments.data(),
+            attachments.size(),
+            extent.width,
+            extent.height,
+            renderpass.get(),
+            logi_device
+        );
+        dalAssert(result);
+    }
+
 }

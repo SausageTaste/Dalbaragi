@@ -203,4 +203,17 @@ namespace dal {
 
     };
 
+    class Fbuf_Simple : public Framebuffer {
+
+    public:
+        void init(
+            const dal::RenderPass_Simple& renderpass,
+            const VkExtent2D& extent,
+            const VkImageView color_view,
+            const VkImageView depth_view,
+            const VkDevice logi_device
+        );
+
+    };
+
 }

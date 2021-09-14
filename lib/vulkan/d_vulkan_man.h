@@ -43,6 +43,7 @@ namespace dal {
         SamplerManager m_sampler_man;
         DescAllocator m_desc_allocator;
         ShadowMapManager m_shadow_maps;
+        PlanarReflectionManager m_ref_planes;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;

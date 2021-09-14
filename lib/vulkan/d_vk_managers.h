@@ -346,4 +346,48 @@ namespace dal {
 
     };
 
+
+    class ReflectionPlane {
+
+    public:
+        FbufAttachment m_color;
+        FbufAttachment m_depth;
+        Fbuf_Simple m_fbuf;
+        std::vector<VkCommandBuffer> m_cmd_buf;
+
+    public:
+        void init(
+            const uint32_t width,
+            const uint32_t height,
+            const uint32_t max_in_flight_count,
+            CommandPool& cmd_pool,
+            const dal::RenderPass_Simple& renderpass,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destroy(CommandPool& cmd_pool, const VkDevice logi_device);
+
+    };
+
+
+    class PlanarReflectionManager {
+
+    private:
+        std::vector<ReflectionPlane> m_planes;
+        CommandPool m_cmd_pool;
+
+    public:
+        void init(
+            const uint32_t width,
+            const uint32_t height,
+            const dal::RenderPass_Simple& renderpass,
+            const VkPhysicalDevice phys_device,
+            const LogicalDevice& logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+    };
+
 }

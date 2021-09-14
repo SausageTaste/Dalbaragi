@@ -135,6 +135,30 @@ namespace dal {
     };
 
 
+    class RenderPass_Simple : public IRenderPass {
+
+    private:
+        VkFormat m_format_color = VK_FORMAT_UNDEFINED;
+        VkFormat m_format_depth = VK_FORMAT_UNDEFINED;
+
+    public:
+        void init(
+            const VkFormat format_color,
+            const VkFormat format_depth,
+            const VkDevice logi_device
+        );
+
+        auto format_color() const {
+            return this->m_format_color;
+        }
+
+        auto format_depth() const {
+            return this->m_format_depth;
+        }
+
+    };
+
+
     class RenderPassManager {
 
     public:
@@ -150,6 +174,7 @@ namespace dal {
         RenderPass_Final m_rp_final;
         RenderPass_Alpha m_rp_alpha;
         RenderPass_ShadowMap m_rp_shadow;
+        RenderPass_Simple m_rp_simple;
 
     public:
         void init(
@@ -174,6 +199,10 @@ namespace dal {
 
         auto& rp_shadow() const {
             return this->m_rp_shadow;
+        }
+
+        auto& rp_simple() const {
+            return this->m_rp_simple;
         }
 
     };

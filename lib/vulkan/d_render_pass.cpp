@@ -342,6 +342,59 @@ namespace {
         return renderpass;
     }
 
+    VkRenderPass create_renderpass_simple(
+        const VkFormat format_color,
+        const VkFormat format_depth,
+        const VkDevice logi_device
+    ) {
+        AttachmentDescBuilder attachments;
+        attachments.add(format_color, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        attachments.add(format_depth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+        VkAttachmentReference depth_attachment_ref{};
+        depth_attachment_ref.attachment = 1;
+        depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        std::array<VkAttachmentReference, 1> color_attachment_ref{};
+        color_attachment_ref[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+        std::array<VkSubpassDescription, 1> subpasses{};
+        subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpasses[0].colorAttachmentCount = color_attachment_ref.size();
+        subpasses[0].pColorAttachments = color_attachment_ref.data();
+        subpasses[0].pDepthStencilAttachment = &depth_attachment_ref;
+
+        // Dependencies
+        // ---------------------------------------------------------------------------------
+
+        std::array<VkSubpassDependency, 1> dependencies{};
+
+        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass = 0;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        // Create render pass
+        // ---------------------------------------------------------------------------------
+
+        VkRenderPassCreateInfo renderpass_info{};
+        renderpass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderpass_info.attachmentCount = attachments.size();
+        renderpass_info.pAttachments    = attachments.data();
+        renderpass_info.subpassCount    = subpasses.size();
+        renderpass_info.pSubpasses      = subpasses.data();
+        renderpass_info.dependencyCount = dependencies.size();
+        renderpass_info.pDependencies   = dependencies.data();
+
+        VkRenderPass renderpass = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateRenderPass(logi_device, &renderpass_info, nullptr, &renderpass))
+            dalAbort("failed to create render pass");
+
+        return renderpass;
+    }
+
 }
 
 
@@ -440,6 +493,23 @@ namespace dal {
         this->m_handle = ::create_renderpass_shadow_map(format_shadow_map, logi_device);
     }
 
+    void RenderPass_Simple::init(
+        const VkFormat format_color,
+        const VkFormat format_depth,
+        const VkDevice logi_device
+    ) {
+        this->destroy(logi_device);
+
+        this->m_format_color = format_color;
+        this->m_format_depth = format_depth;
+
+        this->m_handle = ::create_renderpass_simple(
+            format_color,
+            format_depth,
+            logi_device
+        );
+    }
+
 }
 
 
@@ -459,6 +529,7 @@ namespace dal {
         this->m_rp_final.init(format_swapchain, logi_device);
         this->m_rp_alpha.init(format_color, format_depth, logi_device);
         this->m_rp_shadow.init(format_depth, logi_device);
+        this->m_rp_simple.init(format_color, format_depth, logi_device);
     }
 
     void RenderPassManager::destroy(const VkDevice logi_device) {
@@ -466,6 +537,7 @@ namespace dal {
         this->m_rp_final.destroy(logi_device);
         this->m_rp_alpha.destroy(logi_device);
         this->m_rp_shadow.destroy(logi_device);
+        this->m_rp_simple.destroy(logi_device);
     }
 
 }
