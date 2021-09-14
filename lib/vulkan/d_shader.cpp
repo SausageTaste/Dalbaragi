@@ -353,18 +353,18 @@ namespace {
             }
         }
 
-        void destroy() {
+        void destroy() noexcept {
             if (VK_NULL_HANDLE != this->m_module) {
                 vkDestroyShaderModule(this->m_parent_device, this->m_module, nullptr);
                 this->m_module = VK_NULL_HANDLE;
             }
         }
 
-        VkShaderModule get() const {
+        VkShaderModule get() const noexcept {
             return this->m_module;
         }
 
-        VkShaderModule operator*() const {
+        VkShaderModule operator*() const noexcept {
             return this->get();
         }
 
@@ -483,7 +483,7 @@ namespace {
             return fmt::format("{}/{}.spv", this->make_shader_cache_dir_path(), hashed);
         }
 
-        bool need_to_compile(const std::string& cache_path) {
+        bool need_to_compile(const std::string& cache_path) const {
             if (this->m_need_recompile)
                 return true;
 
@@ -1241,7 +1241,6 @@ namespace {
         ::ShaderSrcManager& shader_mgr,
         const dal::RenderPass_ShadowMap& renderpass,
         const bool does_support_depth_clamp,
-        const VkExtent2D& extent,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/shadow.vert", ::ShaderKind::vert);
@@ -1261,7 +1260,7 @@ namespace {
         const VkPipelineInputAssemblyStateCreateInfo input_assembly = ::create_info_input_assembly();
 
         // Viewports and scissors
-        const auto [viewport, scissor] = ::create_info_viewport_scissor(extent);
+        const auto [viewport, scissor] = ::create_info_viewport_scissor(VkExtent2D{512, 512});
         const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
@@ -1500,7 +1499,6 @@ namespace dal {
             shader_mgr,
             rp_shadow,
             does_support_depth_clamp,
-            VkExtent2D{ 512, 512 },
             logi_device
         );
 
