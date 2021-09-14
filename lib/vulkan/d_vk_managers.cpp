@@ -5,73 +5,6 @@
 
 namespace {
 
-    struct AlphaMeshTuple {
-        const dal::RenderUnit* m_unit;
-        const dal::ActorVK* m_actor;
-        float m_dist_spr;
-
-        bool operator<(const AlphaMeshTuple& other) const {
-            return this->m_dist_spr > other.m_dist_spr;
-        }
-    };
-
-    struct AnimatedAlphaMeshTuple {
-        const dal::RenderUnit* m_unit;
-        const dal::ActorSkinnedVK* m_actor;
-        float m_dist_spr;
-
-        bool operator<(const AnimatedAlphaMeshTuple& other) const {
-            return this->m_dist_spr > other.m_dist_spr;
-        }
-    };
-
-    auto sort_transparent_meshes(const glm::vec3& view_pos, const dal::RenderList& render_list) {
-        std::vector<AlphaMeshTuple> sort_vec;
-        std::vector<AnimatedAlphaMeshTuple> sort_vec_animated;
-
-        for (auto& pair : render_list.m_static_models) {
-            auto& model = *reinterpret_cast<dal::ModelRenderer*>(pair.m_model.get());
-
-            for (auto& h_actor : pair.m_actors) {
-                auto& actor = *reinterpret_cast<dal::ActorVK*>(h_actor.get());
-                const auto actor_transform = actor.m_transform.make_mat4();
-
-                for (auto& unit : model.render_units_alpha()) {
-                    auto& sort_element = sort_vec.emplace_back();
-                    const auto unit_world_pos = actor_transform * glm::vec4(unit.m_weight_center, 1);
-                    const auto to_view = view_pos - glm::vec3(unit_world_pos);
-
-                    sort_element.m_unit = &unit;
-                    sort_element.m_actor = &actor;
-                    sort_element.m_dist_spr = glm::dot(to_view, to_view);
-                }
-            }
-        }
-
-        for (auto& pair : render_list.m_skinned_models) {
-            auto& model = *reinterpret_cast<dal::ModelSkinnedRenderer*>(pair.m_model.get());
-
-            for (auto& h_actor : pair.m_actors) {
-                auto& actor = *reinterpret_cast<dal::ActorSkinnedVK*>(h_actor.get());
-                const auto actor_transform = actor.m_transform.make_mat4();
-
-                for (auto& unit : model.render_units_alpha()) {
-                    auto& sort_element = sort_vec_animated.emplace_back();
-                    const auto unit_world_pos = actor_transform * glm::vec4(unit.m_weight_center, 1);
-                    const auto to_view = view_pos - glm::vec3(unit_world_pos);
-
-                    sort_element.m_unit = &unit;
-                    sort_element.m_actor = &actor;
-                    sort_element.m_dist_spr = glm::dot(to_view, to_view);
-                }
-            }
-        }
-
-        std::sort(sort_vec.begin(), sort_vec.end());
-        std::sort(sort_vec_animated.begin(), sort_vec_animated.end());
-        return std::make_pair(sort_vec, sort_vec_animated);
-    }
-
     auto create_info_viewport_scissor(const VkExtent2D& extent) {
         VkViewport viewport{};
         viewport.x = 0;
@@ -103,19 +36,17 @@ namespace dal {
 
             auto& dst_opaque = this->m_static_models.emplace_back();
             dst_opaque.m_model = &model;
-            for (auto& h_actor : pair.m_actors) {
-                auto& actor = actor_cast(h_actor);
-                dst_opaque.m_actors.push_back(&actor);
-            }
+            for (auto& h_actor : pair.m_actors)
+                dst_opaque.m_actors.push_back(&actor_cast(h_actor));
 
             for (const auto actor : dst_opaque.m_actors) {
-                auto& dst = this->m_static_alpha_models.emplace_back();
                 const auto actor_transform = actor->m_transform.make_mat4();
 
                 for (const auto& unit : model.render_units_alpha()) {
                     const auto unit_world_pos = actor_transform * glm::vec4(unit.m_weight_center, 1);
                     const auto to_view = view_pos - glm::vec3(unit_world_pos);
 
+                    auto& dst = this->m_static_alpha_models.emplace_back();
                     dst.m_unit = &unit;
                     dst.m_actor = actor;
                     dst.m_distance_sqr = glm::dot(to_view, to_view);
@@ -131,25 +62,26 @@ namespace dal {
 
             auto& dst_opaque = this->m_skinned_models.emplace_back();
             dst_opaque.m_model = &model;
-            for (auto& h_actor : pair.m_actors) {
-                auto& actor = actor_cast(h_actor);
-                dst_opaque.m_actors.push_back(&actor);
-            }
+            for (auto& h_actor : pair.m_actors)
+                dst_opaque.m_actors.push_back(&actor_cast(h_actor));
 
             for (const auto actor : dst_opaque.m_actors) {
-                auto& dst = this->m_skinned_alpha_models.emplace_back();
                 const auto actor_transform = actor->m_transform.make_mat4();
 
                 for (const auto& unit : model.render_units_alpha()) {
                     const auto unit_world_pos = actor_transform * glm::vec4(unit.m_weight_center, 1);
                     const auto to_view = view_pos - glm::vec3(unit_world_pos);
 
+                    auto& dst = this->m_skinned_alpha_models.emplace_back();
                     dst.m_unit = &unit;
                     dst.m_actor = actor;
                     dst.m_distance_sqr = glm::dot(to_view, to_view);
                 }
             }
         }
+
+        std::sort(this->m_static_alpha_models.begin(), this->m_static_alpha_models.end());
+        std::sort(this->m_skinned_alpha_models.begin(), this->m_skinned_alpha_models.end());
     }
 
 }
@@ -191,7 +123,7 @@ namespace dal {
 
     void CmdPoolManager::record_simple(
         const FrameInFlightIndex& flight_frame_index,
-        const RenderList& render_list,
+        const RenderListVK& render_list,
         const VkDescriptorSet desc_set_per_frame,
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
@@ -247,12 +179,7 @@ namespace dal {
             );
 
             for (auto& render_pair : render_list.m_static_models) {
-                if (!render_pair.m_model->is_ready())
-                    continue;
-
-                auto& model = *reinterpret_cast<ModelRenderer*>(render_pair.m_model.get());
-
-                for (auto& unit : model.render_units()) {
+                for (auto& unit : render_pair.m_model->render_units()) {
                     dalAssert(!unit.m_material.m_alpha_blend);
 
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
@@ -268,14 +195,13 @@ namespace dal {
                         0, nullptr
                     );
 
-                    for (auto& h_actor : render_pair.m_actors) {
-                        auto& actor = *reinterpret_cast<ActorVK*>(h_actor.get());
+                    for (auto& actor : render_pair.m_actors) {
                         vkCmdBindDescriptorSets(
                             cmd_buf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline.layout(),
                             2,
-                            1, &actor.desc_set_raw(),
+                            1, &actor->desc_set_raw(),
                             0, nullptr
                         );
 
@@ -303,12 +229,7 @@ namespace dal {
             );
 
             for (auto& render_pair : render_list.m_skinned_models) {
-                if (!render_pair.m_model->is_ready())
-                    continue;
-
-                auto& model = *reinterpret_cast<ModelSkinnedRenderer*>(render_pair.m_model.get());
-
-                for (auto& unit : model.render_units()) {
+                for (auto& unit : render_pair.m_model->render_units()) {
                     dalAssert(!unit.m_material.m_alpha_blend);
 
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
@@ -324,15 +245,13 @@ namespace dal {
                         0, nullptr
                     );
 
-                    for (auto& h_actor : render_pair.m_actors) {
-                        auto& actor = *reinterpret_cast<ActorSkinnedVK*>(h_actor.get());
-
+                    for (auto& actor : render_pair.m_actors) {
                         vkCmdBindDescriptorSets(
                             cmd_buf,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline.layout(),
                             2,
-                            1, &actor.desc_per_actor(flight_frame_index),
+                            1, &actor->desc_per_actor(flight_frame_index),
                             0, nullptr
                         );
 
@@ -341,7 +260,7 @@ namespace dal {
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline.layout(),
                             3,
-                            1, &actor.desc_animation(flight_frame_index),
+                            1, &actor->desc_animation(flight_frame_index),
                             0, nullptr
                         );
 
@@ -433,7 +352,7 @@ namespace dal {
     void CmdPoolManager::record_alpha(
         const FrameInFlightIndex& flight_frame_index,
         const glm::vec3& view_pos,
-        const RenderList& render_list,
+        const RenderListVK& render_list,
         const VkDescriptorSet desc_set_per_global,
         const VkDescriptorSet desc_set_composition,
         const VkExtent2D& swapchain_extent,
@@ -443,8 +362,6 @@ namespace dal {
         const RenderPass_Alpha& render_pass
     ) {
         auto& cmd_buf = this->m_cmd_alpha.at(flight_frame_index.get());
-
-        const auto [sorted, sorted_animated] = ::sort_transparent_meshes(view_pos, render_list);
 
         VkCommandBufferBeginInfo begin_info{};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -489,10 +406,7 @@ namespace dal {
                 0, nullptr
             );
 
-            for (auto& render_tuple : sorted) {
-                if (!render_tuple.m_unit->is_ready())
-                    continue;
-
+            for (auto& render_tuple : render_list.m_static_alpha_models) {
                 std::array<VkBuffer, 1> vert_bufs{ render_tuple.m_unit->m_vert_buffer.vertex_buffer() };
                 vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
                 vkCmdBindIndexBuffer(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
@@ -535,10 +449,7 @@ namespace dal {
                 0, nullptr
             );
 
-            for (auto& render_tuple : sorted_animated) {
-                if (!render_tuple.m_unit->is_ready())
-                    continue;
-
+            for (auto& render_tuple : render_list.m_skinned_alpha_models) {
                 std::array<VkBuffer, 1> vert_bufs{ render_tuple.m_unit->m_vert_buffer.vertex_buffer() };
                 vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
                 vkCmdBindIndexBuffer(cmd_buf, render_tuple.m_unit->m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
@@ -725,7 +636,7 @@ namespace dal {
 
     void ShadowMap::record_cmd_buf(
         const FrameInFlightIndex& flight_frame_index,
-        const RenderList& render_list,
+        const RenderListVK& render_list,
         const glm::mat4& light_mat,
         const ShaderPipeline& pipeline_shadow,
         const ShaderPipeline& pipeline_shadow_animated,
@@ -766,7 +677,7 @@ namespace dal {
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
             for (auto& render_tuple : render_list.m_static_models) {
-                auto& model = *reinterpret_cast<ModelRenderer*>(render_tuple.m_model.get());
+                auto& model = *render_tuple.m_model;
 
                 for (auto& unit : model.render_units()) {
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
@@ -796,18 +707,16 @@ namespace dal {
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
             for (auto& render_tuple : render_list.m_skinned_models) {
-                auto& model = *reinterpret_cast<ModelSkinnedRenderer*>(render_tuple.m_model.get());
+                auto& model = *render_tuple.m_model;
 
                 for (auto& unit : model.render_units()) {
                     std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
                     vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
                     vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
 
-                    for (auto& h_actor : render_tuple.m_actors) {
-                        auto& actor = *reinterpret_cast<ActorSkinnedVK*>(h_actor.get());
-
+                    for (auto& actor : render_tuple.m_actors) {
                         U_PC_Shadow pc_data;
-                        pc_data.m_model_mat = actor.m_transform.make_mat4();
+                        pc_data.m_model_mat = actor->m_transform.make_mat4();
                         pc_data.m_light_mat = light_mat;
                         vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Shadow), &pc_data);
 
@@ -816,7 +725,7 @@ namespace dal {
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline.layout(),
                             0,
-                            1, &actor.desc_animation(flight_frame_index),
+                            1, &actor->desc_animation(flight_frame_index),
                             0, nullptr
                         );
 
@@ -889,7 +798,7 @@ namespace dal {
         const LogicalDevice& logi_device
     ) {
 
-        RenderList render_list;
+        RenderListVK render_list;
         FrameInFlightIndex index0{0};
         std::array<VkPipelineStageFlags, 0> wait_stages{};
         std::array<VkSemaphore, 0> wait_semaphores{};

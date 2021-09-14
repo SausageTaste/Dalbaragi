@@ -343,8 +343,8 @@ namespace dal {
             }
         }
 
-        dal::RenderListVK rl;
-        rl.apply(render_list, camera.view_pos());
+        dal::RenderListVK render_list_vk;
+        render_list_vk.apply(render_list, camera.view_pos());
 
         // Prepare needed data
         //-----------------------------------------------------------------------------------------------------
@@ -475,7 +475,7 @@ namespace dal {
 
                 this->m_shadow_maps.m_dlights[i].record_cmd_buf(
                     this->m_flight_frame_index,
-                    render_list,
+                    render_list_vk,
                     this->m_shadow_maps.m_dlight_matrices[i],
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
@@ -507,7 +507,7 @@ namespace dal {
 
                 shadow_map.record_cmd_buf(
                     this->m_flight_frame_index,
-                    render_list,
+                    render_list_vk,
                     render_list.m_slights[i].make_light_mat(),
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
@@ -542,7 +542,7 @@ namespace dal {
 
             this->m_cmd_man.record_simple(
                 this->m_flight_frame_index,
-                render_list,
+                render_list_vk,
                 this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_attach_man.color().extent(),
@@ -581,7 +581,7 @@ namespace dal {
             this->m_cmd_man.record_alpha(
                 this->m_flight_frame_index,
                 camera.view_pos(),
-                render_list,
+                render_list_vk,
                 this->m_desc_man.desc_set_alpha_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_attach_man.color().extent(),

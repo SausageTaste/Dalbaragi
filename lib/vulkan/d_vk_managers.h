@@ -136,7 +136,7 @@ namespace dal {
 
         void record_simple(
             const FrameInFlightIndex& flight_frame_index,
-            const RenderList& render_list,
+            const RenderListVK& render_list,
             const VkDescriptorSet desc_set_per_frame,
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
@@ -160,7 +160,7 @@ namespace dal {
         void record_alpha(
             const FrameInFlightIndex& flight_frame_index,
             const glm::vec3& view_pos,
-            const RenderList& render_list,
+            const RenderListVK& render_list,
             const VkDescriptorSet desc_set_per_global,
             const VkDescriptorSet desc_set_composition,
             const VkExtent2D& swapchain_extent,
@@ -265,7 +265,7 @@ namespace dal {
 
         void record_cmd_buf(
             const FrameInFlightIndex& flight_frame_index,
-            const RenderList& render_list,
+            const RenderListVK& render_list,
             const glm::mat4& light_mat,
             const ShaderPipeline& pipeline_shadow,
             const ShaderPipeline& pipeline_shadow_animated,
