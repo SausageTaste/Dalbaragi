@@ -22,7 +22,7 @@ namespace dal {
         int32_t m_windowed_ypos;
 
     public:
-        WindowGLFW(const char* const title);
+        WindowGLFW(const char* const title, const bool full_screen, const uint32_t width, const uint32_t height);
 
         ~WindowGLFW();
 

@@ -248,6 +248,7 @@ namespace dal {
         const char* const window_title,
         const unsigned init_width,
         const unsigned init_height,
+        const dal::RendererConfig& config,
         dal::Filesystem& filesys,
         dal::TaskManager& task_man,
         dal::ITextureManager& texture_man,
@@ -256,6 +257,7 @@ namespace dal {
     )
         : m_filesys(filesys)
         , m_texture_man(texture_man)
+        , m_config(config)
         , m_new_extent(VkExtent2D{ init_width, init_height })
     {
 #ifdef DAL_OS_ANDROID
@@ -712,6 +714,10 @@ namespace dal {
         dalVerbose(fmt::format("Screen resized: {} x {}", this->m_new_extent.width, this->m_new_extent.height).c_str());
     }
 
+    void VulkanState::apply_config(const RendererConfig& config) {
+        dalAbort("Not implemented");
+    }
+
     HTexture VulkanState::create_texture() {
         return std::make_shared<TextureUnit>();
     }
@@ -889,6 +895,7 @@ namespace dal {
 
         this->m_pipelines.init(
             this->m_filesys,
+            this->m_config.m_shader,
             !this->m_swapchain.is_format_srgb(),
             this->m_phys_info.does_support_depth_clamp(),
             this->m_swapchain.identity_extent(),

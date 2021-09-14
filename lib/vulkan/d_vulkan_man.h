@@ -18,6 +18,12 @@ namespace dal {
     class VulkanState : public IRenderer {
 
     private:
+        // Non-vulkan members
+        dal::Filesystem& m_filesys;
+        ITextureManager& m_texture_man;
+
+        RendererConfig m_config;
+
         VkInstance m_instance = VK_NULL_HANDLE;
         VkSurfaceKHR m_surface = VK_NULL_HANDLE;
         PhysicalDevice m_phys_device;
@@ -38,11 +44,6 @@ namespace dal {
         DescAllocator m_desc_allocator;
         ShadowMapManager m_shadow_maps;
 
-    private:
-        // Non-vulkan members
-        dal::Filesystem& m_filesys;
-        ITextureManager& m_texture_man;
-
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
 #endif
@@ -57,6 +58,7 @@ namespace dal {
             const char* const window_title,
             const unsigned init_width,
             const unsigned init_height,
+            const dal::RendererConfig& config,
             dal::Filesystem& filesys,
             dal::TaskManager& task_man,
             dal::ITextureManager& texture_man,
@@ -75,6 +77,8 @@ namespace dal {
         void wait_idle() override;
 
         void on_screen_resize(const unsigned width, const unsigned height) override;
+
+        void apply_config(const RendererConfig& config) override;
 
         HTexture create_texture() override;
 

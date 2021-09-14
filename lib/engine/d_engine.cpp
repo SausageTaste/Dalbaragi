@@ -11,6 +11,9 @@
 
 namespace {
 
+    const char* const MAIN_CONFIG_PATH = "_internal/config.json";
+
+
     auto make_move_direc(const dal::KeyInputManager& im) {
         glm::vec3 result{ 0, 0, 0 };
 
@@ -268,6 +271,9 @@ namespace dal {
         const dal::LogLevel level, const char* const str,
         const int line, const char* const func, const char* const file
     ) {
+        if (level < dal::LogLevel::error)
+            return;
+
         std::unique_lock lck{ this->m_mut };
 
         this->m_buffer += fmt::format("[{}, {}, {}, {}] {}\n", dal::get_log_level_str(level), line, func, file, str);
@@ -314,15 +320,30 @@ namespace dal {
         this->m_task_man.init(2);
         this->init(create_info);
 
-        this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
-        this->m_lua.exec("logger = require('logger'); logger.log(logger.INFO, 'Lua state initialized')");
-
+        // Load main config
         {
-            auto file = this->m_create_info.m_filesystem->open("_asset/script/startup.lua");
+            auto file = create_info.m_filesystem->open(MAIN_CONFIG_PATH);
+            if (file->is_ready()) {
+                const auto buffer = file->read_stl<std::vector<uint8_t>>();
+                if (buffer.has_value()) {
+                    this->m_config.load_json(buffer->data(), buffer->size());
+                }
+            }
+        }
+
+        // Update renderer config
+        {
+            this->m_render_config.m_shader.m_atmos_dithering = this->m_config.m_renderer.m_atmos_dithering;
+            this->m_render_config.m_shader.m_volumetric_atmos = this->m_config.m_renderer.m_volumetric_atmos;
+        }
+
+        this->m_lua.give_dependencies(this->m_scene, this->m_res_man);
+        {
+            auto file = this->m_create_info.m_filesystem->open(this->m_config.m_misc.m_startup_script_path);
             const auto content = file->read_stl<std::string>();
-            dalAssert(content.has_value());
+            dalAssertm(content.has_value(), fmt::format("Failed to find startup script file: {}", this->m_config.m_misc.m_startup_script_path).c_str());
             this->m_lua.exec(content->c_str());
-            this->m_lua.exec("on_engine_init()");
+            this->m_lua.call_void_func("on_engine_init");
         }
 
 #if DAL_TEST_FUNCTIONS
@@ -332,6 +353,11 @@ namespace dal {
     }
 
     Engine::~Engine() {
+        if (auto file = this->m_create_info.m_filesystem->open_write(::MAIN_CONFIG_PATH); file->is_ready()) {
+            const auto data = this->m_config.export_str();
+            file->write(data.data(), data.size());
+        }
+
         this->m_lua.clear_dependencies();
         this->m_task_man.destroy();
         this->destroy();
@@ -395,7 +421,7 @@ namespace dal {
         this->m_res_man.update();
         this->m_scene.update();
 
-        this->m_lua.exec("before_rendering_every_frame()");
+        this->m_lua.call_void_func("before_rendering_every_frame");
 
         auto render_list = this->m_scene.make_render_list();
         this->m_renderer->update(this->m_scene.m_euler_camera, render_list);
@@ -418,6 +444,7 @@ namespace dal {
             this->m_create_info.m_window_title.c_str(),
             win_width,
             win_height,
+            this->m_render_config,
             *this->m_create_info.m_filesystem,
             this->m_task_man,
             this->m_res_man,
@@ -428,7 +455,7 @@ namespace dal {
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
         if (this->m_scene.m_registry.empty()) {
-            this->m_lua.exec("on_renderer_init()");
+            this->m_lua.call_void_func("on_renderer_init");
         }
     }
 

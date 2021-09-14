@@ -22,6 +22,8 @@ namespace dal {
 
         void exec(const char* const statements);
 
+        void call_void_func(const char* const func_name);
+
         static void give_dependencies(
             dal::Scene& scene,
             dal::ResourceManager& res_man
