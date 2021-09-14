@@ -63,6 +63,62 @@ namespace dal {
         return dynamic_cast<const dal::ModelRenderer&>(*model);
     }
 
+    inline auto& model_cast(dal::IRenModelSkineed& model) {
+        return dynamic_cast<dal::ModelSkinnedRenderer&>(model);
+    }
+
+    inline auto& model_cast(const dal::IRenModelSkineed& model) {
+        return dynamic_cast<const dal::ModelSkinnedRenderer&>(model);
+    }
+
+    inline auto& model_cast(dal::HRenModelSkinned& model) {
+        return dynamic_cast<dal::ModelSkinnedRenderer&>(*model);
+    }
+
+    inline auto& model_cast(const dal::HRenModelSkinned& model) {
+        return dynamic_cast<const dal::ModelSkinnedRenderer&>(*model);
+    }
+
+
+    class RenderListVK {
+
+    private:
+        template <typename _Model, typename _Actor>
+        struct RenderPairOpaqueVK {
+            std::vector<const _Actor*> m_actors;
+            const _Model* m_model = nullptr;
+        };
+
+        template <typename _Actor>
+        struct RenderPairTranspVK {
+            const _Actor* m_actor = nullptr;
+            const RenderUnit* m_unit = nullptr;
+            float m_distance_sqr = 0;
+
+            bool operator<(const RenderPairTranspVK& other) const {
+                return this->m_distance_sqr > other.m_distance_sqr;
+            }
+        };
+
+        // O : Opaque, A : Alpha
+        // S : Static, A : Animated
+        using RenderPair_O_S = RenderPairOpaqueVK<ModelRenderer,        ActorVK       >;
+        using RenderPair_O_A = RenderPairOpaqueVK<ModelSkinnedRenderer, ActorSkinnedVK>;
+        using RenderPair_A_S = RenderPairTranspVK<ActorVK       >;
+        using RenderPair_A_A = RenderPairTranspVK<ActorSkinnedVK>;
+
+    public:
+        std::vector<RenderPair_O_S> m_static_models;
+        std::vector<RenderPair_A_S> m_static_alpha_models;
+        std::vector<RenderPair_O_A> m_skinned_models;
+        std::vector<RenderPair_A_A> m_skinned_alpha_models;
+
+    public:
+        void apply(const dal::RenderList& render_list, const glm::vec3& view_pos);
+
+    };
+
+
 
     class CmdPoolManager {
 

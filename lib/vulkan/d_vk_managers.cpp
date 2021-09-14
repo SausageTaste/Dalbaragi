@@ -91,6 +91,70 @@ namespace {
 }
 
 
+// RenderListVK
+namespace dal {
+
+    void RenderListVK::apply(const dal::RenderList& render_list, const glm::vec3& view_pos) {
+        for (auto& pair : render_list.m_static_models) {
+            if (!pair.m_model->is_ready())
+                continue;
+
+            auto& model = model_cast(pair.m_model);
+
+            auto& dst_opaque = this->m_static_models.emplace_back();
+            dst_opaque.m_model = &model;
+            for (auto& h_actor : pair.m_actors) {
+                auto& actor = actor_cast(h_actor);
+                dst_opaque.m_actors.push_back(&actor);
+            }
+
+            for (const auto actor : dst_opaque.m_actors) {
+                auto& dst = this->m_static_alpha_models.emplace_back();
+                const auto actor_transform = actor->m_transform.make_mat4();
+
+                for (const auto& unit : model.render_units_alpha()) {
+                    const auto unit_world_pos = actor_transform * glm::vec4(unit.m_weight_center, 1);
+                    const auto to_view = view_pos - glm::vec3(unit_world_pos);
+
+                    dst.m_unit = &unit;
+                    dst.m_actor = actor;
+                    dst.m_distance_sqr = glm::dot(to_view, to_view);
+                }
+            }
+        }
+
+        for (auto& pair : render_list.m_skinned_models) {
+            if (!pair.m_model->is_ready())
+                continue;
+
+            auto& model = model_cast(pair.m_model);
+
+            auto& dst_opaque = this->m_skinned_models.emplace_back();
+            dst_opaque.m_model = &model;
+            for (auto& h_actor : pair.m_actors) {
+                auto& actor = actor_cast(h_actor);
+                dst_opaque.m_actors.push_back(&actor);
+            }
+
+            for (const auto actor : dst_opaque.m_actors) {
+                auto& dst = this->m_skinned_alpha_models.emplace_back();
+                const auto actor_transform = actor->m_transform.make_mat4();
+
+                for (const auto& unit : model.render_units_alpha()) {
+                    const auto unit_world_pos = actor_transform * glm::vec4(unit.m_weight_center, 1);
+                    const auto to_view = view_pos - glm::vec3(unit_world_pos);
+
+                    dst.m_unit = &unit;
+                    dst.m_actor = actor;
+                    dst.m_distance_sqr = glm::dot(to_view, to_view);
+                }
+            }
+        }
+    }
+
+}
+
+
 // CmdPoolManager
 namespace dal {
 
