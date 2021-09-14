@@ -140,8 +140,7 @@ namespace dal {
 
         const VkExtent2D& extent,
         const VkDescriptorSet desc_set_final,
-        const VkPipeline pipeline_final,
-        const VkPipelineLayout pipe_layout_final,
+        const dal::ShaderPipeline& pipeline_final,
         const dal::Fbuf_Final& fbuf,
         const dal::RenderPass_Final& renderpass
     );
@@ -158,7 +157,7 @@ namespace dal {
         const VkDescriptorSet desc_set_composition,
         const dal::ShaderPipeline& pipeline_alpha,
         const dal::ShaderPipeline& pipeline_alpha_animated,
-        const VkFramebuffer swapchain_fbuf,
+        const dal::Fbuf_Alpha& fbuf,
         const dal::RenderPass_Alpha& render_pass
     );
 
@@ -172,7 +171,7 @@ namespace dal {
         const VkExtent2D& shadow_map_extent,
         const dal::ShaderPipeline& pipeline_shadow,
         const dal::ShaderPipeline& pipeline_shadow_animated,
-        const VkFramebuffer shadow_map_fbuf,
+        const dal::Fbuf_Shadow& fbuf,
         const dal::RenderPass_ShadowMap& render_pass
     );
 

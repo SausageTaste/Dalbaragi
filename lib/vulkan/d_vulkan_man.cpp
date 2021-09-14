@@ -483,7 +483,7 @@ namespace dal {
                     shadow_map.extent(),
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
-                    shadow_map.fbuf().get(),
+                    shadow_map.fbuf(),
                     this->m_renderpasses.rp_shadow()
                 );
 
@@ -518,7 +518,7 @@ namespace dal {
                     shadow_map.extent(),
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
-                    shadow_map.fbuf().get(),
+                    shadow_map.fbuf(),
                     this->m_renderpasses.rp_shadow()
                 );
 
@@ -597,7 +597,7 @@ namespace dal {
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_pipelines.alpha(),
                 this->m_pipelines.alpha_animated(),
-                this->m_fbuf_man.fbuf_alpha_at(swapchain_index).get(),
+                this->m_fbuf_man.fbuf_alpha_at(swapchain_index),
                 this->m_renderpasses.rp_alpha()
             );
 
@@ -633,8 +633,7 @@ namespace dal {
                 this->m_cmd_man.cmd_final_at(this->m_flight_frame_index.get()),
                 this->m_swapchain.identity_extent(),
                 this->m_desc_man.desc_set_final_at(this->m_flight_frame_index.get()),
-                this->m_pipelines.final().pipeline(),
-                this->m_pipelines.final().layout(),
+                this->m_pipelines.final(),
                 this->m_fbuf_man.fbuf_final_at(swapchain_index),
                 this->m_renderpasses.rp_final()
             );

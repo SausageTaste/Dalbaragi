@@ -269,8 +269,7 @@ namespace dal {
 
         const VkExtent2D& extent,
         const VkDescriptorSet desc_set_final,
-        const VkPipeline pipeline_final,
-        const VkPipelineLayout pipe_layout_final,
+        const dal::ShaderPipeline& pipeline_final,
         const dal::Fbuf_Final& fbuf,
         const dal::RenderPass_Final& renderpass
     ) {
@@ -297,12 +296,12 @@ namespace dal {
 
         vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
         {
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_final);
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_final.pipeline());
 
             vkCmdBindDescriptorSets(
                 cmd_buf,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipe_layout_final,
+                pipeline_final.layout(),
                 0,
                 1, &desc_set_final,
                 0, nullptr
@@ -330,7 +329,7 @@ namespace dal {
         const VkDescriptorSet desc_set_composition,
         const dal::ShaderPipeline& pipeline_alpha,
         const dal::ShaderPipeline& pipeline_alpha_animated,
-        const VkFramebuffer swapchain_fbuf,
+        const dal::Fbuf_Alpha& fbuf,
         const dal::RenderPass_Alpha& render_pass
     ) {
         VkCommandBufferBeginInfo begin_info{};
@@ -352,7 +351,7 @@ namespace dal {
         VkRenderPassBeginInfo render_pass_info{};
         render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         render_pass_info.renderPass = render_pass.get();
-        render_pass_info.framebuffer = swapchain_fbuf;
+        render_pass_info.framebuffer = fbuf.get();
         render_pass_info.renderArea.offset = {0, 0};
         render_pass_info.renderArea.extent = swapchain_extent;
         render_pass_info.clearValueCount = clear_colors.size();
@@ -472,7 +471,7 @@ namespace dal {
         const VkExtent2D& shadow_map_extent,
         const dal::ShaderPipeline& pipeline_shadow,
         const dal::ShaderPipeline& pipeline_shadow_animated,
-        const VkFramebuffer shadow_map_fbuf,
+        const dal::Fbuf_Shadow& fbuf,
         const dal::RenderPass_ShadowMap& render_pass
     ) {
         VkCommandBufferBeginInfo begin_info{};
@@ -489,7 +488,7 @@ namespace dal {
         VkRenderPassBeginInfo render_pass_info{};
         render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         render_pass_info.renderPass = render_pass.get();
-        render_pass_info.framebuffer = shadow_map_fbuf;
+        render_pass_info.framebuffer = fbuf.get();
         render_pass_info.renderArea.offset = {0, 0};
         render_pass_info.renderArea.extent = shadow_map_extent;
         render_pass_info.clearValueCount = clear_colors.size();
@@ -807,7 +806,6 @@ namespace dal {
         const RenderPass_ShadowMap& render_pass,
         const LogicalDevice& logi_device
     ) {
-
         RenderListVK render_list;
         FrameInFlightIndex index0{0};
         std::array<VkPipelineStageFlags, 0> wait_stages{};
@@ -826,7 +824,7 @@ namespace dal {
                 shadow_map.extent(),
                 pipelines.shadow(),
                 pipelines.shadow_animated(),
-                shadow_map.fbuf().get(),
+                shadow_map.fbuf(),
                 render_pass
             );
 
@@ -862,7 +860,7 @@ namespace dal {
                 shadow_map.extent(),
                 pipelines.shadow(),
                 pipelines.shadow_animated(),
-                shadow_map.fbuf().get(),
+                shadow_map.fbuf(),
                 render_pass
             );
 
