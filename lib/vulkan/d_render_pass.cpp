@@ -9,6 +9,76 @@
 
 namespace {
 
+    class AttachmentDescBuilder {
+
+    private:
+        std::vector<VkAttachmentDescription> m_attachments;
+
+    public:
+        auto data() const {
+            return this->m_attachments.data();
+        }
+
+        auto size() const {
+            return this->m_attachments.size();
+        }
+
+        VkAttachmentDescription& add(
+            const VkFormat format,
+            const VkSampleCountFlagBits samples,
+            const VkAttachmentLoadOp load_op,
+            const VkAttachmentStoreOp store_op,
+            const VkAttachmentLoadOp stencil_load_op,
+            const VkAttachmentStoreOp stencil_store_op,
+            const VkImageLayout initial_layout,
+            const VkImageLayout final_layout
+        ) {
+            this->m_attachments.emplace_back();
+
+            this->m_attachments.back().format = format;
+            this->m_attachments.back().samples = samples;
+            this->m_attachments.back().loadOp = load_op;
+            this->m_attachments.back().storeOp = store_op;
+            this->m_attachments.back().stencilLoadOp = stencil_load_op;
+            this->m_attachments.back().stencilStoreOp = stencil_store_op;
+            this->m_attachments.back().initialLayout = initial_layout;
+            this->m_attachments.back().finalLayout = final_layout;
+
+            return this->m_attachments.back();
+        }
+
+        VkAttachmentDescription& add(
+            const VkFormat format,
+            const VkAttachmentLoadOp load_op,
+            const VkAttachmentStoreOp store_op,
+            const VkImageLayout initial_layout,
+            const VkImageLayout final_layout
+        ) {
+            return this->add(
+                format,
+                VK_SAMPLE_COUNT_1_BIT,
+                load_op,
+                store_op,
+                VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                initial_layout,
+                final_layout
+            );
+        }
+
+        VkAttachmentDescription& add(const VkFormat format, const VkImageLayout final_layout) {
+            return this->add(
+                format,
+                VK_ATTACHMENT_LOAD_OP_CLEAR,
+                VK_ATTACHMENT_STORE_OP_STORE,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                final_layout
+            );
+        }
+
+    };
+
+
     VkRenderPass create_renderpass_gbuf(
         const VkFormat format_color,
         const VkFormat format_depth,
@@ -17,58 +87,12 @@ namespace {
         const VkFormat format_normal,
         const VkDevice logi_device
     ) {
-        std::vector<VkAttachmentDescription> attachments{};
-        {
-            attachments.emplace_back();
-            attachments.back().format = format_color;
-            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments.back().finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-            attachments.emplace_back();
-            attachments.back().format = format_depth;
-            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments.back().finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-            attachments.emplace_back();
-            attachments.back().format = format_albedo;
-            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-            attachments.emplace_back();
-            attachments.back().format = format_materials;
-            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-            attachments.emplace_back();
-            attachments.back().format = format_normal;
-            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        }
+        AttachmentDescBuilder attachments;
+        attachments.add(format_color, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        attachments.add(format_depth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+        attachments.add(format_albedo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        attachments.add(format_materials, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        attachments.add(format_normal, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         VkAttachmentReference depth_attachment_ref{};
         depth_attachment_ref.attachment = 1;
@@ -163,17 +187,8 @@ namespace {
         const VkFormat format_color,
         const VkDevice logi_device
     ) {
-        std::array<VkAttachmentDescription, 1> attachments{};
-        {
-            attachments[0].format = format_color;
-            attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        }
+        AttachmentDescBuilder attachments;
+        attachments.add(format_color, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
         std::array<VkSubpassDescription, 1> subpasses{};
 
@@ -224,28 +239,21 @@ namespace {
         const VkFormat format_depth,
         const VkDevice logi_device
     ) {
-        std::vector<VkAttachmentDescription> attachments{};
-        {
-            attachments.emplace_back();
-            attachments.back().format = format_color;
-            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-            attachments.emplace_back();
-            attachments.back().format = format_depth;
-            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            attachments.back().finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        }
+        AttachmentDescBuilder attachments;
+        attachments.add(
+            format_color,
+            VK_ATTACHMENT_LOAD_OP_LOAD,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        );
+        attachments.add(
+            format_depth,
+            VK_ATTACHMENT_LOAD_OP_LOAD,
+            VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        );
 
         VkAttachmentReference depth_attachment_ref{};
         depth_attachment_ref.attachment = 1;
@@ -296,18 +304,8 @@ namespace {
         const VkFormat format_shadow_map,
         const VkDevice logi_device
     ) {
-        std::vector<VkAttachmentDescription> attachments{};
-        {
-            attachments.emplace_back();
-            attachments.back().format = format_shadow_map;
-            attachments.back().samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments.back().loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments.back().storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments.back().stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments.back().stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments.back().initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments.back().finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        }
+        AttachmentDescBuilder attachments;
+        attachments.add(format_shadow_map, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         VkAttachmentReference depth_attachment_ref{};
         depth_attachment_ref.attachment = 0;
