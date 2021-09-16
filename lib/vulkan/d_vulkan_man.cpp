@@ -465,6 +465,7 @@ namespace dal {
         // Submit command buffers to GPU
         //-----------------------------------------------------------------------------------------------------
 
+        // Reflection planes
         {
             std::array<VkPipelineStageFlags, 0> wait_stages{};
             std::array<VkSemaphore, 0> wait_semaphores{};
@@ -508,6 +509,7 @@ namespace dal {
             }
         }
 
+        // Shadow maps
         {
             std::array<VkPipelineStageFlags, 0> wait_stages{};
             std::array<VkSemaphore, 0> wait_semaphores{};
@@ -587,6 +589,7 @@ namespace dal {
             }
         }
 
+        // Gbuf
         {
             std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
             std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_img_available.at(this->m_flight_frame_index).get() };
@@ -626,6 +629,7 @@ namespace dal {
             dalAssert(VK_SUCCESS == submit_result);
         }
 
+        // Alpha
         {
             std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
             std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
@@ -665,6 +669,7 @@ namespace dal {
             dalAssert(VK_SUCCESS == submit_result);
         }
 
+        // Final
         {
             std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
             std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
@@ -702,6 +707,7 @@ namespace dal {
             dalAssert(VK_SUCCESS == submit_result);
         }
 
+        // Present
         {
             std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_final.at(this->m_flight_frame_index).get() };
             std::array<VkSwapchainKHR, 1> swapchains{ this->m_swapchain.swapchain() };
