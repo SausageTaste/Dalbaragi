@@ -54,6 +54,34 @@ namespace dal {
     };
 
 
+    class AttachmentBundle_Simple {
+
+    private:
+        FbufAttachment m_color;
+        FbufAttachment m_depth;
+
+    public:
+        void init(
+            const uint32_t width,
+            const uint32_t height,
+            const dal::RenderPass_Simple& renderpass,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+        auto& color() const {
+            return this->m_color;
+        }
+
+        auto& depth() const {
+            return this->m_depth;
+        }
+
+    };
+
+
     class AttachmentBundle_Gbuf {
 
     private:

@@ -926,18 +926,9 @@ namespace dal {
     ) {
         this->destroy(cmd_pool, logi_device);
 
-        this->m_color.init(
+        this->m_attachments.init(
             width, height,
-            dal::FbufAttachment::Usage::color_attachment,
-            renderpass.format_color(),
-            phys_device,
-            logi_device
-        );
-
-        this->m_depth.init(
-            width, height,
-            dal::FbufAttachment::Usage::depth_attachment,
-            renderpass.format_depth(),
+            renderpass,
             phys_device,
             logi_device
         );
@@ -945,8 +936,8 @@ namespace dal {
         this->m_fbuf.init(
             renderpass,
             VkExtent2D{ width, height },
-            this->m_color.view().get(),
-            this->m_depth.view().get(),
+            this->m_attachments.color().view().get(),
+            this->m_attachments.depth().view().get(),
             logi_device
         );
 
@@ -960,8 +951,7 @@ namespace dal {
         }
 
         this->m_fbuf.destroy(logi_device);
-        this->m_depth.destroy(logi_device);
-        this->m_color.destroy(logi_device);
+        this->m_attachments.destroy(logi_device);
     }
 
 }

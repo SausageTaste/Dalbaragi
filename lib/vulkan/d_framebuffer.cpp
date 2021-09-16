@@ -93,6 +93,45 @@ namespace dal {
 }
 
 
+//
+namespace dal {
+
+    void AttachmentBundle_Simple::init(
+        const uint32_t width,
+        const uint32_t height,
+        const dal::RenderPass_Simple& renderpass,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->destroy(logi_device);
+
+        this->m_color.init(
+            width,
+            height,
+            dal::FbufAttachment::Usage::color_attachment,
+            renderpass.format_color(),
+            phys_device,
+            logi_device
+        );
+
+        this->m_depth.init(
+            width,
+            height,
+            dal::FbufAttachment::Usage::depth_attachment,
+            renderpass.format_depth(),
+            phys_device,
+            logi_device
+        );
+    }
+
+    void AttachmentBundle_Simple::destroy(const VkDevice logi_device) {
+        this->m_color.destroy(logi_device);
+        this->m_depth.destroy(logi_device);
+    }
+
+}
+
+
 // AttachmentBundle_Gbuf
 namespace dal {
 

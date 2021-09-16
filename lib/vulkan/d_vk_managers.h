@@ -350,8 +350,7 @@ namespace dal {
     class ReflectionPlane {
 
     public:
-        FbufAttachment m_color;
-        FbufAttachment m_depth;
+        AttachmentBundle_Simple m_attachments;
         Fbuf_Simple m_fbuf;
         std::vector<VkCommandBuffer> m_cmd_buf;
 
