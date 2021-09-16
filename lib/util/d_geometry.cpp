@@ -16,10 +16,18 @@ namespace {
 namespace dal {
 
     Plane::Plane(const glm::vec3 point, const glm::vec3 normal)
-        : m_point(point)
-        , m_normal(glm::normalize(normal))
+        : m_normal(glm::normalize(normal))
+        , m_d(-glm::dot(normal, point))
     {
 
+    }
+
+    glm::vec3 Plane::one_point() const {
+        return this->normal() * this->calc_signed_dist_to(glm::vec3{0});
+    }
+
+    float Plane::calc_signed_dist_to(const glm::vec3& p) const {
+        return glm::dot(this->coeff(), glm::vec4{ p, 1 });
     }
 
     glm::mat4 Plane::make_reflect_mat() const {
