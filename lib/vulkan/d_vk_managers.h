@@ -175,6 +175,19 @@ namespace dal {
         const dal::RenderPass_ShadowMap& render_pass
     );
 
+    void record_cmd_simple(
+        const VkCommandBuffer cmd_buf,
+
+        const dal::RenderListVK& render_list,
+        const dal::FrameInFlightIndex& flight_frame_index,
+
+        dal::U_PC_Simple push_constant,
+        const VkExtent2D& extent,
+        const dal::ShaderPipeline& pipeline_simple,
+        const dal::Fbuf_Simple& fbuf,
+        const dal::RenderPass_Simple& render_pass
+    );
+
 
     class CmdPoolManager {
 
@@ -386,6 +399,10 @@ namespace dal {
         );
 
         void destroy(const VkDevice logi_device);
+
+        auto& render_planes() {
+            return this->m_planes;
+        }
 
     };
 

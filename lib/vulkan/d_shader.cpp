@@ -1386,6 +1386,79 @@ namespace {
         return dal::ShaderPipeline{ graphics_pipeline, pipeline_layout, logi_device };
     }
 
+    dal::ShaderPipeline make_pipeline_simple(
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_Simple& renderpass,
+        const VkDevice logi_device
+    ) {
+        const auto vert_src = shader_mgr.load("_asset/glsl/simple.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/simple.frag", ::ShaderKind::frag);
+
+        // Shaders
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
+        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
+
+        // Vertex input state
+        const auto binding_desc = dal::make_vert_binding_desc_static();
+        const auto attrib_desc = dal::make_vert_attrib_desc_static();
+        auto vertex_input_state = ::create_vertex_input_state(&binding_desc, 1, attrib_desc.data(), attrib_desc.size());
+
+        // Input assembly
+        const VkPipelineInputAssemblyStateCreateInfo input_assembly = ::create_info_input_assembly();
+
+        // Viewports and scissors
+        const auto [viewport, scissor] = ::create_info_viewport_scissor(VkExtent2D{512, 512});
+        const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
+
+        // Rasterizer
+        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, true, 80, 8, false);
+
+        // Multisampling
+        const auto multisampling = ::create_info_multisampling();
+
+        // Color blending
+        const auto color_blend_attachments = ::create_info_color_blend_attachment<1, false>();
+        const auto color_blending = ::create_info_color_blend(color_blend_attachments.data(), color_blend_attachments.size(), false);
+
+        // Depth, stencil
+        const auto depth_stencil = ::create_info_depth_stencil(true);
+
+        // Dynamic state
+        const std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+        const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
+
+        // Pipeline layout
+        const std::vector<VkDescriptorSetLayout> desc_layouts{};
+        const auto pc_range = ::create_info_push_constant<dal::U_PC_Simple>();
+        const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), pc_range.data(), pc_range.size(), logi_device);
+
+        // Pipeline, finally
+        VkGraphicsPipelineCreateInfo pipeline_info{};
+        pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipeline_info.stageCount = shaderStages.size();
+        pipeline_info.pStages = shaderStages.data();
+        pipeline_info.pVertexInputState = &vertex_input_state;
+        pipeline_info.pInputAssemblyState = &input_assembly;
+        pipeline_info.pViewportState = &viewport_state;
+        pipeline_info.pRasterizationState = &rasterizer;
+        pipeline_info.pMultisampleState = &multisampling;
+        pipeline_info.pDepthStencilState = &depth_stencil;
+        pipeline_info.pColorBlendState = &color_blending;
+        pipeline_info.pDynamicState = &dynamic_state_info;
+        pipeline_info.layout = pipeline_layout;
+        pipeline_info.renderPass = renderpass.get();
+        pipeline_info.subpass = 0;
+        pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+        pipeline_info.basePipelineIndex = -1;
+
+        VkPipeline graphics_pipeline;
+        if (VK_SUCCESS != vkCreateGraphicsPipelines(logi_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &graphics_pipeline))
+            dalAbort("failed to create graphics pipeline!");
+
+        return dal::ShaderPipeline{ graphics_pipeline, pipeline_layout, logi_device };
+    }
+
 }
 
 
@@ -1506,6 +1579,12 @@ namespace dal {
             desc_layout_animation,
             logi_device
         );
+
+        this->m_simple = ::make_pipeline_simple(
+            shader_mgr,
+            render_passes.rp_simple(),
+            logi_device
+        );
     }
 
     void PipelineManager::destroy(const VkDevice logi_device) {
@@ -1517,6 +1596,7 @@ namespace dal {
         this->m_alpha_animated.destroy(logi_device);
         this->m_shadow.destroy(logi_device);
         this->m_shadow_animated.destroy(logi_device);
+        this->m_simple.destroy(logi_device);
     }
 
 }

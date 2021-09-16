@@ -470,6 +470,49 @@ namespace dal {
             std::array<VkSemaphore, 0> wait_semaphores{};
             std::array<VkSemaphore, 0> signal_semaphores{};
 
+            for (auto& plane : this->m_ref_planes.render_planes()) {
+                const auto& cmd_buf = plane.m_cmd_buf.at(this->m_flight_frame_index.get());
+
+                U_PC_Simple pc_data;
+                pc_data.m_proj_view_mat = cam_proj_view_mat;
+
+                record_cmd_simple(
+                    cmd_buf,
+                    render_list_vk,
+                    this->m_flight_frame_index,
+                    pc_data,
+                    plane.m_attachments.extent(),
+                    this->m_pipelines.simple(),
+                    plane.m_fbuf,
+                    this->m_renderpasses.rp_simple()
+                );
+
+                VkSubmitInfo submit_info{};
+                submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submit_info.pCommandBuffers = &cmd_buf;
+                submit_info.commandBufferCount = 1;
+                submit_info.waitSemaphoreCount = wait_semaphores.size();
+                submit_info.pWaitSemaphores = wait_semaphores.data();
+                submit_info.pWaitDstStageMask = wait_stages.data();
+                submit_info.signalSemaphoreCount = signal_semaphores.size();
+                submit_info.pSignalSemaphores = signal_semaphores.data();
+
+                const auto submit_result = vkQueueSubmit(
+                    this->m_logi_device.queue_graphics(),
+                    1,
+                    &submit_info,
+                    VK_NULL_HANDLE
+                );
+
+                dalAssert(VK_SUCCESS == submit_result);
+            }
+        }
+
+        {
+            std::array<VkPipelineStageFlags, 0> wait_stages{};
+            std::array<VkSemaphore, 0> wait_semaphores{};
+            std::array<VkSemaphore, 0> signal_semaphores{};
+
             for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
                 if (!dlight_update_flags[i])
                     continue;

@@ -79,6 +79,10 @@ namespace dal {
             return this->m_depth;
         }
 
+        auto extent() const {
+            return this->color().extent();
+        }
+
     };
 
 

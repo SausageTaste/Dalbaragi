@@ -71,13 +71,19 @@ namespace dal {
     struct U_AnimTransform {
         glm::mat4 m_transforms[dal::MAX_JOINT_COUNT];
     };
-
     static_assert(sizeof(U_AnimTransform) <= 16 * 1024);
 
     struct U_PC_Shadow {
         glm::mat4 m_model_mat;
         glm::mat4 m_light_mat;
     };
+    static_assert(sizeof(U_PC_Shadow) <= 128);
+
+    struct U_PC_Simple {
+        glm::mat4 m_model_mat;
+        glm::mat4 m_proj_view_mat;
+    };
+    static_assert(sizeof(U_PC_Simple) <= 128);
 
 
     template <typename _DataStruct>

@@ -571,6 +571,74 @@ namespace dal {
             dalAbort("failed to record command buffer!");
     }
 
+    void record_cmd_simple(
+        const VkCommandBuffer cmd_buf,
+
+        const dal::RenderListVK& render_list,
+        const dal::FrameInFlightIndex& flight_frame_index,
+
+        dal::U_PC_Simple push_constant,
+        const VkExtent2D& extent,
+        const dal::ShaderPipeline& pipeline_simple,
+        const dal::Fbuf_Simple& fbuf,
+        const dal::RenderPass_Simple& render_pass
+    ) {
+        VkCommandBufferBeginInfo begin_info{};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags = 0;
+        begin_info.pInheritanceInfo = nullptr;
+
+        if (VK_SUCCESS != vkBeginCommandBuffer(cmd_buf, &begin_info))
+            dalAbort("failed to begin recording command buffer!");
+
+        std::array<VkClearValue, 2> clear_colors{};
+        clear_colors[0].color = { 0, 0, 0, 1 };
+        clear_colors[1].depthStencil = { 1, 0 };
+
+        VkRenderPassBeginInfo render_pass_info{};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_info.renderPass = render_pass.get();
+        render_pass_info.framebuffer = fbuf.get();
+        render_pass_info.renderArea.offset = {0, 0};
+        render_pass_info.renderArea.extent = extent;
+        render_pass_info.clearValueCount = clear_colors.size();
+        render_pass_info.pClearValues = clear_colors.data();
+
+        vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        {
+            auto& pipeline = pipeline_simple;
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            const auto [viewport, scissor] = ::create_info_viewport_scissor(extent);
+            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            for (auto& render_tuple : render_list.m_static_models) {
+                auto& model = *render_tuple.m_model;
+
+                for (auto& unit : model.render_units()) {
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    for (auto& actor : render_tuple.m_actors) {
+                        push_constant.m_model_mat = actor->m_transform.make_mat4();
+                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Simple), &push_constant);
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        vkCmdEndRenderPass(cmd_buf);
+
+        if (VK_SUCCESS != vkEndCommandBuffer(cmd_buf))
+            dalAbort("failed to record command buffer!");
+    }
+
 }
 
 
