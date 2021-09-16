@@ -75,10 +75,7 @@ namespace dal {
             const VkDescriptorSetLayout desc_layout_animation,
             const VkDescriptorSetLayout desc_layout_composition,
             const VkDescriptorSetLayout desc_layout_alpha,
-            const RenderPass_Gbuf& rp_gbuf,
-            const RenderPass_Final& rp_final,
-            const RenderPass_Alpha& rp_alpha,
-            const RenderPass_ShadowMap& rp_shadow,
+            const dal::RenderPassManager& render_passes,
             const VkDevice logi_device
         );
 

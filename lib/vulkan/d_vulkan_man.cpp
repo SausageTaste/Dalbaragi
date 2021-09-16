@@ -893,10 +893,7 @@ namespace dal {
             this->m_desc_layout_man.layout_animation(),
             this->m_desc_layout_man.layout_composition(),
             this->m_desc_layout_man.layout_alpha(),
-            this->m_renderpasses.rp_gbuf(),
-            this->m_renderpasses.rp_final(),
-            this->m_renderpasses.rp_alpha(),
-            this->m_renderpasses.rp_shadow(),
+            this->m_renderpasses,
             this->m_logi_device.get()
         );
 

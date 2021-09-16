@@ -1406,10 +1406,7 @@ namespace dal {
         const VkDescriptorSetLayout desc_layout_animation,
         const VkDescriptorSetLayout desc_layout_composition,
         const VkDescriptorSetLayout desc_layout_alpha,
-        const RenderPass_Gbuf& rp_gbuf,
-        const RenderPass_Final& rp_final,
-        const RenderPass_Alpha& rp_alpha,
-        const RenderPass_ShadowMap& rp_shadow,
+        const dal::RenderPassManager& render_passes,
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
@@ -1433,7 +1430,7 @@ namespace dal {
 
         this->m_gbuf = ::make_pipeline_gbuf(
             shader_mgr,
-            rp_gbuf, 0,
+            render_passes.rp_gbuf(), 0,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_per_global,
@@ -1444,7 +1441,7 @@ namespace dal {
 
         this->m_gbuf_animated = ::make_pipeline_gbuf_animated(
             shader_mgr,
-            rp_gbuf, 0,
+            render_passes.rp_gbuf(), 0,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_per_global,
@@ -1456,7 +1453,7 @@ namespace dal {
 
         this->m_composition = ::make_pipeline_composition(
             shader_mgr,
-            rp_gbuf, 1,
+            render_passes.rp_gbuf(), 1,
             need_gamma_correction,
             gbuf_extent,
             desc_layout_composition,
@@ -1465,7 +1462,7 @@ namespace dal {
 
         this->m_final = ::make_pipeline_final(
             shader_mgr,
-            rp_final,
+            render_passes.rp_final(),
             need_gamma_correction,
             swapchain_extent,
             desc_layout_final,
@@ -1474,7 +1471,7 @@ namespace dal {
 
         this->m_alpha = ::make_pipeline_alpha(
             shader_mgr,
-            rp_alpha,
+            render_passes.rp_alpha(),
             need_gamma_correction,
             gbuf_extent,
             desc_layout_alpha,
@@ -1485,7 +1482,7 @@ namespace dal {
 
         this->m_alpha_animated = ::make_pipeline_alpha_animated(
             shader_mgr,
-            rp_alpha,
+            render_passes.rp_alpha(),
             need_gamma_correction,
             gbuf_extent,
             desc_layout_alpha,
@@ -1497,14 +1494,14 @@ namespace dal {
 
         this->m_shadow = ::make_pipeline_shadow(
             shader_mgr,
-            rp_shadow,
+            render_passes.rp_shadow(),
             does_support_depth_clamp,
             logi_device
         );
 
         this->m_shadow_animated = ::make_pipeline_shadow_animated(
             shader_mgr,
-            rp_shadow,
+            render_passes.rp_shadow(),
             does_support_depth_clamp,
             desc_layout_animation,
             logi_device
