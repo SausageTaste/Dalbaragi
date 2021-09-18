@@ -227,7 +227,7 @@ namespace dal {
         void init(const VkDevice logi_device);
     };
 
-    struct DescLayout_Animation : public IDescSetLayout {
+    struct DescLayout_ActorAnimated : public IDescSetLayout {
         void init(const VkDevice logi_device);
     };
 
@@ -248,8 +248,7 @@ namespace dal {
         DescLayout_PerGlobal m_layout_per_global;
         DescLayout_PerMaterial m_layout_per_material;
         DescLayout_PerActor m_layout_per_actor;
-
-        DescLayout_Animation m_layout_animation;
+        DescLayout_ActorAnimated m_layout_actor_animated;
 
         DescLayout_Composition m_layout_composition;
         DescLayout_Alpha m_layout_alpha;
@@ -275,8 +274,8 @@ namespace dal {
             return this->m_layout_per_actor;
         }
 
-        auto& layout_animation() const {
-            return this->m_layout_animation;
+        auto& layout_actor_animated() const {
+            return this->m_layout_actor_animated;
         }
 
         auto& layout_composition() const {
@@ -351,7 +350,8 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void record_animation(
+        void record_actor_animated(
+            const UniformBuffer<U_PerActor>& ubuf_per_actor,
             const UniformBuffer<U_AnimTransform>& ubuf_animation,
             const VkDevice logi_device
         );

@@ -854,8 +854,7 @@ namespace {
         const VkExtent2D& swapchain_extent,
         const dal::DescLayout_PerGlobal& desc_layout_simple,
         const dal::DescLayout_PerMaterial& desc_layout_per_material,
-        const dal::DescLayout_PerActor& desc_layout_per_actor,
-        const dal::DescLayout_Animation& desc_layout_animation,
+        const dal::DescLayout_ActorAnimated& desc_layout_per_actor,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/gbuf_animated.vert", ::ShaderKind::vert);
@@ -896,7 +895,11 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 4> desc_layouts{ desc_layout_simple.get(), desc_layout_per_material.get(), desc_layout_per_actor.get(), desc_layout_animation.get() };
+        const std::vector<VkDescriptorSetLayout> desc_layouts{
+            desc_layout_simple.get(),
+            desc_layout_per_material.get(),
+            desc_layout_per_actor.get(),
+        };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
@@ -971,7 +974,7 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 1> desc_layouts{ desc_layout_composition.get() };
+        const std::vector<VkDescriptorSetLayout> desc_layouts{ desc_layout_composition.get() };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
@@ -1041,7 +1044,7 @@ namespace {
         const auto depth_stencil = ::create_info_depth_stencil(true);
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 1> desc_layouts{ desc_layout_final.get() };
+        const std::vector<VkDescriptorSetLayout> desc_layouts{ desc_layout_final.get() };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
@@ -1160,8 +1163,7 @@ namespace {
         const VkExtent2D& swapchain_extent,
         const dal::DescLayout_Alpha& desc_layout_alpha,
         const dal::DescLayout_PerMaterial& desc_layout_per_material,
-        const dal::DescLayout_PerActor& desc_layout_per_actor,
-        const dal::DescLayout_Animation& desc_layout_animation,
+        const dal::DescLayout_ActorAnimated& desc_layout_per_actor,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/alpha_animated.vert", ::ShaderKind::vert);
@@ -1206,7 +1208,6 @@ namespace {
             desc_layout_alpha.get(),
             desc_layout_per_material.get(),
             desc_layout_per_actor.get(),
-            desc_layout_animation.get(),
         };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
@@ -1315,7 +1316,7 @@ namespace {
         ::ShaderSrcManager& shader_mgr,
         const dal::RenderPass_ShadowMap& renderpass,
         const bool does_support_depth_clamp,
-        const dal::DescLayout_Animation& desc_layout_animation,
+        const dal::DescLayout_ActorAnimated& desc_layout_animation,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/shadow_animated.vert", ::ShaderKind::vert);
@@ -1513,8 +1514,7 @@ namespace dal {
             gbuf_extent,
             desc_layouts.layout_per_global(),
             desc_layouts.layout_per_material(),
-            desc_layouts.layout_per_actor(),
-            desc_layouts.layout_animation(),
+            desc_layouts.layout_actor_animated(),
             logi_device
         );
 
@@ -1554,8 +1554,7 @@ namespace dal {
             gbuf_extent,
             desc_layouts.layout_alpha(),
             desc_layouts.layout_per_material(),
-            desc_layouts.layout_per_actor(),
-            desc_layouts.layout_animation(),
+            desc_layouts.layout_actor_animated(),
             logi_device
         );
 
@@ -1570,7 +1569,7 @@ namespace dal {
             shader_mgr,
             render_passes.rp_shadow(),
             does_support_depth_clamp,
-            desc_layouts.layout_animation(),
+            desc_layouts.layout_actor_animated(),
             logi_device
         );
 

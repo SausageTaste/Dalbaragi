@@ -13,7 +13,7 @@ layout(push_constant) uniform PushConstant {
     mat4 m_light_mat;
 } u_pc;
 
-layout(set = 0, binding = 0) uniform U_AnimTransform {
+layout(set = 0, binding = 1) uniform U_AnimTransform {
     mat4 m_transforms[128];
 } u_anim_transform;
 

@@ -138,9 +138,11 @@ namespace dal {
         this->build(bindings.make_create_info(), logi_device);
     }
 
-    void DescLayout_Animation::init(const VkDevice logi_device) {
+    void DescLayout_ActorAnimated::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
+        // U_PerActor
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
         // U_AnimTransform
         bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
 
@@ -196,8 +198,7 @@ namespace dal {
         this->m_layout_per_global.init(logiDevice);
         this->m_layout_per_material.init(logiDevice);
         this->m_layout_per_actor.init(logiDevice);
-
-        this->m_layout_animation.init(logiDevice);
+        this->m_layout_actor_animated.init(logiDevice);
 
         this->m_layout_composition.init(logiDevice);
         this->m_layout_alpha.init(logiDevice);
@@ -209,8 +210,7 @@ namespace dal {
         this->m_layout_per_global.destroy(logiDevice);
         this->m_layout_per_material.destroy(logiDevice);
         this->m_layout_per_actor.destroy(logiDevice);
-
-        this->m_layout_animation.destroy(logiDevice);
+        this->m_layout_actor_animated.destroy(logiDevice);
 
         this->m_layout_composition.destroy(logiDevice);
         this->m_layout_alpha.destroy(logiDevice);
@@ -416,12 +416,14 @@ namespace dal {
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
 
-    void DescSet::record_animation(
+    void DescSet::record_actor_animated(
+        const UniformBuffer<U_PerActor>& ubuf_per_actor,
         const UniformBuffer<U_AnimTransform>& ubuf_animation,
         const VkDevice logi_device
     ) {
         ::WriteDescBuilder desc_writes{ this->m_handle };
 
+        desc_writes.add_buffer(ubuf_per_actor);
         desc_writes.add_buffer(ubuf_animation);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);

@@ -64,8 +64,7 @@ namespace dal {
 
     void ActorSkinnedVK::init(
         DescAllocator& desc_allocator,
-        const dal::DescLayout_PerActor& layout_per_actor,
-        const dal::DescLayout_Animation& layout_anim,
+        const dal::DescLayout_ActorAnimated& layout_per_actor,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
@@ -75,29 +74,25 @@ namespace dal {
         this->m_desc_allocator = &desc_allocator;
 
         this->m_ubuf_per_actor.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
-        for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
-            this->m_desc_per_actor.push_back(this->m_desc_allocator->allocate(layout_per_actor, logi_device));
-            this->m_desc_per_actor.back().record_per_actor(this->m_ubuf_per_actor.at(i), logi_device);
-        }
-
         this->m_ubuf_anim.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
         for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
-            this->m_desc_animation.push_back(this->m_desc_allocator->allocate(layout_anim, logi_device));
-            this->m_desc_animation.back().record_animation(this->m_ubuf_anim.at(i), logi_device);
+            this->m_desc.push_back(this->m_desc_allocator->allocate(layout_per_actor, logi_device));
+            this->m_desc.back().record_actor_animated(
+                this->m_ubuf_per_actor.at(i),
+                this->m_ubuf_anim.at(i),
+                logi_device
+            );
         }
     }
 
     void ActorSkinnedVK::destroy() {
         if (nullptr != this->m_desc_allocator) {
-            for (auto& d : this->m_desc_per_actor)
-                this->m_desc_allocator->free(std::move(d));
-            for (auto& d : this->m_desc_animation)
+            for (auto& d : this->m_desc)
                 this->m_desc_allocator->free(std::move(d));
             this->m_desc_allocator = nullptr;
         }
 
-        this->m_desc_per_actor.clear();
-        this->m_desc_animation.clear();
+        this->m_desc.clear();
 
         if (VK_NULL_HANDLE != this->m_logi_device) {
             this->m_ubuf_per_actor.destroy(this->m_logi_device);

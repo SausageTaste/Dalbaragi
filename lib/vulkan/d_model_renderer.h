@@ -50,8 +50,7 @@ namespace dal {
     class ActorSkinnedVK : public IActorSkinned {
 
     private:
-        std::vector<DescSet> m_desc_per_actor;
-        std::vector<DescSet> m_desc_animation;
+        std::vector<DescSet> m_desc;
         dal::UniformBufferArray<dal::U_PerActor> m_ubuf_per_actor;
         dal::UniformBufferArray<dal::U_AnimTransform> m_ubuf_anim;
         DescAllocator* m_desc_allocator = nullptr;
@@ -65,8 +64,7 @@ namespace dal {
 
         void init(
             DescAllocator& desc_allocator,
-            const DescLayout_PerActor& layout_per_actor,
-            const DescLayout_Animation& layout_anim,
+            const DescLayout_ActorAnimated& layout_actor,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
@@ -83,12 +81,8 @@ namespace dal {
 
         void apply_animation(const FrameInFlightIndex& index);
 
-        auto& desc_per_actor(const FrameInFlightIndex& index) const {
-            return this->m_desc_per_actor.at(index.get()).get();
-        }
-
-        auto& desc_animation(const FrameInFlightIndex& index) const {
-            return this->m_desc_animation.at(index.get()).get();
+        auto& desc_set_at(const FrameInFlightIndex& index) const {
+            return this->m_desc.at(index.get()).get();
         }
 
     };

@@ -832,8 +832,7 @@ namespace dal {
 
         a.init(
             this->m_desc_allocator,
-            this->m_desc_layout_man.layout_per_actor(),
-            this->m_desc_layout_man.layout_animation(),
+            this->m_desc_layout_man.layout_actor_animated(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
