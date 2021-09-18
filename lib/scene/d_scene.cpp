@@ -51,8 +51,8 @@ namespace dal {
             output.m_mirror_vertices[3] = glm::vec3{1, 1, 0};
 
             const auto x = dal::get_cur_sec() * 20;
-            const auto translate = glm::translate(glm::mat4{1}, glm::vec3{0, 1, 0});
-            const auto rotation = glm::rotate(glm::mat4{1}, glm::radians<float>(cos(t) * 30), glm::vec3{0, 1, 0});
+            const auto translate = glm::translate(glm::mat4{1}, glm::vec3{3, 1, 0});
+            const auto rotation = glm::rotate(glm::mat4{1}, glm::radians<float>(x), glm::vec3{1, 2, 3});
             const auto m = translate * rotation;
 
             for (int i = 0; i < 4; ++i) {
