@@ -81,7 +81,9 @@ namespace dal {
     void DescLayout_Final::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
+        // rendered color result
         bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // U_PerFrame_InFinal
         bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
 
         this->build(bindings.make_create_info(), logi_device);
@@ -90,8 +92,10 @@ namespace dal {
     void DescLayout_PerGlobal::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
+        // U_PerFrame
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+        // U_GlobalLight
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
 
         this->build(bindings.make_create_info(), logi_device);
     }
@@ -99,7 +103,9 @@ namespace dal {
     void DescLayout_PerMaterial::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
+        // U_PerMaterial
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // albedo map
         bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
 
         this->build(bindings.make_create_info(), logi_device);
@@ -108,6 +114,7 @@ namespace dal {
     void DescLayout_PerActor::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
+        // U_PerActor
         bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
 
         this->build(bindings.make_create_info(), logi_device);
@@ -116,7 +123,8 @@ namespace dal {
     void DescLayout_Animation::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);  // U_AnimTransform
+        // U_AnimTransform
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
 
         this->build(bindings.make_create_info(), logi_device);
     }
@@ -129,10 +137,14 @@ namespace dal {
         bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
         bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_GlobalLight
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_PerFrame_Composition
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);  // Slight shadow maps
+        // Ubuf U_GlobalLight
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // Ubuf U_PerFrame_Composition
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // directional light shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);
+        // spot light shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);
 
         this->build(bindings.make_create_info(), logi_device);
     }
@@ -140,10 +152,14 @@ namespace dal {
     void DescLayout_Alpha::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);  // Dlight shadow maps
+        // U_PerFrame
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+        // U_GlobalLight
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // directional light shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);
+        // spot light shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);
 
         this->build(bindings.make_create_info(), logi_device);
     }
