@@ -98,70 +98,77 @@ namespace {
         depth_attachment_ref.attachment = 1;
         depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        std::array<VkSubpassDescription, 2> subpasses{};
+        std::vector<VkSubpassDescription> subpasses{};
 
         // First subpass
         // ---------------------------------------------------------------------------------
 
-        std::array<VkAttachmentReference, 3> color_attachment_ref{};
-        color_attachment_ref[0] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };  // albedo
-        color_attachment_ref[1] = { 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };  // materials
-        color_attachment_ref[2] = { 4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };  // normal
+        std::vector<VkAttachmentReference> color_attachment_ref;
+        color_attachment_ref.emplace_back() = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };  // albedo
+        color_attachment_ref.emplace_back() = { 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };  // materials
+        color_attachment_ref.emplace_back() = { 4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };  // normal
 
-        subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        // Index of color attachment can be used with index number if fragment shader
+        // Index of color attachment can be used with index number in a fragment shader
         // like "layout(location = 0) out vec4 outColor".
-        subpasses[0].colorAttachmentCount = color_attachment_ref.size();
-        subpasses[0].pColorAttachments = color_attachment_ref.data();
-        subpasses[0].pDepthStencilAttachment = &depth_attachment_ref;
+        subpasses.emplace_back();
+        subpasses.back().pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpasses.back().pDepthStencilAttachment = &depth_attachment_ref;
+        subpasses.back().colorAttachmentCount    = color_attachment_ref.size();
+        subpasses.back().pColorAttachments       = color_attachment_ref.data();
+        subpasses.back().inputAttachmentCount    = 0;
+        subpasses.back().pInputAttachments       = nullptr;
 
         // Second subpass
         // ---------------------------------------------------------------------------------
 
-        std::array<VkAttachmentReference, 1> color_attachment_ref_in_2{};
-        color_attachment_ref_in_2[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+        std::vector<VkAttachmentReference> color_attachment_ref_in_2;
+        color_attachment_ref_in_2.emplace_back() = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
-        std::array<VkAttachmentReference, 4> input_references_in_2;
-        input_references_in_2[0] = { 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-        input_references_in_2[1] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-        input_references_in_2[2] = { 3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-        input_references_in_2[3] = { 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+        std::vector<VkAttachmentReference> input_references_in_2;
+        input_references_in_2.emplace_back() = { 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+        input_references_in_2.emplace_back() = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+        input_references_in_2.emplace_back() = { 3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+        input_references_in_2.emplace_back() = { 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 
-        subpasses[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpasses[1].colorAttachmentCount = color_attachment_ref_in_2.size();
-        subpasses[1].pColorAttachments = color_attachment_ref_in_2.data();
-        subpasses[1].pDepthStencilAttachment = nullptr;
-        subpasses[1].inputAttachmentCount = input_references_in_2.size();
-        subpasses[1].pInputAttachments = input_references_in_2.data();
+        subpasses.emplace_back();
+        subpasses.back().pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpasses.back().pDepthStencilAttachment = nullptr;
+        subpasses.back().colorAttachmentCount    = color_attachment_ref_in_2.size();
+        subpasses.back().pColorAttachments       = color_attachment_ref_in_2.data();
+        subpasses.back().inputAttachmentCount    = input_references_in_2.size();
+        subpasses.back().pInputAttachments       = input_references_in_2.data();
 
         // Dependencies
         // ---------------------------------------------------------------------------------
 
-        std::array<VkSubpassDependency, 3> dependencies{};
+        std::vector<VkSubpassDependency> dependencies{};
 
-        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[0].dstSubpass = 0;
-        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        dependencies.emplace_back();
+        dependencies.back().srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies.back().dstSubpass = 0;
+        dependencies.back().srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        dependencies.back().dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies.back().srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        dependencies.back().dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies.back().dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-        dependencies[1].srcSubpass = 0;
-        dependencies[1].dstSubpass = 1;
-        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        dependencies.emplace_back();
+        dependencies.back().srcSubpass = 0;
+        dependencies.back().dstSubpass = 1;
+        dependencies.back().srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies.back().dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies.back().srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies.back().dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies.back().dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-        dependencies[2].srcSubpass = 0;
-        dependencies[2].dstSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[2].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[2].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        dependencies[2].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependencies[2].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-        dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        dependencies.emplace_back();
+        dependencies.back().srcSubpass = 0;
+        dependencies.back().dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies.back().srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies.back().dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        dependencies.back().srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies.back().dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        dependencies.back().dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         // Create render pass
         // ---------------------------------------------------------------------------------
@@ -176,9 +183,8 @@ namespace {
         renderpass_info.pDependencies   = dependencies.data();
 
         VkRenderPass renderpass = VK_NULL_HANDLE;
-        if ( VK_SUCCESS != vkCreateRenderPass(logi_device, &renderpass_info, nullptr, &renderpass) ) {
+        if (VK_SUCCESS != vkCreateRenderPass(logi_device, &renderpass_info, nullptr, &renderpass))
             dalAbort("failed to create render pass");
-        }
 
         return renderpass;
     }
