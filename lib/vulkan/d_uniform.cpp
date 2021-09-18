@@ -83,7 +83,7 @@ namespace dal {
 
         // rendered color result
         bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
-        // U_PerFrame_InFinal
+        // U_Shader_Final
         bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
 
         this->build(bindings.make_create_info(), logi_device);
@@ -349,7 +349,7 @@ namespace dal {
     void DescSet::record_final(
         const VkImageView color_view,
         const SamplerTexture& sampler,
-        const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
+        const UniformBuffer<U_Shader_Final>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
         ::WriteDescBuilder desc_writes{ this->m_handle };

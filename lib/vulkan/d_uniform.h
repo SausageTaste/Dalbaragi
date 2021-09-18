@@ -17,7 +17,7 @@
 // Uniform buffer structs
 namespace dal {
 
-    struct U_PerFrame_InFinal {
+    struct U_Shader_Final {
         glm::mat4 m_rotation;
     };
 
@@ -334,7 +334,7 @@ namespace dal {
         void record_final(
             const VkImageView color_view,
             const SamplerTexture& sampler,
-            const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
+            const UniformBuffer<U_Shader_Final>& ubuf_per_frame,
             const VkDevice logi_device
         );
 

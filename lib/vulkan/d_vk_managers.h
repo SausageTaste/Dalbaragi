@@ -264,7 +264,7 @@ namespace dal {
         UniformBufferArray<U_PerFrame> m_ub_simple;
         UniformBufferArray<U_GlobalLight> m_ub_glights;
         UniformBufferArray<U_PerFrame_Composition> m_ub_per_frame_composition;
-        UniformBuffer<U_PerFrame_InFinal> m_ub_final;
+        UniformBuffer<U_Shader_Final> m_ub_final;
 
     public:
         void init(

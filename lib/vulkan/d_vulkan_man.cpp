@@ -948,7 +948,7 @@ namespace dal {
 
         this->m_ubuf_man.init(this->m_phys_device.get(), this->m_logi_device.get());
 
-        U_PerFrame_InFinal data;
+        U_Shader_Final data;
         data.m_rotation = this->m_swapchain.pre_ratation_mat();
         this->m_ubuf_man.m_ub_final.copy_to_buffer(data, this->m_logi_device.get());
 
