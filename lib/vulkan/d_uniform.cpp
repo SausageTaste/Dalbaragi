@@ -185,59 +185,76 @@ namespace {
 }
 
 
+// Descriptor set layouts
+namespace dal {
+
+    void IDescSetLayout::destroy(const VkDevice logi_device) noexcept {
+        if (VK_NULL_HANDLE != this->m_layout) {
+            vkDestroyDescriptorSetLayout(logi_device, this->m_layout, nullptr);
+            this->m_layout = VK_NULL_HANDLE;
+        }
+    }
+
+    void DescLayout_Final::init(const VkDevice logi_device) {
+        this->reset(::create_layout_final(logi_device), logi_device);
+    }
+
+    void DescLayout_PerGlobal::init(const VkDevice logi_device) {
+        this->reset(::create_layout_per_global(logi_device), logi_device);
+    }
+
+    void DescLayout_PerMaterial::init(const VkDevice logi_device) {
+        this->reset(::create_layout_per_material(logi_device), logi_device);
+    }
+
+    void DescLayout_PerActor::init(const VkDevice logi_device) {
+        this->reset(::create_layout_per_actor(logi_device), logi_device);
+    }
+
+    void DescLayout_Animation::init(const VkDevice logi_device) {
+        this->reset(::create_layout_animation(logi_device), logi_device);
+    }
+
+    void DescLayout_Composition::init(const VkDevice logi_device) {
+        this->reset(::create_layout_composition(logi_device), logi_device);
+    }
+
+    void DescLayout_Alpha::init(const VkDevice logi_device) {
+        this->reset(::create_layout_alpha(logi_device), logi_device);
+    }
+
+}
+
+
 // DescSetLayoutManager
 namespace dal {
 
     void DescSetLayoutManager::init(const VkDevice logiDevice) {
         this->destroy(logiDevice);
 
-        this->m_layout_final = ::create_layout_final(logiDevice);
+        this->m_layout_final.init(logiDevice);
 
-        this->m_layout_per_global = ::create_layout_per_global(logiDevice);
-        this->m_layout_per_material = ::create_layout_per_material(logiDevice);
-        this->m_layout_per_actor = ::create_layout_per_actor(logiDevice);
+        this->m_layout_per_global.init(logiDevice);
+        this->m_layout_per_material.init(logiDevice);
+        this->m_layout_per_actor.init(logiDevice);
 
-        this->m_layout_animation = ::create_layout_animation(logiDevice);
+        this->m_layout_animation.init(logiDevice);
 
-        this->m_layout_composition = ::create_layout_composition(logiDevice);
-        this->m_layout_alpha = ::create_layout_alpha(logiDevice);
+        this->m_layout_composition.init(logiDevice);
+        this->m_layout_alpha.init(logiDevice);
     }
 
     void DescSetLayoutManager::destroy(const VkDevice logiDevice) {
-        if (VK_NULL_HANDLE != this->m_layout_final) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_final, nullptr);
-            this->m_layout_final = VK_NULL_HANDLE;
-        }
+        this->m_layout_final.destroy(logiDevice);
 
-        if (VK_NULL_HANDLE != this->m_layout_per_global) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_global, nullptr);
-            this->m_layout_per_global = VK_NULL_HANDLE;
-        }
+        this->m_layout_per_global.destroy(logiDevice);
+        this->m_layout_per_material.destroy(logiDevice);
+        this->m_layout_per_actor.destroy(logiDevice);
 
-        if (VK_NULL_HANDLE != this->m_layout_per_material) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_material, nullptr);
-            this->m_layout_per_material = VK_NULL_HANDLE;
-        }
+        this->m_layout_animation.destroy(logiDevice);
 
-        if (VK_NULL_HANDLE != this->m_layout_per_actor) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_actor, nullptr);
-            this->m_layout_per_actor = VK_NULL_HANDLE;
-        }
-
-        if (VK_NULL_HANDLE != this->m_layout_animation) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_animation, nullptr);
-            this->m_layout_animation = VK_NULL_HANDLE;
-        }
-
-        if (VK_NULL_HANDLE != this->m_layout_composition) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_composition, nullptr);
-            this->m_layout_composition = VK_NULL_HANDLE;
-        }
-
-        if (VK_NULL_HANDLE != this->m_layout_alpha) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_alpha, nullptr);
-            this->m_layout_alpha = VK_NULL_HANDLE;
-        }
+        this->m_layout_composition.destroy(logiDevice);
+        this->m_layout_alpha.destroy(logiDevice);
     }
 
 }

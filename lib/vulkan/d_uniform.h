@@ -183,51 +183,105 @@ namespace dal {
 // Descriptor set layouts
 namespace dal {
 
+    class IDescSetLayout {
+
+    private:
+        VkDescriptorSetLayout m_layout = VK_NULL_HANDLE;
+
+    protected:
+        void reset(const VkDescriptorSetLayout v, const VkDevice logi_device) noexcept {
+            this->destroy(logi_device);
+            this->m_layout = v;
+        }
+
+    public:
+        void destroy(const VkDevice logi_device) noexcept;
+
+        VkDescriptorSetLayout get() const noexcept {
+            return this->m_layout;
+        }
+
+        bool is_ready() const noexcept {
+            return VK_NULL_HANDLE != this->m_layout;
+        }
+
+    };
+
+
+    struct DescLayout_Final : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_PerGlobal : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_PerMaterial : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_PerActor : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_Animation : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_Composition : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_Alpha : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+
     class DescSetLayoutManager {
 
     private:
-        VkDescriptorSetLayout m_layout_final = VK_NULL_HANDLE;
+        DescLayout_Final m_layout_final;
 
-        VkDescriptorSetLayout m_layout_per_global = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_layout_per_material = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_layout_per_actor = VK_NULL_HANDLE;
+        DescLayout_PerGlobal m_layout_per_global;
+        DescLayout_PerMaterial m_layout_per_material;
+        DescLayout_PerActor m_layout_per_actor;
 
-        VkDescriptorSetLayout m_layout_animation = VK_NULL_HANDLE;
+        DescLayout_Animation m_layout_animation;
 
-        VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_layout_alpha = VK_NULL_HANDLE;
+        DescLayout_Composition m_layout_composition;
+        DescLayout_Alpha m_layout_alpha;
 
     public:
         void init(const VkDevice logiDevice);
 
         void destroy(const VkDevice logiDevice);
 
-        auto& layout_final() const {
-            return this->m_layout_final;
+        auto layout_final() const {
+            return this->m_layout_final.get();
         }
 
-        auto& layout_per_global() const {
-            return this->m_layout_per_global;
+        auto layout_per_global() const {
+            return this->m_layout_per_global.get();
         }
 
         auto layout_per_material() const {
-            return this->m_layout_per_material;
+            return this->m_layout_per_material.get();
         }
 
         auto layout_per_actor() const {
-            return this->m_layout_per_actor;
+            return this->m_layout_per_actor.get();
         }
 
         auto layout_animation() const {
-            return this->m_layout_animation;
+            return this->m_layout_animation.get();
         }
 
         auto layout_composition() const {
-            return this->m_layout_composition;
+            return this->m_layout_composition.get();
         }
 
         auto layout_alpha() const {
-            return this->m_layout_alpha;
+            return this->m_layout_alpha.get();
         }
 
     };
