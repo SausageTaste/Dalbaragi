@@ -6,6 +6,7 @@
 #include "d_shader.h"
 #include "d_indices.h"
 #include "d_command.h"
+#include "d_geometry.h"
 #include "d_vk_device.h"
 #include "d_swapchain.h"
 #include "d_render_pass.h"
@@ -14,6 +15,9 @@
 
 
 namespace dal {
+
+    class PlanarReflectionManager;
+
 
     inline auto& actor_cast(dal::IActor& actor) {
         return dynamic_cast<dal::ActorVK&>(actor);
@@ -125,6 +129,7 @@ namespace dal {
         const dal::RenderListVK& render_list,
         const dal::FrameInFlightIndex& flight_frame_index,
         const glm::mat4& proj_view_mat,
+        const dal::PlanarReflectionManager& reflection_mgr,
 
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSet desc_set_per_frame,
@@ -367,6 +372,7 @@ namespace dal {
         AttachmentBundle_Simple m_attachments;
         Fbuf_Simple m_fbuf;
         std::vector<VkCommandBuffer> m_cmd_buf;
+        DescSet m_desc;
 
     public:
         void init(
@@ -374,12 +380,15 @@ namespace dal {
             const uint32_t height,
             const uint32_t max_in_flight_count,
             CommandPool& cmd_pool,
+            DescPool& desc_pool,
+            const dal::SamplerTexture& sampler,
+            const dal::DescLayout_Mirror& desc_layout,
             const dal::RenderPass_Simple& renderpass,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
 
-        void destroy(CommandPool& cmd_pool, const VkDevice logi_device);
+        void destroy(CommandPool& cmd_pool, DescPool& desc_pool, const VkDevice logi_device);
 
     };
 
@@ -388,12 +397,15 @@ namespace dal {
 
     private:
         std::vector<ReflectionPlane> m_planes;
+        SamplerTexture m_sampler;
         CommandPool m_cmd_pool;
+        DescPool m_desc_pool;
 
     public:
         void init(
             const uint32_t width,
             const uint32_t height,
+            const dal::DescLayout_Mirror& desc_layout,
             const dal::RenderPass_Simple& renderpass,
             const VkPhysicalDevice phys_device,
             const LogicalDevice& logi_device
@@ -401,7 +413,7 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        auto& render_planes() {
+        auto& reflection_planes() const {
             return this->m_planes;
         }
 

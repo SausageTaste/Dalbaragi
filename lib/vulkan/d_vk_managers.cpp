@@ -96,6 +96,7 @@ namespace dal {
         const dal::RenderListVK& render_list,
         const dal::FrameInFlightIndex& flight_frame_index,
         const glm::mat4& proj_view_mat,
+        const dal::PlanarReflectionManager& reflection_mgr,
 
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSet desc_set_per_frame,
@@ -260,11 +261,20 @@ namespace dal {
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
             U_PC_Mirror pc_data;
-            pc_data.m_model_mat = glm::mat4{1};
+            pc_data.m_model_mat = glm::rotate(glm::mat4{1}, glm::radians(45.f), glm::vec3{0, 1, 0});
             pc_data.m_proj_view_mat = proj_view_mat;
             vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Mirror), &pc_data);
 
-            vkCmdDraw(cmd_buf, 3, 1, 0, 0);
+            vkCmdBindDescriptorSets(
+                cmd_buf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline.layout(),
+                0,
+                1, &(reflection_mgr.reflection_planes().back().m_desc.get()),
+                0, nullptr
+            );
+
+            vkCmdDraw(cmd_buf, 6, 1, 0, 0);
         }
 
         vkCmdEndRenderPass(cmd_buf);
@@ -980,11 +990,14 @@ namespace dal {
         const uint32_t height,
         const uint32_t max_in_flight_count,
         CommandPool& cmd_pool,
+        DescPool& desc_pool,
+        const dal::SamplerTexture& sampler,
+        const dal::DescLayout_Mirror& desc_layout,
         const dal::RenderPass_Simple& renderpass,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->destroy(cmd_pool, logi_device);
+        this->destroy(cmd_pool, desc_pool, logi_device);
 
         this->m_attachments.init(
             width, height,
@@ -1002,9 +1015,11 @@ namespace dal {
         );
 
         this->m_cmd_buf = cmd_pool.allocate(max_in_flight_count, logi_device);
+        this->m_desc = desc_pool.allocate(desc_layout, logi_device);
+        this->m_desc.record_mirror(this->m_attachments.color().view().get(), sampler, logi_device);
     }
 
-    void ReflectionPlane::destroy(CommandPool& cmd_pool, const VkDevice logi_device) {
+    void ReflectionPlane::destroy(CommandPool& cmd_pool, DescPool& desc_pool, const VkDevice logi_device) {
         if (!this->m_cmd_buf.empty()) {
             cmd_pool.free(this->m_cmd_buf, logi_device);
             this->m_cmd_buf.clear();
@@ -1023,13 +1038,16 @@ namespace dal {
     void PlanarReflectionManager::init(
         const uint32_t width,
         const uint32_t height,
+        const dal::DescLayout_Mirror& desc_layout,
         const dal::RenderPass_Simple& renderpass,
         const VkPhysicalDevice phys_device,
         const LogicalDevice& logi_device
     ) {
         this->destroy(logi_device.get());
 
+        this->m_sampler.init(false, phys_device, logi_device.get());
         this->m_cmd_pool.init(logi_device.indices().graphics_family(), logi_device.get());
+        this->m_desc_pool.init(10, 10, 10, 10, logi_device.get());
 
         for (int i = 0; i < 1; ++i) {
             this->m_planes.emplace_back().init(
@@ -1037,6 +1055,9 @@ namespace dal {
                 height,
                 dal::MAX_FRAMES_IN_FLIGHT,
                 this->m_cmd_pool,
+                this->m_desc_pool,
+                this->m_sampler,
+                desc_layout,
                 renderpass,
                 phys_device,
                 logi_device.get()
@@ -1046,10 +1067,11 @@ namespace dal {
 
     void PlanarReflectionManager::destroy(const VkDevice logi_device) {
         for (auto& x : this->m_planes)
-            x.destroy(this->m_cmd_pool, logi_device);
+            x.destroy(this->m_cmd_pool, this->m_desc_pool, logi_device);
         this->m_planes.clear();
 
         this->m_cmd_pool.destroy(logi_device);
+        this->m_desc_pool.destroy(logi_device);
     }
 
 }

@@ -25,6 +25,8 @@ namespace dal {
     struct U_PC_Simple {
         glm::mat4 m_model_mat;
         glm::mat4 m_proj_view_mat;
+
+        glm::vec4 m_clip_plane;
     };
 
     struct U_PC_Mirror {
@@ -386,6 +388,12 @@ namespace dal {
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
             const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
             const SamplerDepth& sampler,
+            const VkDevice logi_device
+        );
+
+        void record_mirror(
+            const VkImageView texture_view,
+            const SamplerTexture& sampler,
             const VkDevice logi_device
         );
 

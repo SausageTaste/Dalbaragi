@@ -466,11 +466,14 @@ namespace dal {
             std::array<VkSemaphore, 0> wait_semaphores{};
             std::array<VkSemaphore, 0> signal_semaphores{};
 
-            for (auto& plane : this->m_ref_planes.render_planes()) {
+            for (auto& plane : this->m_ref_planes.reflection_planes()) {
                 const auto& cmd_buf = plane.m_cmd_buf.at(this->m_flight_frame_index.get());
 
+                const dal::Plane reflection_plane{ glm::vec3{0, 0, 0}, glm::vec3{1, 0, 1} };
+
                 U_PC_Simple pc_data;
-                pc_data.m_proj_view_mat = cam_proj_view_mat;
+                pc_data.m_proj_view_mat = cam_proj_view_mat * reflection_plane.make_reflect_mat();
+                pc_data.m_clip_plane = reflection_plane.coeff();
 
                 record_cmd_simple(
                     cmd_buf,
@@ -594,7 +597,8 @@ namespace dal {
                 this->m_cmd_man.cmd_simple_at(this->m_flight_frame_index.get()),
                 render_list_vk,
                 this->m_flight_frame_index,
-                cam_proj_view_mat,
+                cam_proj_mat * cam_view_mat,
+                this->m_ref_planes,
                 this->m_attach_man.color().extent(),
                 this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
@@ -908,6 +912,7 @@ namespace dal {
 
         this->m_ref_planes.init(
             extent5.width, extent5.height,
+            this->m_desc_layout_man.layout_mirror(),
             this->m_renderpasses.rp_simple(),
             this->m_phys_device.get(),
             this->m_logi_device

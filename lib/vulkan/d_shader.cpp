@@ -1489,7 +1489,7 @@ namespace {
         const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
-        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_BACK_BIT, false, 0, 0);
+        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, false, 0, 0);
 
         // Multisampling
         const auto multisampling = ::create_info_multisampling();
@@ -1506,7 +1506,7 @@ namespace {
         const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::vector<VkDescriptorSetLayout> desc_layouts;
+        const std::vector<VkDescriptorSetLayout> desc_layouts{ desc_layout_mirror.get() };
         const auto pc_range = ::create_info_push_constant<dal::U_PC_Mirror>();
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), pc_range.data(), pc_range.size(), logi_device);
 

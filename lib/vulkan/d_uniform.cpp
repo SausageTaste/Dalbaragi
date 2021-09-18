@@ -12,7 +12,7 @@ namespace {
     constexpr int MAX_UBUF_SIZE = 16 * 1024;  // 16 KB
 
     static_assert(MAX_PUSH_CONST_SIZE >= sizeof(dal::U_PC_Shadow));
-    static_assert(MAX_PUSH_CONST_SIZE >= sizeof(dal::U_PC_Simple));
+    //static_assert(MAX_PUSH_CONST_SIZE >= sizeof(dal::U_PC_Simple));
 
     static_assert(MAX_UBUF_SIZE >= sizeof(dal::U_Shader_Final));
     static_assert(MAX_UBUF_SIZE >= sizeof(dal::U_CameraTransform));
@@ -187,10 +187,8 @@ namespace dal {
     void DescLayout_Mirror::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
-        // U_CameraTransform
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
-        // U_Shader_Mirror
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // reflection map
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
 
         this->build(bindings.make_create_info(), logi_device);
     }
@@ -213,6 +211,7 @@ namespace dal {
 
         this->m_layout_composition.init(logiDevice);
         this->m_layout_alpha.init(logiDevice);
+        this->m_layout_mirror.init(logiDevice);
     }
 
     void DescSetLayoutManager::destroy(const VkDevice logiDevice) {
@@ -225,6 +224,7 @@ namespace dal {
 
         this->m_layout_composition.destroy(logiDevice);
         this->m_layout_alpha.destroy(logiDevice);
+        this->m_layout_mirror.destroy(logiDevice);
     }
 
 }
@@ -478,6 +478,18 @@ namespace dal {
         desc_writes.add_buffer(ubuf_global_light);
         desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler.get());
         desc_writes.add_img_samplers(slight_shadow_maps.begin(), slight_shadow_maps.end(), sampler.get());
+
+        vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
+    }
+
+    void DescSet::record_mirror(
+        const VkImageView texture_view,
+        const SamplerTexture& sampler,
+        const VkDevice logi_device
+    ) {
+        ::WriteDescBuilder desc_writes{ this->m_handle };
+
+        desc_writes.add_img_sampler(texture_view, sampler.get());
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
