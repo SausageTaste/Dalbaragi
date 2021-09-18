@@ -401,6 +401,15 @@ namespace dal {
             );
         }
 
+        // Set mirror plane
+        {
+            this->m_ref_planes.reflection_planes().back().m_geometry = dal::Plane{
+                render_list.m_mirror_vertices[0],
+                render_list.m_mirror_vertices[1],
+                render_list.m_mirror_vertices[2],
+            };
+        }
+
         // Set up uniform variables
         //-----------------------------------------------------------------------------------------------------
 

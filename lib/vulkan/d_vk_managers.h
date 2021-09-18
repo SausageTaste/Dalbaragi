@@ -104,6 +104,10 @@ namespace dal {
             }
         };
 
+        struct Triangle {
+            std::array<glm::vec3, 3> m_vertices;
+        };
+
         // O : Opaque, A : Alpha
         // S : Static, A : Animated
         using RenderPair_O_S = RenderPairOpaqueVK<ModelRenderer,        ActorVK       >;
@@ -116,6 +120,8 @@ namespace dal {
         std::vector<RenderPair_A_S> m_static_alpha_models;
         std::vector<RenderPair_O_A> m_skinned_models;
         std::vector<RenderPair_A_A> m_skinned_alpha_models;
+
+        std::array<Triangle, 2> m_mirror_mesh;
 
     public:
         void apply(const dal::RenderList& render_list, const glm::vec3& view_pos);
@@ -418,6 +424,10 @@ namespace dal {
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
+
+        auto& reflection_planes() {
+            return this->m_planes;
+        }
 
         auto& reflection_planes() const {
             return this->m_planes;

@@ -1,7 +1,6 @@
 #include "d_animation.h"
 
 #include <fmt/format.h>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include <d_logger.h>
 

@@ -9,6 +9,10 @@ namespace {
         return output;
     }
 
+    glm::vec3 calc_normal_ccw(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2) {
+        return glm::cross(p1 - p0, p2 - p0);
+    }
+
 }
 
 
@@ -18,6 +22,12 @@ namespace dal {
     Plane::Plane(const glm::vec3 point, const glm::vec3 normal)
         : m_normal(glm::normalize(normal))
         , m_d(-glm::dot(normal, point))
+    {
+
+    }
+
+    Plane::Plane(const glm::vec3 p0, const glm::vec3 p1, const glm::vec3 p2)
+        : Plane(p0, ::calc_normal_ccw(p0, p1, p2))
     {
 
     }

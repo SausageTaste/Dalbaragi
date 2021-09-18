@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <memory>
 #include <vector>
 #include <functional>
@@ -108,6 +109,9 @@ namespace dal {
     public:
         std::vector<RenderPair<HRenModel, HActor>> m_static_models;
         std::vector<RenderPair<HRenModelSkinned, HActorSkinned>> m_skinned_models;
+
+        std::array<glm::vec3, 4> m_mirror_vertices;
+
         std::vector<DLight> m_dlights;
         std::vector<PLight> m_plights;
         std::vector<SLight> m_slights;

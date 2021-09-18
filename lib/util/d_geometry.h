@@ -19,6 +19,8 @@ namespace dal {
 
         Plane(const glm::vec3 point, const glm::vec3 normal);
 
+        Plane(const glm::vec3 p0, const glm::vec3 p1, const glm::vec3 p2);
+
         glm::vec4 coeff() const {
             return glm::vec4{ this->normal(), this->m_d };
         }

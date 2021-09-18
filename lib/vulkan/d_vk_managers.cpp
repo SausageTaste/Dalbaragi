@@ -82,6 +82,14 @@ namespace dal {
 
         std::sort(this->m_static_alpha_models.begin(), this->m_static_alpha_models.end());
         std::sort(this->m_skinned_alpha_models.begin(), this->m_skinned_alpha_models.end());
+
+        this->m_mirror_mesh[0].m_vertices[0] = render_list.m_mirror_vertices[0];
+        this->m_mirror_mesh[0].m_vertices[1] = render_list.m_mirror_vertices[1];
+        this->m_mirror_mesh[0].m_vertices[2] = render_list.m_mirror_vertices[2];
+
+        this->m_mirror_mesh[1].m_vertices[0] = render_list.m_mirror_vertices[0];
+        this->m_mirror_mesh[1].m_vertices[1] = render_list.m_mirror_vertices[2];
+        this->m_mirror_mesh[1].m_vertices[2] = render_list.m_mirror_vertices[3];
     }
 
 }
@@ -260,18 +268,6 @@ namespace dal {
             vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
-            U_PC_Mirror pc_data;
-            pc_data.m_model_mat = glm::rotate(glm::mat4{1}, glm::radians(45.f), glm::vec3{0, 1, 0});
-            pc_data.m_proj_view_mat = proj_view_mat;
-            vkCmdPushConstants(
-                cmd_buf,
-                pipeline.layout(),
-                VK_SHADER_STAGE_VERTEX_BIT,
-                0,
-                sizeof(U_PC_Mirror),
-                &pc_data
-            );
-
             vkCmdBindDescriptorSets(
                 cmd_buf,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -281,7 +277,26 @@ namespace dal {
                 0, nullptr
             );
 
-            vkCmdDraw(cmd_buf, 6, 1, 0, 0);
+            U_PC_Mirror pc_data;
+            pc_data.m_model_mat = glm::mat4{1};
+            pc_data.m_proj_view_mat = proj_view_mat;
+
+            for (int i = 0; i < 2; ++i) {
+                pc_data.m_vertices[0] = glm::vec4{render_list.m_mirror_mesh[i].m_vertices[0], 1};
+                pc_data.m_vertices[1] = glm::vec4{render_list.m_mirror_mesh[i].m_vertices[1], 1};
+                pc_data.m_vertices[2] = glm::vec4{render_list.m_mirror_mesh[i].m_vertices[2], 1};
+
+                vkCmdPushConstants(
+                    cmd_buf,
+                    pipeline.layout(),
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    0,
+                    sizeof(U_PC_Mirror),
+                    &pc_data
+                );
+
+                vkCmdDraw(cmd_buf, 3, 1, 0, 0);
+            }
         }
 
         vkCmdEndRenderPass(cmd_buf);

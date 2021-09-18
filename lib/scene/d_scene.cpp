@@ -45,6 +45,20 @@ namespace dal {
         }
 
         {
+            output.m_mirror_vertices[0] = glm::vec3{-1, 1, 0};
+            output.m_mirror_vertices[1] = glm::vec3{-1, -1, 0};
+            output.m_mirror_vertices[2] = glm::vec3{1, -1, 0};
+            output.m_mirror_vertices[3] = glm::vec3{1, 1, 0};
+
+            const auto x = dal::get_cur_sec() * 20;
+            const auto m = glm::translate(glm::mat4{1}, glm::vec3{0, 0, 0}) * glm::rotate(glm::mat4{1}, glm::radians<float>(x), glm::vec3{0, 1, 0});
+
+            for (int i = 0; i < 4; ++i) {
+                output.m_mirror_vertices[i] = m * glm::vec4{output.m_mirror_vertices[i], 1};
+            }
+        }
+
+        {
             const auto sun_direc = glm::normalize(glm::vec3{ 10.0 * cos(t * 0.1), 10.0 * sin(t * 0.1), 2 });
             const auto is_sun = glm::dot(glm::vec3(0, 1, 0), sun_direc) >= -0.1;
 
