@@ -14,6 +14,7 @@
 #include "d_buffer_memory.h"
 
 
+// Uniform buffer structs
 namespace dal {
 
     struct U_PerFrame_InFinal {
@@ -85,6 +86,11 @@ namespace dal {
     };
     static_assert(sizeof(U_PC_Simple) <= 128);
 
+}
+
+
+// Uniform buffer object
+namespace dal {
 
     template <typename _DataStruct>
     class UniformBuffer {
@@ -171,6 +177,11 @@ namespace dal {
 
     };
 
+}
+
+
+// Descriptor set layouts
+namespace dal {
 
     class DescSetLayoutManager {
 
@@ -221,6 +232,10 @@ namespace dal {
 
     };
 
+}
+
+
+namespace dal {
 
     class DescSet {
 
