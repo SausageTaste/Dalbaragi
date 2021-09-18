@@ -9,28 +9,6 @@ namespace {
         return output;
     }
 
-    glm::vec3 calc_normal_ccw(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2) {
-        return glm::cross(p1 - p0, p2 - p0);
-    }
-
-    float calc_plane_d(const glm::vec3& point, const glm::vec3& normal) {
-        return -glm::dot(normal, point);
-    }
-
-    // Parameter `normal` must be normalized
-    glm::mat4 make_reflect_mat(const glm::vec3& point, const glm::vec3& normal) {
-        const auto cos_theta = glm::dot(normal, glm::vec3{0, 1, 0});
-        if (1.0 == cos_theta)
-            return ::make_upside_down_mat();
-
-        const auto rotate_axis = glm::cross(normal, glm::vec3{0, 1, 0});
-        const auto quat = glm::rotate(glm::quat{1, 0, 0, 0}, acos(cos_theta), rotate_axis);
-        const auto rotation = glm::mat4_cast(quat);
-
-        const auto reorient = rotation * glm::translate(glm::mat4{1}, -point);
-        return glm::inverse(reorient) * ::make_upside_down_mat() * reorient;
-    }
-
 }
 
 
@@ -42,13 +20,13 @@ namespace dal {
 
     Plane::Plane(const glm::vec3 point, const glm::vec3 normal)
         : m_normal(glm::normalize(normal))
-        , m_d(::calc_plane_d(point, this->m_normal))
+        , m_d(-glm::dot(point, this->m_normal))
     {
 
     }
 
     Plane::Plane(const glm::vec3 p0, const glm::vec3 p1, const glm::vec3 p2)
-        : Plane(p0, ::calc_normal_ccw(p0, p1, p2))
+        : Plane(p0, glm::cross(p1 - p0, p2 - p0))
     {
 
     }
@@ -71,7 +49,15 @@ namespace dal {
     }
 
     glm::mat4 Plane::make_reflect_mat() const {
-        return ::make_reflect_mat(this->one_point(), this->normal());
+        const auto cos_theta = glm::dot(this->normal(), glm::vec3{0, 1, 0});
+        if (1.0 == cos_theta)
+            return ::make_upside_down_mat();
+
+        const auto rotate_axis = glm::cross(this->normal(), glm::vec3{0, 1, 0});
+        const auto quat = glm::rotate(glm::quat{1, 0, 0, 0}, acos(cos_theta), rotate_axis);
+
+        const auto reorient = glm::mat4_cast(quat) * glm::translate(glm::mat4{1}, -this->one_point());
+        return glm::inverse(reorient) * ::make_upside_down_mat() * reorient;
     }
 
 }
