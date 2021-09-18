@@ -200,6 +200,8 @@ namespace dal {
             this->m_layout = v;
         }
 
+        void build(const VkDescriptorSetLayoutCreateInfo& create_info, const VkDevice logi_device) noexcept;
+
     public:
         void destroy(const VkDevice logi_device) noexcept;
 

@@ -14,15 +14,15 @@ namespace {
         std::vector<VkDescriptorSetLayoutBinding> m_bindings;
 
     public:
-        uint32_t size() const {
+        uint32_t size() const noexcept {
             return this->m_bindings.size();
         }
 
-        auto data() const {
+        auto data() const noexcept {
             return this->m_bindings.data();
         }
 
-        VkDescriptorSetLayoutCreateInfo make_create_info() const {
+        VkDescriptorSetLayoutCreateInfo make_create_info() const noexcept {
             VkDescriptorSetLayoutCreateInfo layout_info{};
             layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
             layout_info.pBindings = this->data();
@@ -57,131 +57,6 @@ namespace {
 
     };
 
-
-    VkDescriptorSetLayout create_layout_final(const VkDevice logi_device) {
-        ::DescLayoutBuilder bindings;
-
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
-
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &output))
-            dalAbort("failed to create descriptor set layout!");
-
-        return output;
-    }
-
-    VkDescriptorSetLayout create_layout_per_global(const VkDevice logiDevice) {
-        ::DescLayoutBuilder bindings;
-
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
-
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-        VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layout_info, nullptr, &output))
-            dalAbort("failed to create descriptor set layout!");
-
-        return output;
-    }
-
-    VkDescriptorSetLayout create_layout_per_material(const VkDevice logi_device) {
-        ::DescLayoutBuilder bindings;
-
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
-
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &output))
-            dalAbort("failed to create descriptor set layout!");
-
-        return output;
-    }
-
-    VkDescriptorSetLayout create_layout_per_actor(const VkDevice logi_device) {
-        ::DescLayoutBuilder bindings;
-
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
-
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &output))
-            dalAbort("failed to create descriptor set layout!");
-
-        return output;
-    }
-
-    VkDescriptorSetLayout create_layout_animation(const VkDevice logi_device) {
-        ::DescLayoutBuilder bindings;
-
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);  // U_AnimTransform
-
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout result = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &result))
-            dalAbort("failed to create descriptor set layout!");
-
-        return result;
-    }
-
-    VkDescriptorSetLayout create_layout_composition(const VkDevice logiDevice) {
-        ::DescLayoutBuilder bindings{};
-
-        bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
-        bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
-        bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
-        bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
-
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_GlobalLight
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_PerFrame_Composition
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);  // Slight shadow maps
-
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout result = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layout_info, nullptr, &result))
-            dalAbort("failed to create descriptor set layout!");
-
-        return result;
-    }
-
-    VkDescriptorSetLayout create_layout_alpha(const VkDevice logiDevice) {
-        ::DescLayoutBuilder bindings;
-
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);  // Dlight shadow maps
-
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-        VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layout_info, nullptr, &output))
-            dalAbort("failed to create descriptor set layout!");
-
-        return output;
-    }
-
 }
 
 
@@ -195,32 +70,82 @@ namespace dal {
         }
     }
 
+    void IDescSetLayout::build(const VkDescriptorSetLayoutCreateInfo& create_info, const VkDevice logi_device) noexcept {
+        this->destroy(logi_device);
+
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &create_info, nullptr, &this->m_layout))
+            dalAbort("failed to create descriptor set layout!");
+    }
+
+
     void DescLayout_Final::init(const VkDevice logi_device) {
-        this->reset(::create_layout_final(logi_device), logi_device);
+        ::DescLayoutBuilder bindings;
+
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
+
+        this->build(bindings.make_create_info(), logi_device);
     }
 
     void DescLayout_PerGlobal::init(const VkDevice logi_device) {
-        this->reset(::create_layout_per_global(logi_device), logi_device);
+        ::DescLayoutBuilder bindings;
+
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
+
+        this->build(bindings.make_create_info(), logi_device);
     }
 
     void DescLayout_PerMaterial::init(const VkDevice logi_device) {
-        this->reset(::create_layout_per_material(logi_device), logi_device);
+        ::DescLayoutBuilder bindings;
+
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        this->build(bindings.make_create_info(), logi_device);
     }
 
     void DescLayout_PerActor::init(const VkDevice logi_device) {
-        this->reset(::create_layout_per_actor(logi_device), logi_device);
+        ::DescLayoutBuilder bindings;
+
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
+
+        this->build(bindings.make_create_info(), logi_device);
     }
 
     void DescLayout_Animation::init(const VkDevice logi_device) {
-        this->reset(::create_layout_animation(logi_device), logi_device);
+        ::DescLayoutBuilder bindings;
+
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);  // U_AnimTransform
+
+        this->build(bindings.make_create_info(), logi_device);
     }
 
     void DescLayout_Composition::init(const VkDevice logi_device) {
-        this->reset(::create_layout_composition(logi_device), logi_device);
+        ::DescLayoutBuilder bindings{};
+
+        bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
+        bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
+        bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
+        bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_GlobalLight
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_PerFrame_Composition
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);  // Slight shadow maps
+
+        this->build(bindings.make_create_info(), logi_device);
     }
 
     void DescLayout_Alpha::init(const VkDevice logi_device) {
-        this->reset(::create_layout_alpha(logi_device), logi_device);
+        ::DescLayoutBuilder bindings;
+
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);  // Dlight shadow maps
+
+        this->build(bindings.make_create_info(), logi_device);
     }
 
 }
