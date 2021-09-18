@@ -22,7 +22,7 @@ namespace dal {
         glm::mat4 m_light_mat;
     };
 
-    struct U_PC_Simple {
+    struct U_PC_OnMirror {
         glm::mat4 m_model_mat;
         glm::mat4 m_proj_view_mat;
 

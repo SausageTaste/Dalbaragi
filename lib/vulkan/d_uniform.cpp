@@ -12,7 +12,7 @@ namespace {
     constexpr int MAX_UBUF_SIZE = 16 * 1024;  // 16 KB
 
     static_assert(MAX_PUSH_CONST_SIZE >= sizeof(dal::U_PC_Shadow));
-    //static_assert(MAX_PUSH_CONST_SIZE >= sizeof(dal::U_PC_Simple));
+    //static_assert(MAX_PUSH_CONST_SIZE >= sizeof(dal::U_PC_OnMirror));
 
     static_assert(MAX_UBUF_SIZE >= sizeof(dal::U_Shader_Final));
     static_assert(MAX_UBUF_SIZE >= sizeof(dal::U_CameraTransform));

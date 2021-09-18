@@ -608,7 +608,7 @@ namespace dal {
         const dal::RenderListVK& render_list,
         const dal::FrameInFlightIndex& flight_frame_index,
 
-        dal::U_PC_Simple push_constant,
+        dal::U_PC_OnMirror push_constant,
         const VkExtent2D& extent,
         const dal::ShaderPipeline& pipeline_simple,
         const dal::Fbuf_Simple& fbuf,
@@ -657,7 +657,7 @@ namespace dal {
 
                     for (auto& actor : render_tuple.m_actors) {
                         push_constant.m_model_mat = actor->m_transform.make_mat4();
-                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(U_PC_Simple), &push_constant);
+                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(U_PC_OnMirror), &push_constant);
                         vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
                     }
                 }

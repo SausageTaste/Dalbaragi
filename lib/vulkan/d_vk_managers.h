@@ -194,7 +194,7 @@ namespace dal {
         const dal::RenderListVK& render_list,
         const dal::FrameInFlightIndex& flight_frame_index,
 
-        dal::U_PC_Simple push_constant,
+        dal::U_PC_OnMirror push_constant,
         const VkExtent2D& extent,
         const dal::ShaderPipeline& pipeline_simple,
         const dal::Fbuf_Simple& fbuf,

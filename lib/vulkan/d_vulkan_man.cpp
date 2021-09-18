@@ -478,7 +478,7 @@ namespace dal {
             for (auto& plane : this->m_ref_planes.reflection_planes()) {
                 const auto& cmd_buf = plane.m_cmd_buf.at(this->m_flight_frame_index.get());
 
-                U_PC_Simple pc_data;
+                U_PC_OnMirror pc_data;
                 pc_data.m_proj_view_mat = cam_proj_view_mat * plane.m_geometry.make_reflect_mat();
                 pc_data.m_clip_plane = plane.m_geometry.coeff();
 
@@ -488,7 +488,7 @@ namespace dal {
                     this->m_flight_frame_index,
                     pc_data,
                     plane.m_attachments.extent(),
-                    this->m_pipelines.simple(),
+                    this->m_pipelines.on_mirror(),
                     plane.m_fbuf,
                     this->m_renderpasses.rp_simple()
                 );

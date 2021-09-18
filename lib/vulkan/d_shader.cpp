@@ -1392,8 +1392,8 @@ namespace {
         const dal::RenderPass_Simple& renderpass,
         const VkDevice logi_device
     ) {
-        const auto vert_src = shader_mgr.load("_asset/glsl/simple.vert", ::ShaderKind::vert);
-        const auto frag_src = shader_mgr.load("_asset/glsl/simple.frag", ::ShaderKind::frag);
+        const auto vert_src = shader_mgr.load("_asset/glsl/on_mirror.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/on_mirror.frag", ::ShaderKind::frag);
 
         // Shaders
         const ShaderModule vert_shader_module(logi_device, vert_src);
@@ -1431,7 +1431,7 @@ namespace {
 
         // Pipeline layout
         const std::vector<VkDescriptorSetLayout> desc_layouts{};
-        const auto pc_range = ::create_info_push_constant<dal::U_PC_Simple>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+        const auto pc_range = ::create_info_push_constant<dal::U_PC_OnMirror>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), pc_range.data(), pc_range.size(), logi_device);
 
         // Pipeline, finally
@@ -1658,7 +1658,7 @@ namespace dal {
             logi_device
         );
 
-        this->m_simple = ::make_pipeline_simple(
+        this->m_on_mirror = ::make_pipeline_simple(
             shader_mgr,
             render_passes.rp_simple(),
             logi_device
@@ -1674,7 +1674,7 @@ namespace dal {
         this->m_alpha_animated.destroy(logi_device);
         this->m_shadow.destroy(logi_device);
         this->m_shadow_animated.destroy(logi_device);
-        this->m_simple.destroy(logi_device);
+        this->m_on_mirror.destroy(logi_device);
         this->m_mirror.destroy(logi_device);
     }
 
