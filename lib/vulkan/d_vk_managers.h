@@ -124,6 +124,7 @@ namespace dal {
 
         const dal::RenderListVK& render_list,
         const dal::FrameInFlightIndex& flight_frame_index,
+        const glm::mat4& proj_view_mat,
 
         const VkExtent2D& swapchain_extent,
         const VkDescriptorSet desc_set_per_frame,
@@ -131,6 +132,7 @@ namespace dal {
         const dal::ShaderPipeline& pipeline_gbuf,
         const dal::ShaderPipeline& pipeline_gbuf_animated,
         const dal::ShaderPipeline& pipeline_composition,
+        const dal::ShaderPipeline& pipeline_mirror,
         const dal::Fbuf_Gbuf& fbuf,
         const dal::RenderPass_Gbuf& render_pass
     );

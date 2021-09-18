@@ -594,12 +594,14 @@ namespace dal {
                 this->m_cmd_man.cmd_simple_at(this->m_flight_frame_index.get()),
                 render_list_vk,
                 this->m_flight_frame_index,
+                cam_proj_view_mat,
                 this->m_attach_man.color().extent(),
                 this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
                 this->m_pipelines.gbuf(),
                 this->m_pipelines.gbuf_animated(),
                 this->m_pipelines.composition(),
+                this->m_pipelines.mirror(),
                 this->m_fbuf_man.fbuf_gbuf_at(swapchain_index),
                 this->m_renderpasses.rp_gbuf()
             );

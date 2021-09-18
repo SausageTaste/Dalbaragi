@@ -27,6 +27,11 @@ namespace dal {
         glm::mat4 m_proj_view_mat;
     };
 
+    struct U_PC_Mirror {
+        glm::mat4 m_proj_view_mat;
+        glm::mat4 m_model_mat;
+    };
+
 
     struct U_Shader_Final {
         glm::mat4 m_rotation;
@@ -239,6 +244,10 @@ namespace dal {
         void init(const VkDevice logi_device);
     };
 
+    struct DescLayout_Mirror : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
 
     class DescSetLayoutManager {
 
@@ -252,6 +261,7 @@ namespace dal {
 
         DescLayout_Composition m_layout_composition;
         DescLayout_Alpha m_layout_alpha;
+        DescLayout_Mirror m_layout_mirror;
 
     public:
         void init(const VkDevice logiDevice);
@@ -284,6 +294,10 @@ namespace dal {
 
         auto& layout_alpha() const {
             return this->m_layout_alpha;
+        }
+
+        auto& layout_mirror() const {
+            return this->m_layout_mirror;
         }
 
     };

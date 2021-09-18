@@ -138,6 +138,22 @@ namespace {
         subpasses.back().inputAttachmentCount    = input_references_in_2.size();
         subpasses.back().pInputAttachments       = input_references_in_2.data();
 
+        // Third subpass
+        // ---------------------------------------------------------------------------------
+
+        std::vector<VkAttachmentReference> color_attachment_ref_in_3;
+        color_attachment_ref_in_3.emplace_back() = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+        std::vector<VkAttachmentReference> input_references_in_3;
+
+        subpasses.emplace_back();
+        subpasses.back().pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpasses.back().pDepthStencilAttachment = &depth_attachment_ref;
+        subpasses.back().colorAttachmentCount    = color_attachment_ref_in_3.size();
+        subpasses.back().pColorAttachments       = color_attachment_ref_in_3.data();
+        subpasses.back().inputAttachmentCount    = input_references_in_3.size();
+        subpasses.back().pInputAttachments       = input_references_in_3.data();
+
         // Dependencies
         // ---------------------------------------------------------------------------------
 
@@ -159,6 +175,15 @@ namespace {
         dependencies.back().dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         dependencies.back().srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         dependencies.back().dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies.back().dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        dependencies.emplace_back();
+        dependencies.back().srcSubpass = 1;
+        dependencies.back().dstSubpass = 2;
+        dependencies.back().srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies.back().dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies.back().srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies.back().dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         dependencies.back().dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         dependencies.emplace_back();

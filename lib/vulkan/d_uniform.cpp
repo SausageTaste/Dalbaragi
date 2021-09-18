@@ -184,6 +184,17 @@ namespace dal {
         this->build(bindings.make_create_info(), logi_device);
     }
 
+    void DescLayout_Mirror::init(const VkDevice logi_device) {
+        ::DescLayoutBuilder bindings;
+
+        // U_CameraTransform
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
+        // U_Shader_Mirror
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        this->build(bindings.make_create_info(), logi_device);
+    }
+
 }
 
 
