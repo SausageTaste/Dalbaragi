@@ -17,22 +17,18 @@ namespace {
         return -glm::dot(normal, point);
     }
 
+    // Parameter `normal` must be normalized
     glm::mat4 make_reflect_mat(const glm::vec3& point, const glm::vec3& normal) {
-        const auto upside_down = ::make_upside_down_mat();
-
         const auto cos_theta = glm::dot(normal, glm::vec3{0, 1, 0});
-        if (1.0 == cos_theta) {
-            return upside_down;
-        }
-
-        const auto translation = glm::translate(glm::mat4{1}, -point);
+        if (1.0 == cos_theta)
+            return ::make_upside_down_mat();
 
         const auto rotate_axis = glm::cross(normal, glm::vec3{0, 1, 0});
-        const auto theta = acos(cos_theta);
-        const auto q = glm::rotate(glm::quat{1, 0, 0, 0}, theta, rotate_axis);
-        const auto rotation = glm::mat4_cast(q);
+        const auto quat = glm::rotate(glm::quat{1, 0, 0, 0}, acos(cos_theta), rotate_axis);
+        const auto rotation = glm::mat4_cast(quat);
 
-        return glm::inverse(translation) * glm::inverse(rotation) * upside_down * rotation * translation;
+        const auto reorient = rotation * glm::translate(glm::mat4{1}, -point);
+        return glm::inverse(reorient) * ::make_upside_down_mat() * reorient;
     }
 
 }
