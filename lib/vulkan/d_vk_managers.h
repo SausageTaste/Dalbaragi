@@ -373,6 +373,7 @@ namespace dal {
         Fbuf_Simple m_fbuf;
         std::vector<VkCommandBuffer> m_cmd_buf;
         DescSet m_desc;
+        dal::Plane m_geometry;
 
     public:
         void init(
@@ -403,15 +404,20 @@ namespace dal {
 
     public:
         void init(
-            const uint32_t width,
-            const uint32_t height,
-            const dal::DescLayout_Mirror& desc_layout,
-            const dal::RenderPass_Simple& renderpass,
             const VkPhysicalDevice phys_device,
             const LogicalDevice& logi_device
         );
 
         void destroy(const VkDevice logi_device);
+
+        ReflectionPlane& new_plane(
+            const uint32_t width,
+            const uint32_t height,
+            const dal::DescLayout_Mirror& desc_layout,
+            const dal::RenderPass_Simple& renderpass,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
 
         auto& reflection_planes() const {
             return this->m_planes;

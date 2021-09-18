@@ -379,7 +379,7 @@ namespace {
         const VkDevice logi_device
     ) {
         AttachmentDescBuilder attachments;
-        attachments.add(format_color, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        attachments.add(format_color, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         attachments.add(format_depth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
         VkAttachmentReference depth_attachment_ref{};

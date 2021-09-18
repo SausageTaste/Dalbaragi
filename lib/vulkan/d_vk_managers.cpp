@@ -263,7 +263,14 @@ namespace dal {
             U_PC_Mirror pc_data;
             pc_data.m_model_mat = glm::rotate(glm::mat4{1}, glm::radians(45.f), glm::vec3{0, 1, 0});
             pc_data.m_proj_view_mat = proj_view_mat;
-            vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Mirror), &pc_data);
+            vkCmdPushConstants(
+                cmd_buf,
+                pipeline.layout(),
+                VK_SHADER_STAGE_VERTEX_BIT,
+                0,
+                sizeof(U_PC_Mirror),
+                &pc_data
+            );
 
             vkCmdBindDescriptorSets(
                 cmd_buf,
@@ -635,7 +642,7 @@ namespace dal {
 
                     for (auto& actor : render_tuple.m_actors) {
                         push_constant.m_model_mat = actor->m_transform.make_mat4();
-                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(U_PC_Simple), &push_constant);
+                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(U_PC_Simple), &push_constant);
                         vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
                     }
                 }
@@ -1036,10 +1043,6 @@ namespace dal {
 namespace dal {
 
     void PlanarReflectionManager::init(
-        const uint32_t width,
-        const uint32_t height,
-        const dal::DescLayout_Mirror& desc_layout,
-        const dal::RenderPass_Simple& renderpass,
         const VkPhysicalDevice phys_device,
         const LogicalDevice& logi_device
     ) {
@@ -1048,21 +1051,6 @@ namespace dal {
         this->m_sampler.init(false, phys_device, logi_device.get());
         this->m_cmd_pool.init(logi_device.indices().graphics_family(), logi_device.get());
         this->m_desc_pool.init(10, 10, 10, 10, logi_device.get());
-
-        for (int i = 0; i < 1; ++i) {
-            this->m_planes.emplace_back().init(
-                width,
-                height,
-                dal::MAX_FRAMES_IN_FLIGHT,
-                this->m_cmd_pool,
-                this->m_desc_pool,
-                this->m_sampler,
-                desc_layout,
-                renderpass,
-                phys_device,
-                logi_device.get()
-            );
-        }
     }
 
     void PlanarReflectionManager::destroy(const VkDevice logi_device) {
@@ -1070,8 +1058,35 @@ namespace dal {
             x.destroy(this->m_cmd_pool, this->m_desc_pool, logi_device);
         this->m_planes.clear();
 
+        this->m_sampler.destroy(logi_device);
         this->m_cmd_pool.destroy(logi_device);
         this->m_desc_pool.destroy(logi_device);
+    }
+
+    ReflectionPlane& PlanarReflectionManager::new_plane(
+        const uint32_t width,
+        const uint32_t height,
+        const dal::DescLayout_Mirror& desc_layout,
+        const dal::RenderPass_Simple& renderpass,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        auto& plane = this->m_planes.emplace_back();
+
+        plane.init(
+            width,
+            height,
+            dal::MAX_FRAMES_IN_FLIGHT,
+            this->m_cmd_pool,
+            this->m_desc_pool,
+            this->m_sampler,
+            desc_layout,
+            renderpass,
+            phys_device,
+            logi_device
+        );
+
+        return plane;
     }
 
 }

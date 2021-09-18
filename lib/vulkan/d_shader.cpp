@@ -731,10 +731,10 @@ namespace {
     }
 
     template <typename _Struct>
-    auto create_info_push_constant() {
+    auto create_info_push_constant(const VkShaderStageFlags stage_flag = VK_SHADER_STAGE_VERTEX_BIT) {
         std::array<VkPushConstantRange, 1> result;
 
-        result[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        result[0].stageFlags = stage_flag;
         result[0].offset = 0;
         result[0].size = sizeof(_Struct);
 
@@ -1431,7 +1431,7 @@ namespace {
 
         // Pipeline layout
         const std::vector<VkDescriptorSetLayout> desc_layouts{};
-        const auto pc_range = ::create_info_push_constant<dal::U_PC_Simple>();
+        const auto pc_range = ::create_info_push_constant<dal::U_PC_Simple>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), pc_range.data(), pc_range.size(), logi_device);
 
         // Pipeline, finally
@@ -1477,9 +1477,10 @@ namespace {
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input state
-        const auto binding_desc = dal::make_vert_binding_desc_static();
-        const auto attrib_desc = dal::make_vert_attrib_desc_static();
-        auto vertex_input_state = ::create_vertex_input_state(&binding_desc, 1, attrib_desc.data(), attrib_desc.size());
+        //const auto binding_desc = dal::make_vert_binding_desc_static();
+        //const auto attrib_desc = dal::make_vert_attrib_desc_static();
+        //auto vertex_input_state = ::create_vertex_input_state(&binding_desc, 1, attrib_desc.data(), attrib_desc.size());
+        auto vertex_input_state = ::create_vertex_input_state(nullptr, 0, nullptr, 0);
 
         // Input assembly
         const VkPipelineInputAssemblyStateCreateInfo input_assembly = ::create_info_input_assembly();
@@ -1525,7 +1526,7 @@ namespace {
         pipeline_info.pDynamicState = &dynamic_state_info;
         pipeline_info.layout = pipeline_layout;
         pipeline_info.renderPass = renderpass.get();
-        pipeline_info.subpass = 0;
+        pipeline_info.subpass = subpass_index;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
 
