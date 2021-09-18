@@ -12,7 +12,7 @@ namespace dal {
 
     private:
         glm::vec3 m_normal{ 0, 1, 0 };
-        glm::vec3 m_point{ 0 };
+        float m_d = 0;
 
     public:
         Plane() = default;
@@ -21,13 +21,13 @@ namespace dal {
 
         Plane(const glm::vec3 p0, const glm::vec3 p1, const glm::vec3 p2);
 
-        glm::vec4 coeff() const;
+        const glm::vec4& coeff() const;
 
-        glm::vec3 normal() const;
+        const glm::vec3& normal() const;
 
         glm::vec3 one_point() const;
 
-        float calc_signed_dist_to(const glm::vec3& p) const;
+        float calc_signed_dist(const glm::vec3& p) const;
 
         glm::mat4 make_reflect_mat() const;
 
