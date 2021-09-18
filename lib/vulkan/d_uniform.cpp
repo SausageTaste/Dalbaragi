@@ -557,14 +557,14 @@ namespace dal {
         }
     }
 
-    DescSet DescPool::allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+    DescSet DescPool::allocate(const dal::IDescSetLayout& layout, const VkDevice logi_device) {
         return std::move(this->allocate(1, layout, logi_device).at(0));
     }
 
-    std::vector<DescSet> DescPool::allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+    std::vector<DescSet> DescPool::allocate(const uint32_t count, const dal::IDescSetLayout& layout, const VkDevice logi_device) {
         std::vector<DescSet> result;
 
-        const std::vector<VkDescriptorSetLayout> layouts(count, layout);
+        const std::vector<VkDescriptorSetLayout> layouts(count, layout.get());
 
         VkDescriptorSetAllocateInfo alloc_info{};
         alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -579,7 +579,7 @@ namespace dal {
 
         result.reserve(count);
         for (auto& x : desc_sets) {
-            result.emplace_back().set(std::move(x), layout);
+            result.emplace_back().set(std::move(x), layout.get());
         }
 
         return result;
@@ -616,9 +616,9 @@ namespace dal {
         this->m_pool.reset(logi_device);
     }
 
-    DescSet DescAllocator::allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+    DescSet DescAllocator::allocate(const dal::IDescSetLayout& layout, const VkDevice logi_device) {
         ++this->m_allocated_outside;
-        auto& queue = this->get_queue(layout);
+        auto& queue = this->get_queue(layout.get());
 
         if (queue.empty()) {
             return this->m_pool.allocate(layout, logi_device);
@@ -630,7 +630,7 @@ namespace dal {
         }
     }
 
-    std::vector<DescSet> DescAllocator::allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+    std::vector<DescSet> DescAllocator::allocate(const uint32_t count, const dal::IDescSetLayout& layout, const VkDevice logi_device) {
         std::vector<DescSet> output;
 
         for (uint32_t i = 0; i < count; ++i)
@@ -684,25 +684,25 @@ namespace dal {
         this->m_descset_alpha.clear();
     }
 
-    DescSet& DescriptorManager::add_descset_per_global(const VkDescriptorSetLayout desc_layout_per_global, const VkDevice logi_device) {
+    DescSet& DescriptorManager::add_descset_per_global(const dal::DescLayout_PerGlobal& desc_layout_per_global, const VkDevice logi_device) {
         auto& new_desc = this->m_descset_per_global.emplace_back();
         new_desc = this->m_pool.allocate(desc_layout_per_global, logi_device);
         return new_desc;
     }
 
-    DescSet& DescriptorManager::add_descset_final(const VkDescriptorSetLayout desc_layout_final, const VkDevice logi_device) {
+    DescSet& DescriptorManager::add_descset_final(const dal::DescLayout_Final& desc_layout_final, const VkDevice logi_device) {
         auto& new_desc = this->m_descset_final.emplace_back();
         new_desc = this->m_pool.allocate(desc_layout_final, logi_device);
         return new_desc;
     }
 
-    DescSet& DescriptorManager::add_descset_composition(const VkDescriptorSetLayout desc_layout_composition, const VkDevice logi_device) {
+    DescSet& DescriptorManager::add_descset_composition(const dal::DescLayout_Composition& desc_layout_composition, const VkDevice logi_device) {
         auto& new_desc = this->m_descset_composition.emplace_back();
         new_desc = this->m_pool.allocate(desc_layout_composition, logi_device);
         return new_desc;
     }
 
-    DescSet& DescriptorManager::add_descset_alpha(const VkDescriptorSetLayout desc_layout_alpha, const VkDevice logi_device) {
+    DescSet& DescriptorManager::add_descset_alpha(const dal::DescLayout_Alpha& desc_layout_alpha, const VkDevice logi_device) {
         auto& new_desc = this->m_descset_alpha.emplace_back();
         new_desc = this->m_pool.allocate(desc_layout_alpha, logi_device);
         return new_desc;

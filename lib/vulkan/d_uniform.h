@@ -188,6 +188,12 @@ namespace dal {
     private:
         VkDescriptorSetLayout m_layout = VK_NULL_HANDLE;
 
+    public:
+        IDescSetLayout() = default;
+
+        IDescSetLayout(const IDescSetLayout&) = delete;
+        IDescSetLayout& operator=(const IDescSetLayout&) = delete;
+
     protected:
         void reset(const VkDescriptorSetLayout v, const VkDevice logi_device) noexcept {
             this->destroy(logi_device);
@@ -256,32 +262,32 @@ namespace dal {
 
         void destroy(const VkDevice logiDevice);
 
-        auto layout_final() const {
-            return this->m_layout_final.get();
+        auto& layout_final() const {
+            return this->m_layout_final;
         }
 
-        auto layout_per_global() const {
-            return this->m_layout_per_global.get();
+        auto& layout_per_global() const {
+            return this->m_layout_per_global;
         }
 
-        auto layout_per_material() const {
-            return this->m_layout_per_material.get();
+        auto& layout_per_material() const {
+            return this->m_layout_per_material;
         }
 
-        auto layout_per_actor() const {
-            return this->m_layout_per_actor.get();
+        auto& layout_per_actor() const {
+            return this->m_layout_per_actor;
         }
 
-        auto layout_animation() const {
-            return this->m_layout_animation.get();
+        auto& layout_animation() const {
+            return this->m_layout_animation;
         }
 
-        auto layout_composition() const {
-            return this->m_layout_composition.get();
+        auto& layout_composition() const {
+            return this->m_layout_composition;
         }
 
-        auto layout_alpha() const {
-            return this->m_layout_alpha.get();
+        auto& layout_alpha() const {
+            return this->m_layout_alpha;
         }
 
     };
@@ -393,9 +399,9 @@ namespace dal {
 
         void reset(const VkDevice logi_device);
 
-        DescSet allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device);
+        DescSet allocate(const dal::IDescSetLayout& layout, const VkDevice logi_device);
 
-        std::vector<DescSet> allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device);
+        std::vector<DescSet> allocate(const uint32_t count, const dal::IDescSetLayout& layout, const VkDevice logi_device);
 
         auto get() {
             return this->m_handle;
@@ -427,9 +433,9 @@ namespace dal {
 
         void reset(const VkDevice logi_device);
 
-        DescSet allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device);
+        DescSet allocate(const dal::IDescSetLayout& layout, const VkDevice logi_device);
 
-        std::vector<DescSet> allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device);
+        std::vector<DescSet> allocate(const uint32_t count, const dal::IDescSetLayout& layout, const VkDevice logi_device);
 
         void free(DescSet&& desc_set);
 
@@ -457,13 +463,13 @@ namespace dal {
             return this->m_pool;
         }
 
-        DescSet& add_descset_per_global(const VkDescriptorSetLayout desc_layout_per_global, const VkDevice logi_device);
+        DescSet& add_descset_per_global(const dal::DescLayout_PerGlobal& desc_layout_per_global, const VkDevice logi_device);
 
-        DescSet& add_descset_final(const VkDescriptorSetLayout desc_layout_final, const VkDevice logi_device);
+        DescSet& add_descset_final(const dal::DescLayout_Final& desc_layout_final, const VkDevice logi_device);
 
-        DescSet& add_descset_composition(const VkDescriptorSetLayout desc_layout_composition, const VkDevice logi_device);
+        DescSet& add_descset_composition(const dal::DescLayout_Composition& desc_layout_composition, const VkDevice logi_device);
 
-        DescSet& add_descset_alpha(const VkDescriptorSetLayout desc_layout_alpha, const VkDevice logi_device);
+        DescSet& add_descset_alpha(const dal::DescLayout_Alpha& desc_layout_alpha, const VkDevice logi_device);
 
         auto& desc_set_per_global_at(const size_t index) const {
             return this->m_descset_per_global.at(index).get();

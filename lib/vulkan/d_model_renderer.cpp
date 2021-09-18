@@ -14,7 +14,7 @@ namespace dal {
 
     void ActorVK::init(
         DescAllocator& desc_allocator,
-        const VkDescriptorSetLayout layout_per_actor,
+        const dal::DescLayout_PerActor& layout_per_actor,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
@@ -64,8 +64,8 @@ namespace dal {
 
     void ActorSkinnedVK::init(
         DescAllocator& desc_allocator,
-        const VkDescriptorSetLayout layout_per_actor,
-        const VkDescriptorSetLayout layout_anim,
+        const dal::DescLayout_PerActor& layout_per_actor,
+        const dal::DescLayout_Animation& layout_anim,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
@@ -210,7 +210,7 @@ namespace dal {
     bool RenderUnit::prepare(
         DescPool& desc_pool,
         const SamplerTexture& sampler,
-        const VkDescriptorSetLayout layout_per_material,
+        const dal::DescLayout_PerMaterial& layout_per_material,
         const VkDevice logi_device
     ) {
         if (this->is_ready())
@@ -258,8 +258,8 @@ namespace dal {
         dal::CommandPool& cmd_pool,
         ITextureManager& tex_man,
         const char* const fallback_file_namespace,
-        const VkDescriptorSetLayout layout_per_actor,
-        const VkDescriptorSetLayout layout_per_material,
+        const dal::DescLayout_PerActor& layout_per_actor,
+        const dal::DescLayout_PerMaterial& layout_per_material,
         const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
@@ -299,7 +299,7 @@ namespace dal {
         this->m_desc_pool.destroy(this->m_logi_device);
     }
 
-    bool ModelRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
+    bool ModelRenderer::fetch_one_resource(const dal::DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
         for (auto& unit : this->m_units) {
             if (unit.is_ready())
                 continue;
@@ -353,8 +353,8 @@ namespace dal {
         dal::CommandPool& cmd_pool,
         ITextureManager& tex_man,
         const char* const fallback_file_namespace,
-        const VkDescriptorSetLayout layout_per_actor,
-        const VkDescriptorSetLayout layout_per_material,
+        const dal::DescLayout_PerActor& layout_per_actor,
+        const dal::DescLayout_PerMaterial& layout_per_material,
         const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
@@ -397,7 +397,7 @@ namespace dal {
         this->m_desc_pool.destroy(this->m_logi_device);
     }
 
-    bool ModelSkinnedRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
+    bool ModelSkinnedRenderer::fetch_one_resource(const dal::DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
         for (auto& unit : this->m_units) {
             if (unit.is_ready())
                 continue;

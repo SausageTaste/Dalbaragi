@@ -25,7 +25,7 @@ namespace dal {
 
         void init(
             DescAllocator& desc_allocator,
-            const VkDescriptorSetLayout layout_per_actor,
+            const DescLayout_PerActor& layout_per_actor,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
@@ -65,8 +65,8 @@ namespace dal {
 
         void init(
             DescAllocator& desc_allocator,
-            const VkDescriptorSetLayout layout_per_actor,
-            const VkDescriptorSetLayout layout_anim,
+            const DescLayout_PerActor& layout_per_actor,
+            const DescLayout_Animation& layout_anim,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
@@ -136,7 +136,7 @@ namespace dal {
         bool prepare(
             DescPool& desc_pool,
             const SamplerTexture& sampler,
-            const VkDescriptorSetLayout layout_per_material,
+            const DescLayout_PerMaterial& layout_per_material,
             const VkDevice logi_device
         );
 
@@ -169,8 +169,8 @@ namespace dal {
             dal::CommandPool& cmd_pool,
             ITextureManager& tex_man,
             const char* const fallback_file_namespace,
-            const VkDescriptorSetLayout layout_per_actor,
-            const VkDescriptorSetLayout layout_per_material,
+            const DescLayout_PerActor& layout_per_actor,
+            const DescLayout_PerMaterial& layout_per_material,
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
@@ -178,7 +178,7 @@ namespace dal {
 
         void destroy() override;
 
-        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
+        bool fetch_one_resource(const DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
 
         bool is_ready() const override;
 
@@ -219,8 +219,8 @@ namespace dal {
             dal::CommandPool& cmd_pool,
             ITextureManager& tex_man,
             const char* const fallback_file_namespace,
-            const VkDescriptorSetLayout layout_per_actor,
-            const VkDescriptorSetLayout layout_per_material,
+            const DescLayout_PerActor& layout_per_actor,
+            const DescLayout_PerMaterial& layout_per_material,
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
@@ -228,7 +228,7 @@ namespace dal {
 
         void destroy() override;
 
-        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
+        bool fetch_one_resource(const DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
 
         bool is_ready() const override;
 

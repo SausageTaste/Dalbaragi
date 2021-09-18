@@ -935,13 +935,7 @@ namespace dal {
             this->m_phys_info.does_support_depth_clamp(),
             this->m_swapchain.identity_extent(),
             this->m_attach_man.color().extent(),
-            this->m_desc_layout_man.layout_final(),
-            this->m_desc_layout_man.layout_per_global(),
-            this->m_desc_layout_man.layout_per_material(),
-            this->m_desc_layout_man.layout_per_actor(),
-            this->m_desc_layout_man.layout_animation(),
-            this->m_desc_layout_man.layout_composition(),
-            this->m_desc_layout_man.layout_alpha(),
+            this->m_desc_layout_man,
             this->m_renderpasses,
             this->m_logi_device.get()
         );
