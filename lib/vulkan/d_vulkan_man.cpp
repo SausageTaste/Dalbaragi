@@ -405,20 +405,15 @@ namespace dal {
         //-----------------------------------------------------------------------------------------------------
 
         {
-            U_PerFrame ubuf_data_per_frame{};
-            ubuf_data_per_frame.m_view = cam_view_mat;
-            ubuf_data_per_frame.m_proj = cam_proj_mat;
-            ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
-            this->m_ubuf_man.m_ub_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
-
-            U_PerFrame_Composition ubuf_data_composition{};
-            ubuf_data_composition.m_view_mat = cam_view_mat;
+            U_CameraTransform ubuf_data_composition{};
+            ubuf_data_composition.m_view = cam_view_mat;
+            ubuf_data_composition.m_proj = cam_proj_mat;
             ubuf_data_composition.m_view_inv = glm::inverse(cam_view_mat);
             ubuf_data_composition.m_proj_inv = glm::inverse(cam_proj_mat);
-            ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
+            ubuf_data_composition.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
             ubuf_data_composition.m_near = ::PROJ_NEAR;
             ubuf_data_composition.m_far = ::PROJ_FAR;
-            this->m_ubuf_man.m_ub_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
+            this->m_ubuf_man.m_u_camera_transform.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
         }
 
         {
@@ -961,7 +956,7 @@ namespace dal {
             );
 
             desc_per_global.record_per_global(
-                this->m_ubuf_man.m_ub_simple.at(i),
+                this->m_ubuf_man.m_u_camera_transform.at(i),
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_logi_device.get()
             );
@@ -981,7 +976,7 @@ namespace dal {
             desc_composition.record_composition(
                 color_attachments,
                 this->m_ubuf_man.m_ub_glights.at(i),
-                this->m_ubuf_man.m_ub_per_frame_composition.at(i),
+                this->m_ubuf_man.m_u_camera_transform.at(i),
                 this->m_shadow_maps.dlight_views(),
                 this->m_shadow_maps.slight_views(),
                 this->m_sampler_man.sampler_depth(),
@@ -1006,7 +1001,7 @@ namespace dal {
             );
 
             desc_alpha.record_alpha(
-                this->m_ubuf_man.m_ub_simple.at(i),
+                this->m_ubuf_man.m_u_camera_transform.at(i),
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_shadow_maps.dlight_views(),
                 this->m_shadow_maps.slight_views(),

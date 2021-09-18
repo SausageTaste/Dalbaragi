@@ -10,11 +10,16 @@ layout(location = 2) in vec3 v_world_pos;
 layout(location = 0) out vec4 out_color;
 
 
-layout(set = 0, binding = 0) uniform U_PerFrame {
+layout(set = 0, binding = 0) uniform U_CameraTransform {
     mat4 m_view;
     mat4 m_proj;
+    mat4 m_view_inv;
+    mat4 m_proj_inv;
+
     vec4 m_view_pos;
-} u_per_frame;
+
+    float m_near, m_far;
+} u_cam_transform;
 
 layout(set = 0, binding = 1) uniform U_GlobalLight {
     mat4 m_dlight_mat[MAX_D_LIGHT_COUNT];
@@ -69,7 +74,7 @@ void main() {
     const vec3 albedo = color_texture.xyz;
     const float alpha = color_texture.w;
 
-    const vec3 view_direc = normalize(u_per_frame.m_view_pos.xyz - v_world_pos);
+    const vec3 view_direc = normalize(u_cam_transform.m_view_pos.xyz - v_world_pos);
     const vec3 F0 = mix(vec3(0.04), albedo, u_per_material.m_metallic);
 
     vec3 light = albedo * u_global_light.m_ambient_light.xyz;

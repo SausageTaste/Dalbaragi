@@ -4,9 +4,9 @@
 layout(location = 0) out vec2 v_uv_coord;
 
 
-layout(set = 0, binding = 1) uniform U_PerFrame {
+layout(set = 0, binding = 1) uniform U_Shader_Final {
     mat4 m_rotation;
-} u_per_frame;
+} u_shader_final;
 
 
 const vec2 POSITIONS[3] = vec2[](
@@ -23,6 +23,6 @@ const vec2 UV_COORDS[3] = vec2[](
 
 
 void main() {
-    gl_Position = u_per_frame.m_rotation * vec4(POSITIONS[gl_VertexIndex], 0, 1);
+    gl_Position = u_shader_final.m_rotation * vec4(POSITIONS[gl_VertexIndex], 0, 1);
     v_uv_coord = UV_COORDS[gl_VertexIndex];
 }

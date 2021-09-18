@@ -92,7 +92,7 @@ namespace dal {
     void DescLayout_PerGlobal::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
-        // U_PerFrame
+        // U_CameraTransform
         bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
         // U_GlobalLight
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -139,7 +139,7 @@ namespace dal {
 
         // Ubuf U_GlobalLight
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
-        // Ubuf U_PerFrame_Composition
+        // Ubuf U_CameraTransform
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
         // directional light shadow maps
         bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);
@@ -152,7 +152,7 @@ namespace dal {
     void DescLayout_Alpha::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
-        // U_PerFrame
+        // U_CameraTransform
         bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
         // U_GlobalLight
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -361,7 +361,7 @@ namespace dal {
     }
 
     void DescSet::record_per_global(
-        const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+        const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const VkDevice logi_device
     ) {
@@ -412,7 +412,7 @@ namespace dal {
     void DescSet::record_composition(
         const std::vector<VkImageView>& attachment_views,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
-        const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
+        const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
         const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
         const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
         const SamplerDepth& sampler,
@@ -434,7 +434,7 @@ namespace dal {
     }
 
     void DescSet::record_alpha(
-        const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+        const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
         const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,

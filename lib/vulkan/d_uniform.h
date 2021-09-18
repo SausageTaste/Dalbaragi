@@ -21,18 +21,15 @@ namespace dal {
         glm::mat4 m_rotation;
     };
 
-    struct U_PerFrame_Composition {
-        glm::mat4 m_view_mat{1};
-        glm::mat4 m_view_inv{1};
-        glm::mat4 m_proj_inv{1};
-        glm::vec4 m_view_pos{};
+    struct U_CameraTransform {
+        glm::mat4 m_view;
+        glm::mat4 m_proj;
+        glm::mat4 m_view_inv;
+        glm::mat4 m_proj_inv;
+
+        glm::vec4 m_view_pos;
 
         float m_near, m_far;
-    };
-
-    struct U_PerFrame {
-        glm::mat4 m_view{1}, m_proj{1};
-        glm::vec4 m_view_pos{};
     };
 
     struct U_PerMaterial {
@@ -339,7 +336,7 @@ namespace dal {
         );
 
         void record_per_global(
-            const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+            const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const VkDevice logi_device
         );
@@ -364,7 +361,7 @@ namespace dal {
         void record_composition(
             const std::vector<VkImageView>& attachment_views,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
-            const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
+            const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
             const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
             const SamplerDepth& sampler,
@@ -372,7 +369,7 @@ namespace dal {
         );
 
         void record_alpha(
-            const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+            const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
             const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,

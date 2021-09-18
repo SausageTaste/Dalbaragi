@@ -40,15 +40,16 @@ layout(set = 0, binding = 4) uniform U_GlobalLight {
     uint m_slight_count;
 } u_global_light;
 
-layout(set = 0, binding = 5) uniform U_PerFrame_Composition {
-    mat4 m_view_mat;
+layout(set = 0, binding = 5) uniform U_CameraTransform {
+    mat4 m_view;
+    mat4 m_proj;
     mat4 m_view_inv;
     mat4 m_proj_inv;
+
     vec4 m_view_pos;
 
-    float m_near;
-    float m_far;
-} u_per_frame_composition;
+    float m_near, m_far;
+} u_camera_transform;
 
 layout(set = 0, binding = 6) uniform sampler2D u_dlight_shadow_maps[MAX_D_LIGHT_COUNT];
 layout(set = 0, binding = 7) uniform sampler2D u_slight_shadow_maps[MAX_S_LIGHT_COUNT];
@@ -57,14 +58,14 @@ layout(set = 0, binding = 7) uniform sampler2D u_slight_shadow_maps[MAX_S_LIGHT_
 vec3 calc_world_pos(const float z) {
     const vec4 clip_space_position = vec4(v_device_coord, z, 1);
 
-    vec4 view_space_position = u_per_frame_composition.m_proj_inv * clip_space_position;
+    vec4 view_space_position = u_camera_transform.m_proj_inv * clip_space_position;
     view_space_position /= view_space_position.w;
 
-    return (u_per_frame_composition.m_view_inv * view_space_position).xyz;
+    return (u_camera_transform.m_view_inv * view_space_position).xyz;
 }
 
 float calc_view_z_of(const vec3 p) {
-    const mat4 m = u_per_frame_composition.m_view_mat;
+    const mat4 m = u_camera_transform.m_view;
     return dot(vec3(m[0].z, m[1].z, m[2].z), p) + m[3].z;
 }
 
@@ -89,11 +90,11 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
     const vec3 sample_direc = view_to_frag / view_to_frag_dist;
     const float sample_end_dist = min(view_to_frag_dist, MAX_SAMPLE_DIST);
 
-    const vec3 near_pos = view_pos + (sample_direc * u_per_frame_composition.m_near);
-    const float near_view_z = -u_per_frame_composition.m_near;
+    const vec3 near_pos = view_pos + (sample_direc * u_camera_transform.m_near);
+    const float near_view_z = -u_camera_transform.m_near;
 
-    const vec3 step_pos = (sample_end_dist - u_per_frame_composition.m_near) / float(NUM_STEPS + 1) * sample_direc;
-    const float step_view_z = (calc_view_z(frag_depth, u_per_frame_composition.m_near, u_per_frame_composition.m_far) - near_view_z) / float(NUM_STEPS + 1);
+    const vec3 step_pos = (sample_end_dist - u_camera_transform.m_near) / float(NUM_STEPS + 1) * sample_direc;
+    const float step_view_z = (calc_view_z(frag_depth, u_camera_transform.m_near, u_camera_transform.m_far) - near_view_z) / float(NUM_STEPS + 1);
 
 #ifdef DAL_VOLUMETRIC_SPOT_LIGHT
     float slight_mie_factors[MAX_S_LIGHT_COUNT];
@@ -110,9 +111,9 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
 
     for (uint i = 0; i < NUM_STEPS; ++i) {
         const float dither_factor = float(i) + dither_value;
-        //const float sample_depth = calc_depth_of_z(step_view_z * dither_factor + near_view_z, u_per_frame_composition.m_near, u_per_frame_composition.m_far);
+        //const float sample_depth = calc_depth_of_z(step_view_z * dither_factor + near_view_z, u_camera_transform.m_near, u_camera_transform.m_far);
         const vec3 sample_pos = step_pos * dither_factor + near_pos;
-        const float sample_depth = calc_depth_of_z(calc_view_z_of(sample_pos), u_per_frame_composition.m_near, u_per_frame_composition.m_far);
+        const float sample_depth = calc_depth_of_z(calc_view_z_of(sample_pos), u_camera_transform.m_near, u_camera_transform.m_far);
 
         {
             uint selected_dlight = u_global_light.m_dlight_count - 1;
@@ -269,7 +270,7 @@ vec3 calculate_dlight_scattering(
 
 #ifdef DAL_VOLUMETRIC_ATMOS
         bool in_shadow_i = false;
-        const float depth_i = calc_depth_of_z(calc_view_z_of(world_pos_i), u_per_frame_composition.m_near, u_per_frame_composition.m_far);
+        const float depth_i = calc_depth_of_z(calc_view_z_of(world_pos_i), u_camera_transform.m_near, u_camera_transform.m_far);
 
         uint selected_dlight = u_global_light.m_dlight_count - 1;
         for (uint i = 0; i < u_global_light.m_dlight_count; ++i) {
@@ -404,7 +405,7 @@ void main() {
     const vec2 material = subpassLoad(input_material).xy;
 
     const vec3 world_pos = calc_world_pos(depth);
-    const vec3 view_vec = world_pos - u_per_frame_composition.m_view_pos.xyz;
+    const vec3 view_vec = world_pos - u_camera_transform.m_view_pos.xyz;
     const vec3 view_direc = normalize(view_vec);
     const vec3 F0 = mix(vec3(0.04), albedo, material.y);
 
@@ -483,18 +484,18 @@ void main() {
     out_color = vec4(light, 1);
 
     if (dot(vec3(0, 1, 0), u_global_light.m_dlight_direc[0].xyz) >= -0.2) {
-        //out_color.xyz += calc_scattering(world_pos, depth, u_per_frame_composition.m_view_pos.xyz);
+        //out_color.xyz += calc_scattering(world_pos, depth, u_camera_transform.m_view_pos.xyz);
         //out_color.xyz += clamp(skylight(world_pos, normal, u_global_light.m_dlight_direc[0].xyz, vec3(0.0)) * vec3(0.0, 0.25, 0.05), 0.0, 1.0);
 
         if (1.0 > depth) {
             out_color.xyz = calculate_dlight_scattering(
-                u_per_frame_composition.m_view_pos.xyz,
+                u_camera_transform.m_view_pos.xyz,
                 view_direc,
-                distance(u_per_frame_composition.m_view_pos.xyz, world_pos),
+                distance(u_camera_transform.m_view_pos.xyz, world_pos),
                 out_color.xyz,
                 u_global_light.m_dlight_direc[0].xyz,
                 vec3(u_global_light.m_atmos_intensity),
-                vec3(u_per_frame_composition.m_view_pos.x, -PLANET_RADIUS, u_per_frame_composition.m_view_pos.z),
+                vec3(u_camera_transform.m_view_pos.x, -PLANET_RADIUS, u_camera_transform.m_view_pos.z),
                 PLANET_RADIUS,
                 ATMOS_RADIUS,
                 RAY_BETA,
@@ -512,11 +513,11 @@ void main() {
         }
         else {
             out_color.xyz = calculate_dlight_scattering_sky(
-                u_per_frame_composition.m_view_pos.xyz,
+                u_camera_transform.m_view_pos.xyz,
                 view_direc,
                 u_global_light.m_dlight_direc[0].xyz,
                 vec3(u_global_light.m_atmos_intensity),
-                vec3(u_per_frame_composition.m_view_pos.x, -PLANET_RADIUS, u_per_frame_composition.m_view_pos.z),
+                vec3(u_camera_transform.m_view_pos.x, -PLANET_RADIUS, u_camera_transform.m_view_pos.z),
                 RAY_BETA,
                 vec3(u_global_light.m_mie_scattering_coeff),
                 8,

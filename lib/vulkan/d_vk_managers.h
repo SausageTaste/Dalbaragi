@@ -261,9 +261,8 @@ namespace dal {
     class UbufManager {
 
     public:
-        UniformBufferArray<U_PerFrame> m_ub_simple;
         UniformBufferArray<U_GlobalLight> m_ub_glights;
-        UniformBufferArray<U_PerFrame_Composition> m_ub_per_frame_composition;
+        UniformBufferArray<U_CameraTransform> m_u_camera_transform;
         UniformBuffer<U_Shader_Final> m_ub_final;
 
     public:

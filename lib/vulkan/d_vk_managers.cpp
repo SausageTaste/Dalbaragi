@@ -747,19 +747,13 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->m_ub_simple.init(
-            MAX_FRAMES_IN_FLIGHT,
-            phys_device,
-            logi_device
-        );
-
         this->m_ub_glights.init(
             MAX_FRAMES_IN_FLIGHT,
             phys_device,
             logi_device
         );
 
-        this->m_ub_per_frame_composition.init(
+        this->m_u_camera_transform.init(
             MAX_FRAMES_IN_FLIGHT,
             phys_device,
             logi_device
@@ -769,9 +763,8 @@ namespace dal {
     }
 
     void UbufManager::destroy(const VkDevice logi_device) {
-        this->m_ub_simple.destroy(logi_device);
         this->m_ub_glights.destroy(logi_device);
-        this->m_ub_per_frame_composition.destroy(logi_device);
+        this->m_u_camera_transform.destroy(logi_device);
         this->m_ub_final.destroy(logi_device);
     }
 
