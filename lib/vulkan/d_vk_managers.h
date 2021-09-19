@@ -121,7 +121,7 @@ namespace dal {
         std::vector<RenderPair_O_A> m_skinned_models;
         std::vector<RenderPair_A_A> m_skinned_alpha_models;
 
-        std::array<Triangle, 2> m_mirror_mesh;
+        std::array<Triangle, 4> m_mirror_mesh;
 
     public:
         void apply(const dal::RenderList& render_list, const glm::vec3& view_pos);

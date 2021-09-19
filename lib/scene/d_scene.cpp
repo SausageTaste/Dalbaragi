@@ -45,18 +45,28 @@ namespace dal {
         }
 
         {
+            const std::array<glm::vec4, 4> template_vertices{
+                glm::vec4{-1,  1, 0, 1},
+                glm::vec4{-1, -1, 0, 1},
+                glm::vec4{ 1, -1, 0, 1},
+                glm::vec4{ 1,  1, 0, 1},
+            };
             output.m_mirror_vertices[0] = glm::vec3{-1, 1, 0};
             output.m_mirror_vertices[1] = glm::vec3{-1, -1, 0};
             output.m_mirror_vertices[2] = glm::vec3{1, -1, 0};
             output.m_mirror_vertices[3] = glm::vec3{1, 1, 0};
 
             const auto x = dal::get_cur_sec() * 20;
-            const auto translate = glm::translate(glm::mat4{1}, glm::vec3{3, 1, 0});
+            const auto translate1 = glm::translate(glm::mat4{1}, glm::vec3{3, 1, 0});
+            const auto translate2 = glm::translate(glm::mat4{1}, glm::vec3{-3, 1, 0});
             const auto rotation = glm::rotate(glm::mat4{1}, glm::radians<float>(x), glm::vec3{1, 2, 3});
-            const auto m = translate * rotation;
+
+            const auto m1 = translate1 * rotation;
+            const auto m2 = translate2 * rotation;
 
             for (int i = 0; i < 4; ++i) {
-                output.m_mirror_vertices[i] = m * glm::vec4{output.m_mirror_vertices[i], 1};
+                output.m_mirror_vertices[i + 0] = m1 * template_vertices[i];
+                output.m_mirror_vertices[i + 4] = m2 * template_vertices[i];
             }
         }
 

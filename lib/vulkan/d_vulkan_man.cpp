@@ -403,10 +403,16 @@ namespace dal {
 
         // Set mirror plane
         {
-            this->m_ref_planes.reflection_planes().back().m_geometry = dal::Plane{
+            this->m_ref_planes.reflection_planes()[0].m_geometry = dal::Plane{
                 render_list.m_mirror_vertices[0],
                 render_list.m_mirror_vertices[1],
                 render_list.m_mirror_vertices[2],
+            };
+
+            this->m_ref_planes.reflection_planes()[1].m_geometry = dal::Plane{
+                render_list.m_mirror_vertices[4],
+                render_list.m_mirror_vertices[5],
+                render_list.m_mirror_vertices[6],
             };
         }
 
@@ -923,13 +929,15 @@ namespace dal {
             this->m_logi_device
         );
 
-        this->m_ref_planes.new_plane(
-            extent_gbuf.width, extent_gbuf.height,
-            this->m_desc_layout_man.layout_mirror(),
-            this->m_renderpasses.rp_simple(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
+        for (int i = 0; i < 2; ++i) {
+            this->m_ref_planes.new_plane(
+                extent_gbuf.width, extent_gbuf.height,
+                this->m_desc_layout_man.layout_mirror(),
+                this->m_renderpasses.rp_simple(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+        }
 
         this->m_fbuf_man.init(
             this->m_swapchain.views(),

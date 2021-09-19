@@ -90,6 +90,14 @@ namespace dal {
         this->m_mirror_mesh[1].m_vertices[0] = render_list.m_mirror_vertices[0];
         this->m_mirror_mesh[1].m_vertices[1] = render_list.m_mirror_vertices[2];
         this->m_mirror_mesh[1].m_vertices[2] = render_list.m_mirror_vertices[3];
+
+        this->m_mirror_mesh[2].m_vertices[0] = render_list.m_mirror_vertices[0 + 4];
+        this->m_mirror_mesh[2].m_vertices[1] = render_list.m_mirror_vertices[1 + 4];
+        this->m_mirror_mesh[2].m_vertices[2] = render_list.m_mirror_vertices[2 + 4];
+
+        this->m_mirror_mesh[3].m_vertices[0] = render_list.m_mirror_vertices[0 + 4];
+        this->m_mirror_mesh[3].m_vertices[1] = render_list.m_mirror_vertices[2 + 4];
+        this->m_mirror_mesh[3].m_vertices[2] = render_list.m_mirror_vertices[3 + 4];
     }
 
 }
@@ -268,34 +276,36 @@ namespace dal {
             vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
-            vkCmdBindDescriptorSets(
-                cmd_buf,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipeline.layout(),
-                0,
-                1, &(reflection_mgr.reflection_planes().back().m_desc.get()),
-                0, nullptr
-            );
-
-            U_PC_Mirror pc_data;
-            pc_data.m_model_mat = glm::mat4{1};
-            pc_data.m_proj_view_mat = proj_view_mat;
-
-            for (int i = 0; i < 2; ++i) {
-                pc_data.m_vertices[0] = glm::vec4{render_list.m_mirror_mesh[i].m_vertices[0], 1};
-                pc_data.m_vertices[1] = glm::vec4{render_list.m_mirror_mesh[i].m_vertices[1], 1};
-                pc_data.m_vertices[2] = glm::vec4{render_list.m_mirror_mesh[i].m_vertices[2], 1};
-
-                vkCmdPushConstants(
+            for (int j = 0; j < 2; ++j) {
+                vkCmdBindDescriptorSets(
                     cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
                     pipeline.layout(),
-                    VK_SHADER_STAGE_VERTEX_BIT,
                     0,
-                    sizeof(U_PC_Mirror),
-                    &pc_data
+                    1, &(reflection_mgr.reflection_planes().at(j).m_desc.get()),
+                    0, nullptr
                 );
 
-                vkCmdDraw(cmd_buf, 3, 1, 0, 0);
+                U_PC_Mirror pc_data;
+                pc_data.m_model_mat = glm::mat4{1};
+                pc_data.m_proj_view_mat = proj_view_mat;
+
+                for (int i = 0; i < 2; ++i) {
+                    pc_data.m_vertices[0] = glm::vec4{render_list.m_mirror_mesh[i + 2*j].m_vertices[0], 1};
+                    pc_data.m_vertices[1] = glm::vec4{render_list.m_mirror_mesh[i + 2*j].m_vertices[1], 1};
+                    pc_data.m_vertices[2] = glm::vec4{render_list.m_mirror_mesh[i + 2*j].m_vertices[2], 1};
+
+                    vkCmdPushConstants(
+                        cmd_buf,
+                        pipeline.layout(),
+                        VK_SHADER_STAGE_VERTEX_BIT,
+                        0,
+                        sizeof(U_PC_Mirror),
+                        &pc_data
+                    );
+
+                    vkCmdDraw(cmd_buf, 3, 1, 0, 0);
+                }
             }
         }
 

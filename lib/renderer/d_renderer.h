@@ -110,7 +110,7 @@ namespace dal {
         std::vector<RenderPair<HRenModel, HActor>> m_static_models;
         std::vector<RenderPair<HRenModelSkinned, HActorSkinned>> m_skinned_models;
 
-        std::array<glm::vec3, 4> m_mirror_vertices;
+        std::array<glm::vec3, 8> m_mirror_vertices;
 
         std::vector<DLight> m_dlights;
         std::vector<PLight> m_plights;
