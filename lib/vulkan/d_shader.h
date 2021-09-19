@@ -61,6 +61,7 @@ namespace dal {
         ShaderPipeline m_shadow;
         ShaderPipeline m_shadow_animated;
         ShaderPipeline m_on_mirror;
+        ShaderPipeline m_on_mirror_animated;
         ShaderPipeline m_mirror;
 
     public:
@@ -112,6 +113,10 @@ namespace dal {
 
         auto& on_mirror() const {
             return this->m_on_mirror;
+        }
+
+        auto& on_mirror_animated() const {
+            return this->m_on_mirror_animated;
         }
 
         auto& mirror() const {

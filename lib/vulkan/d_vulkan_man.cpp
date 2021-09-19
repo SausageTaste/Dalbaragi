@@ -482,13 +482,14 @@ namespace dal {
                 pc_data.m_proj_view_mat = cam_proj_view_mat * plane.m_geometry.make_reflect_mat();
                 pc_data.m_clip_plane = plane.m_geometry.coeff();
 
-                record_cmd_simple(
+                record_cmd_on_mirror(
                     cmd_buf,
                     render_list_vk,
                     this->m_flight_frame_index,
                     pc_data,
                     plane.m_attachments.extent(),
                     this->m_pipelines.on_mirror(),
+                    this->m_pipelines.on_mirror_animated(),
                     plane.m_fbuf,
                     this->m_renderpasses.rp_simple()
                 );
@@ -905,11 +906,11 @@ namespace dal {
             this->m_logi_device.get()
         );
 
-        const auto extent9 = ::calc_smaller_extent(this->m_new_extent, 0.9);
-        const auto extent5 = ::calc_smaller_extent(this->m_new_extent, 0.5);
+        const auto extent_gbuf = ::calc_smaller_extent(this->m_new_extent, 0.9);
+        const auto extent_reflection = ::calc_smaller_extent(this->m_new_extent, 0.7);
 
         this->m_attach_man.init(
-            extent9,
+            extent_gbuf,
             this->m_renderpasses.rp_gbuf(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
@@ -923,12 +924,12 @@ namespace dal {
         );
 
         this->m_ref_planes.new_plane(
-            extent5.width, extent5.height,
+            extent_gbuf.width, extent_gbuf.height,
             this->m_desc_layout_man.layout_mirror(),
             this->m_renderpasses.rp_simple(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
-        ).m_geometry = dal::Plane{glm::vec3{0}, glm::vec3{1, 0, 1}};
+        );
 
         this->m_fbuf_man.init(
             this->m_swapchain.views(),

@@ -188,7 +188,7 @@ namespace dal {
         const dal::RenderPass_ShadowMap& render_pass
     );
 
-    void record_cmd_simple(
+    void record_cmd_on_mirror(
         const VkCommandBuffer cmd_buf,
 
         const dal::RenderListVK& render_list,
@@ -196,7 +196,8 @@ namespace dal {
 
         dal::U_PC_OnMirror push_constant,
         const VkExtent2D& extent,
-        const dal::ShaderPipeline& pipeline_simple,
+        const dal::ShaderPipeline& pipeline_on_mirror,
+        const dal::ShaderPipeline& pipeline_on_mirror_animated,
         const dal::Fbuf_Simple& fbuf,
         const dal::RenderPass_Simple& render_pass
     );

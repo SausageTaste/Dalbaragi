@@ -602,7 +602,7 @@ namespace dal {
             dalAbort("failed to record command buffer!");
     }
 
-    void record_cmd_simple(
+    void record_cmd_on_mirror(
         const VkCommandBuffer cmd_buf,
 
         const dal::RenderListVK& render_list,
@@ -610,7 +610,8 @@ namespace dal {
 
         dal::U_PC_OnMirror push_constant,
         const VkExtent2D& extent,
-        const dal::ShaderPipeline& pipeline_simple,
+        const dal::ShaderPipeline& pipeline_on_mirror,
+        const dal::ShaderPipeline& pipeline_on_mirror_animated,
         const dal::Fbuf_Simple& fbuf,
         const dal::RenderPass_Simple& render_pass
     ) {
@@ -638,12 +639,14 @@ namespace dal {
         vkCmdBeginRenderPass(cmd_buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
         {
-            auto& pipeline = pipeline_simple;
+            auto& pipeline = pipeline_on_mirror;
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
             const auto [viewport, scissor] = ::create_info_viewport_scissor(extent);
             vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
             vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+
+            vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(U_PC_OnMirror), &push_constant);
 
             std::array<VkDeviceSize, 1> vert_offsets{ 0 };
 
@@ -655,9 +658,70 @@ namespace dal {
                     vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
                     vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
 
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipeline.layout(),
+                        0,
+                        1, &unit.m_material.m_descset.get(),
+                        0, nullptr
+                    );
+
                     for (auto& actor : render_tuple.m_actors) {
-                        push_constant.m_model_mat = actor->m_transform.make_mat4();
-                        vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(U_PC_OnMirror), &push_constant);
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            1,
+                            1, &actor->desc_set_raw(),
+                            0, nullptr
+                        );
+
+                        vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        {
+            auto& pipeline = pipeline_on_mirror_animated;
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
+
+            const auto [viewport, scissor] = ::create_info_viewport_scissor(extent);
+            vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+            vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+
+            vkCmdPushConstants(cmd_buf, pipeline.layout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(U_PC_OnMirror), &push_constant);
+
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
+            for (auto& render_tuple : render_list.m_skinned_models) {
+                auto& model = *render_tuple.m_model;
+
+                for (auto& unit : model.render_units()) {
+                    std::array<VkBuffer, 1> vert_bufs{ unit.m_vert_buffer.vertex_buffer() };
+                    vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                    vkCmdBindIndexBuffer(cmd_buf, unit.m_vert_buffer.index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipeline.layout(),
+                        0,
+                        1, &unit.m_material.m_descset.get(),
+                        0, nullptr
+                    );
+
+                    for (auto& actor : render_tuple.m_actors) {
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline.layout(),
+                            1,
+                            1, &actor->desc_set_at(flight_frame_index),
+                            0, nullptr
+                        );
+
                         vkCmdDrawIndexed(cmd_buf, unit.m_vert_buffer.index_size(), 1, 0, 0, 0);
                     }
                 }
