@@ -1,7 +1,7 @@
 #include "d_geometry.h"
 
 
-namespace {
+namespace dal {
 
     glm::mat4 make_upside_down_mat() {
         glm::mat4 output{1};
@@ -48,16 +48,23 @@ namespace dal {
         return glm::dot(this->coeff(), glm::vec4{ p, 1 });
     }
 
-    glm::mat4 Plane::make_reflect_mat() const {
+    glm::mat4 Plane::make_origin_align_mat() const {
+        glm::mat4 output{1};
+
         const auto cos_theta = glm::dot(this->normal(), glm::vec3{0, 1, 0});
-        if (1.0 == cos_theta)
-            return ::make_upside_down_mat();
+        if (1.0 != cos_theta) {
+            const auto rotate_axis = glm::cross(this->normal(), glm::vec3{0, 1, 0});
+            const auto quat = glm::rotate(glm::quat{1, 0, 0, 0}, acos(cos_theta), rotate_axis);
+            output = glm::mat4_cast(quat);
+        }
 
-        const auto rotate_axis = glm::cross(this->normal(), glm::vec3{0, 1, 0});
-        const auto quat = glm::rotate(glm::quat{1, 0, 0, 0}, acos(cos_theta), rotate_axis);
+        output *= glm::translate(glm::mat4{1}, -this->one_point());
+        return output;
+    }
 
-        const auto reorient = glm::mat4_cast(quat) * glm::translate(glm::mat4{1}, -this->one_point());
-        return glm::inverse(reorient) * ::make_upside_down_mat() * reorient;
+    glm::mat4 Plane::make_reflect_mat() const {
+        const auto reorient = this->make_origin_align_mat();
+        return glm::inverse(reorient) * dal::make_upside_down_mat() * reorient;
     }
 
 }

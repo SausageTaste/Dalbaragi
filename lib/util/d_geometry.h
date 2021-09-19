@@ -8,6 +8,9 @@
 
 namespace dal {
 
+    glm::mat4 make_upside_down_mat();
+
+
     class Plane {
 
     private:
@@ -28,6 +31,8 @@ namespace dal {
         glm::vec3 one_point() const;
 
         float calc_signed_dist(const glm::vec3& p) const;
+
+        glm::mat4 make_origin_align_mat() const;
 
         glm::mat4 make_reflect_mat() const;
 
