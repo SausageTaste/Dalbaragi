@@ -121,7 +121,10 @@ namespace dal {
         const auto reoriented_head_diect = glm::mat3{oalign} * head_diect;
         const auto cos_theta = glm::dot(reoriented_head_diect, ::LYING_PLANE_HEAD_DIREC);
 
-        if (1.f > cos_theta) {
+        if (-0.9999999f > cos_theta) {
+            output *= roate_about_axis(::safe_acos(cos_theta), ::LYING_PLANE_LOOK_DIREC);
+        }
+        else if (1.f > cos_theta) {
             const auto rotate_axis = glm::cross(reoriented_head_diect, ::LYING_PLANE_HEAD_DIREC);
             output *= roate_about_axis(::safe_acos(cos_theta), rotate_axis);
         }
