@@ -310,16 +310,16 @@ namespace dal {
         sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index).wait(this->m_logi_device.get());
         const auto [acquire_result, swapchain_index] = this->m_swapchain.acquire_next_img_index(this->m_flight_frame_index, this->m_logi_device.get());
 
-        if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
-            this->m_screen_resize_notified = this->on_recreate_swapchain();
-            return;
-        }
-        else if (ImgAcquireResult::success != acquire_result) {
-            dalError("Failed to acquire swapchain image");
-            return;
-        }
-
         {
+            if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
+                this->m_screen_resize_notified = this->on_recreate_swapchain();
+                return;
+            }
+            else if (ImgAcquireResult::success != acquire_result) {
+                dalError("Failed to acquire swapchain image");
+                return;
+            }
+
             auto& img_fences = sync_man.fence_image_in_flight(swapchain_index);
             if (nullptr != img_fences) {
                 img_fences->wait(this->m_logi_device.get());
@@ -427,6 +427,7 @@ namespace dal {
         // Set up uniform variables
         //-----------------------------------------------------------------------------------------------------
 
+        // U_CameraTransform
         {
             U_CameraTransform ubuf_data_composition{};
             ubuf_data_composition.m_view = cam_view_mat;
@@ -439,43 +440,43 @@ namespace dal {
             this->m_ubuf_man.m_u_camera_transform.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
         }
 
+        // U_GlobalLight
         {
             dalAssert(render_list.m_dlights.size() == 1);
             dalAssert(render_list.m_plights.size() <= dal::MAX_PLIGHT_COUNT);
             dalAssert(render_list.m_slights.size() <= dal::MAX_SLIGHT_COUNT);
 
             U_GlobalLight data_glight{};
-            {
-                data_glight.m_dlight_count = dal::MAX_DLIGHT_COUNT;
-                for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
-                    auto& src_light = render_list.m_dlights[0];
 
-                    data_glight.m_dlight_mat[i]   = this->m_shadow_maps.m_dlight_matrices[i];
-                    data_glight.m_dlight_direc[i] = glm::vec4{ src_light.to_light_direc(), 0 };
-                    data_glight.m_dlight_color[i] = glm::vec4{ src_light.m_color, 1 };
-                    data_glight.m_dlight_clip_dist[i] = this->m_shadow_maps.m_dlight_clip_dists[i];
-                }
+            data_glight.m_dlight_count = dal::MAX_DLIGHT_COUNT;
+            for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
+                auto& src_light = render_list.m_dlights[0];
 
-                data_glight.m_plight_count = render_list.m_plights.size();
-                for (size_t i = 0; i < render_list.m_plights.size(); ++i) {
-                    data_glight.m_plight_pos_n_max_dist[i] = glm::vec4{ render_list.m_plights[i].m_pos, 0 };
-                    data_glight.m_plight_color[i]          = glm::vec4{ render_list.m_plights[i].m_color, 0 };
-                }
-
-                data_glight.m_slight_count = render_list.m_slights.size();
-                for (size_t i = 0; i < render_list.m_slights.size(); ++i) {
-                    auto& src_light = render_list.m_slights[i];
-
-                    data_glight.m_slight_mat[i]                = src_light.make_light_mat();
-                    data_glight.m_slight_pos_n_max_dist[i]     = glm::vec4{ src_light.m_pos, src_light.m_max_dist };
-                    data_glight.m_slight_direc_n_fade_start[i] = glm::vec4{ src_light.to_light_direc(), src_light.fade_start() };
-                    data_glight.m_slight_color_n_fade_end[i]   = glm::vec4{ src_light.m_color, src_light.fade_end() };
-                }
-
-                data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };
-                data_glight.m_atmos_intensity = render_list.m_dlights[0].m_atmos_intensity;
-                data_glight.m_mie_scattering_coeff = 221e-6;
+                data_glight.m_dlight_mat[i]   = this->m_shadow_maps.m_dlight_matrices[i];
+                data_glight.m_dlight_direc[i] = glm::vec4{ src_light.to_light_direc(), 0 };
+                data_glight.m_dlight_color[i] = glm::vec4{ src_light.m_color, 1 };
+                data_glight.m_dlight_clip_dist[i] = this->m_shadow_maps.m_dlight_clip_dists[i];
             }
+
+            data_glight.m_plight_count = render_list.m_plights.size();
+            for (size_t i = 0; i < render_list.m_plights.size(); ++i) {
+                data_glight.m_plight_pos_n_max_dist[i] = glm::vec4{ render_list.m_plights[i].m_pos, 0 };
+                data_glight.m_plight_color[i]          = glm::vec4{ render_list.m_plights[i].m_color, 0 };
+            }
+
+            data_glight.m_slight_count = render_list.m_slights.size();
+            for (size_t i = 0; i < render_list.m_slights.size(); ++i) {
+                auto& src_light = render_list.m_slights[i];
+
+                data_glight.m_slight_mat[i]                = src_light.make_light_mat();
+                data_glight.m_slight_pos_n_max_dist[i]     = glm::vec4{ src_light.m_pos, src_light.m_max_dist };
+                data_glight.m_slight_direc_n_fade_start[i] = glm::vec4{ src_light.to_light_direc(), src_light.fade_start() };
+                data_glight.m_slight_color_n_fade_end[i]   = glm::vec4{ src_light.m_color, src_light.fade_end() };
+            }
+
+            data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };
+            data_glight.m_atmos_intensity = render_list.m_dlights[0].m_atmos_intensity;
+            data_glight.m_mie_scattering_coeff = 221e-6;
 
             this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(data_glight, this->m_logi_device.get());
         }
