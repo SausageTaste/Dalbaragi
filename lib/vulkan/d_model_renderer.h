@@ -12,8 +12,8 @@ namespace dal {
     class ActorVK : public IActor {
 
     private:
-        DescSet m_desc_per_actor;
-        dal::UniformBuffer<dal::U_PerActor> m_ubuf_per_actor;
+        std::vector<DescSet> m_desc;
+        dal::UniformBufferArray<dal::U_PerActor> m_ubuf_per_actor;
         DescAllocator* m_desc_allocator = nullptr;
         VkDevice m_logi_device = VK_NULL_HANDLE;
 
@@ -35,13 +35,13 @@ namespace dal {
         bool is_ready() const;
 
         void notify_transform_change() override {
-            this->m_transform_update_needed = 1;
+            this->m_transform_update_needed = MAX_FRAMES_IN_FLIGHT;
         }
 
-        void apply_changes();
+        void apply_transform(const FrameInFlightIndex& index);
 
-        auto& desc_set_raw() const {
-            return this->m_desc_per_actor.get();
+        auto& desc_set_at(const FrameInFlightIndex& index) const {
+            return this->m_desc.at(index.get()).get();
         }
 
     };

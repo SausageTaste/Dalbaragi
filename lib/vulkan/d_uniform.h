@@ -173,6 +173,15 @@ namespace dal {
             return this->m_buffers.at(index);
         }
 
+        bool is_ready() const {
+            for (auto& x : this->m_buffers) {
+                if (!x.is_ready())
+                    return false;
+            }
+
+            return true;
+        }
+
         void copy_to_buffer(const size_t index, const _DataStruct& data, const VkDevice logi_device) {
             this->m_buffers.at(index).copy_to_buffer(data, logi_device);
         }

@@ -23,16 +23,23 @@ namespace dal {
         this->m_logi_device = logi_device;
         this->m_desc_allocator = &desc_allocator;
 
-        this->m_ubuf_per_actor.init(phys_device, logi_device);
-        this->m_desc_per_actor = this->m_desc_allocator->allocate(layout_per_actor, logi_device);
-        this->m_desc_per_actor.record_per_actor(this->m_ubuf_per_actor, logi_device);
+        this->m_ubuf_per_actor.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
+        for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
+            this->m_desc.push_back(this->m_desc_allocator->allocate(layout_per_actor, logi_device));
+            this->m_desc.back().record_per_actor(
+                this->m_ubuf_per_actor.at(i),
+                logi_device
+            );
+        }
     }
 
     void ActorVK::destroy() {
         if (nullptr != this->m_desc_allocator) {
-            this->m_desc_allocator->free(std::move(this->m_desc_per_actor));
+            for (auto& d : this->m_desc)
+                this->m_desc_allocator->free(std::move(d));
             this->m_desc_allocator = nullptr;
         }
+        this->m_desc.clear();
 
         if (VK_NULL_HANDLE != this->m_logi_device) {
             this->m_ubuf_per_actor.destroy(this->m_logi_device);
@@ -41,15 +48,16 @@ namespace dal {
     }
 
     bool ActorVK::is_ready() const {
-        return this->m_desc_per_actor.is_ready() && this->m_ubuf_per_actor.is_ready();
+        return this->m_ubuf_per_actor.is_ready();
     }
 
-    void ActorVK::apply_changes() {
-        if (this->is_ready()) {
-            U_PerActor ubuf_data_per_actor;
-            ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
-            this->m_ubuf_per_actor.copy_to_buffer(ubuf_data_per_actor, this->m_logi_device);
-        }
+    void ActorVK::apply_transform(const FrameInFlightIndex& index) {
+        if (!this->is_ready())
+            return;
+
+        U_PerActor ubuf_data_per_actor;
+        ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
+        this->m_ubuf_per_actor.copy_to_buffer(index.get(), ubuf_data_per_actor, this->m_logi_device);
     }
 
 }
@@ -102,7 +110,10 @@ namespace dal {
     }
 
     bool ActorSkinnedVK::is_ready() const {
-        return VK_NULL_HANDLE != this->m_logi_device;
+        return (
+            this->m_ubuf_per_actor.is_ready() &&
+            this->m_ubuf_anim.is_ready()
+        );
     }
 
     void ActorSkinnedVK::apply_transform(const FrameInFlightIndex& index) {

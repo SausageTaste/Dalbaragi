@@ -190,7 +190,7 @@ namespace dal {
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline.layout(),
                             2,
-                            1, &actor->desc_set_raw(),
+                            1, &actor->desc_set_at(flight_frame_index),
                             0, nullptr
                         );
 
@@ -445,7 +445,7 @@ namespace dal {
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                     pipeline.layout(),
                     2,
-                    1, &render_tuple.m_actor->desc_set_raw(),
+                    1, &render_tuple.m_actor->desc_set_at(flight_frame_index),
                     0, nullptr
                 );
 
@@ -684,7 +684,7 @@ namespace dal {
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline.layout(),
                             1,
-                            1, &actor->desc_set_raw(),
+                            1, &actor->desc_set_at(flight_frame_index),
                             0, nullptr
                         );
 

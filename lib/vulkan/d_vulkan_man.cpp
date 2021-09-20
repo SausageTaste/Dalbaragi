@@ -332,13 +332,18 @@ namespace dal {
         for (auto& x : render_list.m_static_models) {
             for (auto& a : x.m_actors) {
                 auto& actor = dal::actor_cast(a);
-                actor.apply_changes();
+
+                if (actor.m_transform_update_needed > 0) {
+                    --actor.m_transform_update_needed;
+                    actor.apply_transform(this->in_flight_index());
+                }
             }
         }
 
         for (auto& x : render_list.m_skinned_models) {
             for (auto& a : x.m_actors) {
                 auto& actor = dal::actor_cast(a);
+
                 actor.apply_animation(this->in_flight_index());
                 actor.apply_transform(this->in_flight_index());
             }
