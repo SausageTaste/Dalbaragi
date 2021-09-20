@@ -380,7 +380,8 @@ namespace dal {
         Fbuf_Simple m_fbuf;
         std::vector<VkCommandBuffer> m_cmd_buf;
         DescSet m_desc;
-        dal::Plane m_geometry;
+        dal::PlaneOriented m_mesh_plane;
+        dal::PlaneOriented m_view_plane;
 
     public:
         void init(

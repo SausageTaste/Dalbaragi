@@ -56,13 +56,13 @@ namespace dal {
             output.m_mirror_vertices[2] = glm::vec3{1, -1, 0};
             output.m_mirror_vertices[3] = glm::vec3{1, 1, 0};
 
-            const auto x = dal::get_cur_sec() * 20;
-            const auto translate1 = glm::translate(glm::mat4{1}, glm::vec3{3, 1, 0});
-            const auto translate2 = glm::translate(glm::mat4{1}, glm::vec3{-3, 1, 0});
-            const auto rotation = glm::rotate(glm::mat4{1}, glm::radians<float>(x), glm::vec3{1, 2, 3});
+            const auto translate1 = glm::translate(glm::mat4{1}, glm::vec3{-sin(t * 0.3) * 3 - 4.5, 0, 0});
+            const auto translate2 = glm::translate(glm::mat4{1}, glm::vec3{3, 1, -2});
+            const auto rotation1 = glm::rotate(glm::mat4{1}, glm::radians<float>(t * 20), glm::vec3{0, 1, 0}) * glm::rotate(glm::mat4{1}, glm::radians<float>(-90), glm::vec3{1, 0, 0});
+            const auto rotation2 = glm::rotate(glm::mat4{1}, glm::radians<float>(t * 20), glm::vec3{0, 1, 0});
 
-            const auto m1 = translate1 * rotation;
-            const auto m2 = translate2 * rotation;
+            const auto m1 = translate1 * rotation1;
+            const auto m2 = translate2 * rotation2;
 
             for (int i = 0; i < 4; ++i) {
                 output.m_mirror_vertices[i + 0] = m1 * template_vertices[i];

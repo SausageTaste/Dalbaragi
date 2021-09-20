@@ -403,17 +403,25 @@ namespace dal {
 
         // Set mirror plane
         {
-            this->m_ref_planes.reflection_planes()[0].m_geometry = dal::Plane{
-                render_list.m_mirror_vertices[0],
-                render_list.m_mirror_vertices[1],
-                render_list.m_mirror_vertices[2],
+            auto& planes = this->m_ref_planes.reflection_planes();
+
+            const auto make_plane_of_quad = [](const glm::vec3* const vertices) -> dal::PlaneOriented {
+                const auto center = (vertices[0] + vertices[2]) / 2.f;
+                const auto top = (vertices[0] + vertices[3]) / 2.f;
+                const auto winding = vertices[0];
+
+                return dal::PlaneOriented{
+                    center,
+                    top,
+                    winding
+                };
             };
 
-            this->m_ref_planes.reflection_planes()[1].m_geometry = dal::Plane{
-                render_list.m_mirror_vertices[4],
-                render_list.m_mirror_vertices[5],
-                render_list.m_mirror_vertices[6],
-            };
+            planes[0].m_mesh_plane = make_plane_of_quad(render_list.m_mirror_vertices.data());
+            planes[1].m_mesh_plane = make_plane_of_quad(render_list.m_mirror_vertices.data() + 4);
+
+            planes[0].m_view_plane = planes[1].m_mesh_plane;
+            planes[1].m_view_plane = planes[0].m_mesh_plane;
         }
 
         // Set up uniform variables
@@ -485,8 +493,8 @@ namespace dal {
                 const auto& cmd_buf = plane.m_cmd_buf.at(this->m_flight_frame_index.get());
 
                 U_PC_OnMirror pc_data;
-                pc_data.m_proj_view_mat = cam_proj_view_mat * plane.m_geometry.make_reflect_mat();
-                pc_data.m_clip_plane = plane.m_geometry.coeff();
+                pc_data.m_proj_view_mat = cam_proj_view_mat * dal::make_portal_mat(plane.m_mesh_plane, plane.m_view_plane);
+                pc_data.m_clip_plane = plane.m_view_plane.coeff();
 
                 record_cmd_on_mirror(
                     cmd_buf,

@@ -287,6 +287,7 @@ namespace dal {
                 );
 
                 U_PC_Mirror pc_data;
+
                 pc_data.m_model_mat = glm::mat4{1};
                 pc_data.m_proj_view_mat = proj_view_mat;
 
