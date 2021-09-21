@@ -1,5 +1,9 @@
 #include "d_scene.h"
 
+#include <fmt/format.h>
+
+#include "d_logger.h"
+
 
 namespace {
 
@@ -26,11 +30,36 @@ namespace {
 }
 
 
+namespace dal::scene {
+
+    std::optional<SegmentIntersectionInfo> PortalPlane::find_intersection(const Segment& seg) const {
+        const auto tri0 = dal::Triangle{ this->m_vertices[0], this->m_vertices[1], this->m_vertices[2] };
+        const auto tri1 = dal::Triangle{ this->m_vertices[0], this->m_vertices[2], this->m_vertices[3] };
+
+        {
+            const auto result = tri0.find_intersection(seg, true);
+            if (result)
+                return result;
+        }
+
+        {
+            const auto result = tri1.find_intersection(seg, true);
+            if (result)
+                return result;
+        }
+
+        return std::nullopt;
+    }
+
+}
+
+
 namespace dal {
 
     Scene::Scene() {
         this->m_euler_camera.m_pos = { 2.68, 1.91, 0 };
         this->m_euler_camera.m_rotations = { -0.22, glm::radians<float>(90), 0 };
+        this->m_prev_camera = this->m_euler_camera;
 
         {
             this->m_sun_light.m_atmos_intensity = 40;
@@ -73,6 +102,31 @@ namespace dal {
             });
         }
 
+        // Apply portal teleporation
+        {
+            Segment seg;
+            seg.m_start = this->m_prev_camera.m_pos;
+            seg.m_direc = this->m_euler_camera.m_pos - this->m_prev_camera.m_pos;
+
+            if (seg.length_sqr() != 0.f) {
+                const auto intersection = this->m_portal.m_portals[0].find_intersection(seg);
+                if (intersection) {
+                    const auto a = intersection->calc_intersecting_point(seg);
+                    const auto seg_trans = seg.transform(dal::make_portal_mat(this->m_portal.m_portals[1].m_plane, this->m_portal.m_portals[0].m_plane));
+                    this->m_euler_camera.m_pos = seg_trans.end_point();
+                }
+            }
+
+            if (seg.length_sqr() != 0.f) {
+                const auto intersection = this->m_portal.m_portals[1].find_intersection(seg);
+                if (intersection) {
+                    const auto a = intersection->calc_intersecting_point(seg);
+                    const auto seg_trans = seg.transform(dal::make_portal_mat(this->m_portal.m_portals[0].m_plane, this->m_portal.m_portals[1].m_plane));
+                    this->m_euler_camera.m_pos = seg_trans.end_point();
+                }
+            }
+        }
+
         // Directional light
         {
             const auto sun_direc = glm::normalize(glm::vec3{ 10.0 * cos(t * 0.1), 10.0 * sin(t * 0.1), 2 });
@@ -106,6 +160,11 @@ namespace dal {
 
             this->m_portal.m_portals[0].m_plane = ::make_plane_of_quad(this->m_portal.m_portals[0].m_vertices);
             this->m_portal.m_portals[1].m_plane = ::make_plane_of_quad(this->m_portal.m_portals[1].m_vertices);
+        }
+
+        // Update member variables
+        {
+            this->m_prev_camera = this->m_euler_camera;
         }
     }
 

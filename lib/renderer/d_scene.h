@@ -26,6 +26,8 @@ namespace dal::scene {
     struct PortalPlane {
         std::array<glm::vec3, 4> m_vertices;
         dal::PlaneOriented m_plane;
+
+        std::optional<SegmentIntersectionInfo> find_intersection(const Segment& seg) const;
     };
 
     struct PortalPair {
@@ -62,6 +64,9 @@ namespace dal {
         std::vector<scene::MirrorPlane> m_mirrors;
         scene::PortalPair m_portal;
         scene::HorizontalWater m_hor_water;
+
+    private:
+        EulerCamera m_prev_camera;
 
     public:
         Scene();

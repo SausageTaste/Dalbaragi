@@ -29,6 +29,52 @@ namespace {
         return output;
     }
 
+    // Param p must be on the plane.
+    bool is_point_inside_triangle(const glm::vec3& p, const dal::Triangle& tri) {
+        const auto edge1 = tri.m_vertices[1] - tri.m_vertices[0];
+        const auto edge2 = tri.m_vertices[2] - tri.m_vertices[1];
+
+        const auto toPoint1 = p - tri.m_vertices[0];
+        const auto toPoint2 = p - tri.m_vertices[1];
+
+        const auto crossed1 = glm::cross(edge1, toPoint1);
+        const auto crossed2 = glm::cross(edge2, toPoint2);
+
+        const auto dotted1 = glm::dot(crossed1, crossed2);
+
+        if ( dotted1 < 0.f ) {
+            return false;
+        }
+
+        const auto edge3 = tri.m_vertices[0] - tri.m_vertices[2];
+        const auto toPoint3 = p - tri.m_vertices[2];
+        const auto crossed3 = glm::cross(edge3, toPoint3);
+        const auto dotted2 = glm::dot(crossed1, crossed3);
+
+        if ( dotted2 < 0.f ) {
+            return false;
+        }
+
+        return true;
+    }
+
+}
+
+
+namespace dal {
+
+    Segment Segment::transform(const glm::mat4& mat) const {
+        Segment output;
+
+        const auto new_st = mat * glm::vec4{this->m_start, 1};
+        const auto new_ed = mat * glm::vec4{this->end_point(), 1};
+
+        output.m_start = new_st;
+        output.m_direc = new_ed - new_st;
+
+        return output;
+    }
+
 }
 
 
@@ -89,6 +135,25 @@ namespace dal {
         return glm::dot(this->coeff(), glm::vec4{ p, 1 });
     }
 
+    std::optional<SegmentIntersectionInfo> Plane::find_intersection(const Segment& seg) const {
+        const auto pointA = seg.m_start;
+        const auto pointB = seg.end_point();
+
+        const auto distA = this->calc_signed_dist(pointA);
+        const auto distB = this->calc_signed_dist(pointB);
+
+        if ( (distA * distB) > 0.f )
+            return std::nullopt;
+
+        const auto absDistA = std::abs(distA);
+        const auto denominator = absDistA + std::abs(distB);
+        if ( 0.f == denominator )
+            return SegmentIntersectionInfo{ 0, distA > distB };
+
+        const auto distance = seg.length() * absDistA / denominator;
+        return SegmentIntersectionInfo{ distance, distA > distB };
+    }
+
     glm::mat4 Plane::make_origin_align_mat() const {
         return ::make_origin_align_mat(this->one_point(), this->normal());
     }
@@ -131,6 +196,28 @@ namespace dal {
 
         output *= oalign;
         return output;
+    }
+
+}
+
+
+// Triangle
+namespace dal {
+
+    std::optional<SegmentIntersectionInfo> Triangle::find_intersection(const Segment& seg, const bool ignore_from_back) const {
+        const auto plane = this->make_plane();
+        const auto plane_col = plane.find_intersection(seg);
+
+        if (!plane_col)
+            return std::nullopt;
+        if (ignore_from_back && !plane_col->m_from_front)
+            return std::nullopt;
+
+        if (::is_point_inside_triangle(plane_col->calc_intersecting_point(seg), *this)) {
+            return plane_col;
+        }
+
+        return std::nullopt;
     }
 
 }

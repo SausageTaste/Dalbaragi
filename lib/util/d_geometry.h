@@ -1,5 +1,8 @@
 #pragma once
 
+#include <array>
+#include <optional>
+
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -7,6 +10,64 @@
 
 
 namespace dal {
+
+    class Segment {
+
+    public:
+        glm::vec3 m_start;
+        glm::vec3 m_direc;
+
+    public:
+        Segment() = default;
+
+        glm::vec3 end_point() const {
+            return this->m_start + this->m_direc;
+        }
+
+        float length_sqr() const {
+            return glm::dot(this->m_direc, this->m_direc);
+        }
+
+        float length() const {
+            return glm::length(this->m_direc);
+        }
+
+        Segment transform(const glm::mat4& mat) const;
+
+    };
+
+    class SegmentIntersectionInfo {
+
+    public:
+        float m_distance;
+        bool m_from_front;
+
+    public:
+        SegmentIntersectionInfo(const float dist, const bool from_front)
+            : m_distance(dist)
+            , m_from_front(from_front)
+        {
+
+        }
+
+        bool is_intersecting(const Segment& seg, const bool regard_direction) const {
+            if (regard_direction && !this->m_from_front)
+                return false;
+
+            else if (this->m_distance < 0.f)
+                return false;
+            else if (this->m_distance > seg.length())
+                return false;
+            else
+                return true;
+        }
+
+        glm::vec3 calc_intersecting_point(const Segment& seg) const {
+            return seg.m_start + glm::normalize(seg.m_direc) * this->m_distance;
+        }
+
+    };
+
 
     class Plane {
 
@@ -28,6 +89,8 @@ namespace dal {
         glm::vec3 one_point() const;
 
         float calc_signed_dist(const glm::vec3& p) const;
+
+        std::optional<SegmentIntersectionInfo> find_intersection(const Segment& seg) const;
 
         glm::mat4 make_origin_align_mat() const;
 
@@ -81,5 +144,26 @@ namespace dal {
     glm::mat4 make_upside_down_mat();
 
     glm::mat4 make_portal_mat(const PlaneOriented& mesh, const PlaneOriented& view);
+
+
+    class Triangle {
+
+    public:
+        std::array<glm::vec3, 3> m_vertices;
+
+    public:
+        Triangle() = default;
+
+        Plane make_plane() const {
+            return Plane{ this->m_vertices[0], this->m_vertices[1], this->m_vertices[2] };
+        }
+
+        PlaneOriented make_plane_oriented() const{
+            return PlaneOriented{ this->m_vertices[0], this->m_vertices[1], this->m_vertices[2] };
+        }
+
+        std::optional<SegmentIntersectionInfo> find_intersection(const Segment& seg, const bool ignore_from_back = false) const;
+
+    };
 
 }
