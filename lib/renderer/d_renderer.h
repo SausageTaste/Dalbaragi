@@ -29,6 +29,17 @@ namespace dal {
     };
 
 
+    class IMesh {
+
+    public:
+        virtual ~IMesh() = default;
+
+        virtual bool is_ready() const = 0;
+
+    };
+
+
+
     class IRenModel {
 
     public:
@@ -91,6 +102,7 @@ namespace dal {
 
 
     using HTexture = std::shared_ptr<ITexture>;
+    using HMesh = std::shared_ptr<IMesh>;
     using HRenModel = std::shared_ptr<IRenModel>;
     using HRenModelSkinned = std::shared_ptr<IRenModelSkineed>;
     using HActor = std::shared_ptr<IActor>;
@@ -173,6 +185,14 @@ namespace dal {
         virtual bool prepare(IRenModel& model) { return false; }
 
         virtual bool prepare(IRenModelSkineed& model) { return false; }
+
+        // Mesh
+
+        virtual HMesh create_mesh() { return nullptr; }
+
+        virtual bool init(IMesh& mesh, const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) { return false; }
+
+        virtual bool destroy(IMesh& mesh) { return false; }
 
     };
 

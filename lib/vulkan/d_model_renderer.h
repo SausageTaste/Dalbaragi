@@ -5,6 +5,7 @@
 #include "d_uniform.h"
 #include "d_image_obj.h"
 #include "d_filesystem.h"
+#include "d_vk_device.h"
 
 
 namespace dal {
@@ -83,6 +84,29 @@ namespace dal {
 
         auto& desc_set_at(const FrameInFlightIndex& index) const {
             return this->m_desc.at(index.get()).get();
+        }
+
+    };
+
+
+    class MeshVK : public IMesh {
+
+    private:
+        VertexBuffer m_vertices;
+
+    public:
+        void init(
+            const std::vector<VertexStatic>& vertices,
+            const std::vector<uint32_t>& indices,
+            dal::CommandPool& cmd_pool,
+            const VkPhysicalDevice phys_device,
+            const dal::LogicalDevice& logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+        bool is_ready() const override {
+            return this->m_vertices.is_ready();
         }
 
     };
@@ -247,5 +271,26 @@ namespace dal {
         }
 
     };
+
+}
+
+
+namespace dal {
+
+    inline auto& mesh_cast(IMesh& mesh) {
+        return static_cast<MeshVK&>(mesh);
+    }
+
+    inline auto& mesh_cast(const IMesh& mesh) {
+        return static_cast<const MeshVK&>(mesh);
+    }
+
+    inline auto& mesh_cast(HMesh& mesh) {
+        return *static_cast<MeshVK*>(mesh.get());
+    }
+
+    inline auto& mesh_cast(const HMesh& mesh) {
+        return *static_cast<const MeshVK*>(mesh.get());
+    }
 
 }

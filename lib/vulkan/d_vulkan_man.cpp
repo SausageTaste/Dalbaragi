@@ -894,6 +894,33 @@ namespace dal {
         );
     }
 
+    // Mesh
+
+    HMesh VulkanState::create_mesh() {
+        return std::make_shared<MeshVK>();
+    }
+
+    bool VulkanState::init(IMesh& i_mesh, const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) {
+        auto& mesh = mesh_cast(i_mesh);
+
+        mesh.init(
+            vertices, indices,
+            this->m_cmd_man.general_pool(),
+            this->m_phys_device.get(),
+            this->m_logi_device
+        );
+
+        return true;
+    }
+
+    bool VulkanState::destroy(IMesh& i_mesh) {
+        auto& mesh = mesh_cast(i_mesh);
+
+        mesh.destroy(this->m_logi_device.get());
+
+        return true;
+    }
+
     // Private
     //---------------------------------------------------------------------------------------
 

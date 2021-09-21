@@ -105,6 +105,14 @@ namespace dal {
 
         bool prepare(IRenModelSkineed& model) override;
 
+        // Mesh
+
+        HMesh create_mesh() override;
+
+        bool init(IMesh& mesh, const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) override;
+
+        bool destroy(IMesh& mesh) override;
+
     private:
         // Returns true if recreation is still needed.
         bool on_recreate_swapchain();

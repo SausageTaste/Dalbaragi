@@ -141,6 +141,33 @@ namespace dal {
 }
 
 
+// MeshVK
+namespace dal {
+
+    void MeshVK::init(
+        const std::vector<VertexStatic>& vertices,
+        const std::vector<uint32_t>& indices,
+        dal::CommandPool& cmd_pool,
+        const VkPhysicalDevice phys_device,
+        const dal::LogicalDevice& logi_device
+    ) {
+        this->m_vertices.init_static(
+            vertices,
+            indices,
+            cmd_pool,
+            logi_device.queue_graphics(),
+            phys_device,
+            logi_device.get()
+        );
+    }
+
+    void MeshVK::destroy(const VkDevice logi_device) {
+        this->m_vertices.destroy(logi_device);
+    }
+
+}
+
+
 // RenderUnit
 namespace dal {
 
