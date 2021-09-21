@@ -1,12 +1,8 @@
 #pragma once
 
-#include <vector>
-
 #include <entt/entt.hpp>
 
-#include "d_actor.h"
-#include "d_renderer.h"
-#include "d_animation.h"
+#include "d_render_cpnt.h"
 
 
 namespace dal {

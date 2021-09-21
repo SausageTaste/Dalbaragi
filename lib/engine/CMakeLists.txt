@@ -20,7 +20,6 @@ target_include_directories(libdal_engine
 
 target_link_libraries(libdal_engine
     PUBLIC
-        libdal_scene
         libdal_renderer
     PRIVATE
         lua_static

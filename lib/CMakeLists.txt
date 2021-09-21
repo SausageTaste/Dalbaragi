@@ -142,7 +142,6 @@ target_include_directories(lua_static PUBLIC ${fetch_lua_SOURCE_DIR})
 #-------------------------------------------------------------------------------
 
 add_subdirectory(./util)
-add_subdirectory(./scene)
 add_subdirectory(./renderer)
 add_subdirectory(./vulkan)
 add_subdirectory(./engine)

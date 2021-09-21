@@ -1,8 +1,19 @@
 #pragma once
 
+#include <array>
+#include <vector>
+#include <memory>
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+#include "d_actor.h"
+#include "d_animation.h"
 
 
+// Lights
 namespace dal {
 
     class ILight {
@@ -93,6 +104,130 @@ namespace dal {
         }
 
         glm::mat4 make_light_mat() const;
+
+    };
+
+}
+
+
+// Abstract classes
+namespace dal {
+
+    class ITexture {
+
+    public:
+        virtual ~ITexture() = default;
+
+        virtual void destroy() = 0;
+
+        virtual bool is_ready() const = 0;
+
+    };
+
+
+    class IMesh {
+
+    public:
+        virtual ~IMesh() = default;
+
+        virtual bool is_ready() const = 0;
+
+    };
+
+
+    class IRenModel {
+
+    public:
+        virtual ~IRenModel() = default;
+
+        virtual void destroy() = 0;
+
+        virtual bool is_ready() const = 0;
+
+    };
+
+
+    class IRenModelSkineed {
+
+    public:
+        virtual ~IRenModelSkineed() = default;
+
+        virtual void destroy() = 0;
+
+        virtual bool is_ready() const = 0;
+
+        virtual std::vector<Animation>& animations() = 0;
+
+        virtual const std::vector<Animation>& animations() const = 0;
+
+        virtual const SkeletonInterface& skeleton() const = 0;
+
+    };
+
+
+    class IActor {
+
+    public:
+        Transform m_transform;
+
+    public:
+        virtual ~IActor() = default;
+
+        virtual void destroy() = 0;
+
+        virtual void notify_transform_change() = 0;
+
+    };
+
+
+    class IActorSkinned {
+
+    public:
+        Transform m_transform;
+        AnimationState m_anim_state;
+
+    public:
+        virtual ~IActorSkinned() = default;
+
+        virtual void destroy() = 0;
+
+        virtual void notify_transform_change() = 0;
+
+    };
+
+
+    using HTexture = std::shared_ptr<ITexture>;
+    using HMesh = std::shared_ptr<IMesh>;
+    using HRenModel = std::shared_ptr<IRenModel>;
+    using HRenModelSkinned = std::shared_ptr<IRenModelSkineed>;
+    using HActor = std::shared_ptr<IActor>;
+    using HActorSkinned = std::shared_ptr<IActorSkinned>;
+
+
+    template <typename _Model, typename _Actor>
+    struct RenderPair {
+        std::vector<_Actor> m_actors;
+        _Model m_model;
+    };
+
+
+    class RenderList {
+
+    public:
+        std::vector<RenderPair<HRenModel, HActor>> m_static_models;
+        std::vector<RenderPair<HRenModelSkinned, HActorSkinned>> m_skinned_models;
+
+        std::array<glm::vec3, 8> m_mirror_vertices;
+
+        std::vector<DLight> m_dlights;
+        std::vector<PLight> m_plights;
+        std::vector<SLight> m_slights;
+        glm::vec3 m_ambient_color;
+
+    public:
+        void add_actor(const HActor& actor, const HRenModel& model);
+
+        void add_actor(const HActorSkinned& actor, const HRenModelSkinned& model);
 
     };
 
