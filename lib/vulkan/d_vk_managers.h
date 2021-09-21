@@ -110,6 +110,11 @@ namespace dal {
             std::vector<triangle_t> m_polygon;
             glm::mat4 m_orient_mat;
             glm::vec4 m_clip_plane;
+            size_t reflection_map_index;
+        };
+
+        struct WaterRender : public PlaneRender {
+
         };
 
         // O : Opaque, A : Alpha
@@ -131,6 +136,7 @@ namespace dal {
         std::vector<RenderPair_A_A> m_skinned_alpha_models;
 
         std::vector<PlaneRender> m_render_planes;
+        std::vector<WaterRender> m_render_waters;
 
         std::vector<SLight> m_slights;
         std::vector<PLight> m_plights;
@@ -403,6 +409,14 @@ namespace dal {
         glm::vec4 m_clip_plane;
 
     public:
+        ReflectionPlane() = default;
+
+        ReflectionPlane(const ReflectionPlane&) = delete;
+        ReflectionPlane& operator=(const ReflectionPlane&) = delete;
+        ReflectionPlane(ReflectionPlane&&) = default;
+        ReflectionPlane& operator=(ReflectionPlane&&) = default;
+
+    public:
         void init(
             const uint32_t width,
             const uint32_t height,
@@ -417,6 +431,8 @@ namespace dal {
         );
 
         void destroy(CommandPool& cmd_pool, DescPool& desc_pool, const VkDevice logi_device);
+
+        bool is_ready() const;
 
     };
 
@@ -438,6 +454,16 @@ namespace dal {
         void destroy(const VkDevice logi_device);
 
         ReflectionPlane& new_plane(
+            const uint32_t width,
+            const uint32_t height,
+            const dal::DescLayout_Mirror& desc_layout,
+            const dal::RenderPass_Simple& renderpass,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void resize(
+            const size_t size,
             const uint32_t width,
             const uint32_t height,
             const dal::DescLayout_Mirror& desc_layout,

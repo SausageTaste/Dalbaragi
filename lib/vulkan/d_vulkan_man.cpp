@@ -405,13 +405,33 @@ namespace dal {
 
         // Set mirror plane
         {
-            auto& dst_planes = this->m_ref_planes.reflection_planes();
-            const auto& src_planes = render_list.m_render_planes;
-            dalAssert(dst_planes.size() == src_planes.size());
+            const auto extent_reflection = ::calc_smaller_extent(this->m_new_extent, 0.7);
 
-            for (size_t i = 0; i < src_planes.size(); ++i) {
-                dst_planes[i].m_orient_mat = src_planes[i].m_orient_mat;
-                dst_planes[i].m_clip_plane = src_planes[i].m_clip_plane;
+            this->m_ref_planes.resize(
+                render_list.m_render_planes.size() + render_list.m_render_waters.size(),
+                extent_reflection.width, extent_reflection.height,
+                this->m_desc_layout_man.layout_mirror(),
+                this->m_renderpasses.rp_simple(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            auto& dst_planes = this->m_ref_planes.reflection_planes();
+            auto& render_planes = render_list.m_render_planes;
+            auto& render_waters = render_list.m_render_waters;
+
+            size_t index_counter = 0;
+
+            for (auto& x : render_planes) {
+                dst_planes[index_counter].m_orient_mat = x.m_orient_mat;
+                dst_planes[index_counter].m_clip_plane = x.m_clip_plane;
+                x.reflection_map_index = index_counter++;
+            }
+
+            for (auto& x : render_waters) {
+                dst_planes[index_counter].m_orient_mat = x.m_orient_mat;
+                dst_planes[index_counter].m_clip_plane = x.m_clip_plane;
+                x.reflection_map_index = index_counter++;
             }
         }
 
@@ -939,7 +959,6 @@ namespace dal {
         );
 
         const auto extent_gbuf = ::calc_smaller_extent(this->m_new_extent, 0.9);
-        const auto extent_reflection = ::calc_smaller_extent(this->m_new_extent, 0.7);
 
         this->m_attach_man.init(
             extent_gbuf,
@@ -954,16 +973,6 @@ namespace dal {
             this->m_phys_device.get(),
             this->m_logi_device
         );
-
-        for (int i = 0; i < 2; ++i) {
-            this->m_ref_planes.new_plane(
-                extent_gbuf.width, extent_gbuf.height,
-                this->m_desc_layout_man.layout_mirror(),
-                this->m_renderpasses.rp_simple(),
-                this->m_phys_device.get(),
-                this->m_logi_device.get()
-            );
-        }
 
         this->m_fbuf_man.init(
             this->m_swapchain.views(),

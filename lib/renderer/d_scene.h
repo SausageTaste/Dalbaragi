@@ -32,6 +32,12 @@ namespace dal::scene {
         std::array<PortalPlane, 2> m_portals;
     };
 
+
+    struct HorizontalWater {
+        dal::Plane m_plane;
+        float m_height;
+    };
+
 }
 
 
@@ -51,6 +57,7 @@ namespace dal {
         glm::vec3 m_ambient_light;
 
         scene::PortalPair m_portal;
+        scene::HorizontalWater m_hor_water;
 
     public:
         Scene();

@@ -31,6 +31,11 @@ namespace dal {
             this->m_moon_light.m_atmos_intensity = 0.05;
             this->m_moon_light.m_color = glm::vec3{0.05, 0.05, 0.15};
         }
+
+        {
+            this->m_hor_water.m_height = 0.2;
+            this->m_hor_water.m_plane = dal::Plane{ glm::vec3{0, this->m_hor_water.m_height, 0}, glm::vec3{0, 1, 0} };
+        }
     }
 
     void Scene::update() {

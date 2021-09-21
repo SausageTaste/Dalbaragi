@@ -94,6 +94,7 @@ namespace dal {
         this->m_dlight = scene.m_selected_dlight;
         this->m_ambient_light = scene.m_ambient_light;
 
+        // Portal pair
         {
             auto& p1 = scene.m_portal.m_portals[0];
             auto& p2 = scene.m_portal.m_portals[1];
@@ -129,6 +130,27 @@ namespace dal {
                 plane1.m_orient_mat = dal::make_portal_mat(p2.m_plane, p1.m_plane);
                 plane1.m_clip_plane = p1.m_plane.coeff();
             }
+        }
+
+        // Horizontal water
+        {
+            constexpr float x = 1000;
+            auto& one = this->m_render_waters.emplace_back();
+
+            one.m_polygon.push_back(triangle_t{
+                glm::vec3{-x, scene.m_hor_water.m_height, -x},
+                glm::vec3{-x, scene.m_hor_water.m_height,  x},
+                glm::vec3{ x, scene.m_hor_water.m_height,  x},
+            });
+
+            one.m_polygon.push_back(triangle_t{
+                glm::vec3{-x, scene.m_hor_water.m_height, -x},
+                glm::vec3{ x, scene.m_hor_water.m_height,  x},
+                glm::vec3{ x, scene.m_hor_water.m_height, -x},
+            });
+
+            one.m_orient_mat = scene.m_hor_water.m_plane.make_reflect_mat();
+            one.m_clip_plane = scene.m_hor_water.m_plane.coeff();
         }
     }
 
@@ -338,15 +360,45 @@ namespace dal {
             vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
-            for (int i = 0; i < render_list.m_render_planes.size(); ++i) {
-                auto& render_plane = render_list.m_render_planes[i];
-
+            for (auto& render_plane : render_list.m_render_planes) {
                 vkCmdBindDescriptorSets(
                     cmd_buf,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                     pipeline.layout(),
                     0,
-                    1, &(reflection_mgr.reflection_planes().at(i).m_desc.get()),
+                    1, &(reflection_mgr.reflection_planes().at(render_plane.reflection_map_index).m_desc.get()),
+                    0, nullptr
+                );
+
+                U_PC_Mirror pc_data;
+                pc_data.m_model_mat = glm::mat4{1};
+                pc_data.m_proj_view_mat = proj_view_mat;
+
+                for (auto& triangle : render_plane.m_polygon) {
+                    pc_data.m_vertices[0] = glm::vec4{triangle[0], 1};
+                    pc_data.m_vertices[1] = glm::vec4{triangle[1], 1};
+                    pc_data.m_vertices[2] = glm::vec4{triangle[2], 1};
+
+                    vkCmdPushConstants(
+                        cmd_buf,
+                        pipeline.layout(),
+                        VK_SHADER_STAGE_VERTEX_BIT,
+                        0,
+                        sizeof(U_PC_Mirror),
+                        &pc_data
+                    );
+
+                    vkCmdDraw(cmd_buf, 3, 1, 0, 0);
+                }
+            }
+
+            for (auto& render_plane : render_list.m_render_waters) {
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.layout(),
+                    0,
+                    1, &(reflection_mgr.reflection_planes().at(render_plane.reflection_map_index).m_desc.get()),
                     0, nullptr
                 );
 
@@ -1189,6 +1241,13 @@ namespace dal {
         this->m_attachments.destroy(logi_device);
     }
 
+    bool ReflectionPlane::is_ready() const {
+        return (
+            this->m_fbuf.is_ready() &&
+            this->m_desc.is_ready()
+        );
+    }
+
 }
 
 
@@ -1240,6 +1299,41 @@ namespace dal {
         );
 
         return plane;
+    }
+
+    void PlanarReflectionManager::resize(
+        const size_t size,
+        const uint32_t width,
+        const uint32_t height,
+        const dal::DescLayout_Mirror& desc_layout,
+        const dal::RenderPass_Simple& renderpass,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        if (size == this->m_planes.size()) {
+            return;
+        }
+        else if (size > this->m_planes.size()) {
+            const auto needed_count = size - this->m_planes.size();
+
+            for (size_t i = 0; i < needed_count; ++i) {
+                this->new_plane(
+                    width, height,
+                    desc_layout,
+                    renderpass,
+                    phys_device,
+                    logi_device
+                );
+            }
+        }
+        else {
+            const auto destroy_count = this->m_planes.size() - size;
+
+            for (size_t i = 0; i < destroy_count; ++i) {
+                this->m_planes.back().destroy(this->m_cmd_pool, this->m_desc_pool, logi_device);
+                this->m_planes.pop_back();
+            }
+        }
     }
 
 }
