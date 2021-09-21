@@ -45,7 +45,7 @@ namespace dal {
 
         EulerCamera m_euler_camera;
 
-        DLight m_sun_light, m_moon_light;
+        DLight m_sun_light, m_moon_light, m_selected_dlight;
         std::vector<SLight> m_slights;
         std::vector<PLight> m_plights;
         glm::vec3 m_ambient_light;

@@ -91,7 +91,7 @@ namespace dal {
 
         this->m_plights = scene.m_plights;
         this->m_slights = scene.m_slights;
-        this->m_dlight = scene.m_sun_light;
+        this->m_dlight = scene.m_selected_dlight;
         this->m_ambient_light = scene.m_ambient_light;
 
         {

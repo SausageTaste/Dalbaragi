@@ -44,6 +44,21 @@ namespace dal {
         }
 
         {
+            const auto sun_direc = glm::normalize(glm::vec3{ 10.0 * cos(t * 0.1), 10.0 * sin(t * 0.1), 2 });
+            const auto is_sun = glm::dot(glm::vec3(0, 1, 0), sun_direc) >= -0.1;
+
+            if (is_sun) {
+                this->m_selected_dlight = this->m_sun_light;
+                this->m_selected_dlight.set_direc_to_light(sun_direc);
+            }
+            else {
+                this->m_selected_dlight = this->m_moon_light;
+                this->m_selected_dlight.set_direc_to_light(glm::vec3{0, 2, 0} - sun_direc);
+            }
+            this->m_selected_dlight.m_pos = this->m_euler_camera.m_pos;
+        }
+
+        {
             const std::array<glm::vec4, 4> template_vertices{
                 glm::vec4{-1,  1, 0, 1},
                 glm::vec4{-1, -1, 0, 1},
