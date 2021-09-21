@@ -94,6 +94,24 @@ namespace dal {
         this->m_dlight = scene.m_selected_dlight;
         this->m_ambient_light = scene.m_ambient_light;
 
+        // Mirrors
+        for (auto& mirror : scene.m_mirrors) {
+            auto& dst = this->m_render_planes.emplace_back();
+
+            dst.m_polygon.push_back({
+                mirror.m_vertices[0],
+                mirror.m_vertices[1],
+                mirror.m_vertices[2],
+            });
+            dst.m_polygon.push_back({
+                mirror.m_vertices[0],
+                mirror.m_vertices[2],
+                mirror.m_vertices[3],
+            });
+            dst.m_orient_mat = mirror.m_plane.make_reflect_mat();
+            dst.m_clip_plane = mirror.m_plane.coeff();
+        }
+
         // Portal pair
         {
             auto& p1 = scene.m_portal.m_portals[0];

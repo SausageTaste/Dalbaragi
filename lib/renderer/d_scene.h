@@ -32,6 +32,10 @@ namespace dal::scene {
         std::array<PortalPlane, 2> m_portals;
     };
 
+    struct MirrorPlane {
+        std::array<glm::vec3, 4> m_vertices;
+        dal::Plane m_plane;
+    };
 
     struct HorizontalWater {
         dal::Plane m_plane;
@@ -42,7 +46,6 @@ namespace dal::scene {
 
 
 namespace dal {
-
 
     class Scene {
 
@@ -56,6 +59,7 @@ namespace dal {
         std::vector<PLight> m_plights;
         glm::vec3 m_ambient_light;
 
+        std::vector<scene::MirrorPlane> m_mirrors;
         scene::PortalPair m_portal;
         scene::HorizontalWater m_hor_water;
 
