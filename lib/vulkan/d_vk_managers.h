@@ -104,8 +104,12 @@ namespace dal {
             }
         };
 
-        struct Triangle {
-            std::array<glm::vec3, 3> m_vertices;
+        using triangle_t = std::array<glm::vec3, 3>;
+
+        struct PlaneRender {
+            std::vector<triangle_t> m_polygon;
+            glm::mat4 m_orient_mat;
+            glm::vec4 m_clip_plane;
         };
 
         // O : Opaque, A : Alpha
@@ -116,15 +120,30 @@ namespace dal {
         using RenderPair_A_A = RenderPairTranspVK<ActorSkinnedVK>;
 
     public:
+        std::unordered_set<dal::HRenModel> m_used_models;
+        std::unordered_set<dal::HRenModelSkinned> m_used_skin_models;
+        std::unordered_set<dal::HActor> m_used_actors;
+        std::unordered_set<dal::HActorSkinned> m_used_skin_actors;
+
         std::vector<RenderPair_O_S> m_static_models;
         std::vector<RenderPair_A_S> m_static_alpha_models;
         std::vector<RenderPair_O_A> m_skinned_models;
         std::vector<RenderPair_A_A> m_skinned_alpha_models;
 
-        std::array<Triangle, 4> m_mirror_mesh;
+        std::vector<PlaneRender> m_render_planes;
+
+        std::vector<SLight> m_slights;
+        std::vector<PLight> m_plights;
+        dal::DLight m_dlight;
+        glm::vec3 m_ambient_light;
 
     public:
-        void apply(const dal::RenderList& render_list, const glm::vec3& view_pos);
+        void apply(dal::Scene& scene, const glm::vec3& view_pos);
+
+    private:
+        RenderPair_O_S& get_render_pair(HRenModel& model);
+
+        RenderPair_O_A& get_render_pair(HRenModelSkinned& model);
 
     };
 
@@ -380,8 +399,8 @@ namespace dal {
         Fbuf_Simple m_fbuf;
         std::vector<VkCommandBuffer> m_cmd_buf;
         DescSet m_desc;
-        dal::PlaneOriented m_mesh_plane;
-        dal::PlaneOriented m_view_plane;
+        glm::mat4 m_orient_mat;
+        glm::vec4 m_clip_plane;
 
     public:
         void init(

@@ -423,8 +423,7 @@ namespace dal {
 
         this->m_lua.call_void_func("before_rendering_every_frame");
 
-        auto render_list = this->m_scene.make_render_list();
-        this->m_renderer->update(this->m_scene.m_euler_camera, render_list);
+        this->m_renderer->update(this->m_scene.m_euler_camera, this->m_scene);
     }
 
     void Engine::init_vulkan(

@@ -203,32 +203,4 @@ namespace dal {
     using HActor = std::shared_ptr<IActor>;
     using HActorSkinned = std::shared_ptr<IActorSkinned>;
 
-
-    template <typename _Model, typename _Actor>
-    struct RenderPair {
-        std::vector<_Actor> m_actors;
-        _Model m_model;
-    };
-
-
-    class RenderList {
-
-    public:
-        std::vector<RenderPair<HRenModel, HActor>> m_static_models;
-        std::vector<RenderPair<HRenModelSkinned, HActorSkinned>> m_skinned_models;
-
-        std::array<glm::vec3, 8> m_mirror_vertices;
-
-        std::vector<DLight> m_dlights;
-        std::vector<PLight> m_plights;
-        std::vector<SLight> m_slights;
-        glm::vec3 m_ambient_color;
-
-    public:
-        void add_actor(const HActor& actor, const HRenModel& model);
-
-        void add_actor(const HActorSkinned& actor, const HRenModelSkinned& model);
-
-    };
-
 }

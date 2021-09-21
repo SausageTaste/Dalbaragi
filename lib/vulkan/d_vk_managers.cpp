@@ -27,22 +27,38 @@ namespace {
 // RenderListVK
 namespace dal {
 
-    void RenderListVK::apply(const dal::RenderList& render_list, const glm::vec3& view_pos) {
-        for (auto& pair : render_list.m_static_models) {
-            if (!pair.m_model->is_ready())
-                continue;
+    void RenderListVK::apply(dal::Scene& scene, const glm::vec3& view_pos) {
+        {
+            auto view = scene.m_registry.view<cpnt::ActorStatic>();
 
-            auto& model = model_cast(pair.m_model);
+            view.each([this](cpnt::ActorStatic& actor) {
+                if (!actor.m_model->is_ready())
+                    return;
 
-            auto& dst_opaque = this->m_static_models.emplace_back();
-            dst_opaque.m_model = &model;
-            for (auto& h_actor : pair.m_actors)
-                dst_opaque.m_actors.push_back(&actor_cast(h_actor));
+                auto& dst_opaque = this->get_render_pair(actor.m_model);
+                dst_opaque.m_actors.push_back(&actor_cast(actor.m_actor));
+                this->m_used_actors.emplace(actor.m_actor);
+            });
+        }
 
-            for (const auto actor : dst_opaque.m_actors) {
+        {
+            auto view = scene.m_registry.view<cpnt::ActorAnimated>();
+
+            view.each([this](cpnt::ActorAnimated& actor) {
+                if (!actor.m_model->is_ready())
+                    return;
+
+                auto& dst_opaque = this->get_render_pair(actor.m_model);
+                dst_opaque.m_actors.push_back(&actor_cast(actor.m_actor));
+                this->m_used_skin_actors.emplace(actor.m_actor);
+            });
+        }
+
+        for (const auto& pair : this->m_static_models) {
+            for (const auto actor : pair.m_actors) {
                 const auto actor_transform = actor->m_transform.make_mat4();
 
-                for (const auto& unit : model.render_units_alpha()) {
+                for (const auto& unit : pair.m_model->render_units_alpha()) {
                     const auto unit_world_pos = actor_transform * glm::vec4(unit.m_weight_center, 1);
                     const auto to_view = view_pos - glm::vec3(unit_world_pos);
 
@@ -54,21 +70,11 @@ namespace dal {
             }
         }
 
-        for (auto& pair : render_list.m_skinned_models) {
-            if (!pair.m_model->is_ready())
-                continue;
-
-            auto& model = model_cast(pair.m_model);
-
-            auto& dst_opaque = this->m_skinned_models.emplace_back();
-            dst_opaque.m_model = &model;
-            for (auto& h_actor : pair.m_actors)
-                dst_opaque.m_actors.push_back(&actor_cast(h_actor));
-
-            for (const auto actor : dst_opaque.m_actors) {
+        for (const auto& pair : this->m_skinned_models) {
+            for (const auto actor : pair.m_actors) {
                 const auto actor_transform = actor->m_transform.make_mat4();
 
-                for (const auto& unit : model.render_units_alpha()) {
+                for (const auto& unit : pair.m_model->render_units_alpha()) {
                     const auto unit_world_pos = actor_transform * glm::vec4(unit.m_weight_center, 1);
                     const auto to_view = view_pos - glm::vec3(unit_world_pos);
 
@@ -83,21 +89,77 @@ namespace dal {
         std::sort(this->m_static_alpha_models.begin(), this->m_static_alpha_models.end());
         std::sort(this->m_skinned_alpha_models.begin(), this->m_skinned_alpha_models.end());
 
-        this->m_mirror_mesh[0].m_vertices[0] = render_list.m_mirror_vertices[0];
-        this->m_mirror_mesh[0].m_vertices[1] = render_list.m_mirror_vertices[1];
-        this->m_mirror_mesh[0].m_vertices[2] = render_list.m_mirror_vertices[2];
+        this->m_plights = scene.m_plights;
+        this->m_slights = scene.m_slights;
+        this->m_dlight = scene.m_sun_light;
+        this->m_ambient_light = scene.m_ambient_light;
 
-        this->m_mirror_mesh[1].m_vertices[0] = render_list.m_mirror_vertices[0];
-        this->m_mirror_mesh[1].m_vertices[1] = render_list.m_mirror_vertices[2];
-        this->m_mirror_mesh[1].m_vertices[2] = render_list.m_mirror_vertices[3];
+        {
+            auto& p1 = scene.m_portal.m_portals[0];
+            auto& p2 = scene.m_portal.m_portals[1];
 
-        this->m_mirror_mesh[2].m_vertices[0] = render_list.m_mirror_vertices[0 + 4];
-        this->m_mirror_mesh[2].m_vertices[1] = render_list.m_mirror_vertices[1 + 4];
-        this->m_mirror_mesh[2].m_vertices[2] = render_list.m_mirror_vertices[2 + 4];
+            {
+                auto& plane1 = this->m_render_planes.emplace_back();
+                plane1.m_polygon.push_back({
+                    p1.m_vertices[0],
+                    p1.m_vertices[1],
+                    p1.m_vertices[2],
+                });
+                plane1.m_polygon.push_back({
+                    p1.m_vertices[0],
+                    p1.m_vertices[2],
+                    p1.m_vertices[3],
+                });
+                plane1.m_orient_mat = dal::make_portal_mat(p1.m_plane, p2.m_plane);
+                plane1.m_clip_plane = p2.m_plane.coeff();
+            }
 
-        this->m_mirror_mesh[3].m_vertices[0] = render_list.m_mirror_vertices[0 + 4];
-        this->m_mirror_mesh[3].m_vertices[1] = render_list.m_mirror_vertices[2 + 4];
-        this->m_mirror_mesh[3].m_vertices[2] = render_list.m_mirror_vertices[3 + 4];
+            {
+                auto& plane1 = this->m_render_planes.emplace_back();
+                plane1.m_polygon.push_back({
+                    p2.m_vertices[0],
+                    p2.m_vertices[1],
+                    p2.m_vertices[2],
+                });
+                plane1.m_polygon.push_back({
+                    p2.m_vertices[0],
+                    p2.m_vertices[2],
+                    p2.m_vertices[3],
+                });
+                plane1.m_orient_mat = dal::make_portal_mat(p2.m_plane, p1.m_plane);
+                plane1.m_clip_plane = p1.m_plane.coeff();
+            }
+        }
+    }
+
+    RenderListVK::RenderPair_O_S& RenderListVK::get_render_pair(HRenModel& h_model) {
+        auto& model = dal::model_cast(h_model);
+
+        for (auto& x : this->m_static_models) {
+            if (x.m_model == &model) {
+                return x;
+            }
+        }
+
+        this->m_used_models.emplace(h_model);
+        auto& output = this->m_static_models.emplace_back();
+        output.m_model = &model;
+        return output;
+    }
+
+    RenderListVK::RenderPair_O_A& RenderListVK::get_render_pair(HRenModelSkinned& h_model) {
+        auto& model = dal::model_cast(h_model);
+
+        for (auto& x : this->m_skinned_models) {
+            if (x.m_model == &model) {
+                return x;
+            }
+        }
+
+        this->m_used_skin_models.emplace(h_model);
+        auto& output = this->m_skinned_models.emplace_back();
+        output.m_model = &model;
+        return output;
     }
 
 }
@@ -276,25 +338,26 @@ namespace dal {
             vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
-            for (int j = 0; j < 2; ++j) {
+            for (int i = 0; i < render_list.m_render_planes.size(); ++i) {
+                auto& render_plane = render_list.m_render_planes[i];
+
                 vkCmdBindDescriptorSets(
                     cmd_buf,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                     pipeline.layout(),
                     0,
-                    1, &(reflection_mgr.reflection_planes().at(j).m_desc.get()),
+                    1, &(reflection_mgr.reflection_planes().at(i).m_desc.get()),
                     0, nullptr
                 );
 
                 U_PC_Mirror pc_data;
-
                 pc_data.m_model_mat = glm::mat4{1};
                 pc_data.m_proj_view_mat = proj_view_mat;
 
-                for (int i = 0; i < 2; ++i) {
-                    pc_data.m_vertices[0] = glm::vec4{render_list.m_mirror_mesh[i + 2*j].m_vertices[0], 1};
-                    pc_data.m_vertices[1] = glm::vec4{render_list.m_mirror_mesh[i + 2*j].m_vertices[1], 1};
-                    pc_data.m_vertices[2] = glm::vec4{render_list.m_mirror_mesh[i + 2*j].m_vertices[2], 1};
+                for (auto& triangle : render_plane.m_polygon) {
+                    pc_data.m_vertices[0] = glm::vec4{triangle[0], 1};
+                    pc_data.m_vertices[1] = glm::vec4{triangle[1], 1};
+                    pc_data.m_vertices[2] = glm::vec4{triangle[2], 1};
 
                     vkCmdPushConstants(
                         cmd_buf,

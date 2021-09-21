@@ -299,7 +299,7 @@ namespace dal {
         }
     }
 
-    void VulkanState::update(const ICamera& camera, RenderList& render_list) {
+    void VulkanState::update(const ICamera& camera, dal::Scene& scene) {
         if (this->m_screen_resize_notified) {
             this->m_screen_resize_notified = this->on_recreate_swapchain();
             return;
@@ -329,28 +329,25 @@ namespace dal {
 
         // Update render list
         //-----------------------------------------------------------------------------------------------------
-        for (auto& x : render_list.m_static_models) {
-            for (auto& a : x.m_actors) {
-                auto& actor = dal::actor_cast(a);
 
-                if (actor.m_transform_update_needed > 0) {
-                    --actor.m_transform_update_needed;
-                    actor.apply_transform(this->in_flight_index());
-                }
-            }
-        }
+        dal::RenderListVK render_list;
+        render_list.apply(scene, camera.view_pos());
 
-        for (auto& x : render_list.m_skinned_models) {
-            for (auto& a : x.m_actors) {
-                auto& actor = dal::actor_cast(a);
+        for (auto x : render_list.m_used_actors) {
+            auto& actor = dal::actor_cast(x);
 
-                actor.apply_animation(this->in_flight_index());
+            if (actor.m_transform_update_needed > 0) {
+                --actor.m_transform_update_needed;
                 actor.apply_transform(this->in_flight_index());
             }
         }
 
-        dal::RenderListVK render_list_vk;
-        render_list_vk.apply(render_list, camera.view_pos());
+        for (auto x : render_list.m_used_skin_actors) {
+            auto& actor = dal::actor_cast(x);
+
+            actor.apply_animation(this->in_flight_index());
+            actor.apply_transform(this->in_flight_index());
+        }
 
         // Prepare needed data
         //-----------------------------------------------------------------------------------------------------
@@ -383,7 +380,7 @@ namespace dal {
 
                     this->m_shadow_maps.m_dlight_clip_dists[index] = ::calc_clip_depth(-(::PROJ_NEAR + far_dist), ::PROJ_NEAR, ::PROJ_FAR);
 
-                    this->m_shadow_maps.m_dlight_matrices[index] = render_list.m_dlights[0].make_light_mat(
+                    this->m_shadow_maps.m_dlight_matrices[index] = render_list.m_dlight.make_light_mat(
                         frustum_vertices[index].data(), frustum_vertices[index].data() + frustum_vertices[index].size()
                     );
                 }
@@ -401,32 +398,21 @@ namespace dal {
 
             this->m_shadow_maps.m_dlight_clip_dists[0] = ::calc_clip_depth(-(::PROJ_NEAR + far_dist), ::PROJ_NEAR, ::PROJ_FAR);
 
-            this->m_shadow_maps.m_dlight_matrices[0] = render_list.m_dlights[0].make_light_mat(
+            this->m_shadow_maps.m_dlight_matrices[0] = render_list.m_dlight.make_light_mat(
                 frustum_vertices[0].data(), frustum_vertices[0].data() + frustum_vertices[0].size()
             );
         }
 
         // Set mirror plane
         {
-            auto& planes = this->m_ref_planes.reflection_planes();
+            auto& dst_planes = this->m_ref_planes.reflection_planes();
+            const auto& src_planes = render_list.m_render_planes;
+            dalAssert(dst_planes.size() == src_planes.size());
 
-            const auto make_plane_of_quad = [](const glm::vec3* const vertices) -> dal::PlaneOriented {
-                const auto center = (vertices[0] + vertices[2]) / 2.f;
-                const auto top = (vertices[0] + vertices[3]) / 2.f;
-                const auto winding = vertices[0];
-
-                return dal::PlaneOriented{
-                    center,
-                    top,
-                    winding
-                };
-            };
-
-            planes[0].m_mesh_plane = make_plane_of_quad(render_list.m_mirror_vertices.data());
-            planes[1].m_mesh_plane = make_plane_of_quad(render_list.m_mirror_vertices.data() + 4);
-
-            planes[0].m_view_plane = planes[1].m_mesh_plane;
-            planes[1].m_view_plane = planes[0].m_mesh_plane;
+            for (size_t i = 0; i < src_planes.size(); ++i) {
+                dst_planes[i].m_orient_mat = src_planes[i].m_orient_mat;
+                dst_planes[i].m_clip_plane = src_planes[i].m_clip_plane;
+            }
         }
 
         // Set up uniform variables
@@ -447,7 +433,6 @@ namespace dal {
 
         // U_GlobalLight
         {
-            dalAssert(render_list.m_dlights.size() == 1);
             dalAssert(render_list.m_plights.size() <= dal::MAX_PLIGHT_COUNT);
             dalAssert(render_list.m_slights.size() <= dal::MAX_SLIGHT_COUNT);
 
@@ -455,7 +440,7 @@ namespace dal {
 
             data_glight.m_dlight_count = dal::MAX_DLIGHT_COUNT;
             for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
-                auto& src_light = render_list.m_dlights[0];
+                auto& src_light = render_list.m_dlight;
 
                 data_glight.m_dlight_mat[i]   = this->m_shadow_maps.m_dlight_matrices[i];
                 data_glight.m_dlight_direc[i] = glm::vec4{ src_light.to_light_direc(), 0 };
@@ -479,8 +464,8 @@ namespace dal {
                 data_glight.m_slight_color_n_fade_end[i]   = glm::vec4{ src_light.m_color, src_light.fade_end() };
             }
 
-            data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };
-            data_glight.m_atmos_intensity = render_list.m_dlights[0].m_atmos_intensity;
+            data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_light, 1 };
+            data_glight.m_atmos_intensity = render_list.m_dlight.m_atmos_intensity;
             data_glight.m_mie_scattering_coeff = 221e-6;
 
             this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(data_glight, this->m_logi_device.get());
@@ -499,12 +484,12 @@ namespace dal {
                 const auto& cmd_buf = plane.m_cmd_buf.at(this->m_flight_frame_index.get());
 
                 U_PC_OnMirror pc_data;
-                pc_data.m_proj_view_mat = cam_proj_view_mat * dal::make_portal_mat(plane.m_mesh_plane, plane.m_view_plane);
-                pc_data.m_clip_plane = plane.m_view_plane.coeff();
+                pc_data.m_proj_view_mat = cam_proj_view_mat * plane.m_orient_mat;
+                pc_data.m_clip_plane = plane.m_clip_plane;
 
                 record_cmd_on_mirror(
                     cmd_buf,
-                    render_list_vk,
+                    render_list,
                     this->m_flight_frame_index,
                     pc_data,
                     plane.m_attachments.extent(),
@@ -549,7 +534,7 @@ namespace dal {
 
                 record_cmd_shadow(
                     shadow_map.cmd_buf_at(this->m_flight_frame_index.get()),
-                    render_list_vk,
+                    render_list,
                     this->m_flight_frame_index,
                     this->m_shadow_maps.m_dlight_matrices[i],
                     shadow_map.extent(),
@@ -584,7 +569,7 @@ namespace dal {
 
                 record_cmd_shadow(
                     shadow_map.cmd_buf_at(this->m_flight_frame_index.get()),
-                    render_list_vk,
+                    render_list,
                     this->m_flight_frame_index,
                     render_list.m_slights[i].make_light_mat(),
                     shadow_map.extent(),
@@ -623,7 +608,7 @@ namespace dal {
 
             record_cmd_gbuf(
                 this->m_cmd_man.cmd_simple_at(this->m_flight_frame_index.get()),
-                render_list_vk,
+                render_list,
                 this->m_flight_frame_index,
                 cam_proj_mat * cam_view_mat,
                 this->m_ref_planes,
@@ -666,7 +651,7 @@ namespace dal {
 
             record_cmd_alpha(
                 this->m_cmd_man.cmd_alpha_at(this->m_flight_frame_index.get()),
-                render_list_vk,
+                render_list,
                 this->m_flight_frame_index,
                 camera.view_pos(),
                 this->m_attach_man.color().extent(),
