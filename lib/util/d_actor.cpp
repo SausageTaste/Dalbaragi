@@ -1,7 +1,42 @@
 #include "d_actor.h"
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+#include <fmt/format.h>
+
+#include "d_logger.h"
+
 
 namespace {
+
+    float mod_PI(float y) {
+        constexpr float PI = static_cast<float>(M_PI);
+        constexpr float PI_TIMES_2 = static_cast<float>(M_PI * 2.0);
+
+        while (y > PI)
+            y -= PI_TIMES_2;
+
+        while (y < -PI)
+            y += PI_TIMES_2;
+
+        return y;
+    }
+
+    float clamp_HALF_PI(float y) {
+        constexpr float PI = static_cast<float>(M_PI);
+        constexpr float PI_HALF = static_cast<float>(M_PI * 0.5);
+        constexpr float PI_TIMES_2 = static_cast<float>(M_PI * 2.0);
+
+        if (y > PI_HALF)
+            return PI_HALF;
+
+        if (y < -PI_HALF)
+            return -PI_HALF;
+
+        return y;
+    }
+
 
     template <typename _Mat>
     _Mat make_rotation_x(const float radians) {
@@ -121,6 +156,61 @@ namespace {
         return glm::normalize(glm::angleAxis(radians, selector) * q);
     }
 
+
+    auto decompose_rotations(const glm::mat4& m) {
+        const auto sin_x = -m[2][1];
+        const auto cos_x = sqrt((m[0][1] * m[0][1]) + (m[1][1] * m[1][1]));
+        const auto tan_x = sin_x / cos_x;
+
+        dalInfo(fmt::format("{}, {}, {}", sin_x, cos_x, tan_x).c_str());
+
+        const auto x = atan2(sin_x, cos_x);
+        const auto y = atan2(m[2][0], m[2][2]);
+        const auto z = atan2(m[0][1], m[1][1]);
+
+        return glm::vec3{ mod_PI(x), mod_PI(y), mod_PI(z) };
+    }
+
+}
+
+
+//
+namespace dal {
+
+    void EulerAnglesYXZ::set_x(const float v) {
+        this->m_rotations.x = v;
+        this->m_rotations.x = ::mod_PI(this->m_rotations.x);
+    }
+
+    void EulerAnglesYXZ::set_y(const float v) {
+        this->m_rotations.y = v;
+        this->m_rotations.y = ::mod_PI(this->m_rotations.y);
+    }
+
+    void EulerAnglesYXZ::set_z(const float v) {
+        this->m_rotations.z = v;
+        this->m_rotations.z = ::mod_PI(this->m_rotations.z);
+    }
+
+    void EulerAnglesYXZ::add_x(const float v) {
+        this->m_rotations.x += v;
+        this->m_rotations.x = ::mod_PI(this->m_rotations.x);
+    }
+
+    void EulerAnglesYXZ::add_y(const float v) {
+        this->m_rotations.y += v;
+        this->m_rotations.y = ::mod_PI(this->m_rotations.y);
+    }
+
+    void EulerAnglesYXZ::add_z(const float v) {
+        this->m_rotations.z += v;
+        this->m_rotations.z = ::mod_PI(this->m_rotations.z);
+    }
+
+    glm::mat4 EulerAnglesYXZ::make_view_mat() const {
+        return ::make_rotation_zxy<glm::mat4>(-this->m_rotations);
+    }
+
 }
 
 
@@ -182,20 +272,45 @@ namespace dal {
 
     glm::mat4 EulerCamera::make_view_mat() const {
         const auto translate = glm::translate(glm::mat4{1}, -this->m_pos);
-        const auto rotation = ::make_rotation_zxy<glm::mat4>(-this->m_rotations);
-        return rotation * translate;
+        const auto rotation = this->m_rotations.make_view_mat();
+        const auto output = rotation * translate;
+
+        const auto decomposed = ::decompose_rotations(glm::inverse(output));
+        dalInfo(fmt::format(
+            "({:0.3f}, {:0.3f}, {:0.3f}) - ({:0.3f}, {:0.3f}, {:0.3f}) = ({:0.3f}, {:0.3f}, {:0.3f})",
+            this->m_rotations.x(),
+            this->m_rotations.y(),
+            this->m_rotations.z(),
+            decomposed.x,
+            decomposed.y,
+            decomposed.z,
+            (this->m_rotations.x()) - (decomposed.x),
+            (this->m_rotations.y()) - (decomposed.y),
+            (this->m_rotations.z()) - (decomposed.z)
+        ).c_str());
+
+        return output;
+    }
+
+    EulerCamera EulerCamera::transform(const glm::mat4& mat) const {
+        EulerCamera output;
+
+        output.m_pos = mat * glm::vec4(this->m_pos, 1);
+        output.m_rotations.set_xyz(this->m_rotations.vec3() + ::decompose_rotations(mat));
+
+        return output;
     }
 
     void EulerCamera::move_horizontal(glm::vec3 v) {
         v.y = 0;
-        const auto rotated = make_rotation_y<glm::mat3>(this->m_rotations.y) * v;
+        const auto rotated = make_rotation_y<glm::mat3>(this->m_rotations.y()) * v;
 
         this->m_pos.x += rotated.x;
         this->m_pos.z += rotated.z;
     }
 
     void EulerCamera::move_forward(const glm::vec3& v) {
-        this->m_pos += ::make_rotation_yxz<glm::mat3>(this->m_rotations) * v;
+        this->m_pos += ::make_rotation_yxz<glm::mat3>(this->m_rotations.vec3()) * v;
     }
 
 }

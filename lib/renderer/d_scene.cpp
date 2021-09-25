@@ -58,7 +58,7 @@ namespace dal {
 
     Scene::Scene() {
         this->m_euler_camera.m_pos = { 2.68, 1.91, 0 };
-        this->m_euler_camera.m_rotations = { -0.22, glm::radians<float>(90), 0 };
+        this->m_euler_camera.m_rotations.set_xyz(-0.22, glm::radians<float>(90), 0);
         this->m_prev_camera = this->m_euler_camera;
 
         {
@@ -102,7 +102,7 @@ namespace dal {
             });
         }
 
-        // Apply portal teleporation
+        // Apply portal teleportation
         {
             Segment seg;
             seg.m_start = this->m_prev_camera.m_pos;
@@ -112,8 +112,8 @@ namespace dal {
                 const auto intersection = this->m_portal.m_portals[0].find_intersection(seg);
                 if (intersection) {
                     const auto a = intersection->calc_intersecting_point(seg);
-                    const auto seg_trans = seg.transform(dal::make_portal_mat(this->m_portal.m_portals[1].m_plane, this->m_portal.m_portals[0].m_plane));
-                    this->m_euler_camera.m_pos = seg_trans.end_point();
+                    const auto portal_mat = dal::make_portal_mat(this->m_portal.m_portals[1].m_plane, this->m_portal.m_portals[0].m_plane);
+                    this->m_euler_camera = this->m_euler_camera.transform(portal_mat);
                 }
             }
 
@@ -121,8 +121,8 @@ namespace dal {
                 const auto intersection = this->m_portal.m_portals[1].find_intersection(seg);
                 if (intersection) {
                     const auto a = intersection->calc_intersecting_point(seg);
-                    const auto seg_trans = seg.transform(dal::make_portal_mat(this->m_portal.m_portals[0].m_plane, this->m_portal.m_portals[1].m_plane));
-                    this->m_euler_camera.m_pos = seg_trans.end_point();
+                    const auto portal_mat = dal::make_portal_mat(this->m_portal.m_portals[0].m_plane, this->m_portal.m_portals[1].m_plane);
+                    this->m_euler_camera = this->m_euler_camera.transform(portal_mat);
                 }
             }
         }
@@ -148,7 +148,7 @@ namespace dal {
             const auto translate1 = glm::translate(glm::mat4{1}, glm::vec3{-sin(t * 0.3) * 3 - 4.5, 1, 1});
             const auto translate2 = glm::translate(glm::mat4{1}, glm::vec3{3, 1, -2});
             const auto rotation1 = glm::rotate(glm::mat4{1}, glm::radians<float>(180), glm::vec3{0, 1, 0});
-            const auto rotation2 = glm::rotate(glm::mat4{1}, glm::radians<float>(0), glm::vec3{0, 1, 0});
+            const auto rotation2 = glm::rotate(glm::mat4{1}, glm::radians<float>(t * 20), glm::vec3{0, 0, 1});
 
             const auto m1 = translate1 * rotation1;
             const auto m2 = translate2 * rotation2;
