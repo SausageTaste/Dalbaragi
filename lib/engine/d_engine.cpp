@@ -398,6 +398,8 @@ namespace dal {
             this->input_manager().touch_manager().queue().clear();
             this->input_manager().key_manager().queue().clear();
         }
+
+        // Update camera
         {
             constexpr float MOVE_SPEED = 2;
             constexpr float ROT_SPEED = 1.5;
@@ -417,6 +419,18 @@ namespace dal {
             ) * ROT_SPEED;
 
             this->m_scene.m_euler_camera.m_rotations.add_xyz(rotation_delta);
+
+            // Rotate camera to make it's top look upward
+            if (0.f == rotation_delta.z && 0.f != this->m_scene.m_euler_camera.m_rotations.z()) {
+                const auto cur_z = this->m_scene.m_euler_camera.m_rotations.z();
+                const auto cur_z_abs = std::abs(cur_z);
+                const auto z_delta = (-cur_z / cur_z_abs) * static_cast<float>(delta_time * 2.0);
+
+                if (std::abs(z_delta) < cur_z_abs)
+                    this->m_scene.m_euler_camera.m_rotations.add_z(z_delta);
+                else
+                    this->m_scene.m_euler_camera.m_rotations.set_z(0);
+            }
         }
 
         this->m_task_man.update();
