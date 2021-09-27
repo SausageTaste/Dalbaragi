@@ -69,16 +69,6 @@ float calc_view_z_of(const vec3 p) {
     return dot(vec3(m[0].z, m[1].z, m[2].z), p) + m[3].z;
 }
 
-vec3 fix_color(const vec3 color) {
-    const float GAMMA = 2.2;
-    const float EXPOSURE = 1;
-
-    vec3 mapped = vec3(1.0) - exp(-color * EXPOSURE);
-    //vec3 mapped = color / (color + 1.0);
-    mapped = pow(mapped, vec3(1.0 / GAMMA));
-    return mapped;
-}
-
 vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 view_pos) {
     const int NUM_STEPS = 5;
     const float INTENSITY_DLIGHT = 0.6;
@@ -527,9 +517,4 @@ void main() {
     }
 
     out_color.xyz = 1.0 - exp(-out_color.xyz);
-
-#ifdef DAL_GAMMA_CORRECT
-    out_color.xyz = fix_color(out_color.xyz);
-#endif
-
 }
