@@ -28,7 +28,7 @@ target_link_libraries(libdal_util
     PUBLIC
         fmt
         glm::glm
-        daltools
+        dalbaragi::daltools
         nlohmann_json::nlohmann_json
 )
 target_include_directories(libdal_util
