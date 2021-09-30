@@ -11,17 +11,22 @@ layout(location = 0) out vec2 v_uv_coord;
 layout(location = 1) out vec3 v_normal;
 
 
-layout(set = 0, binding = 0) uniform U_PerFrame {
+layout(set = 0, binding = 0) uniform U_CameraTransform {
     mat4 m_view;
     mat4 m_proj;
+    mat4 m_view_inv;
+    mat4 m_proj_inv;
+
     vec4 m_view_pos;
-} u_per_frame;
+
+    float m_near, m_far;
+} u_cam_transform;
 
 layout(set = 2, binding = 0) uniform U_PerActor {
     mat4 m_model;
 } u_per_actor;
 
-layout(set = 3, binding = 0) uniform U_AnimTransform {
+layout(set = 2, binding = 1) uniform U_AnimTransform {
     mat4 m_transforms[128];
 } u_anim_transform;
 
@@ -43,7 +48,7 @@ mat4 make_joint_transform() {
 
 void main() {
     const mat4 model_joint_mat = u_per_actor.m_model * make_joint_transform();
-    gl_Position = u_per_frame.m_proj * u_per_frame.m_view * model_joint_mat * vec4(i_position, 1);
+    gl_Position = u_cam_transform.m_proj * u_cam_transform.m_view * model_joint_mat * vec4(i_position, 1);
     v_uv_coord = i_uv_coord;
     v_normal = mat3(model_joint_mat) * i_normal;
 }

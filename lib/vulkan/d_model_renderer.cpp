@@ -14,7 +14,7 @@ namespace dal {
 
     void ActorVK::init(
         DescAllocator& desc_allocator,
-        const VkDescriptorSetLayout layout_per_actor,
+        const dal::DescLayout_PerActor& layout_per_actor,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
@@ -23,16 +23,23 @@ namespace dal {
         this->m_logi_device = logi_device;
         this->m_desc_allocator = &desc_allocator;
 
-        this->m_ubuf_per_actor.init(phys_device, logi_device);
-        this->m_desc_per_actor = this->m_desc_allocator->allocate(layout_per_actor, logi_device);
-        this->m_desc_per_actor.record_per_actor(this->m_ubuf_per_actor, logi_device);
+        this->m_ubuf_per_actor.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
+        for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
+            this->m_desc.push_back(this->m_desc_allocator->allocate(layout_per_actor, logi_device));
+            this->m_desc.back().record_per_actor(
+                this->m_ubuf_per_actor.at(i),
+                logi_device
+            );
+        }
     }
 
     void ActorVK::destroy() {
         if (nullptr != this->m_desc_allocator) {
-            this->m_desc_allocator->free(std::move(this->m_desc_per_actor));
+            for (auto& d : this->m_desc)
+                this->m_desc_allocator->free(std::move(d));
             this->m_desc_allocator = nullptr;
         }
+        this->m_desc.clear();
 
         if (VK_NULL_HANDLE != this->m_logi_device) {
             this->m_ubuf_per_actor.destroy(this->m_logi_device);
@@ -41,15 +48,16 @@ namespace dal {
     }
 
     bool ActorVK::is_ready() const {
-        return this->m_desc_per_actor.is_ready() && this->m_ubuf_per_actor.is_ready();
+        return this->m_ubuf_per_actor.is_ready();
     }
 
-    void ActorVK::apply_changes() {
-        if (this->is_ready()) {
-            U_PerActor ubuf_data_per_actor;
-            ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
-            this->m_ubuf_per_actor.copy_to_buffer(ubuf_data_per_actor, this->m_logi_device);
-        }
+    void ActorVK::apply_transform(const FrameInFlightIndex& index) {
+        if (!this->is_ready())
+            return;
+
+        U_PerActor ubuf_data_per_actor;
+        ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
+        this->m_ubuf_per_actor.copy_to_buffer(index.get(), ubuf_data_per_actor, this->m_logi_device);
     }
 
 }
@@ -64,8 +72,7 @@ namespace dal {
 
     void ActorSkinnedVK::init(
         DescAllocator& desc_allocator,
-        const VkDescriptorSetLayout layout_per_actor,
-        const VkDescriptorSetLayout layout_anim,
+        const dal::DescLayout_ActorAnimated& layout_per_actor,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
@@ -75,29 +82,25 @@ namespace dal {
         this->m_desc_allocator = &desc_allocator;
 
         this->m_ubuf_per_actor.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
-        for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
-            this->m_desc_per_actor.push_back(this->m_desc_allocator->allocate(layout_per_actor, logi_device));
-            this->m_desc_per_actor.back().record_per_actor(this->m_ubuf_per_actor.at(i), logi_device);
-        }
-
         this->m_ubuf_anim.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
         for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
-            this->m_desc_animation.push_back(this->m_desc_allocator->allocate(layout_anim, logi_device));
-            this->m_desc_animation.back().record_animation(this->m_ubuf_anim.at(i), logi_device);
+            this->m_desc.push_back(this->m_desc_allocator->allocate(layout_per_actor, logi_device));
+            this->m_desc.back().record_actor_animated(
+                this->m_ubuf_per_actor.at(i),
+                this->m_ubuf_anim.at(i),
+                logi_device
+            );
         }
     }
 
     void ActorSkinnedVK::destroy() {
         if (nullptr != this->m_desc_allocator) {
-            for (auto& d : this->m_desc_per_actor)
-                this->m_desc_allocator->free(std::move(d));
-            for (auto& d : this->m_desc_animation)
+            for (auto& d : this->m_desc)
                 this->m_desc_allocator->free(std::move(d));
             this->m_desc_allocator = nullptr;
         }
 
-        this->m_desc_per_actor.clear();
-        this->m_desc_animation.clear();
+        this->m_desc.clear();
 
         if (VK_NULL_HANDLE != this->m_logi_device) {
             this->m_ubuf_per_actor.destroy(this->m_logi_device);
@@ -107,7 +110,10 @@ namespace dal {
     }
 
     bool ActorSkinnedVK::is_ready() const {
-        return VK_NULL_HANDLE != this->m_logi_device;
+        return (
+            this->m_ubuf_per_actor.is_ready() &&
+            this->m_ubuf_anim.is_ready()
+        );
     }
 
     void ActorSkinnedVK::apply_transform(const FrameInFlightIndex& index) {
@@ -130,6 +136,33 @@ namespace dal {
             ubuf_data.m_transforms[i] = this->m_anim_state.transform_array()[i];
 
         this->m_ubuf_anim.copy_to_buffer(index.get(), ubuf_data, this->m_logi_device);
+    }
+
+}
+
+
+// MeshVK
+namespace dal {
+
+    void MeshVK::init(
+        const std::vector<VertexStatic>& vertices,
+        const std::vector<uint32_t>& indices,
+        dal::CommandPool& cmd_pool,
+        const VkPhysicalDevice phys_device,
+        const dal::LogicalDevice& logi_device
+    ) {
+        this->m_vertices.init_static(
+            vertices,
+            indices,
+            cmd_pool,
+            logi_device.queue_graphics(),
+            phys_device,
+            logi_device.get()
+        );
+    }
+
+    void MeshVK::destroy(const VkDevice logi_device) {
+        this->m_vertices.destroy(logi_device);
     }
 
 }
@@ -210,7 +243,7 @@ namespace dal {
     bool RenderUnit::prepare(
         DescPool& desc_pool,
         const SamplerTexture& sampler,
-        const VkDescriptorSetLayout layout_per_material,
+        const dal::DescLayout_PerMaterial& layout_per_material,
         const VkDevice logi_device
     ) {
         if (this->is_ready())
@@ -258,8 +291,8 @@ namespace dal {
         dal::CommandPool& cmd_pool,
         ITextureManager& tex_man,
         const char* const fallback_file_namespace,
-        const VkDescriptorSetLayout layout_per_actor,
-        const VkDescriptorSetLayout layout_per_material,
+        const dal::DescLayout_PerActor& layout_per_actor,
+        const dal::DescLayout_PerMaterial& layout_per_material,
         const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
@@ -299,7 +332,7 @@ namespace dal {
         this->m_desc_pool.destroy(this->m_logi_device);
     }
 
-    bool ModelRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
+    bool ModelRenderer::fetch_one_resource(const dal::DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
         for (auto& unit : this->m_units) {
             if (unit.is_ready())
                 continue;
@@ -353,8 +386,8 @@ namespace dal {
         dal::CommandPool& cmd_pool,
         ITextureManager& tex_man,
         const char* const fallback_file_namespace,
-        const VkDescriptorSetLayout layout_per_actor,
-        const VkDescriptorSetLayout layout_per_material,
+        const dal::DescLayout_PerActor& layout_per_actor,
+        const dal::DescLayout_PerMaterial& layout_per_material,
         const VkQueue graphics_queue,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
@@ -397,7 +430,7 @@ namespace dal {
         this->m_desc_pool.destroy(this->m_logi_device);
     }
 
-    bool ModelSkinnedRenderer::fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
+    bool ModelSkinnedRenderer::fetch_one_resource(const dal::DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
         for (auto& unit : this->m_units) {
             if (unit.is_ready())
                 continue;

@@ -7,29 +7,25 @@ layout(location = 2) in vec3 i_position;
 layout(location = 3) in vec3 i_normal;
 layout(location = 4) in vec2 i_uv_coord;
 
-layout(location = 0) out vec2 v_uv_coord;
-layout(location = 1) out vec3 v_normal;
-layout(location = 2) out vec3 v_world_pos;
+layout(location = 0) out vec3 v_world_pos;
+layout(location = 1) out vec2 v_uv_coord;
+layout(location = 2) out vec3 v_normal;
+layout(location = 3) out vec3 v_light;
 
 
-layout(set = 0, binding = 0) uniform U_CameraTransform {
-    mat4 m_view;
-    mat4 m_proj;
-    mat4 m_view_inv;
-    mat4 m_proj_inv;
-
-    vec4 m_view_pos;
-
-    float m_near, m_far;
-} u_cam_transform;
-
-layout(set = 2, binding = 0) uniform U_PerActor {
+layout(set = 1, binding = 0) uniform U_PerActor {
     mat4 m_model;
-} u_per_actor;
+} u_actor;
 
-layout(set = 2, binding = 1) uniform U_AnimTransform {
+layout(set = 1, binding = 1) uniform U_AnimTransform {
     mat4 m_transforms[128];
 } u_anim_transform;
+
+
+layout(push_constant) uniform U_PC_OnMirror {
+    mat4 m_proj_view_mat;
+    vec4 m_clip_plane;
+} u_pc;
 
 
 mat4 make_joint_transform() {
@@ -48,10 +44,12 @@ mat4 make_joint_transform() {
 
 
 void main() {
-    const mat4 model_joint_mat = u_per_actor.m_model * make_joint_transform();
+    const mat4 model_joint_mat = u_actor.m_model * make_joint_transform();
     const vec4 world_pos = model_joint_mat * vec4(i_position, 1);
+
+    gl_Position = u_pc.m_proj_view_mat * world_pos;
     v_world_pos = world_pos.xyz;
-    gl_Position = u_cam_transform.m_proj * u_cam_transform.m_view * world_pos;
     v_uv_coord = i_uv_coord;
-    v_normal = normalize((model_joint_mat * vec4(i_normal, 0)).xyz);
+    v_normal = normalize(mat3(model_joint_mat) * i_normal);
+    v_light = vec3(max(0, dot(v_normal, normalize(vec3(1, 1, 0)))) * 0.2 + 0.1);
 }

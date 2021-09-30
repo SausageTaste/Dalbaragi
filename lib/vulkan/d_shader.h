@@ -4,6 +4,7 @@
 
 #include "d_vk_device.h"
 #include "d_filesystem.h"
+#include "d_uniform.h"
 #include "d_render_pass.h"
 
 
@@ -59,6 +60,9 @@ namespace dal {
         ShaderPipeline m_alpha_animated;
         ShaderPipeline m_shadow;
         ShaderPipeline m_shadow_animated;
+        ShaderPipeline m_on_mirror;
+        ShaderPipeline m_on_mirror_animated;
+        ShaderPipeline m_mirror;
 
     public:
         void init(
@@ -68,17 +72,8 @@ namespace dal {
             const bool does_support_depth_clamp,
             const VkExtent2D& swapchain_extent,
             const VkExtent2D& gbuf_extent,
-            const VkDescriptorSetLayout desc_layout_final,
-            const VkDescriptorSetLayout desc_layout_per_global,
-            const VkDescriptorSetLayout desc_layout_per_material,
-            const VkDescriptorSetLayout desc_layout_per_actor,
-            const VkDescriptorSetLayout desc_layout_animation,
-            const VkDescriptorSetLayout desc_layout_composition,
-            const VkDescriptorSetLayout desc_layout_alpha,
-            const RenderPass_Gbuf& rp_gbuf,
-            const RenderPass_Final& rp_final,
-            const RenderPass_Alpha& rp_alpha,
-            const RenderPass_ShadowMap& rp_shadow,
+            const dal::DescSetLayoutManager& desc_layouts,
+            const dal::RenderPassManager& render_passes,
             const VkDevice logi_device
         );
 
@@ -114,6 +109,18 @@ namespace dal {
 
         auto& shadow_animated() const {
             return this->m_shadow_animated;
+        }
+
+        auto& on_mirror() const {
+            return this->m_on_mirror;
+        }
+
+        auto& on_mirror_animated() const {
+            return this->m_on_mirror_animated;
+        }
+
+        auto& mirror() const {
+            return this->m_mirror;
         }
 
     };

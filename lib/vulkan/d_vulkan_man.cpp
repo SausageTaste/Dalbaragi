@@ -50,38 +50,6 @@ namespace {
     }
 
 
-    auto& actor_cast(dal::IActor& actor) {
-        return dynamic_cast<dal::ActorVK&>(actor);
-    }
-
-    auto& actor_cast(const dal::IActor& actor) {
-        return dynamic_cast<const dal::ActorVK&>(actor);
-    }
-
-    auto& actor_cast(dal::HActor& actor) {
-        return dynamic_cast<dal::ActorVK&>(*actor.get());
-    }
-
-    auto& actor_cast(const dal::HActor& actor) {
-        return dynamic_cast<const dal::ActorVK&>(*actor.get());
-    }
-
-    auto& actor_cast(dal::IActorSkinned& actor) {
-        return dynamic_cast<dal::ActorSkinnedVK&>(actor);
-    }
-
-    auto& actor_cast(const dal::IActorSkinned& actor) {
-        return dynamic_cast<const dal::ActorSkinnedVK&>(actor);
-    }
-
-    auto& actor_cast(dal::HActorSkinned& actor) {
-        return dynamic_cast<dal::ActorSkinnedVK&>(*actor.get());
-    }
-
-    auto& actor_cast(const dal::HActorSkinned& actor) {
-        return dynamic_cast<const dal::ActorSkinnedVK&>(*actor.get());
-    }
-
 }
 
 
@@ -298,6 +266,7 @@ namespace dal {
     VulkanState::~VulkanState() {
         this->wait_idle();
 
+        this->m_ref_planes.destroy(this->m_logi_device.get());
         this->m_shadow_maps.destroy(this->m_logi_device.get());
         this->m_desc_allocator.destroy(this->m_logi_device.get());
         this->m_sampler_man.destroy(this->m_logi_device.get());
@@ -330,7 +299,7 @@ namespace dal {
         }
     }
 
-    void VulkanState::update(const ICamera& camera, RenderList& render_list) {
+    void VulkanState::update(const ICamera& camera, dal::Scene& scene) {
         if (this->m_screen_resize_notified) {
             this->m_screen_resize_notified = this->on_recreate_swapchain();
             return;
@@ -341,16 +310,16 @@ namespace dal {
         sync_man.m_fence_frame_in_flight.at(this->m_flight_frame_index).wait(this->m_logi_device.get());
         const auto [acquire_result, swapchain_index] = this->m_swapchain.acquire_next_img_index(this->m_flight_frame_index, this->m_logi_device.get());
 
-        if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
-            this->m_screen_resize_notified = this->on_recreate_swapchain();
-            return;
-        }
-        else if (ImgAcquireResult::success != acquire_result) {
-            dalError("Failed to acquire swapchain image");
-            return;
-        }
-
         {
+            if (ImgAcquireResult::out_of_date == acquire_result || ImgAcquireResult::suboptimal == acquire_result || this->m_screen_resize_notified) {
+                this->m_screen_resize_notified = this->on_recreate_swapchain();
+                return;
+            }
+            else if (ImgAcquireResult::success != acquire_result) {
+                dalError("Failed to acquire swapchain image");
+                return;
+            }
+
             auto& img_fences = sync_man.fence_image_in_flight(swapchain_index);
             if (nullptr != img_fences) {
                 img_fences->wait(this->m_logi_device.get());
@@ -359,21 +328,25 @@ namespace dal {
         }
 
         // Update render list
-        {
-            for (auto& x : render_list.m_static_models) {
-                for (auto& a : x.m_actors) {
-                    auto& actor = ::actor_cast(a);
-                    actor.apply_changes();
-                }
-            }
+        //-----------------------------------------------------------------------------------------------------
 
-            for (auto& x : render_list.m_skinned_models) {
-                for (auto& a : x.m_actors) {
-                    auto& actor = ::actor_cast(a);
-                    actor.apply_animation(this->in_flight_index());
-                    actor.apply_transform(this->in_flight_index());
-                }
+        dal::RenderListVK render_list;
+        render_list.apply(scene, camera.view_pos());
+
+        for (auto x : render_list.m_used_actors) {
+            auto& actor = dal::actor_cast(x);
+
+            if (actor.m_transform_update_needed > 0) {
+                --actor.m_transform_update_needed;
+                actor.apply_transform(this->in_flight_index());
             }
+        }
+
+        for (auto x : render_list.m_used_skin_actors) {
+            auto& actor = dal::actor_cast(x);
+
+            actor.apply_animation(this->in_flight_index());
+            actor.apply_transform(this->in_flight_index());
         }
 
         // Prepare needed data
@@ -407,7 +380,7 @@ namespace dal {
 
                     this->m_shadow_maps.m_dlight_clip_dists[index] = ::calc_clip_depth(-(::PROJ_NEAR + far_dist), ::PROJ_NEAR, ::PROJ_FAR);
 
-                    this->m_shadow_maps.m_dlight_matrices[index] = render_list.m_dlights[0].make_light_mat(
+                    this->m_shadow_maps.m_dlight_matrices[index] = render_list.m_dlight.make_light_mat(
                         frustum_vertices[index].data(), frustum_vertices[index].data() + frustum_vertices[index].size()
                     );
                 }
@@ -425,68 +398,95 @@ namespace dal {
 
             this->m_shadow_maps.m_dlight_clip_dists[0] = ::calc_clip_depth(-(::PROJ_NEAR + far_dist), ::PROJ_NEAR, ::PROJ_FAR);
 
-            this->m_shadow_maps.m_dlight_matrices[0] = render_list.m_dlights[0].make_light_mat(
+            this->m_shadow_maps.m_dlight_matrices[0] = render_list.m_dlight.make_light_mat(
                 frustum_vertices[0].data(), frustum_vertices[0].data() + frustum_vertices[0].size()
             );
+        }
+
+        // Set mirror plane
+        {
+            const auto extent_reflection = ::calc_smaller_extent(this->m_new_extent, 0.7);
+
+            this->m_ref_planes.resize(
+                render_list.m_render_planes.size() + render_list.m_render_waters.size(),
+                extent_reflection.width, extent_reflection.height,
+                this->m_desc_layout_man.layout_mirror(),
+                this->m_renderpasses.rp_simple(),
+                this->m_phys_device.get(),
+                this->m_logi_device.get()
+            );
+
+            auto& dst_planes = this->m_ref_planes.reflection_planes();
+            auto& render_planes = render_list.m_render_planes;
+            auto& render_waters = render_list.m_render_waters;
+
+            size_t index_counter = 0;
+
+            for (auto& x : render_planes) {
+                dst_planes[index_counter].m_orient_mat = x.m_orient_mat;
+                dst_planes[index_counter].m_clip_plane = x.m_clip_plane;
+                x.reflection_map_index = index_counter++;
+            }
+
+            for (auto& x : render_waters) {
+                dst_planes[index_counter].m_orient_mat = x.m_orient_mat;
+                dst_planes[index_counter].m_clip_plane = x.m_clip_plane;
+                x.reflection_map_index = index_counter++;
+            }
         }
 
         // Set up uniform variables
         //-----------------------------------------------------------------------------------------------------
 
+        // U_CameraTransform
         {
-            U_PerFrame ubuf_data_per_frame{};
-            ubuf_data_per_frame.m_view = cam_view_mat;
-            ubuf_data_per_frame.m_proj = cam_proj_mat;
-            ubuf_data_per_frame.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
-            this->m_ubuf_man.m_ub_simple.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_per_frame, this->m_logi_device.get());
-
-            U_PerFrame_Composition ubuf_data_composition{};
-            ubuf_data_composition.m_view_mat = cam_view_mat;
+            U_CameraTransform ubuf_data_composition{};
+            ubuf_data_composition.m_view = cam_view_mat;
+            ubuf_data_composition.m_proj = cam_proj_mat;
             ubuf_data_composition.m_view_inv = glm::inverse(cam_view_mat);
             ubuf_data_composition.m_proj_inv = glm::inverse(cam_proj_mat);
-            ubuf_data_composition.m_view_pos = ubuf_data_per_frame.m_view_pos;
+            ubuf_data_composition.m_view_pos = glm::vec4{ camera.view_pos(), 1 };
             ubuf_data_composition.m_near = ::PROJ_NEAR;
             ubuf_data_composition.m_far = ::PROJ_FAR;
-            this->m_ubuf_man.m_ub_per_frame_composition.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
+            this->m_ubuf_man.m_u_camera_transform.at(this->m_flight_frame_index.get()).copy_to_buffer(ubuf_data_composition, this->m_logi_device.get());
         }
 
+        // U_GlobalLight
         {
-            dalAssert(render_list.m_dlights.size() == 1);
             dalAssert(render_list.m_plights.size() <= dal::MAX_PLIGHT_COUNT);
             dalAssert(render_list.m_slights.size() <= dal::MAX_SLIGHT_COUNT);
 
             U_GlobalLight data_glight{};
-            {
-                data_glight.m_dlight_count = dal::MAX_DLIGHT_COUNT;
-                for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
-                    auto& src_light = render_list.m_dlights[0];
 
-                    data_glight.m_dlight_mat[i]   = this->m_shadow_maps.m_dlight_matrices[i];
-                    data_glight.m_dlight_direc[i] = glm::vec4{ src_light.to_light_direc(), 0 };
-                    data_glight.m_dlight_color[i] = glm::vec4{ src_light.m_color, 1 };
-                    data_glight.m_dlight_clip_dist[i] = this->m_shadow_maps.m_dlight_clip_dists[i];
-                }
+            data_glight.m_dlight_count = dal::MAX_DLIGHT_COUNT;
+            for (size_t i = 0; i < dal::MAX_DLIGHT_COUNT; ++i) {
+                auto& src_light = render_list.m_dlight;
 
-                data_glight.m_plight_count = render_list.m_plights.size();
-                for (size_t i = 0; i < render_list.m_plights.size(); ++i) {
-                    data_glight.m_plight_pos_n_max_dist[i] = glm::vec4{ render_list.m_plights[i].m_pos, 0 };
-                    data_glight.m_plight_color[i]          = glm::vec4{ render_list.m_plights[i].m_color, 0 };
-                }
-
-                data_glight.m_slight_count = render_list.m_slights.size();
-                for (size_t i = 0; i < render_list.m_slights.size(); ++i) {
-                    auto& src_light = render_list.m_slights[i];
-
-                    data_glight.m_slight_mat[i]                = src_light.make_light_mat();
-                    data_glight.m_slight_pos_n_max_dist[i]     = glm::vec4{ src_light.m_pos, src_light.m_max_dist };
-                    data_glight.m_slight_direc_n_fade_start[i] = glm::vec4{ src_light.to_light_direc(), src_light.fade_start() };
-                    data_glight.m_slight_color_n_fade_end[i]   = glm::vec4{ src_light.m_color, src_light.fade_end() };
-                }
-
-                data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_color, 1 };
-                data_glight.m_atmos_intensity = render_list.m_dlights[0].m_atmos_intensity;
-                data_glight.m_mie_scattering_coeff = 221e-6;
+                data_glight.m_dlight_mat[i]   = this->m_shadow_maps.m_dlight_matrices[i];
+                data_glight.m_dlight_direc[i] = glm::vec4{ src_light.to_light_direc(), 0 };
+                data_glight.m_dlight_color[i] = glm::vec4{ src_light.m_color, 1 };
+                data_glight.m_dlight_clip_dist[i] = this->m_shadow_maps.m_dlight_clip_dists[i];
             }
+
+            data_glight.m_plight_count = render_list.m_plights.size();
+            for (size_t i = 0; i < render_list.m_plights.size(); ++i) {
+                data_glight.m_plight_pos_n_max_dist[i] = glm::vec4{ render_list.m_plights[i].m_pos, 0 };
+                data_glight.m_plight_color[i]          = glm::vec4{ render_list.m_plights[i].m_color, 0 };
+            }
+
+            data_glight.m_slight_count = render_list.m_slights.size();
+            for (size_t i = 0; i < render_list.m_slights.size(); ++i) {
+                auto& src_light = render_list.m_slights[i];
+
+                data_glight.m_slight_mat[i]                = src_light.make_light_mat();
+                data_glight.m_slight_pos_n_max_dist[i]     = glm::vec4{ src_light.m_pos, src_light.m_max_dist };
+                data_glight.m_slight_direc_n_fade_start[i] = glm::vec4{ src_light.to_light_direc(), src_light.fade_start() };
+                data_glight.m_slight_color_n_fade_end[i]   = glm::vec4{ src_light.m_color, src_light.fade_end() };
+            }
+
+            data_glight.m_ambient_light = glm::vec4{ render_list.m_ambient_light, 1 };
+            data_glight.m_atmos_intensity = render_list.m_dlight.m_atmos_intensity;
+            data_glight.m_mie_scattering_coeff = 221e-6;
 
             this->m_ubuf_man.m_ub_glights.at(this->m_flight_frame_index.get()).copy_to_buffer(data_glight, this->m_logi_device.get());
         }
@@ -494,6 +494,53 @@ namespace dal {
         // Submit command buffers to GPU
         //-----------------------------------------------------------------------------------------------------
 
+        // Reflection planes
+        {
+            std::array<VkPipelineStageFlags, 0> wait_stages{};
+            std::array<VkSemaphore, 0> wait_semaphores{};
+            std::array<VkSemaphore, 0> signal_semaphores{};
+
+            for (auto& plane : this->m_ref_planes.reflection_planes()) {
+                const auto& cmd_buf = plane.m_cmd_buf.at(this->m_flight_frame_index.get());
+
+                U_PC_OnMirror pc_data;
+                pc_data.m_proj_view_mat = cam_proj_view_mat * plane.m_orient_mat;
+                pc_data.m_clip_plane = plane.m_clip_plane;
+
+                record_cmd_on_mirror(
+                    cmd_buf,
+                    render_list,
+                    this->m_flight_frame_index,
+                    pc_data,
+                    plane.m_attachments.extent(),
+                    this->m_pipelines.on_mirror(),
+                    this->m_pipelines.on_mirror_animated(),
+                    plane.m_fbuf,
+                    this->m_renderpasses.rp_simple()
+                );
+
+                VkSubmitInfo submit_info{};
+                submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submit_info.pCommandBuffers = &cmd_buf;
+                submit_info.commandBufferCount = 1;
+                submit_info.waitSemaphoreCount = wait_semaphores.size();
+                submit_info.pWaitSemaphores = wait_semaphores.data();
+                submit_info.pWaitDstStageMask = wait_stages.data();
+                submit_info.signalSemaphoreCount = signal_semaphores.size();
+                submit_info.pSignalSemaphores = signal_semaphores.data();
+
+                const auto submit_result = vkQueueSubmit(
+                    this->m_logi_device.queue_graphics(),
+                    1,
+                    &submit_info,
+                    VK_NULL_HANDLE
+                );
+
+                dalAssert(VK_SUCCESS == submit_result);
+            }
+        }
+
+        // Shadow maps
         {
             std::array<VkPipelineStageFlags, 0> wait_stages{};
             std::array<VkSemaphore, 0> wait_semaphores{};
@@ -503,12 +550,17 @@ namespace dal {
                 if (!dlight_update_flags[i])
                     continue;
 
-                this->m_shadow_maps.m_dlights[i].record_cmd_buf(
-                    this->m_flight_frame_index,
+                auto& shadow_map = this->m_shadow_maps.m_dlights[i];
+
+                record_cmd_shadow(
+                    shadow_map.cmd_buf_at(this->m_flight_frame_index.get()),
                     render_list,
+                    this->m_flight_frame_index,
                     this->m_shadow_maps.m_dlight_matrices[i],
+                    shadow_map.extent(),
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
+                    shadow_map.fbuf(),
                     this->m_renderpasses.rp_shadow()
                 );
 
@@ -535,12 +587,15 @@ namespace dal {
             for (size_t i = 0; i < render_list.m_slights.size(); ++i) {
                 auto& shadow_map = this->m_shadow_maps.m_slights[i];
 
-                shadow_map.record_cmd_buf(
-                    this->m_flight_frame_index,
+                record_cmd_shadow(
+                    shadow_map.cmd_buf_at(this->m_flight_frame_index.get()),
                     render_list,
+                    this->m_flight_frame_index,
                     render_list.m_slights[i].make_light_mat(),
+                    shadow_map.extent(),
                     this->m_pipelines.shadow(),
                     this->m_pipelines.shadow_animated(),
+                    shadow_map.fbuf(),
                     this->m_renderpasses.rp_shadow()
                 );
 
@@ -565,21 +620,26 @@ namespace dal {
             }
         }
 
+        // Gbuf
         {
             std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
             std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_img_available.at(this->m_flight_frame_index).get() };
             std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
 
-            this->m_cmd_man.record_simple(
-                this->m_flight_frame_index,
+            record_cmd_gbuf(
+                this->m_cmd_man.cmd_simple_at(this->m_flight_frame_index.get()),
                 render_list,
+                this->m_flight_frame_index,
+                cam_proj_mat * cam_view_mat,
+                this->m_ref_planes,
+                this->m_attach_man.color().extent(),
                 this->m_desc_man.desc_set_per_global_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
-                this->m_attach_man.color().extent(),
-                this->m_fbuf_man.swapchain_fbuf().at(swapchain_index.get()),
                 this->m_pipelines.gbuf(),
                 this->m_pipelines.gbuf_animated(),
                 this->m_pipelines.composition(),
+                this->m_pipelines.mirror(),
+                this->m_fbuf_man.fbuf_gbuf_at(swapchain_index),
                 this->m_renderpasses.rp_gbuf()
             );
 
@@ -603,21 +663,23 @@ namespace dal {
             dalAssert(VK_SUCCESS == submit_result);
         }
 
+        // Alpha
         {
             std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
             std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_gbuf.at(this->m_flight_frame_index).get() };
             std::array<VkSemaphore, 1> signal_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
 
-            this->m_cmd_man.record_alpha(
+            record_cmd_alpha(
+                this->m_cmd_man.cmd_alpha_at(this->m_flight_frame_index.get()),
+                render_list,
                 this->m_flight_frame_index,
                 camera.view_pos(),
-                render_list,
+                this->m_attach_man.color().extent(),
                 this->m_desc_man.desc_set_alpha_at(this->m_flight_frame_index.get()),
                 this->m_desc_man.desc_set_composition_at(this->m_flight_frame_index.get()).get(),
-                this->m_attach_man.color().extent(),
-                this->m_fbuf_man.fbuf_alpha_at(swapchain_index).get(),
                 this->m_pipelines.alpha(),
                 this->m_pipelines.alpha_animated(),
+                this->m_fbuf_man.fbuf_alpha_at(swapchain_index),
                 this->m_renderpasses.rp_alpha()
             );
 
@@ -641,6 +703,7 @@ namespace dal {
             dalAssert(VK_SUCCESS == submit_result);
         }
 
+        // Final
         {
             std::array<VkPipelineStageFlags, 1> wait_stages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
             std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_alpha.at(this->m_flight_frame_index).get() };
@@ -649,13 +712,12 @@ namespace dal {
 
             fence.wait_reset(this->m_logi_device.get());
 
-            this->m_cmd_man.record_final(
-                this->m_flight_frame_index.get(),
-                this->m_fbuf_man.fbuf_final_at(swapchain_index),
+            record_cmd_final(
+                this->m_cmd_man.cmd_final_at(this->m_flight_frame_index.get()),
                 this->m_swapchain.identity_extent(),
                 this->m_desc_man.desc_set_final_at(this->m_flight_frame_index.get()),
-                this->m_pipelines.final().layout(),
-                this->m_pipelines.final().pipeline(),
+                this->m_pipelines.final(),
+                this->m_fbuf_man.fbuf_final_at(swapchain_index),
                 this->m_renderpasses.rp_final()
             );
 
@@ -679,6 +741,7 @@ namespace dal {
             dalAssert(VK_SUCCESS == submit_result);
         }
 
+        // Present
         {
             std::array<VkSemaphore, 1> wait_semaphores{ sync_man.m_semaph_cmd_done_final.at(this->m_flight_frame_index).get() };
             std::array<VkSwapchainKHR, 1> swapchains{ this->m_swapchain.swapchain() };
@@ -791,7 +854,7 @@ namespace dal {
     }
 
     bool VulkanState::init(IActor& actor) {
-        auto& a = ::actor_cast(actor);
+        auto& a = dal::actor_cast(actor);
 
         a.init(
             this->m_desc_allocator,
@@ -804,12 +867,11 @@ namespace dal {
     }
 
     bool VulkanState::init(IActorSkinned& actor) {
-        auto& a = ::actor_cast(actor);
+        auto& a = dal::actor_cast(actor);
 
         a.init(
             this->m_desc_allocator,
-            this->m_desc_layout_man.layout_per_actor(),
-            this->m_desc_layout_man.layout_animation(),
+            this->m_desc_layout_man.layout_actor_animated(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
@@ -835,6 +897,33 @@ namespace dal {
             this->m_sampler_man.sampler_tex(),
             this->m_logi_device.get()
         );
+    }
+
+    // Mesh
+
+    HMesh VulkanState::create_mesh() {
+        return std::make_shared<MeshVK>();
+    }
+
+    bool VulkanState::init(IMesh& i_mesh, const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) {
+        auto& mesh = mesh_cast(i_mesh);
+
+        mesh.init(
+            vertices, indices,
+            this->m_cmd_man.general_pool(),
+            this->m_phys_device.get(),
+            this->m_logi_device
+        );
+
+        return true;
+    }
+
+    bool VulkanState::destroy(IMesh& i_mesh) {
+        auto& mesh = mesh_cast(i_mesh);
+
+        mesh.destroy(this->m_logi_device.get());
+
+        return true;
     }
 
     // Private
@@ -863,24 +952,27 @@ namespace dal {
         if (!result_swapchain)
             return false;
 
-        this->m_attach_man.init(
-            ::calc_smaller_extent(this->m_new_extent, 0.9),
+        this->m_renderpasses.init(
+            this->m_swapchain.format(),
             this->m_phys_device.find_depth_format(),
+            this->m_logi_device.get()
+        );
+
+        const auto extent_gbuf = ::calc_smaller_extent(this->m_new_extent, 0.9);
+
+        this->m_attach_man.init(
+            extent_gbuf,
+            this->m_renderpasses.rp_gbuf(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
 
-        this->m_renderpasses.init(
-            this->m_swapchain.format(),
-            this->m_attach_man.color().format(),
-            this->m_attach_man.depth().format(),
-            this->m_attach_man.albedo().format(),
-            this->m_attach_man.materials().format(),
-            this->m_attach_man.normal().format(),
-            this->m_logi_device.get()
-        );
-
         this->m_shadow_maps.init(this->m_renderpasses.rp_shadow(), this->m_phys_device, this->m_logi_device);
+
+        this->m_ref_planes.init(
+            this->m_phys_device.get(),
+            this->m_logi_device
+        );
 
         this->m_fbuf_man.init(
             this->m_swapchain.views(),
@@ -900,17 +992,8 @@ namespace dal {
             this->m_phys_info.does_support_depth_clamp(),
             this->m_swapchain.identity_extent(),
             this->m_attach_man.color().extent(),
-            this->m_desc_layout_man.layout_final(),
-            this->m_desc_layout_man.layout_per_global(),
-            this->m_desc_layout_man.layout_per_material(),
-            this->m_desc_layout_man.layout_per_actor(),
-            this->m_desc_layout_man.layout_animation(),
-            this->m_desc_layout_man.layout_composition(),
-            this->m_desc_layout_man.layout_alpha(),
-            this->m_renderpasses.rp_gbuf(),
-            this->m_renderpasses.rp_final(),
-            this->m_renderpasses.rp_alpha(),
-            this->m_renderpasses.rp_shadow(),
+            this->m_desc_layout_man,
+            this->m_renderpasses,
             this->m_logi_device.get()
         );
 
@@ -922,7 +1005,7 @@ namespace dal {
 
         this->m_ubuf_man.init(this->m_phys_device.get(), this->m_logi_device.get());
 
-        U_PerFrame_InFinal data;
+        U_Shader_Final data;
         data.m_rotation = this->m_swapchain.pre_ratation_mat();
         this->m_ubuf_man.m_ub_final.copy_to_buffer(data, this->m_logi_device.get());
 
@@ -935,7 +1018,7 @@ namespace dal {
             );
 
             desc_per_global.record_per_global(
-                this->m_ubuf_man.m_ub_simple.at(i),
+                this->m_ubuf_man.m_u_camera_transform.at(i),
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_logi_device.get()
             );
@@ -955,7 +1038,7 @@ namespace dal {
             desc_composition.record_composition(
                 color_attachments,
                 this->m_ubuf_man.m_ub_glights.at(i),
-                this->m_ubuf_man.m_ub_per_frame_composition.at(i),
+                this->m_ubuf_man.m_u_camera_transform.at(i),
                 this->m_shadow_maps.dlight_views(),
                 this->m_shadow_maps.slight_views(),
                 this->m_sampler_man.sampler_depth(),
@@ -980,7 +1063,7 @@ namespace dal {
             );
 
             desc_alpha.record_alpha(
-                this->m_ubuf_man.m_ub_simple.at(i),
+                this->m_ubuf_man.m_u_camera_transform.at(i),
                 this->m_ubuf_man.m_ub_glights.at(i),
                 this->m_shadow_maps.dlight_views(),
                 this->m_shadow_maps.slight_views(),

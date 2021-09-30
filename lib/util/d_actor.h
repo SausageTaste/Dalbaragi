@@ -10,6 +10,67 @@
 
 namespace dal {
 
+    class EulerAnglesYXZ {
+
+    private:
+        glm::vec3 m_rotations{ 0, 0, 0 };
+
+    public:
+        const glm::vec3& vec3() const {
+            return this->m_rotations;
+        }
+
+        auto x() const {
+            return this->m_rotations.x;
+        }
+
+        auto y() const {
+            return this->m_rotations.y;
+        }
+
+        auto z() const {
+            return this->m_rotations.z;
+        }
+
+        void set_x(const float v);
+
+        void set_y(const float v);
+
+        void set_z(const float v);
+
+        void set_xyz(const float x, const float y, const float z) {
+            this->set_x(x);
+            this->set_y(y);
+            this->set_z(z);
+        }
+
+        void set_xyz(const glm::vec3& v) {
+            this->set_x(v.x);
+            this->set_y(v.y);
+            this->set_z(v.z);
+        }
+
+        void add_x(const float v);
+
+        void add_y(const float v);
+
+        void add_z(const float v);
+
+        void add_xyz(const float x, const float y, const float z) {
+            this->add_x(x);
+            this->add_y(y);
+            this->add_z(z);
+        }
+
+        void add_xyz(const glm::vec3& v) {
+            this->add_xyz(v.x, v.y, v.z);
+        }
+
+        glm::mat4 make_view_mat() const;
+
+    };
+
+
     class Transform {
 
     public:
@@ -42,7 +103,8 @@ namespace dal {
     class EulerCamera : public ICamera {
 
     public:
-        glm::vec3 m_pos{}, m_rotations{};
+        EulerAnglesYXZ m_rotations;
+        glm::vec3 m_pos{ 0, 0, 0 };
 
     public:
         glm::vec3 view_pos() const override {
@@ -50,6 +112,8 @@ namespace dal {
         }
 
         glm::mat4 make_view_mat() const override;
+
+        EulerCamera transform(const glm::mat4& mat) const;
 
         // -z is forward, +x is right, y is discarded
         void move_horizontal(glm::vec3 v);

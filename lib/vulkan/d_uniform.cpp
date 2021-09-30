@@ -8,21 +8,39 @@
 
 namespace {
 
+    constexpr int MAX_PUSH_CONST_SIZE = 128;
+    constexpr int MAX_UBUF_SIZE = 16 * 1024;  // 16 KB
+
+    static_assert(MAX_PUSH_CONST_SIZE >= sizeof(dal::U_PC_Shadow));
+    static_assert(MAX_PUSH_CONST_SIZE >= sizeof(dal::U_PC_OnMirror));
+
+    static_assert(MAX_UBUF_SIZE >= sizeof(dal::U_Shader_Final));
+    static_assert(MAX_UBUF_SIZE >= sizeof(dal::U_CameraTransform));
+    static_assert(MAX_UBUF_SIZE >= sizeof(dal::U_PerMaterial));
+    static_assert(MAX_UBUF_SIZE >= sizeof(dal::U_PerActor));
+    static_assert(MAX_UBUF_SIZE >= sizeof(dal::U_AnimTransform));
+    static_assert(MAX_UBUF_SIZE >= sizeof(dal::U_GlobalLight));
+
+}
+
+
+namespace {
+
     class DescLayoutBuilder {
 
     private:
         std::vector<VkDescriptorSetLayoutBinding> m_bindings;
 
     public:
-        uint32_t size() const {
+        uint32_t size() const noexcept {
             return this->m_bindings.size();
         }
 
-        auto data() const {
+        auto data() const noexcept {
             return this->m_bindings.data();
         }
 
-        VkDescriptorSetLayoutCreateInfo make_create_info() const {
+        VkDescriptorSetLayoutCreateInfo make_create_info() const noexcept {
             VkDescriptorSetLayoutCreateInfo layout_info{};
             layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
             layout_info.pBindings = this->data();
@@ -57,90 +75,81 @@ namespace {
 
     };
 
+}
 
-    VkDescriptorSetLayout create_layout_final(const VkDevice logi_device) {
+
+// Descriptor set layouts
+namespace dal {
+
+    void IDescSetLayout::destroy(const VkDevice logi_device) noexcept {
+        if (VK_NULL_HANDLE != this->m_layout) {
+            vkDestroyDescriptorSetLayout(logi_device, this->m_layout, nullptr);
+            this->m_layout = VK_NULL_HANDLE;
+        }
+    }
+
+    void IDescSetLayout::build(const VkDescriptorSetLayoutCreateInfo& create_info, const VkDevice logi_device) noexcept {
+        this->destroy(logi_device);
+
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &create_info, nullptr, &this->m_layout))
+            dalAbort("failed to create descriptor set layout!");
+    }
+
+
+    void DescLayout_Final::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
+        // rendered color result
         bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // U_Shader_Final
         bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
 
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &output))
-            dalAbort("failed to create descriptor set layout!");
-
-        return output;
+        this->build(bindings.make_create_info(), logi_device);
     }
 
-    VkDescriptorSetLayout create_layout_per_global(const VkDevice logiDevice) {
+    void DescLayout_PerGlobal::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
-
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-        VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layout_info, nullptr, &output))
-            dalAbort("failed to create descriptor set layout!");
-
-        return output;
-    }
-
-    VkDescriptorSetLayout create_layout_per_material(const VkDevice logi_device) {
-        ::DescLayoutBuilder bindings;
-
+        // U_CameraTransform
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+        // U_GlobalLight
         bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        this->build(bindings.make_create_info(), logi_device);
+    }
+
+    void DescLayout_PerMaterial::init(const VkDevice logi_device) {
+        ::DescLayoutBuilder bindings;
+
+        // U_PerMaterial
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // albedo map
         bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &output))
-            dalAbort("failed to create descriptor set layout!");
-
-        return output;
+        this->build(bindings.make_create_info(), logi_device);
     }
 
-    VkDescriptorSetLayout create_layout_per_actor(const VkDevice logi_device) {
+    void DescLayout_PerActor::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
+        // U_PerActor
         bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
 
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &output))
-            dalAbort("failed to create descriptor set layout!");
-
-        return output;
+        this->build(bindings.make_create_info(), logi_device);
     }
 
-    VkDescriptorSetLayout create_layout_animation(const VkDevice logi_device) {
+    void DescLayout_ActorAnimated::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);  // U_AnimTransform
+        // U_PerActor
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
+        // U_AnimTransform
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT);
 
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout result = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logi_device, &layout_info, nullptr, &result))
-            dalAbort("failed to create descriptor set layout!");
-
-        return result;
+        this->build(bindings.make_create_info(), logi_device);
     }
 
-    VkDescriptorSetLayout create_layout_composition(const VkDevice logiDevice) {
+    void DescLayout_Composition::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings{};
 
         bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -148,38 +157,40 @@ namespace {
         bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
         bindings.add_attach(VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_GlobalLight
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // Ubuf U_PerFrame_Composition
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);  // Slight shadow maps
+        // Ubuf U_GlobalLight
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // Ubuf U_CameraTransform
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // directional light shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);
+        // spot light shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);
 
-        //----------------------------------------------------------------------------------
-
-        const auto layout_info = bindings.make_create_info();
-
-        VkDescriptorSetLayout result = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layout_info, nullptr, &result))
-            dalAbort("failed to create descriptor set layout!");
-
-        return result;
+        this->build(bindings.make_create_info(), logi_device);
     }
 
-    VkDescriptorSetLayout create_layout_alpha(const VkDevice logiDevice) {
+    void DescLayout_Alpha::init(const VkDevice logi_device) {
         ::DescLayoutBuilder bindings;
 
-        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);  // U_PerFrame
-        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);  // U_GlobalLight
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);  // Dlight shadow maps
-        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);  // Dlight shadow maps
+        // U_CameraTransform
+        bindings.add_ubuf(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+        // U_GlobalLight
+        bindings.add_ubuf(VK_SHADER_STAGE_FRAGMENT_BIT);
+        // directional light shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_DLIGHT_COUNT);
+        // spot light shadow maps
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, dal::MAX_SLIGHT_COUNT);
 
-        //----------------------------------------------------------------------------------
+        this->build(bindings.make_create_info(), logi_device);
+    }
 
-        const auto layout_info = bindings.make_create_info();
-        VkDescriptorSetLayout output = VK_NULL_HANDLE;
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layout_info, nullptr, &output))
-            dalAbort("failed to create descriptor set layout!");
+    void DescLayout_Mirror::init(const VkDevice logi_device) {
+        ::DescLayoutBuilder bindings;
 
-        return output;
+        // reflection map
+        bindings.add_combined_img_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        this->build(bindings.make_create_info(), logi_device);
     }
 
 }
@@ -191,53 +202,29 @@ namespace dal {
     void DescSetLayoutManager::init(const VkDevice logiDevice) {
         this->destroy(logiDevice);
 
-        this->m_layout_final = ::create_layout_final(logiDevice);
+        this->m_layout_final.init(logiDevice);
 
-        this->m_layout_per_global = ::create_layout_per_global(logiDevice);
-        this->m_layout_per_material = ::create_layout_per_material(logiDevice);
-        this->m_layout_per_actor = ::create_layout_per_actor(logiDevice);
+        this->m_layout_per_global.init(logiDevice);
+        this->m_layout_per_material.init(logiDevice);
+        this->m_layout_per_actor.init(logiDevice);
+        this->m_layout_actor_animated.init(logiDevice);
 
-        this->m_layout_animation = ::create_layout_animation(logiDevice);
-
-        this->m_layout_composition = ::create_layout_composition(logiDevice);
-        this->m_layout_alpha = ::create_layout_alpha(logiDevice);
+        this->m_layout_composition.init(logiDevice);
+        this->m_layout_alpha.init(logiDevice);
+        this->m_layout_mirror.init(logiDevice);
     }
 
     void DescSetLayoutManager::destroy(const VkDevice logiDevice) {
-        if (VK_NULL_HANDLE != this->m_layout_final) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_final, nullptr);
-            this->m_layout_final = VK_NULL_HANDLE;
-        }
+        this->m_layout_final.destroy(logiDevice);
 
-        if (VK_NULL_HANDLE != this->m_layout_per_global) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_global, nullptr);
-            this->m_layout_per_global = VK_NULL_HANDLE;
-        }
+        this->m_layout_per_global.destroy(logiDevice);
+        this->m_layout_per_material.destroy(logiDevice);
+        this->m_layout_per_actor.destroy(logiDevice);
+        this->m_layout_actor_animated.destroy(logiDevice);
 
-        if (VK_NULL_HANDLE != this->m_layout_per_material) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_material, nullptr);
-            this->m_layout_per_material = VK_NULL_HANDLE;
-        }
-
-        if (VK_NULL_HANDLE != this->m_layout_per_actor) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_per_actor, nullptr);
-            this->m_layout_per_actor = VK_NULL_HANDLE;
-        }
-
-        if (VK_NULL_HANDLE != this->m_layout_animation) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_animation, nullptr);
-            this->m_layout_animation = VK_NULL_HANDLE;
-        }
-
-        if (VK_NULL_HANDLE != this->m_layout_composition) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_composition, nullptr);
-            this->m_layout_composition = VK_NULL_HANDLE;
-        }
-
-        if (VK_NULL_HANDLE != this->m_layout_alpha) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_alpha, nullptr);
-            this->m_layout_alpha = VK_NULL_HANDLE;
-        }
+        this->m_layout_composition.destroy(logiDevice);
+        this->m_layout_alpha.destroy(logiDevice);
+        this->m_layout_mirror.destroy(logiDevice);
     }
 
 }
@@ -391,7 +378,7 @@ namespace dal {
     void DescSet::record_final(
         const VkImageView color_view,
         const SamplerTexture& sampler,
-        const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
+        const UniformBuffer<U_Shader_Final>& ubuf_per_frame,
         const VkDevice logi_device
     ) {
         ::WriteDescBuilder desc_writes{ this->m_handle };
@@ -403,7 +390,7 @@ namespace dal {
     }
 
     void DescSet::record_per_global(
-        const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+        const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const VkDevice logi_device
     ) {
@@ -440,12 +427,14 @@ namespace dal {
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
 
-    void DescSet::record_animation(
+    void DescSet::record_actor_animated(
+        const UniformBuffer<U_PerActor>& ubuf_per_actor,
         const UniformBuffer<U_AnimTransform>& ubuf_animation,
         const VkDevice logi_device
     ) {
         ::WriteDescBuilder desc_writes{ this->m_handle };
 
+        desc_writes.add_buffer(ubuf_per_actor);
         desc_writes.add_buffer(ubuf_animation);
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
@@ -454,7 +443,7 @@ namespace dal {
     void DescSet::record_composition(
         const std::vector<VkImageView>& attachment_views,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
-        const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
+        const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
         const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
         const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
         const SamplerDepth& sampler,
@@ -476,7 +465,7 @@ namespace dal {
     }
 
     void DescSet::record_alpha(
-        const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+        const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
         const UniformBuffer<U_GlobalLight>& ubuf_global_light,
         const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
         const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
@@ -489,6 +478,18 @@ namespace dal {
         desc_writes.add_buffer(ubuf_global_light);
         desc_writes.add_img_samplers(dlight_shadow_maps.begin(), dlight_shadow_maps.end(), sampler.get());
         desc_writes.add_img_samplers(slight_shadow_maps.begin(), slight_shadow_maps.end(), sampler.get());
+
+        vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
+    }
+
+    void DescSet::record_mirror(
+        const VkImageView texture_view,
+        const SamplerTexture& sampler,
+        const VkDevice logi_device
+    ) {
+        ::WriteDescBuilder desc_writes{ this->m_handle };
+
+        desc_writes.add_img_sampler(texture_view, sampler.get());
 
         vkUpdateDescriptorSets(logi_device, desc_writes.size(), desc_writes.data(), 0, nullptr);
     }
@@ -540,14 +541,14 @@ namespace dal {
         }
     }
 
-    DescSet DescPool::allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+    DescSet DescPool::allocate(const dal::IDescSetLayout& layout, const VkDevice logi_device) {
         return std::move(this->allocate(1, layout, logi_device).at(0));
     }
 
-    std::vector<DescSet> DescPool::allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+    std::vector<DescSet> DescPool::allocate(const uint32_t count, const dal::IDescSetLayout& layout, const VkDevice logi_device) {
         std::vector<DescSet> result;
 
-        const std::vector<VkDescriptorSetLayout> layouts(count, layout);
+        const std::vector<VkDescriptorSetLayout> layouts(count, layout.get());
 
         VkDescriptorSetAllocateInfo alloc_info{};
         alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -562,7 +563,7 @@ namespace dal {
 
         result.reserve(count);
         for (auto& x : desc_sets) {
-            result.emplace_back().set(std::move(x), layout);
+            result.emplace_back().set(std::move(x), layout.get());
         }
 
         return result;
@@ -599,9 +600,9 @@ namespace dal {
         this->m_pool.reset(logi_device);
     }
 
-    DescSet DescAllocator::allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+    DescSet DescAllocator::allocate(const dal::IDescSetLayout& layout, const VkDevice logi_device) {
         ++this->m_allocated_outside;
-        auto& queue = this->get_queue(layout);
+        auto& queue = this->get_queue(layout.get());
 
         if (queue.empty()) {
             return this->m_pool.allocate(layout, logi_device);
@@ -613,7 +614,7 @@ namespace dal {
         }
     }
 
-    std::vector<DescSet> DescAllocator::allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+    std::vector<DescSet> DescAllocator::allocate(const uint32_t count, const dal::IDescSetLayout& layout, const VkDevice logi_device) {
         std::vector<DescSet> output;
 
         for (uint32_t i = 0; i < count; ++i)
@@ -667,25 +668,25 @@ namespace dal {
         this->m_descset_alpha.clear();
     }
 
-    DescSet& DescriptorManager::add_descset_per_global(const VkDescriptorSetLayout desc_layout_per_global, const VkDevice logi_device) {
+    DescSet& DescriptorManager::add_descset_per_global(const dal::DescLayout_PerGlobal& desc_layout_per_global, const VkDevice logi_device) {
         auto& new_desc = this->m_descset_per_global.emplace_back();
         new_desc = this->m_pool.allocate(desc_layout_per_global, logi_device);
         return new_desc;
     }
 
-    DescSet& DescriptorManager::add_descset_final(const VkDescriptorSetLayout desc_layout_final, const VkDevice logi_device) {
+    DescSet& DescriptorManager::add_descset_final(const dal::DescLayout_Final& desc_layout_final, const VkDevice logi_device) {
         auto& new_desc = this->m_descset_final.emplace_back();
         new_desc = this->m_pool.allocate(desc_layout_final, logi_device);
         return new_desc;
     }
 
-    DescSet& DescriptorManager::add_descset_composition(const VkDescriptorSetLayout desc_layout_composition, const VkDevice logi_device) {
+    DescSet& DescriptorManager::add_descset_composition(const dal::DescLayout_Composition& desc_layout_composition, const VkDevice logi_device) {
         auto& new_desc = this->m_descset_composition.emplace_back();
         new_desc = this->m_pool.allocate(desc_layout_composition, logi_device);
         return new_desc;
     }
 
-    DescSet& DescriptorManager::add_descset_alpha(const VkDescriptorSetLayout desc_layout_alpha, const VkDevice logi_device) {
+    DescSet& DescriptorManager::add_descset_alpha(const dal::DescLayout_Alpha& desc_layout_alpha, const VkDevice logi_device) {
         auto& new_desc = this->m_descset_alpha.emplace_back();
         new_desc = this->m_pool.allocate(desc_layout_alpha, logi_device);
         return new_desc;

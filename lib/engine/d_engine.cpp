@@ -398,6 +398,8 @@ namespace dal {
             this->input_manager().touch_manager().queue().clear();
             this->input_manager().key_manager().queue().clear();
         }
+
+        // Update camera
         {
             constexpr float MOVE_SPEED = 2;
             constexpr float ROT_SPEED = 1.5;
@@ -410,11 +412,25 @@ namespace dal {
             this->m_scene.m_euler_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
             this->m_scene.m_euler_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
 
-            this->m_scene.m_euler_camera.m_rotations += (
+            const auto rotation_delta = (
                 ::make_rotation_angles(this->input_manager().key_manager()) * delta_time_f +
                 ::make_rotation_angles(this->input_manager().gamepad_manager()) * delta_time_f +
                 g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height) * 0.02f
             ) * ROT_SPEED;
+
+            this->m_scene.m_euler_camera.m_rotations.add_xyz(rotation_delta);
+
+            // Rotate camera to make it's top look upward
+            if (0.f == rotation_delta.z && 0.f != this->m_scene.m_euler_camera.m_rotations.z()) {
+                const auto cur_z = this->m_scene.m_euler_camera.m_rotations.z();
+                const auto cur_z_abs = std::abs(cur_z);
+                const auto z_delta = (-cur_z / cur_z_abs) * static_cast<float>(delta_time * 2.0);
+
+                if (std::abs(z_delta) < cur_z_abs)
+                    this->m_scene.m_euler_camera.m_rotations.add_z(z_delta);
+                else
+                    this->m_scene.m_euler_camera.m_rotations.set_z(0);
+            }
         }
 
         this->m_task_man.update();
@@ -423,8 +439,7 @@ namespace dal {
 
         this->m_lua.call_void_func("before_rendering_every_frame");
 
-        auto render_list = this->m_scene.make_render_list();
-        this->m_renderer->update(this->m_scene.m_euler_camera, render_list);
+        this->m_renderer->update(this->m_scene.m_euler_camera, this->m_scene);
     }
 
     void Engine::init_vulkan(

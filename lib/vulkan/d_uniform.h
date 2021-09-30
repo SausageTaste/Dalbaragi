@@ -14,24 +14,40 @@
 #include "d_buffer_memory.h"
 
 
+// Uniform buffer structs
 namespace dal {
 
-    struct U_PerFrame_InFinal {
+    struct U_PC_Shadow {
+        glm::mat4 m_model_mat;
+        glm::mat4 m_light_mat;
+    };
+
+    struct U_PC_OnMirror {
+        glm::mat4 m_proj_view_mat;
+        glm::vec4 m_clip_plane;
+    };
+
+    struct U_PC_Mirror {
+        glm::mat4 m_proj_view_mat;
+        glm::mat4 m_model_mat;
+
+        glm::vec4 m_vertices[3];
+    };
+
+
+    struct U_Shader_Final {
         glm::mat4 m_rotation;
     };
 
-    struct U_PerFrame_Composition {
-        glm::mat4 m_view_mat{1};
-        glm::mat4 m_view_inv{1};
-        glm::mat4 m_proj_inv{1};
-        glm::vec4 m_view_pos{};
+    struct U_CameraTransform {
+        glm::mat4 m_view;
+        glm::mat4 m_proj;
+        glm::mat4 m_view_inv;
+        glm::mat4 m_proj_inv;
+
+        glm::vec4 m_view_pos;
 
         float m_near, m_far;
-    };
-
-    struct U_PerFrame {
-        glm::mat4 m_view{1}, m_proj{1};
-        glm::vec4 m_view_pos{};
     };
 
     struct U_PerMaterial {
@@ -41,6 +57,10 @@ namespace dal {
 
     struct U_PerActor {
         glm::mat4 m_model{1};
+    };
+
+    struct U_AnimTransform {
+        glm::mat4 m_transforms[dal::MAX_JOINT_COUNT];
     };
 
     struct U_GlobalLight {
@@ -68,17 +88,11 @@ namespace dal {
         uint32_t m_slight_count = 0;
     };
 
-    struct U_AnimTransform {
-        glm::mat4 m_transforms[dal::MAX_JOINT_COUNT];
-    };
+}
 
-    static_assert(sizeof(U_AnimTransform) <= 16 * 1024);
 
-    struct U_PC_Shadow {
-        glm::mat4 m_model_mat;
-        glm::mat4 m_light_mat;
-    };
-
+// Uniform buffer object
+namespace dal {
 
     template <typename _DataStruct>
     class UniformBuffer {
@@ -159,26 +173,106 @@ namespace dal {
             return this->m_buffers.at(index);
         }
 
+        bool is_ready() const {
+            for (auto& x : this->m_buffers) {
+                if (!x.is_ready())
+                    return false;
+            }
+
+            return true;
+        }
+
         void copy_to_buffer(const size_t index, const _DataStruct& data, const VkDevice logi_device) {
             this->m_buffers.at(index).copy_to_buffer(data, logi_device);
         }
 
     };
 
+}
+
+
+// Descriptor set layouts
+namespace dal {
+
+    class IDescSetLayout {
+
+    private:
+        VkDescriptorSetLayout m_layout = VK_NULL_HANDLE;
+
+    public:
+        IDescSetLayout() = default;
+
+        IDescSetLayout(const IDescSetLayout&) = delete;
+        IDescSetLayout& operator=(const IDescSetLayout&) = delete;
+
+    protected:
+        void reset(const VkDescriptorSetLayout v, const VkDevice logi_device) noexcept {
+            this->destroy(logi_device);
+            this->m_layout = v;
+        }
+
+        void build(const VkDescriptorSetLayoutCreateInfo& create_info, const VkDevice logi_device) noexcept;
+
+    public:
+        void destroy(const VkDevice logi_device) noexcept;
+
+        VkDescriptorSetLayout get() const noexcept {
+            return this->m_layout;
+        }
+
+        bool is_ready() const noexcept {
+            return VK_NULL_HANDLE != this->m_layout;
+        }
+
+    };
+
+
+    struct DescLayout_Final : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_PerGlobal : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_PerMaterial : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_PerActor : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_ActorAnimated : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_Composition : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_Alpha : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
+    struct DescLayout_Mirror : public IDescSetLayout {
+        void init(const VkDevice logi_device);
+    };
+
 
     class DescSetLayoutManager {
 
     private:
-        VkDescriptorSetLayout m_layout_final = VK_NULL_HANDLE;
+        DescLayout_Final m_layout_final;
 
-        VkDescriptorSetLayout m_layout_per_global = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_layout_per_material = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_layout_per_actor = VK_NULL_HANDLE;
+        DescLayout_PerGlobal m_layout_per_global;
+        DescLayout_PerMaterial m_layout_per_material;
+        DescLayout_PerActor m_layout_per_actor;
+        DescLayout_ActorAnimated m_layout_actor_animated;
 
-        VkDescriptorSetLayout m_layout_animation = VK_NULL_HANDLE;
-
-        VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_layout_alpha = VK_NULL_HANDLE;
+        DescLayout_Composition m_layout_composition;
+        DescLayout_Alpha m_layout_alpha;
+        DescLayout_Mirror m_layout_mirror;
 
     public:
         void init(const VkDevice logiDevice);
@@ -193,28 +287,36 @@ namespace dal {
             return this->m_layout_per_global;
         }
 
-        auto layout_per_material() const {
+        auto& layout_per_material() const {
             return this->m_layout_per_material;
         }
 
-        auto layout_per_actor() const {
+        auto& layout_per_actor() const {
             return this->m_layout_per_actor;
         }
 
-        auto layout_animation() const {
-            return this->m_layout_animation;
+        auto& layout_actor_animated() const {
+            return this->m_layout_actor_animated;
         }
 
-        auto layout_composition() const {
+        auto& layout_composition() const {
             return this->m_layout_composition;
         }
 
-        auto layout_alpha() const {
+        auto& layout_alpha() const {
             return this->m_layout_alpha;
+        }
+
+        auto& layout_mirror() const {
+            return this->m_layout_mirror;
         }
 
     };
 
+}
+
+
+namespace dal {
 
     class DescSet {
 
@@ -251,12 +353,12 @@ namespace dal {
         void record_final(
             const VkImageView color_view,
             const SamplerTexture& sampler,
-            const UniformBuffer<U_PerFrame_InFinal>& ubuf_per_frame,
+            const UniformBuffer<U_Shader_Final>& ubuf_per_frame,
             const VkDevice logi_device
         );
 
         void record_per_global(
-            const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+            const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const VkDevice logi_device
         );
@@ -273,7 +375,8 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void record_animation(
+        void record_actor_animated(
+            const UniformBuffer<U_PerActor>& ubuf_per_actor,
             const UniformBuffer<U_AnimTransform>& ubuf_animation,
             const VkDevice logi_device
         );
@@ -281,7 +384,7 @@ namespace dal {
         void record_composition(
             const std::vector<VkImageView>& attachment_views,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
-            const UniformBuffer<U_PerFrame_Composition>& ubuf_per_frame,
+            const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
             const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
             const SamplerDepth& sampler,
@@ -289,11 +392,17 @@ namespace dal {
         );
 
         void record_alpha(
-            const UniformBuffer<U_PerFrame>& ubuf_per_frame,
+            const UniformBuffer<U_CameraTransform>& ubuf_per_frame,
             const UniformBuffer<U_GlobalLight>& ubuf_global_light,
             const std::array<VkImageView, dal::MAX_DLIGHT_COUNT>& dlight_shadow_maps,
             const std::array<VkImageView, dal::MAX_SLIGHT_COUNT>& slight_shadow_maps,
             const SamplerDepth& sampler,
+            const VkDevice logi_device
+        );
+
+        void record_mirror(
+            const VkImageView texture_view,
+            const SamplerTexture& sampler,
             const VkDevice logi_device
         );
 
@@ -318,9 +427,9 @@ namespace dal {
 
         void reset(const VkDevice logi_device);
 
-        DescSet allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device);
+        DescSet allocate(const dal::IDescSetLayout& layout, const VkDevice logi_device);
 
-        std::vector<DescSet> allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device);
+        std::vector<DescSet> allocate(const uint32_t count, const dal::IDescSetLayout& layout, const VkDevice logi_device);
 
         auto get() {
             return this->m_handle;
@@ -352,9 +461,9 @@ namespace dal {
 
         void reset(const VkDevice logi_device);
 
-        DescSet allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device);
+        DescSet allocate(const dal::IDescSetLayout& layout, const VkDevice logi_device);
 
-        std::vector<DescSet> allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device);
+        std::vector<DescSet> allocate(const uint32_t count, const dal::IDescSetLayout& layout, const VkDevice logi_device);
 
         void free(DescSet&& desc_set);
 
@@ -382,13 +491,13 @@ namespace dal {
             return this->m_pool;
         }
 
-        DescSet& add_descset_per_global(const VkDescriptorSetLayout desc_layout_per_global, const VkDevice logi_device);
+        DescSet& add_descset_per_global(const dal::DescLayout_PerGlobal& desc_layout_per_global, const VkDevice logi_device);
 
-        DescSet& add_descset_final(const VkDescriptorSetLayout desc_layout_final, const VkDevice logi_device);
+        DescSet& add_descset_final(const dal::DescLayout_Final& desc_layout_final, const VkDevice logi_device);
 
-        DescSet& add_descset_composition(const VkDescriptorSetLayout desc_layout_composition, const VkDevice logi_device);
+        DescSet& add_descset_composition(const dal::DescLayout_Composition& desc_layout_composition, const VkDevice logi_device);
 
-        DescSet& add_descset_alpha(const VkDescriptorSetLayout desc_layout_alpha, const VkDevice logi_device);
+        DescSet& add_descset_alpha(const dal::DescLayout_Alpha& desc_layout_alpha, const VkDevice logi_device);
 
         auto& desc_set_per_global_at(const size_t index) const {
             return this->m_descset_per_global.at(index).get();

@@ -5,6 +5,7 @@
 #include "d_uniform.h"
 #include "d_image_obj.h"
 #include "d_filesystem.h"
+#include "d_vk_device.h"
 
 
 namespace dal {
@@ -12,8 +13,8 @@ namespace dal {
     class ActorVK : public IActor {
 
     private:
-        DescSet m_desc_per_actor;
-        dal::UniformBuffer<dal::U_PerActor> m_ubuf_per_actor;
+        std::vector<DescSet> m_desc;
+        dal::UniformBufferArray<dal::U_PerActor> m_ubuf_per_actor;
         DescAllocator* m_desc_allocator = nullptr;
         VkDevice m_logi_device = VK_NULL_HANDLE;
 
@@ -25,7 +26,7 @@ namespace dal {
 
         void init(
             DescAllocator& desc_allocator,
-            const VkDescriptorSetLayout layout_per_actor,
+            const DescLayout_PerActor& layout_per_actor,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
@@ -35,13 +36,13 @@ namespace dal {
         bool is_ready() const;
 
         void notify_transform_change() override {
-            this->m_transform_update_needed = 1;
+            this->m_transform_update_needed = MAX_FRAMES_IN_FLIGHT;
         }
 
-        void apply_changes();
+        void apply_transform(const FrameInFlightIndex& index);
 
-        auto& desc_set_raw() const {
-            return this->m_desc_per_actor.get();
+        auto& desc_set_at(const FrameInFlightIndex& index) const {
+            return this->m_desc.at(index.get()).get();
         }
 
     };
@@ -50,8 +51,7 @@ namespace dal {
     class ActorSkinnedVK : public IActorSkinned {
 
     private:
-        std::vector<DescSet> m_desc_per_actor;
-        std::vector<DescSet> m_desc_animation;
+        std::vector<DescSet> m_desc;
         dal::UniformBufferArray<dal::U_PerActor> m_ubuf_per_actor;
         dal::UniformBufferArray<dal::U_AnimTransform> m_ubuf_anim;
         DescAllocator* m_desc_allocator = nullptr;
@@ -65,8 +65,7 @@ namespace dal {
 
         void init(
             DescAllocator& desc_allocator,
-            const VkDescriptorSetLayout layout_per_actor,
-            const VkDescriptorSetLayout layout_anim,
+            const DescLayout_ActorAnimated& layout_actor,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
         );
@@ -83,12 +82,31 @@ namespace dal {
 
         void apply_animation(const FrameInFlightIndex& index);
 
-        auto& desc_per_actor(const FrameInFlightIndex& index) const {
-            return this->m_desc_per_actor.at(index.get()).get();
+        auto& desc_set_at(const FrameInFlightIndex& index) const {
+            return this->m_desc.at(index.get()).get();
         }
 
-        auto& desc_animation(const FrameInFlightIndex& index) const {
-            return this->m_desc_animation.at(index.get()).get();
+    };
+
+
+    class MeshVK : public IMesh {
+
+    private:
+        VertexBuffer m_vertices;
+
+    public:
+        void init(
+            const std::vector<VertexStatic>& vertices,
+            const std::vector<uint32_t>& indices,
+            dal::CommandPool& cmd_pool,
+            const VkPhysicalDevice phys_device,
+            const dal::LogicalDevice& logi_device
+        );
+
+        void destroy(const VkDevice logi_device);
+
+        bool is_ready() const override {
+            return this->m_vertices.is_ready();
         }
 
     };
@@ -136,7 +154,7 @@ namespace dal {
         bool prepare(
             DescPool& desc_pool,
             const SamplerTexture& sampler,
-            const VkDescriptorSetLayout layout_per_material,
+            const DescLayout_PerMaterial& layout_per_material,
             const VkDevice logi_device
         );
 
@@ -169,8 +187,8 @@ namespace dal {
             dal::CommandPool& cmd_pool,
             ITextureManager& tex_man,
             const char* const fallback_file_namespace,
-            const VkDescriptorSetLayout layout_per_actor,
-            const VkDescriptorSetLayout layout_per_material,
+            const DescLayout_PerActor& layout_per_actor,
+            const DescLayout_PerMaterial& layout_per_material,
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
@@ -178,7 +196,7 @@ namespace dal {
 
         void destroy() override;
 
-        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
+        bool fetch_one_resource(const DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
 
         bool is_ready() const override;
 
@@ -219,8 +237,8 @@ namespace dal {
             dal::CommandPool& cmd_pool,
             ITextureManager& tex_man,
             const char* const fallback_file_namespace,
-            const VkDescriptorSetLayout layout_per_actor,
-            const VkDescriptorSetLayout layout_per_material,
+            const DescLayout_PerActor& layout_per_actor,
+            const DescLayout_PerMaterial& layout_per_material,
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
@@ -228,7 +246,7 @@ namespace dal {
 
         void destroy() override;
 
-        bool fetch_one_resource(const VkDescriptorSetLayout layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
+        bool fetch_one_resource(const DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
 
         bool is_ready() const override;
 
@@ -253,5 +271,26 @@ namespace dal {
         }
 
     };
+
+}
+
+
+namespace dal {
+
+    inline auto& mesh_cast(IMesh& mesh) {
+        return static_cast<MeshVK&>(mesh);
+    }
+
+    inline auto& mesh_cast(const IMesh& mesh) {
+        return static_cast<const MeshVK&>(mesh);
+    }
+
+    inline auto& mesh_cast(HMesh& mesh) {
+        return *static_cast<MeshVK*>(mesh.get());
+    }
+
+    inline auto& mesh_cast(const HMesh& mesh) {
+        return *static_cast<const MeshVK*>(mesh.get());
+    }
 
 }

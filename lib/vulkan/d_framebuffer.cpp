@@ -93,12 +93,51 @@ namespace dal {
 }
 
 
-// AttachmentManager
+//
 namespace dal {
 
-    void AttachmentManager::init(
+    void AttachmentBundle_Simple::init(
+        const uint32_t width,
+        const uint32_t height,
+        const dal::RenderPass_Simple& renderpass,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->destroy(logi_device);
+
+        this->m_color.init(
+            width,
+            height,
+            dal::FbufAttachment::Usage::color_attachment,
+            renderpass.format_color(),
+            phys_device,
+            logi_device
+        );
+
+        this->m_depth.init(
+            width,
+            height,
+            dal::FbufAttachment::Usage::depth_attachment,
+            renderpass.format_depth(),
+            phys_device,
+            logi_device
+        );
+    }
+
+    void AttachmentBundle_Simple::destroy(const VkDevice logi_device) {
+        this->m_color.destroy(logi_device);
+        this->m_depth.destroy(logi_device);
+    }
+
+}
+
+
+// AttachmentBundle_Gbuf
+namespace dal {
+
+    void AttachmentBundle_Gbuf::init(
         const VkExtent2D& extent,
-        const VkFormat depth_format,
+        const dal::RenderPass_Gbuf& renderpass,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
@@ -110,7 +149,7 @@ namespace dal {
             this->m_extent.width,
             this->m_extent.height,
             dal::FbufAttachment::Usage::color_attachment,
-            VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+            renderpass.format_color(),
             phys_device,
             logi_device
         );
@@ -119,7 +158,7 @@ namespace dal {
             this->m_extent.width,
             this->m_extent.height,
             dal::FbufAttachment::Usage::depth_attachment,
-            depth_format,
+            renderpass.format_depth(),
             phys_device,
             logi_device
         );
@@ -128,7 +167,7 @@ namespace dal {
             this->m_extent.width,
             this->m_extent.height,
             dal::FbufAttachment::Usage::color_attachment,
-            VK_FORMAT_R8G8B8A8_UNORM,
+            renderpass.format_albedo(),
             phys_device,
             logi_device
         );
@@ -137,7 +176,7 @@ namespace dal {
             this->m_extent.width,
             this->m_extent.height,
             dal::FbufAttachment::Usage::color_attachment,
-            VK_FORMAT_R8G8B8A8_UNORM,
+            renderpass.format_materials(),
             phys_device,
             logi_device
         );
@@ -146,13 +185,13 @@ namespace dal {
             this->m_extent.width,
             this->m_extent.height,
             dal::FbufAttachment::Usage::color_attachment,
-            VK_FORMAT_R8G8B8A8_UNORM,
+            renderpass.format_normal(),
             phys_device,
             logi_device
         );
     }
 
-    void AttachmentManager::destroy(const VkDevice logi_device) {
+    void AttachmentBundle_Gbuf::destroy(const VkDevice logi_device) {
         this->m_color.destroy(logi_device);
         this->m_depth.destroy(logi_device);
         this->m_albedo.destroy(logi_device);
@@ -212,7 +251,7 @@ namespace dal {
 // Framebuffer implementaions
 namespace dal {
 
-    void Fbuf_Simple::init(
+    void Fbuf_Gbuf::init(
         const dal::RenderPass_Gbuf& renderpass,
         const VkExtent2D& swapchain_extent,
         const VkImageView color_view,
@@ -293,6 +332,29 @@ namespace dal {
     ) {
         const std::array<VkImageView, 1> attachments{
             shadow_map_view,
+        };
+
+        const auto result = this->create(
+            attachments.data(),
+            attachments.size(),
+            extent.width,
+            extent.height,
+            renderpass.get(),
+            logi_device
+        );
+        dalAssert(result);
+    }
+
+    void Fbuf_Simple::init(
+        const dal::RenderPass_Simple& renderpass,
+        const VkExtent2D& extent,
+        const VkImageView color_view,
+        const VkImageView depth_view,
+        const VkDevice logi_device
+    ) {
+        const std::array<VkImageView, 2> attachments{
+            color_view,
+            depth_view,
         };
 
         const auto result = this->create(

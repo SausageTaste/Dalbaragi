@@ -47,6 +47,10 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
+        bool is_ready() const {
+            return this->m_vertices.is_ready() && this->m_indices.is_ready();
+        }
+
         auto index_size() const {
             return this->m_index_size;
         }

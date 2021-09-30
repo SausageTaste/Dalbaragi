@@ -353,18 +353,18 @@ namespace {
             }
         }
 
-        void destroy() {
+        void destroy() noexcept {
             if (VK_NULL_HANDLE != this->m_module) {
                 vkDestroyShaderModule(this->m_parent_device, this->m_module, nullptr);
                 this->m_module = VK_NULL_HANDLE;
             }
         }
 
-        VkShaderModule get() const {
+        VkShaderModule get() const noexcept {
             return this->m_module;
         }
 
-        VkShaderModule operator*() const {
+        VkShaderModule operator*() const noexcept {
             return this->get();
         }
 
@@ -483,7 +483,7 @@ namespace {
             return fmt::format("{}/{}.spv", this->make_shader_cache_dir_path(), hashed);
         }
 
-        bool need_to_compile(const std::string& cache_path) {
+        bool need_to_compile(const std::string& cache_path) const {
             if (this->m_need_recompile)
                 return true;
 
@@ -731,10 +731,10 @@ namespace {
     }
 
     template <typename _Struct>
-    auto create_info_push_constant() {
+    auto create_info_push_constant(const VkShaderStageFlags stage_flag = VK_SHADER_STAGE_VERTEX_BIT) {
         std::array<VkPushConstantRange, 1> result;
 
-        result[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        result[0].stageFlags = stage_flag;
         result[0].offset = 0;
         result[0].size = sizeof(_Struct);
 
@@ -768,14 +768,14 @@ namespace {
 namespace {
 
     dal::ShaderPipeline make_pipeline_gbuf(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_Gbuf& renderpass,
+        const uint32_t subpass_index,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout desc_layout_simple,
-        const VkDescriptorSetLayout desc_layout_per_material,
-        const VkDescriptorSetLayout desc_layout_per_actor,
-        const VkRenderPass renderpass,
-        const uint32_t subpass_index,
+        const dal::DescLayout_PerGlobal& desc_layout_simple,
+        const dal::DescLayout_PerMaterial& desc_layout_per_material,
+        const dal::DescLayout_PerActor& desc_layout_per_actor,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/gbuf.vert", ::ShaderKind::vert);
@@ -816,7 +816,7 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 3> desc_layouts{ desc_layout_simple, desc_layout_per_material, desc_layout_per_actor };
+        const std::array<VkDescriptorSetLayout, 3> desc_layouts{ desc_layout_simple.get(), desc_layout_per_material.get(), desc_layout_per_actor.get() };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
@@ -833,7 +833,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = nullptr;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = subpass_index;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -847,15 +847,14 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_gbuf_animated(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_Gbuf& renderpass,
+        const uint32_t subpass_index,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout desc_layout_simple,
-        const VkDescriptorSetLayout desc_layout_per_material,
-        const VkDescriptorSetLayout desc_layout_per_actor,
-        const VkDescriptorSetLayout desc_layout_animation,
-        const VkRenderPass renderpass,
-        const uint32_t subpass_index,
+        const dal::DescLayout_PerGlobal& desc_layout_simple,
+        const dal::DescLayout_PerMaterial& desc_layout_per_material,
+        const dal::DescLayout_ActorAnimated& desc_layout_per_actor,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/gbuf_animated.vert", ::ShaderKind::vert);
@@ -896,7 +895,11 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 4> desc_layouts{ desc_layout_simple, desc_layout_per_material, desc_layout_per_actor, desc_layout_animation };
+        const std::vector<VkDescriptorSetLayout> desc_layouts{
+            desc_layout_simple.get(),
+            desc_layout_per_material.get(),
+            desc_layout_per_actor.get(),
+        };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
@@ -913,7 +916,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = nullptr;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = subpass_index;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -927,12 +930,12 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_composition(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_Gbuf& renderpass,
+        const uint32_t subpass_index,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
-        const VkDescriptorSetLayout desc_layout_composition,
-        const VkRenderPass renderpass,
-        const uint32_t subpass_index,
+        const dal::DescLayout_Composition& desc_layout_composition,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/composition.vert", ::ShaderKind::vert);
@@ -971,7 +974,7 @@ namespace {
         //const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 1> desc_layouts{ desc_layout_composition };
+        const std::vector<VkDescriptorSetLayout> desc_layouts{ desc_layout_composition.get() };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
@@ -988,7 +991,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = nullptr;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = subpass_index;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -1002,11 +1005,11 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_final(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_Final& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& extent,
-        const VkDescriptorSetLayout desc_layout_final,
-        const VkRenderPass renderpass,
+        const dal::DescLayout_Final& desc_layout_final,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/fill_screen.vert", ::ShaderKind::vert);
@@ -1041,7 +1044,7 @@ namespace {
         const auto depth_stencil = ::create_info_depth_stencil(true);
 
         // Pipeline layout
-        const std::array<VkDescriptorSetLayout, 1> desc_layouts{ desc_layout_final };
+        const std::vector<VkDescriptorSetLayout> desc_layouts{ desc_layout_final.get() };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
         // Pipeline, finally
@@ -1058,7 +1061,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = nullptr;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = 0;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -1072,13 +1075,13 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_alpha(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout desc_layout_alpha,
-        const VkDescriptorSetLayout desc_layout_per_material,
-        const VkDescriptorSetLayout desc_layout_per_actor,
+        const dal::DescLayout_Alpha& desc_layout_alpha,
+        const dal::DescLayout_PerMaterial& desc_layout_per_material,
+        const dal::DescLayout_PerActor& desc_layout_per_actor,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/alpha.vert", ::ShaderKind::vert);
@@ -1120,9 +1123,9 @@ namespace {
 
         // Pipeline layout
         const std::vector<VkDescriptorSetLayout> desc_layouts{
-            desc_layout_alpha,
-            desc_layout_per_material,
-            desc_layout_per_actor,
+            desc_layout_alpha.get(),
+            desc_layout_per_material.get(),
+            desc_layout_per_actor.get(),
         };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
@@ -1154,14 +1157,13 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_alpha_animated(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
         const dal::RenderPass_Alpha& renderpass,
         const bool need_gamma_correction,
         const VkExtent2D& swapchain_extent,
-        const VkDescriptorSetLayout desc_layout_alpha,
-        const VkDescriptorSetLayout desc_layout_per_material,
-        const VkDescriptorSetLayout desc_layout_per_actor,
-        const VkDescriptorSetLayout desc_layout_animation,
+        const dal::DescLayout_Alpha& desc_layout_alpha,
+        const dal::DescLayout_PerMaterial& desc_layout_per_material,
+        const dal::DescLayout_ActorAnimated& desc_layout_per_actor,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/alpha_animated.vert", ::ShaderKind::vert);
@@ -1203,10 +1205,9 @@ namespace {
 
         // Pipeline layout
         const std::vector<VkDescriptorSetLayout> desc_layouts{
-            desc_layout_alpha,
-            desc_layout_per_material,
-            desc_layout_per_actor,
-            desc_layout_animation,
+            desc_layout_alpha.get(),
+            desc_layout_per_material.get(),
+            desc_layout_per_actor.get(),
         };
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), nullptr, 0, logi_device);
 
@@ -1238,10 +1239,9 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_shadow(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_ShadowMap& renderpass,
         const bool does_support_depth_clamp,
-        const VkExtent2D& extent,
-        const VkRenderPass renderpass,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/shadow.vert", ::ShaderKind::vert);
@@ -1261,7 +1261,7 @@ namespace {
         const VkPipelineInputAssemblyStateCreateInfo input_assembly = ::create_info_input_assembly();
 
         // Viewports and scissors
-        const auto [viewport, scissor] = ::create_info_viewport_scissor(extent);
+        const auto [viewport, scissor] = ::create_info_viewport_scissor(VkExtent2D{512, 512});
         const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
@@ -1300,7 +1300,7 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = &dynamic_state_info;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = 0;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
@@ -1313,11 +1313,10 @@ namespace {
     }
 
     dal::ShaderPipeline make_pipeline_shadow_animated(
-        ShaderSrcManager& shader_mgr,
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_ShadowMap& renderpass,
         const bool does_support_depth_clamp,
-        const VkExtent2D& extent,
-        const VkRenderPass renderpass,
-        const VkDescriptorSetLayout desc_layout_animation,
+        const dal::DescLayout_ActorAnimated& desc_layout_animation,
         const VkDevice logi_device
     ) {
         const auto vert_src = shader_mgr.load("_asset/glsl/shadow_animated.vert", ::ShaderKind::vert);
@@ -1337,7 +1336,7 @@ namespace {
         const VkPipelineInputAssemblyStateCreateInfo input_assembly = ::create_info_input_assembly();
 
         // Viewports and scissors
-        const auto [viewport, scissor] = ::create_info_viewport_scissor(extent);
+        const auto [viewport, scissor] = ::create_info_viewport_scissor(VkExtent2D{512, 512});
         const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
@@ -1358,7 +1357,7 @@ namespace {
         const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
 
         // Pipeline layout
-        const std::vector<VkDescriptorSetLayout> desc_layouts{ desc_layout_animation };
+        const std::vector<VkDescriptorSetLayout> desc_layouts{ desc_layout_animation.get() };
         const auto pc_range = ::create_info_push_constant<dal::U_PC_Shadow>();
         const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), pc_range.data(), pc_range.size(), logi_device);
 
@@ -1376,8 +1375,241 @@ namespace {
         pipeline_info.pColorBlendState = &color_blending;
         pipeline_info.pDynamicState = &dynamic_state_info;
         pipeline_info.layout = pipeline_layout;
-        pipeline_info.renderPass = renderpass;
+        pipeline_info.renderPass = renderpass.get();
         pipeline_info.subpass = 0;
+        pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+        pipeline_info.basePipelineIndex = -1;
+
+        VkPipeline graphics_pipeline;
+        if (VK_SUCCESS != vkCreateGraphicsPipelines(logi_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &graphics_pipeline))
+            dalAbort("failed to create graphics pipeline!");
+
+        return dal::ShaderPipeline{ graphics_pipeline, pipeline_layout, logi_device };
+    }
+
+    dal::ShaderPipeline make_pipeline_on_mirror(
+        ::ShaderSrcManager& shader_mgr,
+        const dal::DescLayout_PerMaterial& desc_layout_material,
+        const dal::DescLayout_PerActor& desc_layout_actor,
+        const dal::RenderPass_Simple& renderpass,
+        const VkDevice logi_device
+    ) {
+        const auto vert_src = shader_mgr.load("_asset/glsl/on_mirror.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/on_mirror.frag", ::ShaderKind::frag);
+
+        // Shaders
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
+        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
+
+        // Vertex input state
+        const auto binding_desc = dal::make_vert_binding_desc_static();
+        const auto attrib_desc = dal::make_vert_attrib_desc_static();
+        auto vertex_input_state = ::create_vertex_input_state(&binding_desc, 1, attrib_desc.data(), attrib_desc.size());
+
+        // Input assembly
+        const VkPipelineInputAssemblyStateCreateInfo input_assembly = ::create_info_input_assembly();
+
+        // Viewports and scissors
+        const auto [viewport, scissor] = ::create_info_viewport_scissor(VkExtent2D{512, 512});
+        const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
+
+        // Rasterizer
+        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, true, 80, 8, false);
+
+        // Multisampling
+        const auto multisampling = ::create_info_multisampling();
+
+        // Color blending
+        const auto color_blend_attachments = ::create_info_color_blend_attachment<1, false>();
+        const auto color_blending = ::create_info_color_blend(color_blend_attachments.data(), color_blend_attachments.size(), false);
+
+        // Depth, stencil
+        const auto depth_stencil = ::create_info_depth_stencil(true);
+
+        // Dynamic state
+        const std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+        const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
+
+        // Pipeline layout
+        const std::vector<VkDescriptorSetLayout> desc_layouts{
+            desc_layout_material.get(),
+            desc_layout_actor.get(),
+        };
+        const auto pc_range = ::create_info_push_constant<dal::U_PC_OnMirror>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+        const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), pc_range.data(), pc_range.size(), logi_device);
+
+        // Pipeline, finally
+        VkGraphicsPipelineCreateInfo pipeline_info{};
+        pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipeline_info.stageCount = shaderStages.size();
+        pipeline_info.pStages = shaderStages.data();
+        pipeline_info.pVertexInputState = &vertex_input_state;
+        pipeline_info.pInputAssemblyState = &input_assembly;
+        pipeline_info.pViewportState = &viewport_state;
+        pipeline_info.pRasterizationState = &rasterizer;
+        pipeline_info.pMultisampleState = &multisampling;
+        pipeline_info.pDepthStencilState = &depth_stencil;
+        pipeline_info.pColorBlendState = &color_blending;
+        pipeline_info.pDynamicState = &dynamic_state_info;
+        pipeline_info.layout = pipeline_layout;
+        pipeline_info.renderPass = renderpass.get();
+        pipeline_info.subpass = 0;
+        pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+        pipeline_info.basePipelineIndex = -1;
+
+        VkPipeline graphics_pipeline;
+        if (VK_SUCCESS != vkCreateGraphicsPipelines(logi_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &graphics_pipeline))
+            dalAbort("failed to create graphics pipeline!");
+
+        return dal::ShaderPipeline{ graphics_pipeline, pipeline_layout, logi_device };
+    }
+
+    dal::ShaderPipeline make_pipeline_on_mirror_animated(
+        ::ShaderSrcManager& shader_mgr,
+        const dal::DescLayout_PerMaterial& desc_layout_material,
+        const dal::DescLayout_ActorAnimated& desc_layout_actor,
+        const dal::RenderPass_Simple& renderpass,
+        const VkDevice logi_device
+    ) {
+        const auto vert_src = shader_mgr.load("_asset/glsl/on_mirror_animated.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/on_mirror.frag", ::ShaderKind::frag);
+
+        // Shaders
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
+        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
+
+        // Vertex input state
+        const auto binding_desc = dal::make_vert_binding_desc_skinned();
+        const auto attrib_desc = dal::make_vert_attrib_desc_skinned();
+        auto vertex_input_state = ::create_vertex_input_state(&binding_desc, 1, attrib_desc.data(), attrib_desc.size());
+
+        // Input assembly
+        const VkPipelineInputAssemblyStateCreateInfo input_assembly = ::create_info_input_assembly();
+
+        // Viewports and scissors
+        const auto [viewport, scissor] = ::create_info_viewport_scissor(VkExtent2D{512, 512});
+        const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
+
+        // Rasterizer
+        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, true, 80, 8, false);
+
+        // Multisampling
+        const auto multisampling = ::create_info_multisampling();
+
+        // Color blending
+        const auto color_blend_attachments = ::create_info_color_blend_attachment<1, false>();
+        const auto color_blending = ::create_info_color_blend(color_blend_attachments.data(), color_blend_attachments.size(), false);
+
+        // Depth, stencil
+        const auto depth_stencil = ::create_info_depth_stencil(true);
+
+        // Dynamic state
+        const std::vector<VkDynamicState> dynamic_states{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+        const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
+
+        // Pipeline layout
+        const std::vector<VkDescriptorSetLayout> desc_layouts{
+            desc_layout_material.get(),
+            desc_layout_actor.get(),
+        };
+        const auto pc_range = ::create_info_push_constant<dal::U_PC_OnMirror>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+        const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), pc_range.data(), pc_range.size(), logi_device);
+
+        // Pipeline, finally
+        VkGraphicsPipelineCreateInfo pipeline_info{};
+        pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipeline_info.stageCount = shaderStages.size();
+        pipeline_info.pStages = shaderStages.data();
+        pipeline_info.pVertexInputState = &vertex_input_state;
+        pipeline_info.pInputAssemblyState = &input_assembly;
+        pipeline_info.pViewportState = &viewport_state;
+        pipeline_info.pRasterizationState = &rasterizer;
+        pipeline_info.pMultisampleState = &multisampling;
+        pipeline_info.pDepthStencilState = &depth_stencil;
+        pipeline_info.pColorBlendState = &color_blending;
+        pipeline_info.pDynamicState = &dynamic_state_info;
+        pipeline_info.layout = pipeline_layout;
+        pipeline_info.renderPass = renderpass.get();
+        pipeline_info.subpass = 0;
+        pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+        pipeline_info.basePipelineIndex = -1;
+
+        VkPipeline graphics_pipeline;
+        if (VK_SUCCESS != vkCreateGraphicsPipelines(logi_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &graphics_pipeline))
+            dalAbort("failed to create graphics pipeline!");
+
+        return dal::ShaderPipeline{ graphics_pipeline, pipeline_layout, logi_device };
+    }
+
+    dal::ShaderPipeline make_pipeline_mirror(
+        ::ShaderSrcManager& shader_mgr,
+        const dal::RenderPass_Gbuf& renderpass,
+        const uint32_t subpass_index,
+        const VkExtent2D& extent,
+        const dal::DescLayout_Mirror& desc_layout_mirror,
+        const VkDevice logi_device
+    ) {
+        const auto vert_src = shader_mgr.load("_asset/glsl/mirror.vert", ::ShaderKind::vert);
+        const auto frag_src = shader_mgr.load("_asset/glsl/mirror.frag", ::ShaderKind::frag);
+
+        // Shaders
+        const ShaderModule vert_shader_module(logi_device, vert_src);
+        const ShaderModule frag_shader_module(logi_device, frag_src);
+        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
+
+        // Vertex input state
+        //const auto binding_desc = dal::make_vert_binding_desc_static();
+        //const auto attrib_desc = dal::make_vert_attrib_desc_static();
+        //auto vertex_input_state = ::create_vertex_input_state(&binding_desc, 1, attrib_desc.data(), attrib_desc.size());
+        auto vertex_input_state = ::create_vertex_input_state(nullptr, 0, nullptr, 0);
+
+        // Input assembly
+        const VkPipelineInputAssemblyStateCreateInfo input_assembly = ::create_info_input_assembly();
+
+        // Viewports and scissors
+        const auto [viewport, scissor] = ::create_info_viewport_scissor(extent);
+        const auto viewport_state = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
+
+        // Rasterizer
+        const auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_BACK_BIT, false, 0, 0, true);
+
+        // Multisampling
+        const auto multisampling = ::create_info_multisampling();
+
+        // Color blending
+        const auto color_blend_attachments = ::create_info_color_blend_attachment<1, false>();
+        const auto color_blending = ::create_info_color_blend(color_blend_attachments.data(), color_blend_attachments.size(), false);
+
+        // Depth, stencil
+        const auto depth_stencil = ::create_info_depth_stencil(true);
+
+        // Dynamic state
+        const std::vector<VkDynamicState> dynamic_states;
+        const auto dynamic_state_info = ::create_info_dynamic_state(dynamic_states.data(), dynamic_states.size());
+
+        // Pipeline layout
+        const std::vector<VkDescriptorSetLayout> desc_layouts{ desc_layout_mirror.get() };
+        const auto pc_range = ::create_info_push_constant<dal::U_PC_Mirror>();
+        const auto pipeline_layout = ::create_pipeline_layout(desc_layouts.data(), desc_layouts.size(), pc_range.data(), pc_range.size(), logi_device);
+
+        // Pipeline, finally
+        VkGraphicsPipelineCreateInfo pipeline_info{};
+        pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipeline_info.stageCount = shaderStages.size();
+        pipeline_info.pStages = shaderStages.data();
+        pipeline_info.pVertexInputState = &vertex_input_state;
+        pipeline_info.pInputAssemblyState = &input_assembly;
+        pipeline_info.pViewportState = &viewport_state;
+        pipeline_info.pRasterizationState = &rasterizer;
+        pipeline_info.pMultisampleState = &multisampling;
+        pipeline_info.pDepthStencilState = &depth_stencil;
+        pipeline_info.pColorBlendState = &color_blending;
+        pipeline_info.pDynamicState = &dynamic_state_info;
+        pipeline_info.layout = pipeline_layout;
+        pipeline_info.renderPass = renderpass.get();
+        pipeline_info.subpass = subpass_index;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_info.basePipelineIndex = -1;
 
@@ -1401,17 +1633,8 @@ namespace dal {
         const bool does_support_depth_clamp,
         const VkExtent2D& swapchain_extent,
         const VkExtent2D& gbuf_extent,
-        const VkDescriptorSetLayout desc_layout_final,
-        const VkDescriptorSetLayout desc_layout_per_global,
-        const VkDescriptorSetLayout desc_layout_per_material,
-        const VkDescriptorSetLayout desc_layout_per_actor,
-        const VkDescriptorSetLayout desc_layout_animation,
-        const VkDescriptorSetLayout desc_layout_composition,
-        const VkDescriptorSetLayout desc_layout_alpha,
-        const RenderPass_Gbuf& rp_gbuf,
-        const RenderPass_Final& rp_final,
-        const RenderPass_Alpha& rp_alpha,
-        const RenderPass_ShadowMap& rp_shadow,
+        const dal::DescSetLayoutManager& desc_layouts,
+        const dal::RenderPassManager& render_passes,
         const VkDevice logi_device
     ) {
         this->destroy(logi_device);
@@ -1435,82 +1658,102 @@ namespace dal {
 
         this->m_gbuf = ::make_pipeline_gbuf(
             shader_mgr,
+            render_passes.rp_gbuf(), 0,
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_per_global,
-            desc_layout_per_material,
-            desc_layout_per_actor,
-            rp_gbuf.get(), 0,
+            desc_layouts.layout_per_global(),
+            desc_layouts.layout_per_material(),
+            desc_layouts.layout_per_actor(),
             logi_device
         );
 
         this->m_gbuf_animated = ::make_pipeline_gbuf_animated(
             shader_mgr,
+            render_passes.rp_gbuf(), 0,
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_per_global,
-            desc_layout_per_material,
-            desc_layout_per_actor,
-            desc_layout_animation,
-            rp_gbuf.get(), 0,
+            desc_layouts.layout_per_global(),
+            desc_layouts.layout_per_material(),
+            desc_layouts.layout_actor_animated(),
             logi_device
         );
 
         this->m_composition = ::make_pipeline_composition(
             shader_mgr,
+            render_passes.rp_gbuf(), 1,
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_composition,
-            rp_gbuf.get(), 1,
+            desc_layouts.layout_composition(),
+            logi_device
+        );
+
+        this->m_mirror = ::make_pipeline_mirror(
+            shader_mgr,
+            render_passes.rp_gbuf(), 2,
+            gbuf_extent,
+            desc_layouts.layout_mirror(),
             logi_device
         );
 
         this->m_final = ::make_pipeline_final(
             shader_mgr,
+            render_passes.rp_final(),
             need_gamma_correction,
             swapchain_extent,
-            desc_layout_final,
-            rp_final.get(),
+            desc_layouts.layout_final(),
             logi_device
         );
 
         this->m_alpha = ::make_pipeline_alpha(
             shader_mgr,
-            rp_alpha,
+            render_passes.rp_alpha(),
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_alpha,
-            desc_layout_per_material,
-            desc_layout_per_actor,
+            desc_layouts.layout_alpha(),
+            desc_layouts.layout_per_material(),
+            desc_layouts.layout_per_actor(),
             logi_device
         );
 
         this->m_alpha_animated = ::make_pipeline_alpha_animated(
             shader_mgr,
-            rp_alpha,
+            render_passes.rp_alpha(),
             need_gamma_correction,
             gbuf_extent,
-            desc_layout_alpha,
-            desc_layout_per_material,
-            desc_layout_per_actor,
-            desc_layout_animation,
+            desc_layouts.layout_alpha(),
+            desc_layouts.layout_per_material(),
+            desc_layouts.layout_actor_animated(),
             logi_device
         );
 
         this->m_shadow = ::make_pipeline_shadow(
             shader_mgr,
+            render_passes.rp_shadow(),
             does_support_depth_clamp,
-            VkExtent2D{ 512, 512 },
-            rp_shadow.get(),
             logi_device
         );
 
         this->m_shadow_animated = ::make_pipeline_shadow_animated(
             shader_mgr,
+            render_passes.rp_shadow(),
             does_support_depth_clamp,
-            VkExtent2D{ 512, 512 },
-            rp_shadow.get(),
-            desc_layout_animation,
+            desc_layouts.layout_actor_animated(),
+            logi_device
+        );
+
+        this->m_on_mirror = ::make_pipeline_on_mirror(
+            shader_mgr,
+            desc_layouts.layout_per_material(),
+            desc_layouts.layout_per_actor(),
+            render_passes.rp_simple(),
+            logi_device
+        );
+
+        this->m_on_mirror_animated = ::make_pipeline_on_mirror_animated(
+            shader_mgr,
+            desc_layouts.layout_per_material(),
+            desc_layouts.layout_actor_animated(),
+            render_passes.rp_simple(),
             logi_device
         );
     }
@@ -1524,6 +1767,9 @@ namespace dal {
         this->m_alpha_animated.destroy(logi_device);
         this->m_shadow.destroy(logi_device);
         this->m_shadow_animated.destroy(logi_device);
+        this->m_on_mirror.destroy(logi_device);
+        this->m_on_mirror_animated.destroy(logi_device);
+        this->m_mirror.destroy(logi_device);
     }
 
 }

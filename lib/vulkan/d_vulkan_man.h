@@ -32,7 +32,7 @@ namespace dal {
 
         SwapchainManager m_swapchain;
         PipelineManager m_pipelines;
-        AttachmentManager m_attach_man;
+        AttachmentBundle_Gbuf m_attach_man;
         RenderPassManager m_renderpasses;
         FbufManager m_fbuf_man;
         CmdPoolManager m_cmd_man;
@@ -43,6 +43,7 @@ namespace dal {
         SamplerManager m_sampler_man;
         DescAllocator m_desc_allocator;
         ShadowMapManager m_shadow_maps;
+        PlanarReflectionManager m_ref_planes;
 
 #ifdef DAL_VK_DEBUG
         VkDebugUtilsMessengerEXT m_debug_messenger = VK_NULL_HANDLE;
@@ -68,7 +69,7 @@ namespace dal {
 
         ~VulkanState();
 
-        void update(const ICamera& camera, RenderList& render_list) override;
+        void update(const ICamera& camera, dal::Scene& scene) override;
 
         const FrameInFlightIndex& in_flight_index() const override {
             return this->m_flight_frame_index;
@@ -103,6 +104,14 @@ namespace dal {
         bool prepare(IRenModel& model) override;
 
         bool prepare(IRenModelSkineed& model) override;
+
+        // Mesh
+
+        HMesh create_mesh() override;
+
+        bool init(IMesh& mesh, const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) override;
+
+        bool destroy(IMesh& mesh) override;
 
     private:
         // Returns true if recreation is still needed.
