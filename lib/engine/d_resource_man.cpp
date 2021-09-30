@@ -2,8 +2,8 @@
 
 #include <fmt/format.h>
 
-#include <dal_model_parser.h>
-#include <dal_modifier.h>
+#include <daltools/model_parser.h>
+#include <daltools/modifier.h>
 
 #include "d_timer.h"
 #include "d_logger.h"
