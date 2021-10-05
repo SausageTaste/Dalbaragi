@@ -25,12 +25,6 @@ option(GLFW_BUILD_TESTS off)
 option(GLFW_USE_HYBRID_HPG on)
 
 FetchContent_Declare(
-    fetch_glm
-    GIT_REPOSITORY https://github.com/g-truc/glm
-    GIT_TAG        0.9.9.8
-)
-
-FetchContent_Declare(
     fetch_stb
     GIT_REPOSITORY    https://github.com/nothings/stb
     GIT_TAG           master
@@ -45,8 +39,8 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-    fetch_dal_blender
-    GIT_REPOSITORY https://github.com/SausageTaste/io_scene_dalbaragi
+    fetch_daltools
+    GIT_REPOSITORY https://github.com/SausageTaste/DalbaragiTools
     GIT_TAG        main
 )
 
@@ -77,10 +71,9 @@ set(SHADERC_SKIP_TESTS on)
 #-------------------------------------------------------------------------------
 
 FetchContent_MakeAvailable(fetch_fmt)
-FetchContent_MakeAvailable(fetch_glm)
 FetchContent_MakeAvailable(fetch_stb)
 FetchContent_MakeAvailable(fetch_entt)
-FetchContent_MakeAvailable(fetch_dal_blender)
+FetchContent_MakeAvailable(fetch_daltools)
 FetchContent_MakeAvailable(fetch_lua)
 FetchContent_MakeAvailable(fetch_json)
 

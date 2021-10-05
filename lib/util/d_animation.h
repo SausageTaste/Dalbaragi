@@ -12,8 +12,9 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <daltools/struct.h>
+
 #include "d_timer.h"
-#include "dal_struct.h"
 
 
 namespace dal {

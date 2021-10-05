@@ -162,8 +162,6 @@ namespace {
         const auto cos_x = sqrt((m[0][1] * m[0][1]) + (m[1][1] * m[1][1]));
         const auto tan_x = sin_x / cos_x;
 
-        dalInfo(fmt::format("{}, {}, {}", sin_x, cos_x, tan_x).c_str());
-
         const auto x = atan2(sin_x, cos_x);
         const auto y = atan2(m[2][0], m[2][2]);
         const auto z = atan2(m[0][1], m[1][1]);
@@ -274,21 +272,6 @@ namespace dal {
         const auto translate = glm::translate(glm::mat4{1}, -this->m_pos);
         const auto rotation = this->m_rotations.make_view_mat();
         const auto output = rotation * translate;
-
-        const auto decomposed = ::decompose_rotations(glm::inverse(output));
-        dalInfo(fmt::format(
-            "({:0.3f}, {:0.3f}, {:0.3f}) - ({:0.3f}, {:0.3f}, {:0.3f}) = ({:0.3f}, {:0.3f}, {:0.3f})",
-            this->m_rotations.x(),
-            this->m_rotations.y(),
-            this->m_rotations.z(),
-            decomposed.x,
-            decomposed.y,
-            decomposed.z,
-            (this->m_rotations.x()) - (decomposed.x),
-            (this->m_rotations.y()) - (decomposed.y),
-            (this->m_rotations.z()) - (decomposed.z)
-        ).c_str());
-
         return output;
     }
 

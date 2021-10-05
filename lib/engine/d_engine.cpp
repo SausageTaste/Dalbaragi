@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+#include <daltools/konst.h>
+
 #include "d_logger.h"
 #include "d_renderer_create.h"
 
@@ -315,7 +317,8 @@ namespace dal {
 namespace dal {
 
     Engine::Engine(const EngineCreateInfo& create_info)
-        : m_res_man(this->m_task_man, *create_info.m_filesystem)
+        : m_sign_mgr(crypto::CONTEXT_PARSER)
+        , m_res_man(this->m_task_man, *create_info.m_filesystem, this->m_sign_mgr)
     {
         this->m_task_man.init(2);
         this->init(create_info);

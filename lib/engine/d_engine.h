@@ -57,6 +57,8 @@ namespace dal {
         RendererConfig m_render_config;
 
     private:
+        crypto::PublicKeySignature m_sign_mgr;
+
         LuaState m_lua;
         InputManager m_input_man;
         TaskManager m_task_man;

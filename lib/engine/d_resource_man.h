@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+#include <daltools/crypto.h>
+
 #include "d_renderer.h"
 #include "d_filesystem.h"
 #include "d_task_thread.h"
@@ -47,7 +49,13 @@ namespace dal {
 
         void notify_task_done(HTask& task) override;
 
-        void start(const ResPath& respath, HRenModel h_model, Filesystem& filesys, TaskManager& task_man);
+        void start(
+            const ResPath& respath,
+            HRenModel h_model,
+            Filesystem& filesys,
+            TaskManager& task_man,
+            crypto::PublicKeySignature& sign_mgr
+        );
 
     };
 
@@ -69,7 +77,13 @@ namespace dal {
 
         void notify_task_done(HTask& task) override;
 
-        void start(const ResPath& respath, HRenModelSkinned h_model, Filesystem& filesys, TaskManager& task_man);
+        void start(
+            const ResPath& respath,
+            HRenModelSkinned h_model,
+            Filesystem& filesys,
+            TaskManager& task_man,
+            crypto::PublicKeySignature& sign_mgr
+        );
 
     };
 
@@ -93,12 +107,14 @@ namespace dal {
 
         TaskManager& m_task_man;
         Filesystem& m_filesys;
+        crypto::PublicKeySignature& m_sign_mgr;
         IRenderer* m_renderer;
 
     public:
-        ResourceManager(TaskManager& task_man, Filesystem& filesys)
+        ResourceManager(TaskManager& task_man, Filesystem& filesys, crypto::PublicKeySignature& sign_mgr)
             : m_task_man(task_man)
             , m_filesys(filesys)
+            , m_sign_mgr(sign_mgr)
             , m_renderer(nullptr)
         {
 
