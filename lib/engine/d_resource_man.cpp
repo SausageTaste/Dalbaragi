@@ -15,6 +15,8 @@ namespace {
     const char* const MISSING_TEX_PATH = "_asset/image/missing_tex.png";
     const char* const MISSING_MODEL_PATH = "_asset/model/missing_model.dmd";
 
+    const dal::crypto::PublicKeySignature::PublicKey DAL_KEY_PUBLIC_ASSET{"99b50a1d0c13a3b1ab0442e33d3107f99d9f61567121666144903e4cef061b2b"};
+
 
     template <typename _VertType>
     glm::vec3 calc_weight_center(const std::vector<_VertType>& vertices) {
@@ -104,6 +106,7 @@ namespace {
     class Task_LoadModel : public dal::IPriorityTask {
 
     public:
+        dal::crypto::PublicKeySignature& m_sign_mgr;
         dal::Filesystem& m_filesys;
         dal::ResPath m_respath;
 
@@ -114,8 +117,9 @@ namespace {
         int m_stage = 0;
 
     public:
-        Task_LoadModel(const dal::ResPath& respath, dal::Filesystem& filesys)
+        Task_LoadModel(const dal::ResPath& respath, dal::Filesystem& filesys, dal::crypto::PublicKeySignature& sign_mgr)
             : dal::IPriorityTask(dal::PriorityClass::can_be_delayed)
+            , m_sign_mgr(sign_mgr)
             , m_filesys(filesys)
             , m_respath(respath)
         {
@@ -163,6 +167,16 @@ namespace {
             if (dal::parser::ModelParseResult::success != parse_result) {
                 out_model = std::nullopt;
                 return true;
+            }
+
+            if ("_asset" == this->m_respath.dir_list().front()) {
+                const dal::crypto::PublicKeySignature::Signature signature{ this->m_parsed_model.m_signature_hex };
+                const auto result = this->m_sign_mgr.verify(unzipped->data(), unzipped->size() - this->m_parsed_model.m_signature_hex.size() - 1, ::DAL_KEY_PUBLIC_ASSET, signature);
+
+                if (!result) {
+                    out_model = std::nullopt;
+                    return true;
+                }
             }
 
             this->out_model = dal::ModelStatic{};
@@ -237,6 +251,7 @@ namespace {
     class Task_LoadModelSkinned : public dal::IPriorityTask {
 
     public:
+        dal::crypto::PublicKeySignature& m_sign_mgr;
         dal::Filesystem& m_filesys;
         dal::ResPath m_respath;
 
@@ -247,8 +262,9 @@ namespace {
         int m_stage = 0;
 
     public:
-        Task_LoadModelSkinned(const dal::ResPath& respath, dal::Filesystem& filesys)
+        Task_LoadModelSkinned(const dal::ResPath& respath, dal::Filesystem& filesys, dal::crypto::PublicKeySignature& sign_mgr)
             : dal::IPriorityTask(dal::PriorityClass::can_be_delayed)
+            , m_sign_mgr(sign_mgr)
             , m_filesys(filesys)
             , m_respath(respath)
         {
@@ -298,6 +314,16 @@ namespace {
             if (dal::parser::ModelParseResult::success != parse_result) {
                 out_model = std::nullopt;
                 return true;
+            }
+
+            if ("_asset" == this->m_respath.dir_list().front()) {
+                const dal::crypto::PublicKeySignature::Signature signature{ this->m_parsed_model.m_signature_hex };
+                const auto result = this->m_sign_mgr.verify(unzipped->data(), unzipped->size() - this->m_parsed_model.m_signature_hex.size() - 1, ::DAL_KEY_PUBLIC_ASSET, signature);
+
+                if (!result) {
+                    out_model = std::nullopt;
+                    return true;
+                }
             }
 
             this->out_model = dal::ModelSkinned{};
@@ -527,10 +553,16 @@ namespace dal {
         }
     }
 
-    void ModelBuilder::start(const ResPath& respath, HRenModel h_model, Filesystem& filesys, TaskManager& task_man) {
+    void ModelBuilder::start(
+        const ResPath& respath,
+        HRenModel h_model,
+        Filesystem& filesys,
+        TaskManager& task_man,
+        crypto::PublicKeySignature& sign_mgr
+    ) {
         dalAssert(nullptr != this->m_renderer);
 
-        auto task = std::make_unique<::Task_LoadModel>(respath, filesys);
+        auto task = std::make_unique<::Task_LoadModel>(respath, filesys, sign_mgr);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
         //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
         task_man.order_task(std::move(task), this);
@@ -596,10 +628,16 @@ namespace dal {
         }
     }
 
-    void ModelSkinnedBuilder::start(const ResPath& respath, HRenModelSkinned h_model, Filesystem& filesys, TaskManager& task_man) {
+    void ModelSkinnedBuilder::start(
+        const ResPath& respath,
+        HRenModelSkinned h_model,
+        Filesystem& filesys,
+        TaskManager& task_man,
+        crypto::PublicKeySignature& sign_mgr
+    ) {
         dalAssert(nullptr != this->m_renderer);
 
-        auto task = std::make_unique<::Task_LoadModelSkinned>(respath, filesys);
+        auto task = std::make_unique<::Task_LoadModelSkinned>(respath, filesys, sign_mgr);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
         //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
         task_man.order_task(std::move(task), this);
@@ -629,11 +667,11 @@ namespace dal {
         }
 
         for (auto& [respath, model] : this->m_models) {
-            this->m_model_builder.start(respath, model, this->m_filesys, this->m_task_man);
+            this->m_model_builder.start(respath, model, this->m_filesys, this->m_task_man, this->m_sign_mgr);
         }
 
         for (auto& [respath, model] : this->m_skinned_models) {
-            this->m_model_skinned_builder.start(respath, model, this->m_filesys, this->m_task_man);
+            this->m_model_skinned_builder.start(respath, model, this->m_filesys, this->m_task_man, this->m_sign_mgr);
         }
 
         for (auto& actor : this->m_actors) {
@@ -718,7 +756,7 @@ namespace dal {
         else {
             auto [iter, result] = this->m_models.emplace(path_str, this->m_renderer->create_model());
             dalAssert(result);
-            this->m_model_builder.start(*resolved_respath, iter->second, this->m_filesys, this->m_task_man);
+            this->m_model_builder.start(*resolved_respath, iter->second, this->m_filesys, this->m_task_man, this->m_sign_mgr);
 
             return iter->second;
         }
@@ -740,8 +778,8 @@ namespace dal {
         }
         else {
             auto [iter, result] = this->m_skinned_models.emplace(path_str, this->m_renderer->create_model_skinned());
-            auto task = std::make_unique<::Task_LoadModelSkinned>(respath, this->m_filesys);
-            this->m_model_skinned_builder.start(*resolved_respath, iter->second, this->m_filesys, this->m_task_man);
+            auto task = std::make_unique<::Task_LoadModelSkinned>(respath, this->m_filesys, this->m_sign_mgr);
+            this->m_model_skinned_builder.start(*resolved_respath, iter->second, this->m_filesys, this->m_task_man, this->m_sign_mgr);
 
             return iter->second;
         }
