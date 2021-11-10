@@ -422,7 +422,10 @@ namespace dal {
             ) * ROT_SPEED;
 
             this->m_scene.m_euler_camera.add_rot_xyz(rotation_delta);
-            this->m_scene.m_euler_camera.rotate_head_up(delta_time_f, rotation_delta.z);
+
+            // Rotate camera to make it's top look upward
+            if (0.f == rotation_delta.z)
+                this->m_scene.m_euler_camera.rotate_head_up(delta_time_f);
         }
 
         this->m_task_man.update();

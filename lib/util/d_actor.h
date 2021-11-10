@@ -127,19 +127,7 @@ namespace dal {
             this->add_rot_xyz(v.x, v.y, v.z);
         }
 
-        void rotate_head_up(const float delta_time, const float rotation_delta_z) {
-            // Rotate camera to make it's top look upward
-            if (0.f == rotation_delta_z && 0.f != this->m_rotations.z()) {
-                const auto cur_z = this->m_rotations.z();
-                const auto cur_z_abs = std::abs(cur_z);
-                const auto z_delta = (-cur_z / cur_z_abs) * static_cast<float>(delta_time * 2.0);
-
-                if (std::abs(z_delta) < cur_z_abs)
-                    this->m_rotations.add_z(z_delta);
-                else
-                    this->m_rotations.set_z(0);
-            }
-        }
+        void rotate_head_up(const float delta_time);
 
         EulerCamera transform(const glm::mat4& mat) const;
 
@@ -178,7 +166,7 @@ namespace dal {
             this->add_rot_xyz(v.x, v.y, v.z);
         }
 
-        void rotate_head_up(const float delta_time, const float rotation_delta_z);
+        void rotate_head_up(const float delta_time);
 
         QuatCamera transform(const glm::mat4& mat) const;
 

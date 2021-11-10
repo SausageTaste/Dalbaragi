@@ -135,6 +135,11 @@ namespace dal {
         return glm::dot(this->coeff(), glm::vec4{ p, 1 });
     }
 
+    glm::vec3 Plane::find_closest_point(const glm::vec3& p) const {
+        const auto signed_dist = this->calc_signed_dist(p);
+        return p - signed_dist * this->normal();
+    }
+
     std::optional<SegmentIntersectionInfo> Plane::find_intersection(const Segment& seg) const {
         const auto pointA = seg.m_start;
         const auto pointB = seg.end_point();

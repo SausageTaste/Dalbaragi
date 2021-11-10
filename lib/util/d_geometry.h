@@ -90,6 +90,8 @@ namespace dal {
 
         float calc_signed_dist(const glm::vec3& p) const;
 
+        glm::vec3 Plane::find_closest_point(const glm::vec3& p) const;
+
         std::optional<SegmentIntersectionInfo> find_intersection(const Segment& seg) const;
 
         glm::mat4 make_origin_align_mat() const;
