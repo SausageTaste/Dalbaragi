@@ -54,7 +54,7 @@ namespace dal {
     public:
         entt::registry m_registry;
 
-        EulerCamera m_euler_camera;
+        QuatCamera m_euler_camera;
 
         DLight m_sun_light, m_moon_light, m_selected_dlight;
         std::vector<SLight> m_slights;
@@ -66,7 +66,7 @@ namespace dal {
         scene::HorizontalWater m_hor_water;
 
     private:
-        EulerCamera m_prev_camera;
+        QuatCamera m_prev_camera;
 
     public:
         Scene();

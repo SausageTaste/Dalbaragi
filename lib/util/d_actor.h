@@ -79,11 +79,11 @@ namespace dal {
         float m_scale = 1;
 
     public:
+        glm::mat3 make_mat3() const;
+
         glm::mat4 make_mat4() const;
 
         void rotate(const float v, const glm::vec3& selector);
-
-        void apply_transform(const glm::mat4& mat);
 
     };
 
@@ -159,6 +159,7 @@ namespace dal {
 
         //----------------------------------------------------
 
+    public:
         glm::vec3& pos() {
             return this->m_transform.m_pos;
         }
