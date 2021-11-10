@@ -413,7 +413,7 @@ namespace dal {
                 g_touch_dpad.make_move_vec(this->m_screen_width, this->m_screen_height)
             );
             this->m_scene.m_euler_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
-            this->m_scene.m_euler_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
+            this->m_scene.m_euler_camera.pos().y += MOVE_SPEED * move_vec.y * delta_time_f;
 
             const auto rotation_delta = (
                 ::make_rotation_angles(this->input_manager().key_manager()) * delta_time_f +

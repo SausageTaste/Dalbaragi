@@ -57,7 +57,7 @@ namespace dal::scene {
 namespace dal {
 
     Scene::Scene() {
-        this->m_euler_camera.m_pos = { 2.68, 1.91, 0 };
+        this->m_euler_camera.pos() = { 2.68, 1.91, 0 };
         this->m_euler_camera.set_rot_xyz(-0.22, glm::radians<float>(90), 0);
         this->m_prev_camera = this->m_euler_camera;
 
@@ -105,8 +105,8 @@ namespace dal {
         // Apply portal teleportation
         {
             Segment seg;
-            seg.m_start = this->m_prev_camera.m_pos;
-            seg.m_direc = this->m_euler_camera.m_pos - this->m_prev_camera.m_pos;
+            seg.m_start = this->m_prev_camera.pos();
+            seg.m_direc = this->m_euler_camera.pos() - this->m_prev_camera.pos();
 
             if (seg.length_sqr() != 0.f) {
                 const auto intersection = this->m_portal.m_portals[0].find_intersection(seg);
@@ -140,7 +140,7 @@ namespace dal {
                 this->m_selected_dlight = this->m_moon_light;
                 this->m_selected_dlight.set_direc_to_light(glm::vec3{0, 2, 0} - sun_direc);
             }
-            this->m_selected_dlight.m_pos = this->m_euler_camera.m_pos;
+            this->m_selected_dlight.m_pos = this->m_euler_camera.pos();
         }
 
         // Portals

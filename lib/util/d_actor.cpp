@@ -153,7 +153,7 @@ namespace {
 
 
     glm::quat rotate_quat(const glm::quat& q, const float radians, const glm::vec3& selector) {
-        return glm::normalize(glm::angleAxis(radians, selector) * q);
+        return glm::normalize(glm::angleAxis(radians, glm::normalize(selector)) * q);
     }
 
 
@@ -172,7 +172,7 @@ namespace {
 }
 
 
-//
+// EulerAnglesYXZ
 namespace dal {
 
     void EulerAnglesYXZ::set_x(const float v) {
@@ -225,6 +225,12 @@ namespace dal {
 
     void Transform::rotate(const float v, const glm::vec3& selector) {
         this->m_quat = ::rotate_quat(this->m_quat, v, selector);
+    }
+
+    void Transform::apply_transform(const glm::mat4& mat) {
+        this->m_pos = mat * glm::vec4{ this->m_pos, 1 };
+        this->m_quat = glm::quat_cast(mat) * this->m_quat;
+        this->m_scale = this->m_scale * (mat[0][0] + mat[1][1] + mat[1][1]) / 3.f;
     }
 
 }
@@ -302,6 +308,44 @@ namespace dal {
 
     void EulerCamera::move_forward(const glm::vec3& v) {
         this->m_pos += ::make_rotation_yxz<glm::mat3>(this->m_rotations.vec3()) * v;
+    }
+
+}
+
+
+// QuatCamera
+namespace dal {
+
+    glm::mat4 QuatCamera::make_view_mat() const {
+        return glm::inverse(this->m_transform.make_mat4());
+    }
+
+    void QuatCamera::set_rot_xyz(const float x, const float y, const float z) {
+
+    }
+
+    void QuatCamera::add_rot_xyz(const float x, const float y, const float z) {
+
+    }
+
+    void QuatCamera::rotate_head_up(const float delta_time, const float rotation_delta_z) {
+
+    }
+
+    QuatCamera QuatCamera::transform(const glm::mat4& mat) const {
+        QuatCamera output = *this;
+        output.m_transform.apply_transform(mat);
+        return output;
+    }
+
+    // -z is forward, +x is right, y is discarded
+    void QuatCamera::move_horizontal(glm::vec3 v) {
+
+    }
+
+    // -z is forward, +y is up, +x is right
+    void QuatCamera::move_forward(const glm::vec3& v) {
+
     }
 
 }
