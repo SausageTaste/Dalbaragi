@@ -58,7 +58,7 @@ namespace dal {
 
     Scene::Scene() {
         this->m_euler_camera.m_pos = { 2.68, 1.91, 0 };
-        this->m_euler_camera.m_rotations.set_xyz(-0.22, glm::radians<float>(90), 0);
+        this->m_euler_camera.set_rot_xyz(-0.22, glm::radians<float>(90), 0);
         this->m_prev_camera = this->m_euler_camera;
 
         {

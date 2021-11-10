@@ -275,6 +275,14 @@ namespace dal {
         return output;
     }
 
+    void EulerCamera::set_rot_xyz(const float x, const float y, const float z) {
+        this->m_rotations.set_xyz(x, y, z);
+    }
+
+    void EulerCamera::add_rot_xyz(const float x, const float y, const float z) {
+        this->m_rotations.add_xyz(x, y, z);
+    }
+
     EulerCamera EulerCamera::transform(const glm::mat4& mat) const {
         EulerCamera output;
 

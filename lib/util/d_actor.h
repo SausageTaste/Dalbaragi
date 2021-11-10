@@ -102,16 +102,41 @@ namespace dal {
 
     class EulerCamera : public ICamera {
 
-    public:
+    private:
         EulerAnglesYXZ m_rotations;
-        glm::vec3 m_pos{ 0, 0, 0 };
 
     public:
+        glm::vec3 m_pos{ 0, 0, 0 };
+
+        //----------------------------------------------------
+
         glm::vec3 view_pos() const override {
             return this->m_pos;
         }
 
         glm::mat4 make_view_mat() const override;
+
+        void set_rot_xyz(const float x, const float y, const float z);
+
+        void add_rot_xyz(const float x, const float y, const float z);
+
+        void add_rot_xyz(const glm::vec3& v) {
+            this->add_rot_xyz(v.x, v.y, v.z);
+        }
+
+        void rotate_head_up(const float delta_time, const float rotation_delta_z) {
+            // Rotate camera to make it's top look upward
+            if (0.f == rotation_delta_z && 0.f != this->m_rotations.z()) {
+                const auto cur_z = this->m_rotations.z();
+                const auto cur_z_abs = std::abs(cur_z);
+                const auto z_delta = (-cur_z / cur_z_abs) * static_cast<float>(delta_time * 2.0);
+
+                if (std::abs(z_delta) < cur_z_abs)
+                    this->m_rotations.add_z(z_delta);
+                else
+                    this->m_rotations.set_z(0);
+            }
+        }
 
         EulerCamera transform(const glm::mat4& mat) const;
 
