@@ -17,6 +17,8 @@ Supported platforms are Windows, Linux and Android.
 ## For Windows
 
 * Build CMake target `dalbaragi_windows` and execute it
+* Building target `all` will produce error. Sorry about that
+  ![Main Image](/screenshot/vscode_config.png)
 
 ## For Linux
 
