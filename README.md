@@ -1,4 +1,4 @@
-![Main Image](/screenshot/2021-08-20.jpg)
+![Main Image](/screenshot/main_screenshot.jpg)
 
 # What is this?
 
@@ -17,6 +17,8 @@ Supported platforms are Windows, Linux and Android.
 ## For Windows
 
 * Build CMake target `dalbaragi_windows` and execute it
+* Building target `all` will produce error. Sorry about that
+  ![Main Image](/screenshot/vscode_config.png)
 
 ## For Linux
 
