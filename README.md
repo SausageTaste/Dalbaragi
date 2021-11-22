@@ -1,4 +1,4 @@
-![Main Image](/screenshot/2021-08-20.jpg)
+![Main Image](/screenshot/main_screenshot.jpg)
 
 # What is this?
 
