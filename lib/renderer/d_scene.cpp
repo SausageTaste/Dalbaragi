@@ -108,7 +108,8 @@ namespace dal {
 
         // Portal pair
         {
-            auto& ppair = this->m_portal_pairs.emplace_back();
+            this->m_portal_pairs.emplace_back();
+            this->m_portal_pairs.emplace_back();
         }
 
         // Water
@@ -140,8 +141,10 @@ namespace dal {
 
             for (auto& ppair : this->m_portal_pairs) {
                 const auto portal_mat = ppair.calc_mat_to_teleport(seg);
-                if (portal_mat)
+                if (portal_mat) {
                     this->m_euler_camera = this->m_euler_camera.transform(*portal_mat);
+                    break;  // It doesn't make sense to teleport though multiple portal pairs
+                }
             }
         }
 
@@ -162,9 +165,11 @@ namespace dal {
         }
 
         // Move portals
-        if (!this->m_portal_pairs.empty()) {
-            const auto translate1 = glm::translate(glm::mat4{1}, glm::vec3{-sin(t * 0.3) * 3 - 4.5, 1, 1});
-            const auto translate2 = glm::translate(glm::mat4{1}, glm::vec3{3, 1, -2});
+        for (size_t i = 0; i < this->m_portal_pairs.size(); ++i) {
+            auto& ppair = this->m_portal_pairs[i];
+
+            const auto translate1 = glm::translate(glm::mat4{1}, glm::vec3{-sin(t * 0.3) * 3 - 4.5, 1 + 2*i, 1});
+            const auto translate2 = glm::translate(glm::mat4{1}, glm::vec3{3, 1, -static_cast<int>(2 + 2*i)});
             const auto rotation1 = glm::rotate(glm::mat4{1}, glm::radians<float>(t * 20), glm::vec3{0, 1, 0}) * glm::rotate(glm::mat4{1}, glm::radians<float>(-90), glm::vec3{1, 0, 0});
             const auto rotation2 = glm::rotate(glm::mat4{1}, glm::radians<float>(cos(t) * 20), glm::vec3{0, 1, 0});
 
@@ -172,12 +177,12 @@ namespace dal {
             const auto m2 = translate2 * rotation2;
 
             for (int i = 0; i < 4; ++i) {
-                this->m_portal_pairs.back().m_portals[0].m_vertices[i] = m1 * TEMPLATE_VERTICES[i];
-                this->m_portal_pairs.back().m_portals[1].m_vertices[i] = m2 * TEMPLATE_VERTICES[i];
+                ppair.m_portals[0].m_vertices[i] = m1 * TEMPLATE_VERTICES[i];
+                ppair.m_portals[1].m_vertices[i] = m2 * TEMPLATE_VERTICES[i];
             }
 
-            this->m_portal_pairs.back().m_portals[0].m_plane = ::make_plane_of_quad(this->m_portal_pairs.back().m_portals[0].m_vertices);
-            this->m_portal_pairs.back().m_portals[1].m_plane = ::make_plane_of_quad(this->m_portal_pairs.back().m_portals[1].m_vertices);
+            ppair.m_portals[0].m_plane = ::make_plane_of_quad(ppair.m_portals[0].m_vertices);
+            ppair.m_portals[1].m_plane = ::make_plane_of_quad(ppair.m_portals[1].m_vertices);
         }
 
         // Update member variables
