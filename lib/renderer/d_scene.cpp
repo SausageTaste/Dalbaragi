@@ -115,7 +115,7 @@ namespace dal {
         {
             auto& water = this->m_water_planes.emplace_back();
 
-            water.m_height = -0.2;
+            water.m_height = 0.2;
             water.m_plane = dal::Plane{ glm::vec3{0, water.m_height, 0}, glm::vec3{0, 1, 0} };
         }
     }
