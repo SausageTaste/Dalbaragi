@@ -1,5 +1,7 @@
 #include "d_vk_managers.h"
 
+#include <fmt/format.h>
+
 #include "d_logger.h"
 
 
@@ -113,9 +115,9 @@ namespace dal {
         }
 
         // Portal pair
-        {
-            auto& p1 = scene.m_portal.m_portals[0];
-            auto& p2 = scene.m_portal.m_portals[1];
+        for (auto& ppair : scene.m_portal_pairs) {
+            auto& p1 = ppair.m_portals[0];
+            auto& p2 = ppair.m_portals[1];
 
             {
                 auto& plane1 = this->m_render_planes.emplace_back();
@@ -151,24 +153,24 @@ namespace dal {
         }
 
         // Horizontal water
-        {
+        for (auto& water : scene.m_water_planes) {
             constexpr float x = 1000;
             auto& one = this->m_render_waters.emplace_back();
 
             one.m_polygon.push_back(triangle_t{
-                glm::vec3{-x, scene.m_hor_water.m_height, -x},
-                glm::vec3{-x, scene.m_hor_water.m_height,  x},
-                glm::vec3{ x, scene.m_hor_water.m_height,  x},
+                glm::vec3{-x, water.m_height, -x},
+                glm::vec3{-x, water.m_height,  x},
+                glm::vec3{ x, water.m_height,  x},
             });
 
             one.m_polygon.push_back(triangle_t{
-                glm::vec3{-x, scene.m_hor_water.m_height, -x},
-                glm::vec3{ x, scene.m_hor_water.m_height,  x},
-                glm::vec3{ x, scene.m_hor_water.m_height, -x},
+                glm::vec3{-x, water.m_height, -x},
+                glm::vec3{ x, water.m_height,  x},
+                glm::vec3{ x, water.m_height, -x},
             });
 
-            one.m_orient_mat = scene.m_hor_water.m_plane.make_reflect_mat();
-            one.m_clip_plane = scene.m_hor_water.m_plane.coeff();
+            one.m_orient_mat = water.m_plane.make_reflect_mat();
+            one.m_clip_plane = water.m_plane.coeff();
         }
     }
 
@@ -1343,6 +1345,8 @@ namespace dal {
                     logi_device
                 );
             }
+
+            dalInfo(fmt::format("Created {} reflection planes", needed_count).c_str());
         }
         else {
             const auto destroy_count = this->m_planes.size() - size;
@@ -1351,6 +1355,8 @@ namespace dal {
                 this->m_planes.back().destroy(this->m_cmd_pool, this->m_desc_pool, logi_device);
                 this->m_planes.pop_back();
             }
+
+            dalInfo(fmt::format("Destroyed {} reflection planes", destroy_count).c_str());
         }
     }
 

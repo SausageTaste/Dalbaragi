@@ -20,6 +20,13 @@ namespace dal {
     public:
         Segment() = default;
 
+        Segment(glm::vec3 start, glm::vec3 direc)
+            : m_start(start)
+            , m_direc(direc)
+        {
+
+        }
+
         glm::vec3 end_point() const {
             return this->m_start + this->m_direc;
         }
@@ -89,6 +96,8 @@ namespace dal {
         glm::vec3 one_point() const;
 
         float calc_signed_dist(const glm::vec3& p) const;
+
+        glm::vec3 find_closest_point(const glm::vec3& p) const;
 
         std::optional<SegmentIntersectionInfo> find_intersection(const Segment& seg) const;
 

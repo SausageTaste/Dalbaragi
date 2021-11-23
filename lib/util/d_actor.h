@@ -102,18 +102,71 @@ namespace dal {
 
     class EulerCamera : public ICamera {
 
-    public:
+    private:
         EulerAnglesYXZ m_rotations;
         glm::vec3 m_pos{ 0, 0, 0 };
 
     public:
+        glm::vec3& pos() {
+            return this->m_pos;
+        }
+
         glm::vec3 view_pos() const override {
             return this->m_pos;
         }
 
         glm::mat4 make_view_mat() const override;
 
+        void set_rot_xyz(const float x, const float y, const float z);
+
+        void add_rot_xyz(const float x, const float y, const float z);
+
+        void add_rot_xyz(const glm::vec3& v) {
+            this->add_rot_xyz(v.x, v.y, v.z);
+        }
+
+        void rotate_head_up(const float delta_time);
+
         EulerCamera transform(const glm::mat4& mat) const;
+
+        // -z is forward, +x is right, y is discarded
+        void move_horizontal(glm::vec3 v);
+
+        // -z is forward, +y is up, +x is right
+        void move_forward(const glm::vec3& v);
+
+    };
+
+
+    class QuatCamera : public ICamera {
+
+    private:
+        Transform m_transform;
+
+        //----------------------------------------------------
+
+    public:
+        glm::vec3& pos() {
+            return this->m_transform.m_pos;
+        }
+
+        glm::vec3 view_pos() const override {
+            return this->m_transform.m_pos;
+        }
+
+        glm::mat4 make_view_mat() const override;
+
+        void set_rot_xyz(const float x, const float y, const float z);
+
+        void add_rot_xyz(const float x, const float y, const float z);
+
+        void add_rot_xyz(const glm::vec3& v) {
+            this->add_rot_xyz(v.x, v.y, v.z);
+        }
+
+        void rotate_head_up(const float delta_time);
+
+        QuatCamera transform(const glm::mat4& mat) const;
 
         // -z is forward, +x is right, y is discarded
         void move_horizontal(glm::vec3 v);

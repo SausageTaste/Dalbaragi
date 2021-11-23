@@ -6,9 +6,17 @@
 #include <fmt/format.h>
 
 #include "d_logger.h"
+#include "d_geometry.h"
 
 
 namespace {
+
+    const auto GRAVITY_DIRECTION = glm::normalize(glm::vec3{ 0, -1, 0 });
+
+    const auto DIRECTION_UP    = glm::normalize(glm::vec3{ 0, 1,  0 });
+    const auto DIRECTION_FRONT = glm::normalize(glm::vec3{ 0, 0, -1 });
+    const auto DIRECTION_RIGHT = glm::normalize(glm::vec3{ 1, 0,  0 });
+
 
     float mod_PI(float y) {
         constexpr float PI = static_cast<float>(M_PI);
@@ -151,9 +159,14 @@ namespace {
         return glm::transpose(::make_rotation_zxy<_Mat>(-v));
     }
 
+    template <typename _Mat>
+    _Mat make_rotation_yxz(const float x, const float y, const float z) {
+        return ::make_rotation_yxz<_Mat>(glm::vec3{x, y, z});
+    }
+
 
     glm::quat rotate_quat(const glm::quat& q, const float radians, const glm::vec3& selector) {
-        return glm::normalize(glm::angleAxis(radians, selector) * q);
+        return glm::normalize(glm::angleAxis(radians, glm::normalize(selector)) * q);
     }
 
 
@@ -172,7 +185,7 @@ namespace {
 }
 
 
-//
+// EulerAnglesYXZ
 namespace dal {
 
     void EulerAnglesYXZ::set_x(const float v) {
@@ -275,6 +288,28 @@ namespace dal {
         return output;
     }
 
+    void EulerCamera::set_rot_xyz(const float x, const float y, const float z) {
+        this->m_rotations.set_xyz(x, y, z);
+    }
+
+    void EulerCamera::add_rot_xyz(const float x, const float y, const float z) {
+        this->m_rotations.add_xyz(x, y, z);
+    }
+
+    void EulerCamera::rotate_head_up(const float delta_time) {
+        if (0.f == this->m_rotations.z())
+            return;
+
+        const auto cur_z = this->m_rotations.z();
+        const auto cur_z_abs = std::abs(cur_z);
+        const auto z_delta = (-cur_z / cur_z_abs) * static_cast<float>(delta_time * 2.0);
+
+        if (std::abs(z_delta) < cur_z_abs)
+            this->m_rotations.add_z(z_delta);
+        else
+            this->m_rotations.set_z(0);
+    }
+
     EulerCamera EulerCamera::transform(const glm::mat4& mat) const {
         EulerCamera output;
 
@@ -294,6 +329,81 @@ namespace dal {
 
     void EulerCamera::move_forward(const glm::vec3& v) {
         this->m_pos += ::make_rotation_yxz<glm::mat3>(this->m_rotations.vec3()) * v;
+    }
+
+}
+
+
+// QuatCamera
+namespace dal {
+
+    glm::mat4 QuatCamera::make_view_mat() const {
+        return glm::inverse(this->m_transform.make_mat4());
+    }
+
+    void QuatCamera::set_rot_xyz(const float x, const float y, const float z) {
+        const auto rot_mat = ::make_rotation_yxz<glm::mat3>(x, y, z);
+        this->m_transform.m_quat = glm::quat_cast(rot_mat);
+    }
+
+    void QuatCamera::add_rot_xyz(const float x, const float y, const float z) {
+        auto& quat = this->m_transform.m_quat;
+
+        {
+            const auto quat_rotation = glm::mat3_cast(quat);
+            const auto rotated_right = quat_rotation * ::DIRECTION_RIGHT;
+            quat = glm::angleAxis(x, rotated_right) * quat;
+        }
+
+        {
+            quat = glm::angleAxis(-y, ::GRAVITY_DIRECTION) * quat;
+        }
+
+        {
+            const auto quat_rotation = glm::mat3_cast(quat);
+            const auto rotated_front = quat_rotation * ::DIRECTION_FRONT;
+            quat = glm::angleAxis(-z, rotated_front) * quat;
+        }
+    }
+
+    void QuatCamera::rotate_head_up(const float delta_time) {
+        auto& quat = this->m_transform.m_quat;
+
+        const auto quat_rotation = glm::mat3_cast(quat);
+        const auto rotated_up = quat_rotation * ::DIRECTION_UP;
+        const auto rotated_right = quat_rotation * ::DIRECTION_RIGHT;
+
+        const dal::Plane rot_plane{ glm::vec3{0}, glm::cross(rotated_right, ::GRAVITY_DIRECTION) };
+        const auto rotated_up_on_plane = glm::normalize(rot_plane.find_closest_point(rotated_up));
+        const auto angle_diff = glm::dot(rotated_up_on_plane, -::GRAVITY_DIRECTION);
+        if (1.f == angle_diff)
+            return;
+
+        const auto angle_diff_radians = glm::acos(glm::clamp<float>(angle_diff, -1, 1));
+        const auto axis_direction_sign = glm::dot(glm::cross(rotated_up_on_plane, -::GRAVITY_DIRECTION), rot_plane.normal()) > 0 ? 1 : -1;
+        const auto delta_angle = glm::radians<float>(180) * delta_time;
+        const auto actual_delta_angle = delta_angle >= angle_diff_radians ? angle_diff_radians : delta_angle;
+        quat = glm::angleAxis(axis_direction_sign * actual_delta_angle, rot_plane.normal()) * quat;
+    }
+
+    QuatCamera QuatCamera::transform(const glm::mat4& mat) const {
+        QuatCamera output;
+
+        output.m_transform.m_pos = mat * glm::vec4{ this->m_transform.m_pos, 1 };
+        output.m_transform.m_quat = glm::quat_cast(mat) * this->m_transform.m_quat;
+        output.m_transform.m_scale = 1;
+
+        return output;
+    }
+
+    // -z is forward, +x is right, y is discarded
+    void QuatCamera::move_horizontal(glm::vec3 v) {
+
+    }
+
+    // -z is forward, +y is up, +x is right
+    void QuatCamera::move_forward(const glm::vec3& v) {
+        this->pos() += glm::mat3_cast(this->m_transform.m_quat) * v;
     }
 
 }

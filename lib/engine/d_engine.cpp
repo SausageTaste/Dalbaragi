@@ -413,7 +413,7 @@ namespace dal {
                 g_touch_dpad.make_move_vec(this->m_screen_width, this->m_screen_height)
             );
             this->m_scene.m_euler_camera.move_forward(glm::vec3{move_vec.x, 0, move_vec.z} * delta_time_f * MOVE_SPEED);
-            this->m_scene.m_euler_camera.m_pos.y += MOVE_SPEED * move_vec.y * delta_time_f;
+            this->m_scene.m_euler_camera.pos().y += MOVE_SPEED * move_vec.y * delta_time_f;
 
             const auto rotation_delta = (
                 ::make_rotation_angles(this->input_manager().key_manager()) * delta_time_f +
@@ -421,19 +421,11 @@ namespace dal {
                 g_touch_view.check_view_vec(this->m_screen_width, this->m_screen_height) * 0.02f
             ) * ROT_SPEED;
 
-            this->m_scene.m_euler_camera.m_rotations.add_xyz(rotation_delta);
+            this->m_scene.m_euler_camera.add_rot_xyz(rotation_delta);
 
             // Rotate camera to make it's top look upward
-            if (0.f == rotation_delta.z && 0.f != this->m_scene.m_euler_camera.m_rotations.z()) {
-                const auto cur_z = this->m_scene.m_euler_camera.m_rotations.z();
-                const auto cur_z_abs = std::abs(cur_z);
-                const auto z_delta = (-cur_z / cur_z_abs) * static_cast<float>(delta_time * 2.0);
-
-                if (std::abs(z_delta) < cur_z_abs)
-                    this->m_scene.m_euler_camera.m_rotations.add_z(z_delta);
-                else
-                    this->m_scene.m_euler_camera.m_rotations.set_z(0);
-            }
+            if (0.f == rotation_delta.z)
+                this->m_scene.m_euler_camera.rotate_head_up(delta_time_f);
         }
 
         this->m_task_man.update();
