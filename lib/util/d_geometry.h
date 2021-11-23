@@ -20,6 +20,13 @@ namespace dal {
     public:
         Segment() = default;
 
+        Segment(glm::vec3 start, glm::vec3 direc)
+            : m_start(start)
+            , m_direc(direc)
+        {
+
+        }
+
         glm::vec3 end_point() const {
             return this->m_start + this->m_direc;
         }

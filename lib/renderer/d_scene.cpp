@@ -51,6 +51,28 @@ namespace dal::scene {
         return std::nullopt;
     }
 
+    std::optional<glm::mat4> PortalPair::calc_mat_to_teleport(const dal::Segment& seg) const {
+        if (seg.length_sqr() != 0.f) {
+            const auto intersection = this->m_portals[0].find_intersection(seg);
+            if (intersection) {
+                const auto a = intersection->calc_intersecting_point(seg);
+                const auto portal_mat = dal::make_portal_mat(this->m_portals[1].m_plane, this->m_portals[0].m_plane);
+                return portal_mat;
+            }
+        }
+
+        if (seg.length_sqr() != 0.f) {
+            const auto intersection = this->m_portals[1].find_intersection(seg);
+            if (intersection) {
+                const auto a = intersection->calc_intersecting_point(seg);
+                const auto portal_mat = dal::make_portal_mat(this->m_portals[0].m_plane, this->m_portals[1].m_plane);
+                return portal_mat;
+            }
+        }
+
+        return std::nullopt;
+    }
+
 }
 
 
@@ -84,10 +106,17 @@ namespace dal {
             mirror.m_plane = dal::Plane{mirror.m_vertices[0], mirror.m_vertices[1], mirror.m_vertices[2]};
         }
 
+        // Portal pair
+        {
+            auto& ppair = this->m_portal_pairs.emplace_back();
+        }
+
         // Water
         {
-            this->m_hor_water.m_height = -0.2;
-            this->m_hor_water.m_plane = dal::Plane{ glm::vec3{0, this->m_hor_water.m_height, 0}, glm::vec3{0, 1, 0} };
+            auto& water = this->m_water_planes.emplace_back();
+
+            water.m_height = -0.2;
+            water.m_plane = dal::Plane{ glm::vec3{0, water.m_height, 0}, glm::vec3{0, 1, 0} };
         }
     }
 
@@ -104,26 +133,15 @@ namespace dal {
 
         // Apply portal teleportation
         {
-            Segment seg;
-            seg.m_start = this->m_prev_camera.pos();
-            seg.m_direc = this->m_euler_camera.pos() - this->m_prev_camera.pos();
+            const Segment seg{
+                this->m_prev_camera.pos(),
+                this->m_euler_camera.pos() - this->m_prev_camera.pos()
+            };
 
-            if (seg.length_sqr() != 0.f) {
-                const auto intersection = this->m_portal.m_portals[0].find_intersection(seg);
-                if (intersection) {
-                    const auto a = intersection->calc_intersecting_point(seg);
-                    const auto portal_mat = dal::make_portal_mat(this->m_portal.m_portals[1].m_plane, this->m_portal.m_portals[0].m_plane);
-                    this->m_euler_camera = this->m_euler_camera.transform(portal_mat);
-                }
-            }
-
-            if (seg.length_sqr() != 0.f) {
-                const auto intersection = this->m_portal.m_portals[1].find_intersection(seg);
-                if (intersection) {
-                    const auto a = intersection->calc_intersecting_point(seg);
-                    const auto portal_mat = dal::make_portal_mat(this->m_portal.m_portals[0].m_plane, this->m_portal.m_portals[1].m_plane);
-                    this->m_euler_camera = this->m_euler_camera.transform(portal_mat);
-                }
+            for (auto& ppair : this->m_portal_pairs) {
+                const auto portal_mat = ppair.calc_mat_to_teleport(seg);
+                if (portal_mat)
+                    this->m_euler_camera = this->m_euler_camera.transform(*portal_mat);
             }
         }
 
@@ -143,8 +161,8 @@ namespace dal {
             this->m_selected_dlight.m_pos = this->m_euler_camera.pos();
         }
 
-        // Portals
-        {
+        // Move portals
+        if (!this->m_portal_pairs.empty()) {
             const auto translate1 = glm::translate(glm::mat4{1}, glm::vec3{-sin(t * 0.3) * 3 - 4.5, 1, 1});
             const auto translate2 = glm::translate(glm::mat4{1}, glm::vec3{3, 1, -2});
             const auto rotation1 = glm::rotate(glm::mat4{1}, glm::radians<float>(t * 20), glm::vec3{0, 1, 0}) * glm::rotate(glm::mat4{1}, glm::radians<float>(-90), glm::vec3{1, 0, 0});
@@ -154,12 +172,12 @@ namespace dal {
             const auto m2 = translate2 * rotation2;
 
             for (int i = 0; i < 4; ++i) {
-                this->m_portal.m_portals[0].m_vertices[i] = m1 * TEMPLATE_VERTICES[i];
-                this->m_portal.m_portals[1].m_vertices[i] = m2 * TEMPLATE_VERTICES[i];
+                this->m_portal_pairs.back().m_portals[0].m_vertices[i] = m1 * TEMPLATE_VERTICES[i];
+                this->m_portal_pairs.back().m_portals[1].m_vertices[i] = m2 * TEMPLATE_VERTICES[i];
             }
 
-            this->m_portal.m_portals[0].m_plane = ::make_plane_of_quad(this->m_portal.m_portals[0].m_vertices);
-            this->m_portal.m_portals[1].m_plane = ::make_plane_of_quad(this->m_portal.m_portals[1].m_vertices);
+            this->m_portal_pairs.back().m_portals[0].m_plane = ::make_plane_of_quad(this->m_portal_pairs.back().m_portals[0].m_vertices);
+            this->m_portal_pairs.back().m_portals[1].m_plane = ::make_plane_of_quad(this->m_portal_pairs.back().m_portals[1].m_vertices);
         }
 
         // Update member variables

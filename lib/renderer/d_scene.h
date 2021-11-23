@@ -32,6 +32,8 @@ namespace dal::scene {
 
     struct PortalPair {
         std::array<PortalPlane, 2> m_portals;
+
+        std::optional<glm::mat4> calc_mat_to_teleport(const dal::Segment& delta_cam_pos) const;
     };
 
     struct MirrorPlane {
@@ -62,8 +64,8 @@ namespace dal {
         glm::vec3 m_ambient_light;
 
         std::vector<scene::MirrorPlane> m_mirrors;
-        scene::PortalPair m_portal;
-        scene::HorizontalWater m_hor_water;
+        std::vector<scene::PortalPair> m_portal_pairs;
+        std::vector<scene::HorizontalWater> m_water_planes;
 
     private:
         QuatCamera m_prev_camera;
