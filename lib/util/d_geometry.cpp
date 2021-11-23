@@ -11,9 +11,36 @@ namespace {
         return std::acos(glm::clamp<float>(x, -1, 1));
     }
 
-    glm::mat4 roate_about_axis(const float radians, const glm::vec3& axis) {
-        const auto quat = glm::rotate(glm::quat{1, 0, 0, 0}, radians, axis);
+    glm::mat4 roate_about_axis_old(const float radians, const glm::vec3& axis) {
+        const auto quat = glm::angleAxis(radians, glm::normalize(axis));
         return glm::mat4_cast(quat);
+    }
+
+    glm::mat4 roate_about_axis(const float radians, const glm::vec3& axis) {
+        glm::mat4 output{1};
+
+        const auto axis_n = glm::normalize(axis);
+
+        const auto c = glm::cos(radians);
+        const auto s = glm::sin(radians);
+        const auto t = 1.f - c;
+        const auto x = axis_n.x;
+        const auto y = axis_n.y;
+        const auto z = axis_n.z;
+
+        output[0][0] = t*x*x + c;
+        output[1][0] = t*x*y - z*s;
+        output[2][0] = t*x*z + y*s;
+
+        output[0][1] = t*x*y + z*s;
+        output[1][1] = t*y*y + c;
+        output[2][1] = t*y*z - x*s;
+
+        output[0][2] = t*x*z - y*s;
+        output[1][2] = t*y*z + x*s;
+        output[2][2] = t*z*z + c;
+
+        return output;
     }
 
     glm::mat4 make_origin_align_mat(const glm::vec3& point, const glm::vec3& normal) {
