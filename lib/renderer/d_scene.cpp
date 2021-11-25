@@ -79,8 +79,8 @@ namespace dal::scene {
 namespace dal {
 
     Scene::Scene() {
-        this->m_euler_camera.pos() = { 2.68, 1.91, 0 };
-        this->m_euler_camera.set_rot_xyz(-0.22, glm::radians<float>(90), 0);
+        this->m_euler_camera.pos() = { -5.8, 1.12, -0.53 };
+        this->m_euler_camera.set_rot_xyz(-0.178, -0.435, 0);
         this->m_prev_camera = this->m_euler_camera;
 
         {
@@ -95,8 +95,8 @@ namespace dal {
         {
             auto& mirror = this->m_mirrors.emplace_back();
 
-            const auto rotation = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{0, 1, 0});
-            const auto translate = glm::translate(glm::mat4{1}, glm::vec3{-14, 1.2, 0});
+            const auto rotation = glm::rotate(glm::mat4{1}, glm::radians<float>(30), glm::vec3{-0.3, 1, 0.3});
+            const auto translate = glm::translate(glm::mat4{1}, glm::vec3{-5, 1.2, -2});
             const auto mat = translate * rotation;
 
             for (size_t i = 0; i < 4; ++i) {
@@ -150,7 +150,7 @@ namespace dal {
 
         // Directional light
         {
-            const auto sun_direc = glm::normalize(glm::vec3{ 10.0 * cos(t * 0.1), 10.0 * sin(t * 0.1), 2 });
+            const auto sun_direc = glm::normalize(glm::vec3{ 1, 1000, 1 });
             const auto is_sun = glm::dot(glm::vec3(0, 1, 0), sun_direc) >= -0.1;
 
             if (is_sun) {

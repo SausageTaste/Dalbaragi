@@ -354,7 +354,14 @@ namespace dal {
 
         const auto cur_sec = dal::get_cur_sec();
 
-        const auto cam_view_mat = camera.make_view_mat();
+        const auto ref_mat = [&]() {
+            const auto x = scene.m_mirrors.back().m_plane.make_reflect_mat();
+            const auto y = glm::mat4{1};
+            const auto a = static_cast<float>(cos(dal::get_cur_sec()) * 0.5 + 0.5);
+            return x * (1.f - a) + (y * a);
+        }();
+
+        const auto cam_view_mat = camera.make_view_mat() * ref_mat;
         const auto cam_proj_mat = make_perspective_proj_mat(glm::radians<float>(80), this->m_swapchain.perspective_ratio(), ::PROJ_NEAR, ::PROJ_FAR);
         const auto cam_proj_view_mat = cam_proj_mat * cam_view_mat;
 
