@@ -43,7 +43,7 @@ namespace {
         return output;
     }
 
-    glm::mat4 make_origin_align_mat(const glm::vec3& point, const glm::vec3& normal) {
+    std::pair<glm::mat4, glm::mat4> make_origin_align_mat_r_t(const glm::vec3& point, const glm::vec3& normal) {
         glm::mat4 output{1};
 
         const auto cos_theta = glm::dot(normal, ::LYING_PLANE_LOOK_DIREC);
@@ -52,8 +52,12 @@ namespace {
             output *= ::roate_about_axis(::safe_acos(cos_theta), rotate_axis);
         }
 
-        output *= glm::translate(glm::mat4{1}, -point);
-        return output;
+        return std::make_pair(output, glm::translate(glm::mat4{1}, -point));
+    }
+
+    glm::mat4 make_origin_align_mat(const glm::vec3& point, const glm::vec3& normal) {
+        const auto [r, t] = ::make_origin_align_mat_r_t(point, normal);
+        return r * t;
     }
 
     // Param p must be on the plane.
@@ -184,6 +188,10 @@ namespace dal {
 
         const auto distance = seg.length() * absDistA / denominator;
         return SegmentIntersectionInfo{ distance, distA > distB };
+    }
+
+    std::pair<glm::mat4, glm::mat4> Plane::make_origin_align_mat_r_t(const glm::vec3& p) const {
+        return ::make_origin_align_mat_r_t(p, this->normal());
     }
 
     glm::mat4 Plane::make_origin_align_mat() const {

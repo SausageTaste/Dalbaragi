@@ -354,11 +354,39 @@ namespace dal {
 
         const auto cur_sec = dal::get_cur_sec();
 
-        const auto ref_mat = [&]() {
-            const auto x = scene.m_mirrors.back().m_plane.make_reflect_mat();
-            const auto y = glm::mat4{1};
-            const auto a = static_cast<float>(cos(dal::get_cur_sec()) * 0.5 + 0.5);
-            return x * (1.f - a) + (y * a);
+        const auto ref_mat = [&]() -> glm::mat4 {
+            std::vector<glm::mat4> matrices;
+            {
+                const auto& mirror = scene.m_mirrors.back();
+
+                glm::vec3 vert_sum{0};
+                for (auto& x : mirror.m_vertices)
+                    vert_sum += x;
+
+                auto& plane = mirror.m_plane;
+                const auto [r, t] = plane.make_origin_align_mat_r_t(vert_sum / static_cast<float>(mirror.m_vertices.size()));
+                const auto f = dal::make_upside_down_mat();
+                const auto a = r * t;
+                const auto m = glm::inverse(a) * f * a;
+
+                matrices.push_back(glm::mat4{1});
+                matrices.push_back(t);
+                matrices.push_back(r * t);
+                matrices.push_back(dal::make_upside_down_mat() * r * t);
+                matrices.push_back(glm::inverse(r) * dal::make_upside_down_mat() * r * t);
+                matrices.push_back(glm::inverse(t) * glm::inverse(r) * dal::make_upside_down_mat() * r * t);
+            }
+
+            const auto normalized_range = cos(dal::get_cur_sec() * 0.2) * 0.5 + 0.5;
+            const auto index_float = normalized_range * static_cast<double>(matrices.size() - 1);
+            const auto index_int = static_cast<size_t>(floor(index_float));
+
+            const auto index_from = index_int % matrices.size();
+            const auto index_to = (index_from + 1) % matrices.size();
+            // dalInfo(fmt::format("{}, {}, {}, {}, {}", normalized_range, index_float, index_int, index_from, index_to).c_str());
+            const auto interval = static_cast<float>(index_float - static_cast<double>(index_int));
+
+            return matrices.at(index_from) * (1.f - interval) + (matrices.at(index_to) * interval);
         }();
 
         const auto cam_view_mat = camera.make_view_mat() * ref_mat;

@@ -79,8 +79,8 @@ namespace dal::scene {
 namespace dal {
 
     Scene::Scene() {
-        this->m_euler_camera.pos() = { -5.8, 1.12, -0.53 };
-        this->m_euler_camera.set_rot_xyz(-0.178, -0.435, 0);
+        this->m_euler_camera.pos() = { -1.116588, 0.524099946, 1.25024772 };
+        this->m_euler_camera.set_rot_xyz(0.09699, -0.6433, 0);
         this->m_prev_camera = this->m_euler_camera;
 
         {
@@ -95,8 +95,8 @@ namespace dal {
         {
             auto& mirror = this->m_mirrors.emplace_back();
 
-            const auto rotation = glm::rotate(glm::mat4{1}, glm::radians<float>(30), glm::vec3{-0.3, 1, 0.3});
-            const auto translate = glm::translate(glm::mat4{1}, glm::vec3{-5, 1.2, -2});
+            const auto rotation = glm::rotate(glm::mat4{1}, glm::radians<float>(-90), glm::vec3{0, 1, 0});
+            const auto translate = glm::translate(glm::mat4{1}, glm::vec3{1, 1.2, 0});
             const auto mat = translate * rotation;
 
             for (size_t i = 0; i < 4; ++i) {

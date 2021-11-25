@@ -101,6 +101,8 @@ namespace dal {
 
         std::optional<SegmentIntersectionInfo> find_intersection(const Segment& seg) const;
 
+        std::pair<glm::mat4, glm::mat4> make_origin_align_mat_r_t(const glm::vec3& p) const;
+
         glm::mat4 make_origin_align_mat() const;
 
         glm::mat4 make_reflect_mat() const;
