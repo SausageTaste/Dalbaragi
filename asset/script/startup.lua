@@ -74,6 +74,13 @@ function on_renderer_init()
         t:get_pos():set_z(-1)
         e:notify_transform_change()
     end
+
+    do
+        local e = scene.create_actor_static('', '_asset/model/waved_floor.dmd')
+        local t = e:get_transform()
+        t:get_pos():set_y(-1)
+        e:notify_transform_change()
+    end
 end
 
 

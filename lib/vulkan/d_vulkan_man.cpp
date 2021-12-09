@@ -18,7 +18,7 @@
 namespace {
 
     constexpr float PROJ_NEAR = 0.1;
-    constexpr float PROJ_FAR = 50;
+    constexpr float PROJ_FAR = 1000;
 
 
     VkExtent2D calc_smaller_extent(const VkExtent2D& extent, const float scale) {
