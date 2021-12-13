@@ -8,39 +8,13 @@
 #include "d_filesystem.h"
 #include "d_task_thread.h"
 #include "d_vk_managers.h"
+#include "d_vk_resource.h"
 
 
 #define DAL_VK_DEBUG
 
 
 namespace dal {
-
-    class VulkanResourceManager {
-
-    private:
-        std::vector< std::shared_ptr<TextureUnit>          > m_textures;
-        std::vector< std::shared_ptr<ModelRenderer>        > m_models;
-        std::vector< std::shared_ptr<ModelSkinnedRenderer> > m_skinned_models;
-        std::vector< std::shared_ptr<ActorVK>              > m_actors;
-        std::vector< std::shared_ptr<ActorSkinnedVK>       > m_skinned_actors;
-
-    public:
-        ~VulkanResourceManager();
-
-        void destroy();
-
-        HTexture create_texture();
-
-        HRenModel create_model();
-
-        HRenModelSkinned create_model_skinned();
-
-        HActor create_actor();
-
-        HActorSkinned create_actor_skinned();
-
-    };
-
 
     class VulkanState : public IRenderer {
 
