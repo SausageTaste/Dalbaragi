@@ -129,9 +129,9 @@ namespace dal {
 
         // O : Opaque, A : Alpha
         // S : Static, A : Animated
-        using RenderPair_O_S = RenderPairOpaqueVK<ModelRenderer,        ActorVK          >;
+        using RenderPair_O_S = RenderPairOpaqueVK<ModelRenderer,        ActorProxy       >;
         using RenderPair_O_A = RenderPairOpaqueVK<ModelSkinnedRenderer, ActorSkinnedProxy>;
-        using RenderPair_A_S = RenderPairTranspVK<ActorVK          >;
+        using RenderPair_A_S = RenderPairTranspVK<ActorProxy       >;
         using RenderPair_A_A = RenderPairTranspVK<ActorSkinnedProxy>;
 
     public:

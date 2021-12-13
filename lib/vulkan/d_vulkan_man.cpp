@@ -336,11 +336,11 @@ namespace dal {
         render_list.apply(scene, camera.view_pos());
 
         for (auto x : render_list.m_used_actors) {
-            auto& actor = dal::handle_cast(x).get();
+            auto& actor = dal::handle_cast(x);
 
-            if (actor.m_transform_update_needed > 0) {
-                --actor.m_transform_update_needed;
-                actor.apply_transform(this->in_flight_index(), this->m_logi_device.get());
+            if (actor.get().m_transform_update_needed > 0) {
+                --actor.get().m_transform_update_needed;
+                actor.apply_transform(this->in_flight_index());
             }
         }
 

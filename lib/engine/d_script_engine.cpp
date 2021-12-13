@@ -775,7 +775,7 @@ namespace {
             //--------------------------------------------------------------------------------------------
 
             auto& obj = ::push_meta_object<dal::Transform*>(L, ::DAL_TRANSFORM_VIEW);
-            obj = &actor->m_actor->transform();
+            obj = &actor->m_actor->m_transform;
 
             return 1;
         }

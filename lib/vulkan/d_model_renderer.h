@@ -17,7 +17,6 @@ namespace dal {
         dal::UniformBufferArray<dal::U_PerActor> m_ubuf_per_actor;
 
     public:
-        Transform m_transform;
         size_t m_transform_update_needed = 0;
 
     public:
@@ -36,7 +35,7 @@ namespace dal {
             this->m_transform_update_needed = MAX_FRAMES_IN_FLIGHT;
         }
 
-        void apply_transform(const FrameInFlightIndex& index, const VkDevice logi_device);
+        void apply_transform(const FrameInFlightIndex& index, const dal::Transform& transform, const VkDevice logi_device);
 
         auto& desc_set_at(const FrameInFlightIndex& index) const {
             return this->m_desc.at(index.get()).get();
@@ -77,6 +76,12 @@ namespace dal {
             return this->m_actor;
         }
 
+        void apply_transform(const FrameInFlightIndex& index);
+
+        auto& desc_set_at(const FrameInFlightIndex& index) const {
+            return this->get().desc_set_at(index);
+        }
+
         // Overridings
 
         bool init() override;
@@ -84,14 +89,6 @@ namespace dal {
         void destroy() override;
 
         bool is_ready() const override;
-
-        dal::Transform& transform() override {
-            return this->m_actor.m_transform;
-        }
-
-        const dal::Transform& transform() const override {
-            return this->m_actor.m_transform;
-        }
 
         void notify_transform_change() override;
 

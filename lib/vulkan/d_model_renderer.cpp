@@ -45,12 +45,12 @@ namespace dal {
         return this->m_ubuf_per_actor.is_ready();
     }
 
-    void ActorVK::apply_transform(const FrameInFlightIndex& index, const VkDevice logi_device) {
+    void ActorVK::apply_transform(const FrameInFlightIndex& index, const dal::Transform& transform, const VkDevice logi_device) {
         if (!this->is_ready())
             return;
 
         U_PerActor ubuf_data_per_actor;
-        ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
+        ubuf_data_per_actor.m_model = transform.make_mat4();
         this->m_ubuf_per_actor.copy_to_buffer(index.get(), ubuf_data_per_actor, logi_device);
     }
 
@@ -91,6 +91,10 @@ namespace dal {
             m_phys_device != VK_NULL_HANDLE &&
             m_logi_device != VK_NULL_HANDLE
         );
+    }
+
+    void ActorProxy::apply_transform(const FrameInFlightIndex& index) {
+        this->get().apply_transform(index, this->m_transform, this->m_logi_device);
     }
 
     // Overridings
