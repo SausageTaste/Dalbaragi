@@ -675,7 +675,7 @@ namespace dal {
         }
 
         for (auto& actor : this->m_skinned_actors)
-            this->m_renderer->init(*actor.get());
+            actor->init();
 
         this->m_missing_tex = this->request_texture(::MISSING_TEX_PATH);
         this->m_missing_model = this->request_model(::MISSING_MODEL_PATH);
@@ -789,7 +789,7 @@ namespace dal {
 
     HActorSkinned ResourceManager::request_actor_skinned() {
         this->m_skinned_actors.push_back(this->m_renderer->create_actor_skinned());
-        this->m_renderer->init(*this->m_skinned_actors.back());
+        this->m_skinned_actors.back()->init();
         return this->m_skinned_actors.back();
     }
 

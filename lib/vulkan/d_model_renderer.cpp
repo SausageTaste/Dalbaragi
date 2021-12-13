@@ -105,6 +105,8 @@ namespace dal {
             this->m_phys_device,
             this->m_logi_device
         );
+
+        return true;
     }
 
     void ActorProxy::destroy() {
@@ -125,25 +127,20 @@ namespace dal {
 // ActorSkinnedVK
 namespace dal {
 
-    ActorSkinnedVK::~ActorSkinnedVK() {
-        this->destroy();
-    }
-
     void ActorSkinnedVK::init(
         DescAllocator& desc_allocator,
         const dal::DescLayout_ActorAnimated& layout_per_actor,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->destroy();
-
-        this->m_logi_device = logi_device;
-        this->m_desc_allocator = &desc_allocator;
+        this->destroy(desc_allocator, logi_device);
 
         this->m_ubuf_per_actor.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
         this->m_ubuf_anim.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
+
         for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
-            this->m_desc.push_back(this->m_desc_allocator->allocate(layout_per_actor, logi_device));
+            this->m_desc.push_back(desc_allocator.allocate(layout_per_actor, logi_device));
+
             this->m_desc.back().record_actor_animated(
                 this->m_ubuf_per_actor.at(i),
                 this->m_ubuf_anim.at(i),
@@ -152,20 +149,13 @@ namespace dal {
         }
     }
 
-    void ActorSkinnedVK::destroy() {
-        if (nullptr != this->m_desc_allocator) {
-            for (auto& d : this->m_desc)
-                this->m_desc_allocator->free(std::move(d));
-            this->m_desc_allocator = nullptr;
-        }
-
+    void ActorSkinnedVK::destroy(DescAllocator& desc_allocator, const VkDevice logi_device) {
+        for (auto& d : this->m_desc)
+            desc_allocator.free(std::move(d));
         this->m_desc.clear();
 
-        if (VK_NULL_HANDLE != this->m_logi_device) {
-            this->m_ubuf_per_actor.destroy(this->m_logi_device);
-            this->m_ubuf_anim.destroy(this->m_logi_device);
-            this->m_logi_device = VK_NULL_HANDLE;
-        }
+        this->m_ubuf_per_actor.destroy(logi_device);
+        this->m_ubuf_anim.destroy(logi_device);
     }
 
     bool ActorSkinnedVK::is_ready() const {
@@ -175,26 +165,101 @@ namespace dal {
         );
     }
 
-    void ActorSkinnedVK::apply_transform(const FrameInFlightIndex& index) {
+    void ActorSkinnedVK::apply_transform(const FrameInFlightIndex& index, const dal::Transform& transform, const VkDevice logi_device) {
         if (!this->is_ready())
             return;
 
         U_PerActor ubuf_data_per_actor;
-        ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
-        this->m_ubuf_per_actor.copy_to_buffer(index.get(), ubuf_data_per_actor, this->m_logi_device);
+        ubuf_data_per_actor.m_model = transform.make_mat4();
+        this->m_ubuf_per_actor.copy_to_buffer(index.get(), ubuf_data_per_actor, logi_device);
     }
 
-    void ActorSkinnedVK::apply_animation(const FrameInFlightIndex& index) {
+    void ActorSkinnedVK::apply_animation(const FrameInFlightIndex& index, const dal::AnimationState& anim_state, const VkDevice logi_device) {
         if (!this->is_ready())
             return;
 
         U_AnimTransform ubuf_data;
 
-        const auto size = std::min<uint32_t>(dal::MAX_JOINT_COUNT, this->m_anim_state.transform_array().size());
+        const auto size = std::min<uint32_t>(dal::MAX_JOINT_COUNT, anim_state.transform_array().size());
         for (uint32_t i = 0; i < size; ++i)
-            ubuf_data.m_transforms[i] = this->m_anim_state.transform_array()[i];
+            ubuf_data.m_transforms[i] = anim_state.transform_array()[i];
 
-        this->m_ubuf_anim.copy_to_buffer(index.get(), ubuf_data, this->m_logi_device);
+        this->m_ubuf_anim.copy_to_buffer(index.get(), ubuf_data, logi_device);
+    }
+
+}
+
+
+// ActorSkinnedProxy
+namespace dal {
+
+    ActorSkinnedProxy::~ActorSkinnedProxy() {
+        this->destroy();
+        this->clear_dependencies();
+    }
+
+    void ActorSkinnedProxy::give_dependencies(
+        DescAllocator& desc_allocator,
+        const DescLayout_ActorAnimated& desc_layout,
+        VkPhysicalDevice phys_device,
+        VkDevice logi_device
+    ) {
+        m_desc_allocator = &desc_allocator;
+        m_desc_layout = &desc_layout;
+        m_phys_device = phys_device;
+        m_logi_device = logi_device;
+    }
+
+    void ActorSkinnedProxy::clear_dependencies() {
+        m_desc_allocator = nullptr;
+        m_desc_layout = nullptr;
+        m_phys_device = VK_NULL_HANDLE;;
+        m_logi_device = VK_NULL_HANDLE;
+    }
+
+    bool ActorSkinnedProxy::are_dependencies_ready() const {
+        return (
+            m_desc_allocator != nullptr &&
+            m_desc_layout != nullptr &&
+            m_phys_device != VK_NULL_HANDLE &&
+            m_logi_device != VK_NULL_HANDLE
+        );
+    }
+
+    void ActorSkinnedProxy::apply_transform(const FrameInFlightIndex& index) {
+        this->m_actor.apply_transform(index, this->m_transform, this->m_logi_device);
+    }
+
+    void ActorSkinnedProxy::apply_animation(const FrameInFlightIndex& index) {
+        this->m_actor.apply_animation(index, this->m_anim_state, this->m_logi_device);
+    }
+
+    // Overridings
+
+    bool ActorSkinnedProxy::init() {
+        if (!this->are_dependencies_ready())
+            return false;
+
+        this->m_actor.init(
+            *this->m_desc_allocator,
+            *this->m_desc_layout,
+            this->m_phys_device,
+            this->m_logi_device
+        );
+
+        return true;
+    }
+
+    void ActorSkinnedProxy::destroy() {
+        this->m_actor.destroy(*this->m_desc_allocator, this->m_logi_device);
+    }
+
+    bool ActorSkinnedProxy::is_ready() const {
+        return this->m_actor.is_ready();
+    }
+
+    void ActorSkinnedProxy::notify_transform_change() {
+        this->m_actor.notify_transform_change();
     }
 
 }

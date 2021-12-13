@@ -96,8 +96,6 @@ namespace dal {
 
         bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) override;
 
-        bool init(IActorSkinned& actor) override;
-
         bool prepare(IRenModel& model) override;
 
         bool prepare(IRenModelSkineed& model) override;

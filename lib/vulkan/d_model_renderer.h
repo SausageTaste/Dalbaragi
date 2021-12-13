@@ -115,21 +115,17 @@ namespace dal {
     }
 
 
-    class ActorSkinnedVK : public IActorSkinned {
+    class ActorSkinnedVK {
 
     private:
         std::vector<DescSet> m_desc;
         dal::UniformBufferArray<dal::U_PerActor> m_ubuf_per_actor;
         dal::UniformBufferArray<dal::U_AnimTransform> m_ubuf_anim;
-        DescAllocator* m_desc_allocator = nullptr;
-        VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
         size_t m_transform_update_needed = 0;
 
     public:
-        ~ActorSkinnedVK();
-
         void init(
             DescAllocator& desc_allocator,
             const DescLayout_ActorAnimated& layout_actor,
@@ -137,23 +133,93 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy() override;
+        void destroy(DescAllocator& desc_allocator, const VkDevice logi_device);
 
         bool is_ready() const;
 
-        void notify_transform_change() override {
+        void notify_transform_change() {
             this->m_transform_update_needed = MAX_FRAMES_IN_FLIGHT;
         }
 
-        void apply_transform(const FrameInFlightIndex& index);
+        void apply_transform(const FrameInFlightIndex& index, const dal::Transform& transform, const VkDevice logi_device);
 
-        void apply_animation(const FrameInFlightIndex& index);
+        void apply_animation(const FrameInFlightIndex& index, const dal::AnimationState& anim_state, const VkDevice logi_device);
 
         auto& desc_set_at(const FrameInFlightIndex& index) const {
             return this->m_desc.at(index.get()).get();
         }
 
     };
+
+
+    class ActorSkinnedProxy : public IActorSkinned {
+
+    private:
+        ActorSkinnedVK m_actor;
+
+        DescAllocator*                  m_desc_allocator = nullptr;
+        DescLayout_ActorAnimated const* m_desc_layout    = nullptr;
+        VkPhysicalDevice                m_phys_device    = VK_NULL_HANDLE;
+        VkDevice                        m_logi_device    = VK_NULL_HANDLE;
+
+    public:
+        ~ActorSkinnedProxy();
+
+        void give_dependencies(
+            DescAllocator& desc_allocator,
+            const DescLayout_ActorAnimated& desc_layout,
+            VkPhysicalDevice phys_device,
+            VkDevice logi_device
+        );
+
+        void clear_dependencies();
+
+        bool are_dependencies_ready() const;
+
+        auto& get() {
+            return this->m_actor;
+        }
+
+        auto& get() const {
+            return this->m_actor;
+        }
+
+        auto& desc_set_at(const FrameInFlightIndex& index) const {
+            return this->get().desc_set_at(index);
+        }
+
+        void apply_transform(const FrameInFlightIndex& index);
+
+        void apply_animation(const FrameInFlightIndex& index);
+
+        // Overridings
+
+        bool init() override;
+
+        void destroy() override;
+
+        bool is_ready() const override;
+
+        void notify_transform_change() override;
+
+    };
+
+
+    inline auto& handle_cast(dal::IActorSkinned& actor) {
+        return dynamic_cast<dal::ActorSkinnedProxy&>(actor);
+    }
+
+    inline auto& handle_cast(const dal::IActorSkinned& actor) {
+        return dynamic_cast<const dal::ActorSkinnedProxy&>(actor);
+    }
+
+    inline auto& handle_cast(dal::HActorSkinned& actor) {
+        return dynamic_cast<dal::ActorSkinnedProxy&>(*actor.get());
+    }
+
+    inline auto& handle_cast(const dal::HActorSkinned& actor) {
+        return dynamic_cast<const dal::ActorSkinnedProxy&>(*actor.get());
+    }
 
 
     class MeshVK : public IMesh {

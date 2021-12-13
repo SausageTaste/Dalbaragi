@@ -19,22 +19,6 @@ namespace dal {
     class PlanarReflectionManager;
 
 
-    inline auto& actor_cast(dal::IActorSkinned& actor) {
-        return dynamic_cast<dal::ActorSkinnedVK&>(actor);
-    }
-
-    inline auto& actor_cast(const dal::IActorSkinned& actor) {
-        return dynamic_cast<const dal::ActorSkinnedVK&>(actor);
-    }
-
-    inline auto& actor_cast(dal::HActorSkinned& actor) {
-        return dynamic_cast<dal::ActorSkinnedVK&>(*actor.get());
-    }
-
-    inline auto& actor_cast(const dal::HActorSkinned& actor) {
-        return dynamic_cast<const dal::ActorSkinnedVK&>(*actor.get());
-    }
-
     inline auto& model_cast(dal::IRenModel& model) {
         return dynamic_cast<dal::ModelRenderer&>(model);
     }
@@ -75,7 +59,7 @@ namespace dal {
         std::vector< std::shared_ptr<ModelRenderer>        > m_models;
         std::vector< std::shared_ptr<ModelSkinnedRenderer> > m_skinned_models;
         std::vector< std::shared_ptr<ActorProxy>           > m_actors;
-        std::vector< std::shared_ptr<ActorSkinnedVK>       > m_skinned_actors;
+        std::vector< std::shared_ptr<ActorSkinnedProxy>    > m_skinned_actors;
 
     public:
         ~VulkanResourceManager();
@@ -100,7 +84,12 @@ namespace dal {
             VkDevice logi_device
         );
 
-        HActorSkinned create_actor_skinned();
+        HActorSkinned create_actor_skinned(
+            DescAllocator& desc_allocator,
+            const DescLayout_ActorAnimated& desc_layout,
+            VkPhysicalDevice phys_device,
+            VkDevice logi_device
+        );
 
     };
 
@@ -140,10 +129,10 @@ namespace dal {
 
         // O : Opaque, A : Alpha
         // S : Static, A : Animated
-        using RenderPair_O_S = RenderPairOpaqueVK<ModelRenderer,        ActorVK       >;
-        using RenderPair_O_A = RenderPairOpaqueVK<ModelSkinnedRenderer, ActorSkinnedVK>;
-        using RenderPair_A_S = RenderPairTranspVK<ActorVK       >;
-        using RenderPair_A_A = RenderPairTranspVK<ActorSkinnedVK>;
+        using RenderPair_O_S = RenderPairOpaqueVK<ModelRenderer,        ActorVK          >;
+        using RenderPair_O_A = RenderPairOpaqueVK<ModelSkinnedRenderer, ActorSkinnedProxy>;
+        using RenderPair_A_S = RenderPairTranspVK<ActorVK          >;
+        using RenderPair_A_A = RenderPairTranspVK<ActorSkinnedProxy>;
 
     public:
         std::unordered_set<dal::HRenModel> m_used_models;

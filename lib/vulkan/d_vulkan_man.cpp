@@ -345,7 +345,7 @@ namespace dal {
         }
 
         for (auto x : render_list.m_used_skin_actors) {
-            auto& actor = dal::actor_cast(x);
+            auto& actor = dal::handle_cast(x);
 
             actor.apply_animation(this->in_flight_index());
             actor.apply_transform(this->in_flight_index());
@@ -810,7 +810,12 @@ namespace dal {
     }
 
     HActorSkinned VulkanState::create_actor_skinned() {
-        return this->m_vk_res_man.create_actor_skinned();
+        return this->m_vk_res_man.create_actor_skinned(
+            this->m_desc_allocator,
+            this->m_desc_layout_man.layout_actor_animated(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
     }
 
     bool VulkanState::init(IRenModel& h_model, const dal::ModelStatic& model_data, const char* const fallback_namespace) {
@@ -846,19 +851,6 @@ namespace dal {
             this->m_desc_layout_man.layout_per_actor(),
             this->m_desc_layout_man.layout_per_material(),
             this->m_logi_device.queue_graphics(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
-
-        return true;
-    }
-
-    bool VulkanState::init(IActorSkinned& actor) {
-        auto& a = dal::actor_cast(actor);
-
-        a.init(
-            this->m_desc_allocator,
-            this->m_desc_layout_man.layout_actor_animated(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );

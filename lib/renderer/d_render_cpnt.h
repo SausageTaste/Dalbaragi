@@ -186,13 +186,17 @@ namespace dal {
     class IActorSkinned {
 
     public:
-        Transform m_transform;
-        AnimationState m_anim_state;
+        dal::Transform m_transform;
+        dal::AnimationState m_anim_state;
 
     public:
         virtual ~IActorSkinned() = default;
 
+        virtual bool init() = 0;
+
         virtual void destroy() = 0;
+
+        virtual bool is_ready() const = 0;
 
         virtual void notify_transform_change() = 0;
 

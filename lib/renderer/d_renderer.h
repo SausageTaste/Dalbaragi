@@ -52,8 +52,6 @@ namespace dal {
 
         virtual bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) { return false; }
 
-        virtual bool init(IActorSkinned& actor) { return false; }
-
         virtual bool prepare(IRenModel& model) { return false; }
 
         virtual bool prepare(IRenModelSkineed& model) { return false; }

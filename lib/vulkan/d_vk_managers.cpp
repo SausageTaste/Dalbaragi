@@ -100,9 +100,16 @@ namespace dal {
         return actor;
     }
 
-    HActorSkinned VulkanResourceManager::create_actor_skinned() {
-        this->m_skinned_actors.push_back(std::make_shared<ActorSkinnedVK>());
-        return this->m_skinned_actors.back();
+    HActorSkinned VulkanResourceManager::create_actor_skinned(
+        DescAllocator& desc_allocator,
+        const DescLayout_ActorAnimated& desc_layout,
+        VkPhysicalDevice phys_device,
+        VkDevice logi_device
+    ) {
+        this->m_skinned_actors.push_back(std::make_shared<ActorSkinnedProxy>());
+        auto& actor = this->m_skinned_actors.back();
+        actor->give_dependencies(desc_allocator, desc_layout, phys_device, logi_device);
+        return actor;
     }
 
 }
@@ -133,7 +140,7 @@ namespace dal {
                     return;
 
                 auto& dst_opaque = this->get_render_pair(actor.m_model);
-                dst_opaque.m_actors.push_back(&actor_cast(actor.m_actor));
+                dst_opaque.m_actors.push_back(&handle_cast(actor.m_actor));
                 this->m_used_skin_actors.emplace(actor.m_actor);
             });
         }
