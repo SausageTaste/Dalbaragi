@@ -209,6 +209,72 @@ namespace {
 }
 
 
+// VulkanResourceManager
+namespace dal {
+
+    VulkanResourceManager::~VulkanResourceManager() {
+        dalAssert(this->m_textures.empty());
+        dalAssert(this->m_models.empty());
+        dalAssert(this->m_skinned_models.empty());
+        dalAssert(this->m_actors.empty());
+        dalAssert(this->m_skinned_actors.empty());
+    }
+
+    void VulkanResourceManager::destroy() {
+        for (auto& x : this->m_textures) {
+            x->destroy();
+        }
+        this->m_textures.clear();
+
+        for (auto& x : this->m_models) {
+            x->destroy();
+        }
+        this->m_models.clear();
+
+        for (auto& x : this->m_skinned_models) {
+            x->destroy();
+        }
+        this->m_skinned_models.clear();
+
+        for (auto& x : this->m_actors) {
+            x->destroy();
+        }
+        this->m_actors.clear();
+
+        for (auto& x : this->m_skinned_actors) {
+            x->destroy();
+        }
+        this->m_skinned_actors.clear();
+    }
+
+    HTexture VulkanResourceManager::create_texture() {
+        this->m_textures.push_back(std::make_shared<TextureUnit>());
+        return this->m_textures.back();
+    }
+
+    HRenModel VulkanResourceManager::create_model() {
+        this->m_models.push_back(std::make_shared<ModelRenderer>());
+        return this->m_models.back();
+    }
+
+    HRenModelSkinned VulkanResourceManager::create_model_skinned() {
+        this->m_skinned_models.push_back(std::make_shared<ModelSkinnedRenderer>());
+        return this->m_skinned_models.back();
+    }
+
+    HActor VulkanResourceManager::create_actor() {
+        this->m_actors.push_back(std::make_shared<ActorVK>());
+        return this->m_actors.back();
+    }
+
+    HActorSkinned VulkanResourceManager::create_actor_skinned() {
+        this->m_skinned_actors.push_back(std::make_shared<ActorSkinnedVK>());
+        return this->m_skinned_actors.back();
+    }
+
+}
+
+
 // VulkanState
 namespace dal {
 
@@ -265,6 +331,8 @@ namespace dal {
 
     VulkanState::~VulkanState() {
         this->wait_idle();
+
+        this->m_vk_res_man.destroy();
 
         this->m_ref_planes.destroy(this->m_logi_device.get());
         this->m_shadow_maps.destroy(this->m_logi_device.get());
@@ -782,23 +850,23 @@ namespace dal {
     }
 
     HTexture VulkanState::create_texture() {
-        return std::make_shared<TextureUnit>();
+        return this->m_vk_res_man.create_texture();
     }
 
     HRenModel VulkanState::create_model() {
-        return std::make_shared<ModelRenderer>();
+        return this->m_vk_res_man.create_model();
     }
 
     HRenModelSkinned VulkanState::create_model_skinned() {
-        return std::make_shared<ModelSkinnedRenderer>();
+        return this->m_vk_res_man.create_model_skinned();
     }
 
     HActor VulkanState::create_actor() {
-        return std::make_shared<ActorVK>();
+        return this->m_vk_res_man.create_actor();
     }
 
     HActorSkinned VulkanState::create_actor_skinned() {
-        return std::make_shared<ActorSkinnedVK>();
+        return this->m_vk_res_man.create_actor_skinned();
     }
 
     bool VulkanState::init(ITexture& h_tex, const ImageData& img_data) {
