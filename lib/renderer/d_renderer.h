@@ -48,11 +48,7 @@ namespace dal {
 
         virtual HActorSkinned create_actor_skinned() { return nullptr; }
 
-        virtual bool init(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) { return false; }
-
         virtual bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) { return false; }
-
-        virtual bool prepare(IRenModel& model) { return false; }
 
         virtual bool prepare(IRenModelSkineed& model) { return false; }
 

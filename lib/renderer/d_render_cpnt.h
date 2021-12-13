@@ -6,6 +6,7 @@
 
 #include "d_actor.h"
 #include "d_animation.h"
+#include "d_model_data.h"
 #include "d_image_parser.h"
 
 
@@ -137,6 +138,10 @@ namespace dal {
 
     public:
         virtual ~IRenModel() = default;
+
+        virtual bool init_model(const dal::ModelStatic& model_data, const char* const fallback_namespace) = 0;
+
+        virtual bool prepare() = 0;
 
         virtual void destroy() = 0;
 

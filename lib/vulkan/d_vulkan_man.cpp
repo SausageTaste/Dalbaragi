@@ -793,7 +793,16 @@ namespace dal {
     }
 
     HRenModel VulkanState::create_model() {
-        return this->m_vk_res_man.create_model();
+        return this->m_vk_res_man.create_model(
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
     }
 
     HRenModelSkinned VulkanState::create_model_skinned() {
@@ -818,26 +827,6 @@ namespace dal {
         );
     }
 
-    bool VulkanState::init(IRenModel& h_model, const dal::ModelStatic& model_data, const char* const fallback_namespace) {
-        auto& model = reinterpret_cast<ModelRenderer&>(h_model);
-
-        model.init(this->m_phys_device.get(), this->m_logi_device.get());
-
-        model.upload_meshes(
-            model_data,
-            this->m_cmd_man.general_pool(),
-            this->m_texture_man,
-            fallback_namespace,
-            this->m_desc_layout_man.layout_per_actor(),
-            this->m_desc_layout_man.layout_per_material(),
-            this->m_logi_device.queue_graphics(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
-
-        return true;
-    }
-
     bool VulkanState::init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) {
         auto& m = reinterpret_cast<ModelSkinnedRenderer&>(model);
 
@@ -856,16 +845,6 @@ namespace dal {
         );
 
         return true;
-    }
-
-    bool VulkanState::prepare(IRenModel& h_model) {
-        auto& model = reinterpret_cast<ModelRenderer&>(h_model);
-
-        return model.fetch_one_resource(
-            this->m_desc_layout_man.layout_per_material(),
-            this->m_sampler_man.sampler_tex(),
-            this->m_logi_device.get()
-        );
     }
 
     bool VulkanState::prepare(IRenModelSkineed& model) {

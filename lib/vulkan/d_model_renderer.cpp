@@ -407,14 +407,6 @@ namespace dal {
 namespace dal {
 
     void ModelRenderer::init(
-        const VkPhysicalDevice phys_device,
-        const VkDevice logi_device
-    ) {
-        this->destroy();
-        this->m_logi_device = logi_device;
-    }
-
-    void ModelRenderer::upload_meshes(
         const dal::ModelStatic& model_data,
         dal::CommandPool& cmd_pool,
         ITextureManager& tex_man,
@@ -448,16 +440,16 @@ namespace dal {
         }
     }
 
-    void ModelRenderer::destroy() {
+    void ModelRenderer::destroy(const VkDevice logi_device) {
         for (auto& x : this->m_units)
-            x.destroy(this->m_logi_device);
+            x.destroy(logi_device);
         this->m_units.clear();
 
         for (auto& x : this->m_units_alpha)
-            x.destroy(this->m_logi_device);
+            x.destroy(logi_device);
         this->m_units_alpha.clear();
 
-        this->m_desc_pool.destroy(this->m_logi_device);
+        this->m_desc_pool.destroy(logi_device);
     }
 
     bool ModelRenderer::fetch_one_resource(const dal::DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device) {
@@ -493,6 +485,96 @@ namespace dal {
         }
 
         return true;
+    }
+
+}
+
+
+// ModelProxy
+namespace dal {
+
+    ModelProxy::~ModelProxy() {
+        this->destroy();
+        this->clear_dependencies();
+    }
+
+    void ModelProxy::give_dependencies(
+        CommandPool&                  cmd_pool,
+        ITextureManager&              tex_man,
+        DescLayout_PerActor const&    layout_per_actor,
+        DescLayout_PerMaterial const& layout_per_material,
+        SamplerTexture const&         sampler,
+        VkQueue                       graphics_queue,
+        VkPhysicalDevice              phys_device,
+        VkDevice                      logi_device
+    ) {
+        m_cmd_pool = &cmd_pool;
+        m_tex_man = &tex_man;
+        m_layout_per_actor = &layout_per_actor;
+        m_layout_per_material = &layout_per_material;
+        m_sampler = &sampler;
+        m_graphics_queue = graphics_queue;
+        m_phys_device = phys_device;
+        m_logi_device = logi_device;
+    }
+
+    void ModelProxy::clear_dependencies() {
+        m_cmd_pool = nullptr;
+        m_tex_man = nullptr;
+        m_layout_per_actor = nullptr;
+        m_layout_per_material = nullptr;
+        m_sampler = nullptr;
+        m_graphics_queue = VK_NULL_HANDLE;
+        m_phys_device = VK_NULL_HANDLE;
+        m_logi_device = VK_NULL_HANDLE;
+    }
+
+    bool ModelProxy::are_dependencies_ready() const {
+        return (
+            m_cmd_pool != nullptr &&
+            m_tex_man != nullptr &&
+            m_layout_per_actor != nullptr &&
+            m_layout_per_material != nullptr &&
+            m_sampler != nullptr &&
+            m_graphics_queue != VK_NULL_HANDLE &&
+            m_phys_device != VK_NULL_HANDLE &&
+            m_logi_device != VK_NULL_HANDLE
+        );
+    }
+
+    bool ModelProxy::init_model(const dal::ModelStatic& model_data, const char* const fallback_namespace) {
+        if (!this->are_dependencies_ready())
+            return false;
+
+        this->m_model.init(
+            model_data,
+            *this->m_cmd_pool,
+            *this->m_tex_man,
+            fallback_namespace,
+            *this->m_layout_per_actor,
+            *this->m_layout_per_material,
+            this->m_graphics_queue,
+            this->m_phys_device,
+            this->m_logi_device
+        );
+
+        return true;
+    }
+
+    bool ModelProxy::prepare() {
+        return this->m_model.fetch_one_resource(
+            *this->m_layout_per_material,
+            *this->m_sampler,
+            this->m_logi_device
+        );
+    }
+
+    void ModelProxy::destroy() {
+        this->m_model.destroy(this->m_logi_device);
+    }
+
+    bool ModelProxy::is_ready() const {
+        return this->m_model.is_ready();
     }
 
 }

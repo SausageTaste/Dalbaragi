@@ -38,15 +38,7 @@ namespace dal {
     }
 
     void VulkanResourceManager::destroy() {
-        for (auto& x : this->m_textures) {
-            x->destroy();
-            x->clear_dependencies();
-        }
         this->m_textures.clear();
-
-        for (auto& x : this->m_models) {
-            x->destroy();
-        }
         this->m_models.clear();
 
         for (auto& x : this->m_skinned_models) {
@@ -54,15 +46,7 @@ namespace dal {
         }
         this->m_skinned_models.clear();
 
-        for (auto& x : this->m_actors) {
-            x->destroy();
-            x->clear_dependencies();
-        }
         this->m_actors.clear();
-
-        for (auto& x : this->m_skinned_actors) {
-            x->destroy();
-        }
         this->m_skinned_actors.clear();
     }
 
@@ -78,9 +62,31 @@ namespace dal {
         return tex;
     }
 
-    HRenModel VulkanResourceManager::create_model() {
-        this->m_models.push_back(std::make_shared<ModelRenderer>());
-        return this->m_models.back();
+    HRenModel VulkanResourceManager::create_model(
+        CommandPool&                  cmd_pool,
+        ITextureManager&              tex_man,
+        DescLayout_PerActor const&    layout_per_actor,
+        DescLayout_PerMaterial const& layout_per_material,
+        SamplerTexture const&         sampler,
+        VkQueue                       graphics_queue,
+        VkPhysicalDevice              phys_device,
+        VkDevice                      logi_device
+    ) {
+        this->m_models.push_back(std::make_shared<ModelProxy>());
+        auto& model = this->m_models.back();
+
+        model->give_dependencies(
+            cmd_pool,
+            tex_man,
+            layout_per_actor,
+            layout_per_material,
+            sampler,
+            graphics_queue,
+            phys_device,
+            logi_device
+        );
+
+        return model;
     }
 
     HRenModelSkinned VulkanResourceManager::create_model_skinned() {
@@ -264,17 +270,17 @@ namespace dal {
     }
 
     RenderListVK::RenderPair_O_S& RenderListVK::get_render_pair(HRenModel& h_model) {
-        auto& model = dal::model_cast(h_model);
+        auto& model = dal::handle_cast(h_model);
 
         for (auto& x : this->m_static_models) {
-            if (x.m_model == &model) {
+            if (x.m_model == &model.get()) {
                 return x;
             }
         }
 
         this->m_used_models.emplace(h_model);
         auto& output = this->m_static_models.emplace_back();
-        output.m_model = &model;
+        output.m_model = &model.get();
         return output;
     }
 

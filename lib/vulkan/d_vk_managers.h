@@ -19,22 +19,6 @@ namespace dal {
     class PlanarReflectionManager;
 
 
-    inline auto& model_cast(dal::IRenModel& model) {
-        return dynamic_cast<dal::ModelRenderer&>(model);
-    }
-
-    inline auto& model_cast(const dal::IRenModel& model) {
-        return dynamic_cast<const dal::ModelRenderer&>(model);
-    }
-
-    inline auto& model_cast(dal::HRenModel& model) {
-        return dynamic_cast<dal::ModelRenderer&>(*model);
-    }
-
-    inline auto& model_cast(const dal::HRenModel& model) {
-        return dynamic_cast<const dal::ModelRenderer&>(*model);
-    }
-
     inline auto& model_cast(dal::IRenModelSkineed& model) {
         return dynamic_cast<dal::ModelSkinnedRenderer&>(model);
     }
@@ -56,7 +40,7 @@ namespace dal {
 
     private:
         std::vector< std::shared_ptr<TextureProxy>         > m_textures;
-        std::vector< std::shared_ptr<ModelRenderer>        > m_models;
+        std::vector< std::shared_ptr<ModelProxy>           > m_models;
         std::vector< std::shared_ptr<ModelSkinnedRenderer> > m_skinned_models;
         std::vector< std::shared_ptr<ActorProxy>           > m_actors;
         std::vector< std::shared_ptr<ActorSkinnedProxy>    > m_skinned_actors;
@@ -73,7 +57,16 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        HRenModel create_model();
+        HRenModel create_model(
+            CommandPool&                  cmd_pool,
+            ITextureManager&              tex_man,
+            DescLayout_PerActor const&    layout_per_actor,
+            DescLayout_PerMaterial const& layout_per_material,
+            SamplerTexture const&         sampler,
+            VkQueue                       graphics_queue,
+            VkPhysicalDevice              phys_device,
+            VkDevice                      logi_device
+        );
 
         HRenModelSkinned create_model_skinned();
 

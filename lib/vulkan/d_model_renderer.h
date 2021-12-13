@@ -293,26 +293,17 @@ namespace dal {
     };
 
 
-    class ModelRenderer : public IRenModel {
+    class ModelRenderer {
 
     private:
         std::vector<RenderUnit> m_units;
         std::vector<RenderUnit> m_units_alpha;
         DescPool m_desc_pool;
 
-        VkDevice m_logi_device = VK_NULL_HANDLE;
-
     public:
-        ~ModelRenderer() override {
-            this->destroy();
-        }
+        ~ModelRenderer() = default;
 
         void init(
-            const VkPhysicalDevice phys_device,
-            const VkDevice logi_device
-        );
-
-        void upload_meshes(
             const dal::ModelStatic& model_data,
             dal::CommandPool& cmd_pool,
             ITextureManager& tex_man,
@@ -324,11 +315,11 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy() override;
+        void destroy(const VkDevice logi_device);
 
         bool fetch_one_resource(const DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
 
-        bool is_ready() const override;
+        bool is_ready() const;
 
         auto& render_units() const {
             return this->m_units;
@@ -339,6 +330,80 @@ namespace dal {
         }
 
     };
+
+
+    class ModelProxy : public IRenModel {
+
+    private:
+        ModelRenderer m_model;
+
+        CommandPool*                  m_cmd_pool;
+        ITextureManager*              m_tex_man;
+        DescLayout_PerActor const*    m_layout_per_actor;
+        DescLayout_PerMaterial const* m_layout_per_material;
+        SamplerTexture const*         m_sampler;
+        VkQueue                       m_graphics_queue;
+        VkPhysicalDevice              m_phys_device;
+        VkDevice                      m_logi_device;
+
+    public:
+        ModelProxy() {
+            this->clear_dependencies();
+        }
+
+        ~ModelProxy();
+
+        void give_dependencies(
+            CommandPool&                  cmd_pool,
+            ITextureManager&              tex_man,
+            DescLayout_PerActor const&    layout_per_actor,
+            DescLayout_PerMaterial const& layout_per_material,
+            SamplerTexture const&         sampler,
+            VkQueue                       graphics_queue,
+            VkPhysicalDevice              phys_device,
+            VkDevice                      logi_device
+        );
+
+        void clear_dependencies();
+
+        bool are_dependencies_ready() const;
+
+        auto& get() {
+            return this->m_model;
+        }
+
+        auto& get() const {
+            return this->m_model;
+        }
+
+        // Overridings
+
+        bool init_model(const dal::ModelStatic& model_data, const char* const fallback_namespace);
+
+        bool prepare() override;
+
+        void destroy() override;
+
+        bool is_ready() const override;
+
+    };
+
+
+    inline auto& handle_cast(dal::IRenModel& model) {
+        return dynamic_cast<dal::ModelProxy&>(model);
+    }
+
+    inline auto& handle_cast(const dal::IRenModel& model) {
+        return dynamic_cast<const dal::ModelProxy&>(model);
+    }
+
+    inline auto& handle_cast(dal::HRenModel& model) {
+        return dynamic_cast<dal::ModelProxy&>(*model);
+    }
+
+    inline auto& handle_cast(const dal::HRenModel& model) {
+        return dynamic_cast<const dal::ModelProxy&>(*model);
+    }
 
 
     class ModelSkinnedRenderer : public IRenModelSkineed {

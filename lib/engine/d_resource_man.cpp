@@ -507,7 +507,7 @@ namespace dal {
                 iter = this->m_waiting_prepare.erase(iter);
             }
             else {
-                if (this->m_renderer->prepare(model))
+                if (model.prepare())
                     return;
 
                 ++iter;
@@ -532,12 +532,7 @@ namespace dal {
 
         if (this->m_waiting_file.end() != found) {
             if (task_result.out_model.has_value()) {
-                this->m_renderer->init(
-                    *found->second.get(),
-                    task_result.out_model.value(),
-                    task_result.m_respath.dir_list().front().c_str()
-                );
-
+                found->second->init_model(task_result.out_model.value(), task_result.m_respath.dir_list().front().c_str());
                 this->m_waiting_prepare.push_back(found->second);
             }
             else {
