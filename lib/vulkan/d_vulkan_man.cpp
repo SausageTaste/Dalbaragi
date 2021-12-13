@@ -784,7 +784,12 @@ namespace dal {
     }
 
     HTexture VulkanState::create_texture() {
-        return this->m_vk_res_man.create_texture();
+        return this->m_vk_res_man.create_texture(
+            this->m_cmd_man.general_pool(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
     }
 
     HRenModel VulkanState::create_model() {
@@ -801,18 +806,6 @@ namespace dal {
 
     HActorSkinned VulkanState::create_actor_skinned() {
         return this->m_vk_res_man.create_actor_skinned();
-    }
-
-    bool VulkanState::init(ITexture& h_tex, const ImageData& img_data) {
-        auto& tex = reinterpret_cast<TextureUnit&>(h_tex);
-
-        return tex.init(
-            this->m_cmd_man.general_pool(),
-            img_data,
-            this->m_logi_device.queue_graphics(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
     }
 
     bool VulkanState::init(IRenModel& h_model, const dal::ModelStatic& model_data, const char* const fallback_namespace) {

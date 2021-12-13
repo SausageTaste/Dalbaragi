@@ -4,13 +4,9 @@
 #include <vector>
 #include <memory>
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-
 #include "d_actor.h"
 #include "d_animation.h"
+#include "d_image_parser.h"
 
 
 // Lights
@@ -117,6 +113,8 @@ namespace dal {
 
     public:
         virtual ~ITexture() = default;
+
+        virtual bool set_image(const dal::ImageData& img_data) = 0;
 
         virtual void destroy() = 0;
 

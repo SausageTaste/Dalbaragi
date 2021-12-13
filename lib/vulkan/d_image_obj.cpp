@@ -622,7 +622,7 @@ namespace dal {
 namespace dal {
 
     TextureUnit::~TextureUnit() {
-        this->destroy();
+        dalAssert(!this->is_ready());
     }
 
     bool TextureUnit::init(
@@ -632,8 +632,6 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->m_logi_device = logi_device;
-
         this->m_image.init_texture_gen_mipmaps(
             img_data,
             cmd_pool,
@@ -653,13 +651,65 @@ namespace dal {
         return result_view;
     }
 
-    void TextureUnit::destroy() {
-        this->m_image.destory(this->m_logi_device);
-        this->m_view.destroy(this->m_logi_device);
+    void TextureUnit::destroy(const VkDevice logi_device) {
+        this->m_image.destory(logi_device);
+        this->m_view.destroy(logi_device);
     }
 
     bool TextureUnit::is_ready() const {
         return this->m_image.is_ready() && this->m_view.is_ready();
+    }
+
+}
+
+
+// TextureProxy
+namespace dal {
+
+    void TextureProxy::give_dependencies(
+        dal::CommandPool& cmd_pool,
+        const VkQueue graphics_queue,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->m_cmd_pool       = &cmd_pool;
+        this->m_graphics_queue = graphics_queue;
+        this->m_phys_device    = phys_device;
+        this->m_logi_devic     = logi_device;
+    }
+
+    void TextureProxy::clear_dependencies() {
+        this->m_cmd_pool       = nullptr;
+        this->m_graphics_queue = VK_NULL_HANDLE;
+        this->m_phys_device    = VK_NULL_HANDLE;
+        this->m_logi_devic     = VK_NULL_HANDLE;
+    }
+
+    bool TextureProxy::are_dependencies_ready() const {
+        return (
+            this->m_cmd_pool != nullptr &&
+            this->m_graphics_queue != VK_NULL_HANDLE &&
+            this->m_phys_device != VK_NULL_HANDLE &&
+            this->m_logi_devic != VK_NULL_HANDLE
+            );
+    }
+
+    bool TextureProxy::set_image(const dal::ImageData& img_data) {
+        return this->m_texture.init(
+            *this->m_cmd_pool,
+            img_data,
+            this->m_graphics_queue,
+            this->m_phys_device,
+            this->m_logi_devic
+        );
+    }
+
+    void TextureProxy::destroy() {
+        this->m_texture.destroy(this->m_logi_devic);
+    }
+
+    bool TextureProxy::is_ready() const {
+        return this->m_texture.is_ready();
     }
 
 }

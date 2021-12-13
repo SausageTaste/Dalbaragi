@@ -17,6 +17,7 @@ namespace dal {
     void VulkanResourceManager::destroy() {
         for (auto& x : this->m_textures) {
             x->destroy();
+            x->clear_dependencies();
         }
         this->m_textures.clear();
 
@@ -41,9 +42,16 @@ namespace dal {
         this->m_skinned_actors.clear();
     }
 
-    HTexture VulkanResourceManager::create_texture() {
-        this->m_textures.push_back(std::make_shared<TextureUnit>());
-        return this->m_textures.back();
+    HTexture VulkanResourceManager::create_texture(
+        dal::CommandPool& cmd_pool,
+        const VkQueue graphics_queue,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->m_textures.push_back(std::make_shared<TextureProxy>());
+        auto& tex = this->m_textures.back();
+        tex->give_dependencies(cmd_pool, graphics_queue, phys_device, logi_device);
+        return tex;
     }
 
     HRenModel VulkanResourceManager::create_model() {

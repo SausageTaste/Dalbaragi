@@ -479,11 +479,7 @@ namespace dal {
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
         if (this->m_waiting_file.end() != found) {
-            this->m_renderer->init(
-                *found->second.get(),
-                task_result.out_image.value()
-            );
-
+            found->second.get()->set_image(task_result.out_image.value());
             this->m_waiting_file.erase(found);
         }
     }

@@ -3,7 +3,6 @@
 #include <limits>
 
 #include <fmt/format.h>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include "d_logger.h"
 #include "d_timer.h"

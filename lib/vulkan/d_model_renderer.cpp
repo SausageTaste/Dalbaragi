@@ -253,11 +253,11 @@ namespace dal {
 
         this->m_material.m_descset = desc_pool.allocate(layout_per_material, logi_device);
 
-        auto albedo_map = reinterpret_cast<TextureUnit*>(this->m_material.m_albedo_map.get());
+        auto& albedo_map = dal::handle_cast(this->m_material.m_albedo_map);
 
         this->m_material.m_descset.record_material(
             this->m_material.m_ubuf,
-            albedo_map->view().get(),
+            albedo_map.raw_view(),
             sampler,
             logi_device
         );

@@ -11,7 +11,7 @@ namespace dal {
     class VulkanResourceManager {
 
     private:
-        std::vector< std::shared_ptr<TextureUnit>          > m_textures;
+        std::vector< std::shared_ptr<TextureProxy>         > m_textures;
         std::vector< std::shared_ptr<ModelRenderer>        > m_models;
         std::vector< std::shared_ptr<ModelSkinnedRenderer> > m_skinned_models;
         std::vector< std::shared_ptr<ActorVK>              > m_actors;
@@ -22,7 +22,12 @@ namespace dal {
 
         void destroy();
 
-        HTexture create_texture();
+        HTexture create_texture(
+            dal::CommandPool& cmd_pool,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
 
         HRenModel create_model();
 
