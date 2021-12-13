@@ -8,24 +8,18 @@
 // ActorVK
 namespace dal {
 
-    ActorVK::~ActorVK() {
-        this->destroy();
-    }
-
     void ActorVK::init(
         DescAllocator& desc_allocator,
         const dal::DescLayout_PerActor& layout_per_actor,
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
-        this->destroy();
-
-        this->m_logi_device = logi_device;
-        this->m_desc_allocator = &desc_allocator;
+        this->destroy(desc_allocator, logi_device);
 
         this->m_ubuf_per_actor.init(dal::MAX_FRAMES_IN_FLIGHT, phys_device, logi_device);
+
         for (int i = 0; i < dal::MAX_FRAMES_IN_FLIGHT; ++i) {
-            this->m_desc.push_back(this->m_desc_allocator->allocate(layout_per_actor, logi_device));
+            this->m_desc.push_back(desc_allocator.allocate(layout_per_actor, logi_device));
             this->m_desc.back().record_per_actor(
                 this->m_ubuf_per_actor.at(i),
                 logi_device
@@ -33,31 +27,96 @@ namespace dal {
         }
     }
 
-    void ActorVK::destroy() {
-        if (nullptr != this->m_desc_allocator) {
-            for (auto& d : this->m_desc)
-                this->m_desc_allocator->free(std::move(d));
-            this->m_desc_allocator = nullptr;
-        }
+    void ActorVK::destroy(DescAllocator& desc_allocator, const VkDevice logi_device) {
+        for (auto& d : this->m_desc)
+            desc_allocator.free(std::move(d));
         this->m_desc.clear();
 
-        if (VK_NULL_HANDLE != this->m_logi_device) {
-            this->m_ubuf_per_actor.destroy(this->m_logi_device);
-            this->m_logi_device = VK_NULL_HANDLE;
-        }
+        this->m_ubuf_per_actor.destroy(logi_device);
     }
 
     bool ActorVK::is_ready() const {
+        for (auto& d : this->m_desc) {
+            if (!d.is_ready()) {
+                return false;
+            }
+        }
+
         return this->m_ubuf_per_actor.is_ready();
     }
 
-    void ActorVK::apply_transform(const FrameInFlightIndex& index) {
+    void ActorVK::apply_transform(const FrameInFlightIndex& index, const VkDevice logi_device) {
         if (!this->is_ready())
             return;
 
         U_PerActor ubuf_data_per_actor;
         ubuf_data_per_actor.m_model = this->m_transform.make_mat4();
-        this->m_ubuf_per_actor.copy_to_buffer(index.get(), ubuf_data_per_actor, this->m_logi_device);
+        this->m_ubuf_per_actor.copy_to_buffer(index.get(), ubuf_data_per_actor, logi_device);
+    }
+
+}
+
+
+// ActorProxy
+namespace dal {
+
+    ActorProxy::~ActorProxy() {
+        this->destroy();
+        this->clear_dependencies();
+    }
+
+    void ActorProxy::give_dependencies(
+        DescAllocator& desc_allocator,
+        const DescLayout_PerActor& desc_layout,
+        VkPhysicalDevice phys_device,
+        VkDevice logi_device
+    ) {
+        m_desc_allocator = &desc_allocator;
+        m_desc_layout = &desc_layout;
+        m_phys_device = phys_device;
+        m_logi_device = logi_device;
+    }
+
+    void ActorProxy::clear_dependencies() {
+        m_desc_allocator = nullptr;
+        m_desc_layout = nullptr;
+        m_phys_device = VK_NULL_HANDLE;;
+        m_logi_device = VK_NULL_HANDLE;
+    }
+
+    bool ActorProxy::are_dependencies_ready() const {
+        return (
+            m_desc_allocator != nullptr &&
+            m_desc_layout != nullptr &&
+            m_phys_device != VK_NULL_HANDLE &&
+            m_logi_device != VK_NULL_HANDLE
+        );
+    }
+
+    // Overridings
+
+    bool ActorProxy::init() {
+        if (!this->are_dependencies_ready())
+            return false;
+
+        this->m_actor.init(
+            *this->m_desc_allocator,
+            *this->m_desc_layout,
+            this->m_phys_device,
+            this->m_logi_device
+        );
+    }
+
+    void ActorProxy::destroy() {
+        this->m_actor.destroy(*this->m_desc_allocator, this->m_logi_device);
+    }
+
+    bool ActorProxy::is_ready() const {
+        return this->m_actor.is_ready();
+    }
+
+    void ActorProxy::notify_transform_change() {
+        this->m_actor.notify_transform_change();
     }
 
 }

@@ -38,7 +38,7 @@ namespace dal {
                     return;
 
                 auto& dst_opaque = this->get_render_pair(actor.m_model);
-                dst_opaque.m_actors.push_back(&actor_cast(actor.m_actor));
+                dst_opaque.m_actors.push_back(&handle_cast(actor.m_actor).get());
                 this->m_used_actors.emplace(actor.m_actor);
             });
         }

@@ -671,7 +671,7 @@ namespace dal {
         }
 
         for (auto& actor : this->m_actors) {
-            this->m_renderer->init(*actor.get());
+            actor->init();
         }
 
         for (auto& actor : this->m_skinned_actors)
@@ -783,7 +783,7 @@ namespace dal {
 
     HActor ResourceManager::request_actor() {
         this->m_actors.push_back(this->m_renderer->create_actor());
-        this->m_renderer->init(*this->m_actors.back().get());
+        this->m_actors.back()->init();
         return this->m_actors.back();
     }
 

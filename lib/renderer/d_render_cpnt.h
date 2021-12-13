@@ -166,12 +166,17 @@ namespace dal {
     class IActor {
 
     public:
-        Transform m_transform;
-
-    public:
         virtual ~IActor() = default;
 
+        virtual bool init() = 0;
+
         virtual void destroy() = 0;
+
+        virtual bool is_ready() const = 0;
+
+        virtual dal::Transform& transform() = 0;
+
+        virtual const dal::Transform& transform() const = 0;
 
         virtual void notify_transform_change() = 0;
 

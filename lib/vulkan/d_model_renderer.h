@@ -10,20 +10,17 @@
 
 namespace dal {
 
-    class ActorVK : public IActor {
+    class ActorVK {
 
     private:
         std::vector<DescSet> m_desc;
         dal::UniformBufferArray<dal::U_PerActor> m_ubuf_per_actor;
-        DescAllocator* m_desc_allocator = nullptr;
-        VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
+        Transform m_transform;
         size_t m_transform_update_needed = 0;
 
     public:
-        ~ActorVK();
-
         void init(
             DescAllocator& desc_allocator,
             const DescLayout_PerActor& layout_per_actor,
@@ -31,21 +28,91 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy() override;
+        void destroy(DescAllocator& desc_allocator, const VkDevice logi_device);
 
         bool is_ready() const;
 
-        void notify_transform_change() override {
+        void notify_transform_change() {
             this->m_transform_update_needed = MAX_FRAMES_IN_FLIGHT;
         }
 
-        void apply_transform(const FrameInFlightIndex& index);
+        void apply_transform(const FrameInFlightIndex& index, const VkDevice logi_device);
 
         auto& desc_set_at(const FrameInFlightIndex& index) const {
             return this->m_desc.at(index.get()).get();
         }
 
     };
+
+
+    class ActorProxy : public IActor {
+
+    private:
+        ActorVK m_actor;
+
+        DescAllocator*             m_desc_allocator = nullptr;
+        DescLayout_PerActor const* m_desc_layout    = nullptr;
+        VkPhysicalDevice           m_phys_device    = VK_NULL_HANDLE;
+        VkDevice                   m_logi_device    = VK_NULL_HANDLE;
+
+    public:
+        ~ActorProxy();
+
+        void give_dependencies(
+            DescAllocator& desc_allocator,
+            const DescLayout_PerActor& desc_layout,
+            VkPhysicalDevice phys_device,
+            VkDevice logi_device
+        );
+
+        void clear_dependencies();
+
+        bool are_dependencies_ready() const;
+
+        auto& get() {
+            return this->m_actor;
+        }
+
+        auto& get() const {
+            return this->m_actor;
+        }
+
+        // Overridings
+
+        bool init() override;
+
+        void destroy() override;
+
+        bool is_ready() const override;
+
+        dal::Transform& transform() override {
+            return this->m_actor.m_transform;
+        }
+
+        const dal::Transform& transform() const override {
+            return this->m_actor.m_transform;
+        }
+
+        void notify_transform_change() override;
+
+    };
+
+
+    inline auto& handle_cast(dal::IActor& actor) {
+        return dynamic_cast<dal::ActorProxy&>(actor);
+    }
+
+    inline auto& handle_cast(const dal::IActor& actor) {
+        return dynamic_cast<const dal::ActorProxy&>(actor);
+    }
+
+    inline auto& handle_cast(dal::HActor& actor) {
+        return dynamic_cast<dal::ActorProxy&>(*actor.get());
+    }
+
+    inline auto& handle_cast(const dal::HActor& actor) {
+        return dynamic_cast<const dal::ActorProxy&>(*actor.get());
+    }
 
 
     class ActorSkinnedVK : public IActorSkinned {

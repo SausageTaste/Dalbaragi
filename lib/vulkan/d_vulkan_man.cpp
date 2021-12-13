@@ -336,11 +336,11 @@ namespace dal {
         render_list.apply(scene, camera.view_pos());
 
         for (auto x : render_list.m_used_actors) {
-            auto& actor = dal::actor_cast(x);
+            auto& actor = dal::handle_cast(x).get();
 
             if (actor.m_transform_update_needed > 0) {
                 --actor.m_transform_update_needed;
-                actor.apply_transform(this->in_flight_index());
+                actor.apply_transform(this->in_flight_index(), this->m_logi_device.get());
             }
         }
 
@@ -801,7 +801,12 @@ namespace dal {
     }
 
     HActor VulkanState::create_actor() {
-        return this->m_vk_res_man.create_actor();
+        return this->m_vk_res_man.create_actor(
+            this->m_desc_allocator,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
     }
 
     HActorSkinned VulkanState::create_actor_skinned() {
@@ -841,19 +846,6 @@ namespace dal {
             this->m_desc_layout_man.layout_per_actor(),
             this->m_desc_layout_man.layout_per_material(),
             this->m_logi_device.queue_graphics(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
-
-        return true;
-    }
-
-    bool VulkanState::init(IActor& actor) {
-        auto& a = dal::actor_cast(actor);
-
-        a.init(
-            this->m_desc_allocator,
-            this->m_desc_layout_man.layout_per_actor(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );

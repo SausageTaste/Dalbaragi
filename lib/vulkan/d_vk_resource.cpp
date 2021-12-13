@@ -33,6 +33,7 @@ namespace dal {
 
         for (auto& x : this->m_actors) {
             x->destroy();
+            x->clear_dependencies();
         }
         this->m_actors.clear();
 
@@ -64,9 +65,16 @@ namespace dal {
         return this->m_skinned_models.back();
     }
 
-    HActor VulkanResourceManager::create_actor() {
-        this->m_actors.push_back(std::make_shared<ActorVK>());
-        return this->m_actors.back();
+    HActor VulkanResourceManager::create_actor(
+        DescAllocator& desc_allocator,
+        const DescLayout_PerActor& desc_layout,
+        VkPhysicalDevice phys_device,
+        VkDevice logi_device
+    ) {
+        this->m_actors.push_back(std::make_shared<ActorProxy>());
+        auto& actor = this->m_actors.back();
+        actor->give_dependencies(desc_allocator, desc_layout, phys_device, logi_device);
+        return actor;
     }
 
     HActorSkinned VulkanResourceManager::create_actor_skinned() {

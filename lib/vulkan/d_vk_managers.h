@@ -19,22 +19,6 @@ namespace dal {
     class PlanarReflectionManager;
 
 
-    inline auto& actor_cast(dal::IActor& actor) {
-        return dynamic_cast<dal::ActorVK&>(actor);
-    }
-
-    inline auto& actor_cast(const dal::IActor& actor) {
-        return dynamic_cast<const dal::ActorVK&>(actor);
-    }
-
-    inline auto& actor_cast(dal::HActor& actor) {
-        return dynamic_cast<dal::ActorVK&>(*actor.get());
-    }
-
-    inline auto& actor_cast(const dal::HActor& actor) {
-        return dynamic_cast<const dal::ActorVK&>(*actor.get());
-    }
-
     inline auto& actor_cast(dal::IActorSkinned& actor) {
         return dynamic_cast<dal::ActorSkinnedVK&>(actor);
     }

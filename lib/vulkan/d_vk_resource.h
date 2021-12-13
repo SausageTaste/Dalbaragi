@@ -14,7 +14,7 @@ namespace dal {
         std::vector< std::shared_ptr<TextureProxy>         > m_textures;
         std::vector< std::shared_ptr<ModelRenderer>        > m_models;
         std::vector< std::shared_ptr<ModelSkinnedRenderer> > m_skinned_models;
-        std::vector< std::shared_ptr<ActorVK>              > m_actors;
+        std::vector< std::shared_ptr<ActorProxy>           > m_actors;
         std::vector< std::shared_ptr<ActorSkinnedVK>       > m_skinned_actors;
 
     public:
@@ -33,7 +33,12 @@ namespace dal {
 
         HRenModelSkinned create_model_skinned();
 
-        HActor create_actor();
+        HActor create_actor(
+            DescAllocator& desc_allocator,
+            const DescLayout_PerActor& desc_layout,
+            VkPhysicalDevice phys_device,
+            VkDevice logi_device
+        );
 
         HActorSkinned create_actor_skinned();
 
