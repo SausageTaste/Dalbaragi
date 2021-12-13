@@ -38,7 +38,16 @@ namespace dal {
     }
 
     void VulkanResourceManager::destroy() {
+        for (auto& x : this->m_textures) {
+            x->destroy();
+            x->clear_dependencies();
+        }
         this->m_textures.clear();
+
+        for (auto& x : this->m_models) {
+            x->destroy();
+            x->clear_dependencies();
+        }
         this->m_models.clear();
 
         for (auto& x : this->m_skinned_models) {
@@ -46,7 +55,16 @@ namespace dal {
         }
         this->m_skinned_models.clear();
 
+        for (auto& x : this->m_actors) {
+            x->destroy();
+            x->clear_dependencies();
+        }
         this->m_actors.clear();
+
+        for (auto& x : this->m_skinned_actors) {
+            x->destroy();
+            x->clear_dependencies();
+        }
         this->m_skinned_actors.clear();
     }
 
