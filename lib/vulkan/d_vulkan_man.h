@@ -8,7 +8,6 @@
 #include "d_filesystem.h"
 #include "d_task_thread.h"
 #include "d_vk_managers.h"
-#include "d_vk_resource.h"
 
 
 #define DAL_VK_DEBUG

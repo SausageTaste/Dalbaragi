@@ -17,7 +17,6 @@ add_library(libdal_vulkan STATIC
     d_model_renderer.h   d_model_renderer.cpp
     d_vk_managers.h      d_vk_managers.cpp
     d_vk_device.h        d_vk_device.cpp
-    d_vk_resource.h      d_vk_resource.cpp
 )
 target_compile_features(libdal_vulkan PUBLIC cxx_std_17)
 target_include_directories(libdal_vulkan PUBLIC ./)
