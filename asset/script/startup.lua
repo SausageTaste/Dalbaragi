@@ -45,9 +45,9 @@ function on_renderer_init()
     end
 
     do
-        local e = scene.create_actor_skinned('honoka_1', 'sungmin/honoka_basic_3.dmd')
+        local e = scene.create_actor_skinned('honoka_1', 'sungmin/honoka_apron.dmd')
         local t = e:get_transform()
-        t:set_scale(0.3)
+        t:set_scale(0.8)
         e:notify_transform_change();
     end
 
