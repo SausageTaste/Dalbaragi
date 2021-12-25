@@ -464,14 +464,8 @@ namespace dal {
 
     }
 
-    void TextureBuilder::set_renderer(IRenderer& renderer) {
-        this->m_renderer = &renderer;
-    }
-
     void TextureBuilder::invalidate_renderer() {
         this->m_waiting_file.clear();
-
-        this->m_renderer = nullptr;
     }
 
     void TextureBuilder::notify_task_done(HTask& task) {
@@ -485,8 +479,6 @@ namespace dal {
     }
 
     void TextureBuilder::start(const ResPath& respath, HTexture h_texture, Filesystem& filesys, TaskManager& task_man) {
-        dalAssert(nullptr != this->m_renderer);
-
         auto task = std::make_shared<::Task_LoadImage>(respath, filesys);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_texture);
         //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
@@ -515,15 +507,9 @@ namespace dal {
         }
     }
 
-    void ModelBuilder::set_renderer(IRenderer& renderer) {
-        this->m_renderer = &renderer;
-    }
-
     void ModelBuilder::invalidate_renderer() {
         this->m_waiting_file.clear();
         this->m_waiting_prepare.clear();
-
-        this->m_renderer = nullptr;
     }
 
     void ModelBuilder::notify_task_done(HTask& task) {
@@ -551,8 +537,6 @@ namespace dal {
         TaskManager& task_man,
         crypto::PublicKeySignature& sign_mgr
     ) {
-        dalAssert(nullptr != this->m_renderer);
-
         auto task = std::make_unique<::Task_LoadModel>(respath, filesys, sign_mgr);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
         //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
@@ -581,15 +565,9 @@ namespace dal {
         }
     }
 
-    void ModelSkinnedBuilder::set_renderer(IRenderer& renderer) {
-        this->m_renderer = &renderer;
-    }
-
     void ModelSkinnedBuilder::invalidate_renderer() {
         this->m_waiting_file.clear();
         this->m_waiting_prepare.clear();
-
-        this->m_renderer = nullptr;
     }
 
     void ModelSkinnedBuilder::notify_task_done(HTask& task) {
@@ -625,8 +603,6 @@ namespace dal {
         TaskManager& task_man,
         crypto::PublicKeySignature& sign_mgr
     ) {
-        dalAssert(nullptr != this->m_renderer);
-
         auto task = std::make_unique<::Task_LoadModelSkinned>(respath, filesys, sign_mgr);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
         //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
@@ -647,10 +623,6 @@ namespace dal {
 
     void ResourceManager::set_renderer(IRenderer& renderer) {
         this->m_renderer = &renderer;
-
-        this->m_tex_builder.set_renderer(renderer);
-        this->m_model_builder.set_renderer(renderer);
-        this->m_model_skinned_builder.set_renderer(renderer);
 
         for (auto& [respath, texture] : this->m_textures) {
             this->m_tex_builder.start(respath, texture, this->m_filesys, this->m_task_man);

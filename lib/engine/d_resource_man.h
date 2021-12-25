@@ -16,12 +16,8 @@ namespace dal {
     private:
         std::unordered_map<std::string, HTexture> m_waiting_file;
 
-        IRenderer* m_renderer = nullptr;
-
     public:
         void update();
-
-        void set_renderer(IRenderer& renderer);
 
         void invalidate_renderer();
 
@@ -38,12 +34,8 @@ namespace dal {
         std::unordered_map<std::string, HRenModel> m_waiting_file;
         std::vector<HRenModel> m_waiting_prepare;
 
-        IRenderer* m_renderer = nullptr;
-
     public:
         void update();
-
-        void set_renderer(IRenderer& renderer);
 
         void invalidate_renderer();
 
@@ -66,12 +58,8 @@ namespace dal {
         std::unordered_map<std::string, HRenModelSkinned> m_waiting_file;
         std::vector<HRenModelSkinned> m_waiting_prepare;
 
-        IRenderer* m_renderer = nullptr;
-
     public:
         void update();
-
-        void set_renderer(IRenderer& renderer);
 
         void invalidate_renderer();
 
