@@ -573,7 +573,7 @@ namespace dal {
                 iter = this->m_waiting_prepare.erase(iter);
             }
             else {
-                if (this->m_renderer->prepare(model))
+                if (model.prepare())
                     return;
 
                 ++iter;
@@ -598,8 +598,7 @@ namespace dal {
 
         if (this->m_waiting_file.end() != found) {
             if (task_result.out_model.has_value()) {
-                this->m_renderer->init(
-                    *found->second.get(),
+                found->second.get()->init_model(
                     task_result.out_model.value(),
                     task_result.m_respath.dir_list().front().c_str()
                 );

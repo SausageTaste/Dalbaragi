@@ -454,7 +454,7 @@ namespace dal {
     }
 
 
-    class ModelSkinnedRenderer : public IRenModelSkineed {
+    class ModelSkinnedRenderer {
 
     private:
         std::vector<RenderUnit> m_units;
@@ -463,18 +463,7 @@ namespace dal {
         SkeletonInterface m_skeleton_interf;
         DescPool m_desc_pool;
 
-        VkDevice m_logi_device = VK_NULL_HANDLE;
-
     public:
-        ~ModelSkinnedRenderer() override {
-            this->destroy();
-        }
-
-        void init(
-            const VkPhysicalDevice phys_device,
-            const VkDevice logi_device
-        );
-
         void upload_meshes(
             const dal::ModelSkinned& model_data,
             dal::CommandPool& cmd_pool,
@@ -487,21 +476,21 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy() override;
+        void destroy(const VkDevice logi_device);
 
         bool fetch_one_resource(const DescLayout_PerMaterial& layout_per_material, const SamplerTexture& sampler, const VkDevice logi_device);
 
-        bool is_ready() const override;
+        bool is_ready() const;
 
-        std::vector<Animation>& animations() override {
+        std::vector<Animation>& animations() {
             return this->m_animations;
         }
 
-        const std::vector<Animation>& animations() const override {
+        const std::vector<Animation>& animations() const {
             return this->m_animations;
         }
 
-        const SkeletonInterface& skeleton() const override {
+        const SkeletonInterface& skeleton() const {
             return this->m_skeleton_interf;
         }
 
@@ -514,5 +503,91 @@ namespace dal {
         }
 
     };
+
+
+    class ModelSkinnedProxy : public IRenModelSkineed {
+
+    private:
+        ModelSkinnedRenderer m_model;
+
+        CommandPool*                  m_cmd_pool;
+        ITextureManager*              m_tex_man;
+        DescLayout_PerActor const*    m_layout_per_actor;
+        DescLayout_PerMaterial const* m_layout_per_material;
+        SamplerTexture const*         m_sampler;
+        VkQueue                       m_graphics_queue;
+        VkPhysicalDevice              m_phys_device;
+        VkDevice                      m_logi_device;
+
+    public:
+        ModelSkinnedProxy();
+
+        ~ModelSkinnedProxy() override;
+
+        void give_dependencies(
+            CommandPool&                  cmd_pool,
+            ITextureManager&              tex_man,
+            DescLayout_PerActor const&    layout_per_actor,
+            DescLayout_PerMaterial const& layout_per_material,
+            SamplerTexture const&         sampler,
+            VkQueue                       graphics_queue,
+            VkPhysicalDevice              phys_device,
+            VkDevice                      logi_device
+        );
+
+        void clear_dependencies();
+
+        bool are_dependencies_ready() const;
+
+        auto& get() {
+            return this->m_model;
+        }
+
+        auto& get() const {
+            return this->m_model;
+        }
+
+        // Overridings
+
+        bool init_model(const dal::ModelSkinned& model_data, const char* const fallback_namespace) override;
+
+        bool prepare() override;
+
+        void destroy() override;
+
+        bool is_ready() const override {
+            return this->m_model.is_ready();
+        }
+
+        std::vector<Animation>& animations() override {
+            return this->m_model.animations();
+        }
+
+        const std::vector<Animation>& animations() const override {
+            return this->m_model.animations();
+        }
+
+        const SkeletonInterface& skeleton() const override {
+            return this->m_model.skeleton();
+        }
+
+    };
+
+
+    inline auto& handle_cast(dal::IRenModelSkineed& model) {
+        return dynamic_cast<dal::ModelSkinnedProxy&>(model);
+    }
+
+    inline auto& handle_cast(const dal::IRenModelSkineed& model) {
+        return dynamic_cast<const dal::ModelSkinnedProxy&>(model);
+    }
+
+    inline auto& handle_cast(dal::HRenModelSkinned& model) {
+        return dynamic_cast<dal::ModelSkinnedProxy&>(*model);
+    }
+
+    inline auto& handle_cast(const dal::HRenModelSkinned& model) {
+        return dynamic_cast<const dal::ModelSkinnedProxy&>(*model);
+    }
 
 }

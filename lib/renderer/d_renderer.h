@@ -40,6 +40,8 @@ namespace dal {
 
         virtual HTexture create_texture() { return nullptr; }
 
+        virtual HMesh create_mesh() { return nullptr; }
+
         virtual HRenModel create_model() { return nullptr; }
 
         virtual HRenModelSkinned create_model_skinned() { return nullptr; }
@@ -47,18 +49,6 @@ namespace dal {
         virtual HActor create_actor() { return nullptr; }
 
         virtual HActorSkinned create_actor_skinned() { return nullptr; }
-
-        virtual bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) { return false; }
-
-        virtual bool prepare(IRenModelSkineed& model) { return false; }
-
-        // Mesh
-
-        virtual HMesh create_mesh() { return nullptr; }
-
-        virtual bool init(IMesh& mesh, const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) { return false; }
-
-        virtual bool destroy(IMesh& mesh) { return false; }
 
     };
 

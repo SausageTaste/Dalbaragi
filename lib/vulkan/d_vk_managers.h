@@ -19,30 +19,13 @@ namespace dal {
     class PlanarReflectionManager;
 
 
-    inline auto& model_cast(dal::IRenModelSkineed& model) {
-        return dynamic_cast<dal::ModelSkinnedRenderer&>(model);
-    }
-
-    inline auto& model_cast(const dal::IRenModelSkineed& model) {
-        return dynamic_cast<const dal::ModelSkinnedRenderer&>(model);
-    }
-
-    inline auto& model_cast(dal::HRenModelSkinned& model) {
-        return dynamic_cast<dal::ModelSkinnedRenderer&>(*model);
-    }
-
-    inline auto& model_cast(const dal::HRenModelSkinned& model) {
-        return dynamic_cast<const dal::ModelSkinnedRenderer&>(*model);
-    }
-
-
     class VulkanResourceManager {
 
     private:
         std::vector< std::shared_ptr<TextureProxy>         > m_textures;
         std::vector< std::shared_ptr<MeshProxy>            > m_meshes;
         std::vector< std::shared_ptr<ModelProxy>           > m_models;
-        std::vector< std::shared_ptr<ModelSkinnedRenderer> > m_skinned_models;
+        std::vector< std::shared_ptr<ModelSkinnedProxy>    > m_skinned_models;
         std::vector< std::shared_ptr<ActorProxy>           > m_actors;
         std::vector< std::shared_ptr<ActorSkinnedProxy>    > m_skinned_actors;
 
@@ -75,7 +58,16 @@ namespace dal {
             VkDevice                      logi_device
         );
 
-        HRenModelSkinned create_model_skinned();
+        HRenModelSkinned create_model_skinned(
+            CommandPool&                  cmd_pool,
+            ITextureManager&              tex_man,
+            DescLayout_PerActor const&    layout_per_actor,
+            DescLayout_PerMaterial const& layout_per_material,
+            SamplerTexture const&         sampler,
+            VkQueue                       graphics_queue,
+            VkPhysicalDevice              phys_device,
+            VkDevice                      logi_device
+        );
 
         HActor create_actor(
             DescAllocator& desc_allocator,

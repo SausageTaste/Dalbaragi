@@ -118,9 +118,31 @@ namespace dal {
         return model;
     }
 
-    HRenModelSkinned VulkanResourceManager::create_model_skinned() {
-        this->m_skinned_models.push_back(std::make_shared<ModelSkinnedRenderer>());
-        return this->m_skinned_models.back();
+    HRenModelSkinned VulkanResourceManager::create_model_skinned(
+        CommandPool&                  cmd_pool,
+        ITextureManager&              tex_man,
+        DescLayout_PerActor const&    layout_per_actor,
+        DescLayout_PerMaterial const& layout_per_material,
+        SamplerTexture const&         sampler,
+        VkQueue                       graphics_queue,
+        VkPhysicalDevice              phys_device,
+        VkDevice                      logi_device
+    ) {
+        this->m_skinned_models.push_back(std::make_shared<ModelSkinnedProxy>());
+        auto& model = this->m_skinned_models.back();
+
+        model->give_dependencies(
+            cmd_pool,
+            tex_man,
+            layout_per_actor,
+            layout_per_material,
+            sampler,
+            graphics_queue,
+            phys_device,
+            logi_device
+        );
+
+        return model;
     }
 
     HActor VulkanResourceManager::create_actor(
@@ -314,17 +336,17 @@ namespace dal {
     }
 
     RenderListVK::RenderPair_O_A& RenderListVK::get_render_pair(HRenModelSkinned& h_model) {
-        auto& model = dal::model_cast(h_model);
+        auto& model = dal::handle_cast(h_model);
 
         for (auto& x : this->m_skinned_models) {
-            if (x.m_model == &model) {
+            if (x.m_model == &model.get()) {
                 return x;
             }
         }
 
         this->m_used_skin_models.emplace(h_model);
         auto& output = this->m_skinned_models.emplace_back();
-        output.m_model = &model;
+        output.m_model = &model.get();
         return output;
     }
 

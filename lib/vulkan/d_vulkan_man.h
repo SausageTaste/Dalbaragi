@@ -94,10 +94,6 @@ namespace dal {
 
         HActorSkinned create_actor_skinned() override;
 
-        bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) override;
-
-        bool prepare(IRenModelSkineed& model) override;
-
     private:
         // Returns true if recreation is still needed.
         bool on_recreate_swapchain();

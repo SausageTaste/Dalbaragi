@@ -159,6 +159,10 @@ namespace dal {
     public:
         virtual ~IRenModelSkineed() = default;
 
+        virtual bool init_model(const dal::ModelSkinned& model_data, const char* const fallback_namespace) = 0;
+
+        virtual bool prepare() = 0;
+
         virtual void destroy() = 0;
 
         virtual bool is_ready() const = 0;
