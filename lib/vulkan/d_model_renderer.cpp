@@ -296,6 +296,54 @@ namespace dal {
 }
 
 
+// MeshProxy
+namespace dal {
+
+    void MeshProxy::give_dependencies(
+        dal::CommandPool& cmd_pool,
+        const VkPhysicalDevice phys_device,
+        const dal::LogicalDevice& logi_device
+    ) {
+        this->m_cmd_pool    = &cmd_pool;
+        this->m_phys_device = phys_device;
+        this->m_logi_device = &logi_device;
+    }
+
+    void MeshProxy::clear_dependencies() {
+        this->m_cmd_pool    = nullptr;
+        this->m_phys_device = VK_NULL_HANDLE;
+        this->m_logi_device = nullptr;
+    }
+
+    bool MeshProxy::are_dependencies_ready() const {
+        return (
+            this->m_cmd_pool    != nullptr        &&
+            this->m_phys_device != VK_NULL_HANDLE &&
+            this->m_logi_device != nullptr
+        );
+    }
+
+    // Overridings
+
+    bool MeshProxy::init_mesh(const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) {
+        if (!this->are_dependencies_ready())
+            return false;
+
+        this->m_mesh.init(vertices, indices, *this->m_cmd_pool, this->m_phys_device, *this->m_logi_device);
+        return true;
+    }
+
+    void MeshProxy::destroy() {
+        this->m_mesh.destroy(this->m_logi_device->get());
+    }
+
+    bool MeshProxy::is_ready() const {
+        return this->m_mesh.is_ready();
+    }
+
+}
+
+
 // RenderUnit
 namespace dal {
 

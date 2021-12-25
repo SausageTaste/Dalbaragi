@@ -219,7 +219,7 @@ namespace dal {
     }
 
 
-    class MeshVK : public IMesh {
+    class MeshVK {
 
     private:
         VertexBuffer m_vertices;
@@ -235,11 +235,59 @@ namespace dal {
 
         void destroy(const VkDevice logi_device);
 
-        bool is_ready() const override {
+        bool is_ready() const {
             return this->m_vertices.is_ready();
         }
 
     };
+
+
+    class MeshProxy : public IMesh {
+
+    private:
+        MeshVK m_mesh;
+
+        dal::CommandPool*         m_cmd_pool    = nullptr;
+        VkPhysicalDevice          m_phys_device = VK_NULL_HANDLE;
+        dal::LogicalDevice const* m_logi_device = nullptr;
+
+    public:
+        void give_dependencies(
+            dal::CommandPool& cmd_pool,
+            const VkPhysicalDevice phys_device,
+            const dal::LogicalDevice& logi_device
+        );
+
+        void clear_dependencies();
+
+        bool are_dependencies_ready() const;
+
+        // Overridings
+
+        bool init_mesh(const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) override;
+
+        void destroy() override;
+
+        bool is_ready() const override;
+
+    };
+
+
+    inline auto& handle_cast(dal::IMesh& model) {
+        return dynamic_cast<dal::MeshProxy&>(model);
+    }
+
+    inline auto& handle_cast(const dal::IMesh& model) {
+        return dynamic_cast<const dal::MeshProxy&>(model);
+    }
+
+    inline auto& handle_cast(dal::HMesh& model) {
+        return dynamic_cast<dal::MeshProxy&>(*model);
+    }
+
+    inline auto& handle_cast(const dal::HMesh& model) {
+        return dynamic_cast<const dal::MeshProxy&>(*model);
+    }
 
 
     class RenderUnit {
@@ -466,26 +514,5 @@ namespace dal {
         }
 
     };
-
-}
-
-
-namespace dal {
-
-    inline auto& mesh_cast(IMesh& mesh) {
-        return static_cast<MeshVK&>(mesh);
-    }
-
-    inline auto& mesh_cast(const IMesh& mesh) {
-        return static_cast<const MeshVK&>(mesh);
-    }
-
-    inline auto& mesh_cast(HMesh& mesh) {
-        return *static_cast<MeshVK*>(mesh.get());
-    }
-
-    inline auto& mesh_cast(const HMesh& mesh) {
-        return *static_cast<const MeshVK*>(mesh.get());
-    }
 
 }

@@ -80,6 +80,17 @@ namespace dal {
         return tex;
     }
 
+    HMesh VulkanResourceManager::create_mesh(
+        dal::CommandPool& cmd_pool,
+        const VkPhysicalDevice phys_device,
+        const dal::LogicalDevice& logi_device
+    ) {
+        this->m_meshes.push_back(std::make_shared<MeshProxy>());
+        auto& mesh = this->m_meshes.back();
+        mesh->give_dependencies(cmd_pool, phys_device, logi_device);
+        return mesh;
+    }
+
     HRenModel VulkanResourceManager::create_model(
         CommandPool&                  cmd_pool,
         ITextureManager&              tex_man,

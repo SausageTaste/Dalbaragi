@@ -129,6 +129,10 @@ namespace dal {
     public:
         virtual ~IMesh() = default;
 
+        virtual bool init_mesh(const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) = 0;
+
+        virtual void destroy() = 0;
+
         virtual bool is_ready() const = 0;
 
     };

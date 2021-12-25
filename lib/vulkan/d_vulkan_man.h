@@ -84,6 +84,8 @@ namespace dal {
 
         HTexture create_texture() override;
 
+        HMesh create_mesh() override;
+
         HRenModel create_model() override;
 
         HRenModelSkinned create_model_skinned() override;
@@ -95,14 +97,6 @@ namespace dal {
         bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) override;
 
         bool prepare(IRenModelSkineed& model) override;
-
-        // Mesh
-
-        HMesh create_mesh() override;
-
-        bool init(IMesh& mesh, const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) override;
-
-        bool destroy(IMesh& mesh) override;
 
     private:
         // Returns true if recreation is still needed.

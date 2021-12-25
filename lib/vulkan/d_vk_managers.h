@@ -40,6 +40,7 @@ namespace dal {
 
     private:
         std::vector< std::shared_ptr<TextureProxy>         > m_textures;
+        std::vector< std::shared_ptr<MeshProxy>            > m_meshes;
         std::vector< std::shared_ptr<ModelProxy>           > m_models;
         std::vector< std::shared_ptr<ModelSkinnedRenderer> > m_skinned_models;
         std::vector< std::shared_ptr<ActorProxy>           > m_actors;
@@ -55,6 +56,12 @@ namespace dal {
             const VkQueue graphics_queue,
             const VkPhysicalDevice phys_device,
             const VkDevice logi_device
+        );
+
+        HMesh create_mesh(
+            dal::CommandPool& cmd_pool,
+            const VkPhysicalDevice phys_device,
+            const dal::LogicalDevice& logi_device
         );
 
         HRenModel create_model(

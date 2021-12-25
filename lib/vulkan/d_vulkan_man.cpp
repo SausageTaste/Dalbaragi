@@ -792,6 +792,14 @@ namespace dal {
         );
     }
 
+    HMesh VulkanState::create_mesh() {
+        return this->m_vk_res_man.create_mesh(
+            this->m_cmd_man.general_pool(),
+            this->m_phys_device.get(),
+            this->m_logi_device
+        );
+    }
+
     HRenModel VulkanState::create_model() {
         return this->m_vk_res_man.create_model(
             this->m_cmd_man.general_pool(),
@@ -855,33 +863,6 @@ namespace dal {
             this->m_sampler_man.sampler_tex(),
             this->m_logi_device.get()
         );
-    }
-
-    // Mesh
-
-    HMesh VulkanState::create_mesh() {
-        return std::make_shared<MeshVK>();
-    }
-
-    bool VulkanState::init(IMesh& i_mesh, const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) {
-        auto& mesh = mesh_cast(i_mesh);
-
-        mesh.init(
-            vertices, indices,
-            this->m_cmd_man.general_pool(),
-            this->m_phys_device.get(),
-            this->m_logi_device
-        );
-
-        return true;
-    }
-
-    bool VulkanState::destroy(IMesh& i_mesh) {
-        auto& mesh = mesh_cast(i_mesh);
-
-        mesh.destroy(this->m_logi_device.get());
-
-        return true;
     }
 
     // Private
