@@ -36,18 +36,18 @@ end
 
 function on_renderer_init()
     do
-        local e = scene.create_actor_skinned('honoka_0', 'sungmin/honoka_basic_3.dmd')
+        local e = scene.create_actor_skinned('honoka_0', 'sungmin/honoka_warmth_scarf.dmd')
         local t = e:get_transform()
         t:get_pos():set_x(-2)
         t:rotate_degree(90, 0, 1, 0)
-        t:set_scale(0.3)
+        t:set_scale(1)
         e:notify_transform_change();
     end
 
     do
         local e = scene.create_actor_skinned('honoka_1', 'sungmin/honoka_apron.dmd')
         local t = e:get_transform()
-        t:set_scale(0.8)
+        t:set_scale(1)
         e:notify_transform_change();
     end
 
