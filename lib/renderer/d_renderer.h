@@ -50,6 +50,18 @@ namespace dal {
 
         virtual HActorSkinned create_actor_skinned() { return nullptr; }
 
+        virtual void register_handle(HTexture& handle) {}
+
+        virtual void register_handle(HMesh& handle) {}
+
+        virtual void register_handle(HRenModel& handle) {}
+
+        virtual void register_handle(HRenModelSkinned& handle) {}
+
+        virtual void register_handle(HActor& handle) {}
+
+        virtual void register_handle(HActorSkinned& handle) {}
+
     };
 
 

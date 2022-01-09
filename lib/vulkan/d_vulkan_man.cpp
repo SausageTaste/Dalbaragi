@@ -844,6 +844,67 @@ namespace dal {
         );
     }
 
+    void VulkanState::register_handle(HTexture& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_cmd_man.general_pool(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
+
+    void VulkanState::register_handle(HMesh& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_cmd_man.general_pool(),
+            this->m_phys_device.get(),
+            this->m_logi_device
+        );
+    }
+
+    void VulkanState::register_handle(HRenModel& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
+
+    void VulkanState::register_handle(HRenModelSkinned& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
+
+    void VulkanState::register_handle(HActor& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_desc_allocator,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
+
+    void VulkanState::register_handle(HActorSkinned& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_desc_allocator,
+            this->m_desc_layout_man.layout_actor_animated(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
+
     // Private
     //---------------------------------------------------------------------------------------
 

@@ -94,6 +94,18 @@ namespace dal {
 
         HActorSkinned create_actor_skinned() override;
 
+        void register_handle(HTexture& handle) override;
+
+        void register_handle(HMesh& handle) override;
+
+        void register_handle(HRenModel& handle) override;
+
+        void register_handle(HRenModelSkinned& handle) override;
+
+        void register_handle(HActor& handle) override;
+
+        void register_handle(HActorSkinned& handle) override;
+
     private:
         // Returns true if recreation is still needed.
         bool on_recreate_swapchain();
