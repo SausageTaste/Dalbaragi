@@ -112,6 +112,7 @@ namespace {
 
         dal::parser::Model m_parsed_model;
         std::optional<dal::ModelStatic> out_model;
+        std::string out_result_msg;
 
     private:
         int m_stage = 0;
@@ -148,24 +149,28 @@ namespace {
             auto file = this->m_filesys.open(this->m_respath);
             if (!file->is_ready()) {
                 out_model = std::nullopt;
+                out_result_msg = "Failed to open file";
                 return true;
             }
 
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
             if (!model_content.has_value()) {
                 out_model = std::nullopt;
+                out_result_msg = "Failed to load file contents";
                 return true;
             }
 
             const auto unzipped = dal::parser::unzip_dmd(model_content->data(), model_content->size());
             if (!unzipped) {
                 out_model = std::nullopt;
+                out_result_msg = "Failed to unzip dmd";
                 return true;
             }
 
             const auto parse_result = dal::parser::parse_dmd(this->m_parsed_model, unzipped->data(), unzipped->size());
             if (dal::parser::ModelParseResult::success != parse_result) {
                 out_model = std::nullopt;
+                out_result_msg = "Failed to parse dmd";
                 return true;
             }
 
@@ -175,6 +180,7 @@ namespace {
 
                 if (!result) {
                     out_model = std::nullopt;
+                    out_result_msg = "The asset is not signed with a proper key";
                     return true;
                 }
             }
@@ -499,8 +505,9 @@ namespace dal {
                 iter = this->m_waiting_prepare.erase(iter);
             }
             else {
-                if (model.prepare())
+                if (model.prepare()) {
                     return;
+                }
 
                 ++iter;
             }
@@ -522,8 +529,12 @@ namespace dal {
                 this->m_waiting_prepare.push_back(found->second);
             }
             else {
-                const auto msg = fmt::format("Failed to load model: {}", task_result.m_respath.make_str());
-                dalError(msg.c_str());
+                const auto msg = fmt::format(
+                    "Failed to load model: {}, the reason is '{}'",
+                    task_result.m_respath.make_str(),
+                    task_result.out_result_msg
+                );
+                dalError(msg);
             }
 
             this->m_waiting_file.erase(found);
@@ -625,23 +636,29 @@ namespace dal {
         this->m_renderer = &renderer;
 
         for (auto& [respath, texture] : this->m_textures) {
+            renderer.register_handle(texture);
             this->m_tex_builder.start(respath, texture, this->m_filesys, this->m_task_man);
         }
 
         for (auto& [respath, model] : this->m_models) {
+            renderer.register_handle(model);
             this->m_model_builder.start(respath, model, this->m_filesys, this->m_task_man, this->m_sign_mgr);
         }
 
         for (auto& [respath, model] : this->m_skinned_models) {
+            renderer.register_handle(model);
             this->m_model_skinned_builder.start(respath, model, this->m_filesys, this->m_task_man, this->m_sign_mgr);
         }
 
         for (auto& actor : this->m_actors) {
+            renderer.register_handle(actor);
             actor->init();
         }
 
-        for (auto& actor : this->m_skinned_actors)
+        for (auto& actor : this->m_skinned_actors) {
+            renderer.register_handle(actor);
             actor->init();
+        }
 
         this->m_missing_tex = this->request_texture(::MISSING_TEX_PATH);
         this->m_missing_model = this->request_model(::MISSING_MODEL_PATH);

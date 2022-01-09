@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
     );
 
     window.set_callback_fbuf_resize([&engine, &window](int width, int height) {
-/*/
+//*/
         engine.destory_vulkan();
         engine.init_vulkan(width, height, window.get_vk_surface_creator(), window.get_vulkan_extensions());
 /*/
