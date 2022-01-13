@@ -320,8 +320,15 @@ namespace dal {
         : m_sign_mgr(crypto::CONTEXT_PARSER)
         , m_res_man(this->m_task_man, *create_info.m_filesystem, this->m_sign_mgr)
     {
+        dalAssert(create_info.check_validity());
+        this->m_create_info = create_info;
+
         this->m_task_man.init(2);
-        this->init(create_info);
+        this->m_renderer = dal::create_renderer_null();
+
+        this->m_input_listeners.clear();
+        this->m_input_listeners.push_back(&g_touch_dpad); g_touch_dpad.reset();
+        this->m_input_listeners.push_back(&g_touch_view); g_touch_view.reset();
 
         // Load main config
         {
@@ -353,9 +360,12 @@ namespace dal {
         ::test(*this->m_create_info.m_filesystem);
 #endif
 
+        this->m_timer.check();
     }
 
     Engine::~Engine() {
+        this->destory_vulkan();
+
         if (auto file = this->m_create_info.m_filesystem->open_write(::MAIN_CONFIG_PATH); file->is_ready()) {
             const auto data = this->m_config.export_str();
             file->write(data.data(), data.size());
@@ -363,25 +373,6 @@ namespace dal {
 
         this->m_lua.clear_dependencies();
         this->m_task_man.destroy();
-        this->destroy();
-    }
-
-    void Engine::init(const EngineCreateInfo& create_info) {
-        this->destroy();
-        this->m_renderer = dal::create_renderer_null();
-
-        dalAssert(create_info.check_validity());
-        this->m_create_info = create_info;
-
-        this->m_input_listeners.clear();
-        this->m_input_listeners.push_back(&g_touch_dpad); g_touch_dpad.reset();
-        this->m_input_listeners.push_back(&g_touch_view); g_touch_view.reset();
-
-        this->m_timer.check();
-    }
-
-    void Engine::destroy() {
-        this->destory_vulkan();
     }
 
     void Engine::update() {

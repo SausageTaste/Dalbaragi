@@ -97,11 +97,6 @@ namespace dal {
             return this->m_input_man;
         }
 
-    private:
-        void init(const EngineCreateInfo& create_info);
-
-        void destroy();
-
     };
 
 }
