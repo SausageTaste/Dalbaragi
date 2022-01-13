@@ -180,8 +180,10 @@ namespace dal {
             auto view = scene.m_registry.view<cpnt::ActorStatic>();
 
             view.each([this](cpnt::ActorStatic& actor) {
-                if (!actor.m_model->is_ready())
+                if (!actor.m_model->is_ready()) {
+                    dalDebug(fmt::format("Model not ready: {} at time{}", actor.m_model->name(), dal::get_cur_sec()));
                     return;
+                }
 
                 auto& dst_opaque = this->get_render_pair(actor.m_model);
                 dst_opaque.m_actors.push_back(&handle_cast(actor.m_actor));
@@ -193,8 +195,10 @@ namespace dal {
             auto view = scene.m_registry.view<cpnt::ActorAnimated>();
 
             view.each([this](cpnt::ActorAnimated& actor) {
-                if (!actor.m_model->is_ready())
+                if (!actor.m_model->is_ready()) {
+                    dalDebug(fmt::format("Model not ready: {} at time{}", actor.m_model->name(), dal::get_cur_sec()));
                     return;
+                }
 
                 auto& dst_opaque = this->get_render_pair(actor.m_model);
                 dst_opaque.m_actors.push_back(&handle_cast(actor.m_actor));
