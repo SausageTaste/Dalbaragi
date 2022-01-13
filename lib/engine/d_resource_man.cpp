@@ -525,7 +525,12 @@ namespace dal {
 
         if (this->m_waiting_file.end() != found) {
             if (task_result.out_model.has_value()) {
-                found->second->init_model(task_result.out_model.value(), task_result.m_respath.dir_list().front().c_str());
+                found->second->init_model(
+                    task_result.m_respath.make_str().c_str(),
+                    task_result.out_model.value(),
+                    task_result.m_respath.dir_list().front().c_str()
+                );
+
                 this->m_waiting_prepare.push_back(found->second);
             }
             else {
@@ -588,6 +593,7 @@ namespace dal {
         if (this->m_waiting_file.end() != found) {
             if (task_result.out_model.has_value()) {
                 found->second.get()->init_model(
+                    task_result.m_respath.make_str().c_str(),
                     task_result.out_model.value(),
                     task_result.m_respath.dir_list().front().c_str()
                 );

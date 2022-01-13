@@ -384,6 +384,7 @@ namespace dal {
 
     private:
         ModelRenderer m_model;
+        std::string m_name;
 
         CommandPool*                  m_cmd_pool;
         ITextureManager*              m_tex_man;
@@ -426,7 +427,9 @@ namespace dal {
 
         // Overridings
 
-        bool init_model(const dal::ModelStatic& model_data, const char* const fallback_namespace);
+        const char* name() const override;
+
+        bool init_model(const char* const name, const dal::ModelStatic& model_data, const char* const fallback_namespace) override;
 
         bool prepare() override;
 
@@ -509,6 +512,7 @@ namespace dal {
 
     private:
         ModelSkinnedRenderer m_model;
+        std::string m_name;
 
         CommandPool*                  m_cmd_pool;
         ITextureManager*              m_tex_man;
@@ -549,7 +553,9 @@ namespace dal {
 
         // Overridings
 
-        bool init_model(const dal::ModelSkinned& model_data, const char* const fallback_namespace) override;
+        const char* name() const override;
+
+        bool init_model(const char* const name, const dal::ModelSkinned& model_data, const char* const fallback_namespace) override;
 
         bool prepare() override;
 

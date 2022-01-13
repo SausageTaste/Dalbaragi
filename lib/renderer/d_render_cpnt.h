@@ -143,7 +143,9 @@ namespace dal {
     public:
         virtual ~IRenModel() = default;
 
-        virtual bool init_model(const dal::ModelStatic& model_data, const char* const fallback_namespace) = 0;
+        virtual const char* name() const = 0;
+
+        virtual bool init_model(const char* const name, const dal::ModelStatic& model_data, const char* const fallback_namespace) = 0;
 
         virtual bool prepare() = 0;
 
@@ -159,7 +161,9 @@ namespace dal {
     public:
         virtual ~IRenModelSkineed() = default;
 
-        virtual bool init_model(const dal::ModelSkinned& model_data, const char* const fallback_namespace) = 0;
+        virtual const char* name() const = 0;
+
+        virtual bool init_model(const char* const name, const dal::ModelSkinned& model_data, const char* const fallback_namespace) = 0;
 
         virtual bool prepare() = 0;
 

@@ -590,9 +590,15 @@ namespace dal {
         );
     }
 
-    bool ModelProxy::init_model(const dal::ModelStatic& model_data, const char* const fallback_namespace) {
+    const char* ModelProxy::name() const {
+        return this->m_name.c_str();
+    }
+
+    bool ModelProxy::init_model(const char* const name, const dal::ModelStatic& model_data, const char* const fallback_namespace) {
         if (!this->are_dependencies_ready())
             return false;
+
+        this->m_name = name;
 
         this->m_model.init(
             model_data,
@@ -778,9 +784,15 @@ namespace dal {
 
     // Overridings
 
-    bool ModelSkinnedProxy::init_model(const dal::ModelSkinned& model_data, const char* const fallback_namespace) {
+    const char* ModelSkinnedProxy::name() const {
+        return this->m_name.c_str();
+    }
+
+    bool ModelSkinnedProxy::init_model(const char* const name, const dal::ModelSkinned& model_data, const char* const fallback_namespace) {
         if (!this->are_dependencies_ready())
             return false;
+
+        this->m_name = name;
 
         this->m_model.upload_meshes(
             model_data,
