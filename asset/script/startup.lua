@@ -7,7 +7,7 @@ function on_engine_init()
     do
         local light = scene.create_slight()
         light:get_pos():set_xyz(6, 2, 0)
-        light:get_color():set_xyz(3, 3, 3)
+        light:get_color():set_xyz(30, 30, 30)
         light:set_direction_to_light(0, 1, -1)
         light:set_fade_start_degree(0)
         light:set_fade_end_degree(35)
@@ -16,7 +16,7 @@ function on_engine_init()
     do
         local light = scene.create_slight()
         light:get_pos():set_xyz(6, 2, 0)
-        light:get_color():set_xyz(5, 5, 5)
+        light:get_color():set_xyz(50, 20, 20)
         light:set_direction_to_light(0, 0, 1)
         light:set_fade_start_degree(0)
         light:set_fade_end_degree(35)
@@ -24,7 +24,7 @@ function on_engine_init()
 
     do
         local light = scene.create_plight()
-        light:get_color():set_xyz(0.5, 0.5, 0.5)
+        light:get_color():set_xyz(20, 20, 50)
     end
 
     do
