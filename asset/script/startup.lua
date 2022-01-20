@@ -16,10 +16,10 @@ function on_engine_init()
     do
         local light = scene.create_slight()
         light:get_pos():set_xyz(6, 2, 0)
-        light:get_color():set_xyz(50, 20, 20)
-        light:set_direction_to_light(0, 0, 1)
+        light:get_color():set_xyz(25, 10, 10)
+        light:set_direction_to_light(0, 2, 3)
         light:set_fade_start_degree(0)
-        light:set_fade_end_degree(35)
+        light:set_fade_end_degree(60)
     end
 
     do
@@ -36,7 +36,7 @@ end
 
 function on_renderer_init()
     do
-        local e = scene.create_actor_skinned('honoka_0', 'sungmin/honoka_warmth_scarf.dmd')
+        local e = scene.create_actor_skinned('figure_0', 'sungmin/honoka_warmth_scarf.dmd')
         local t = e:get_transform()
         t:get_pos():set_x(-2)
         t:rotate_degree(90, 0, 1, 0)
@@ -45,9 +45,11 @@ function on_renderer_init()
     end
 
     do
-        local e = scene.create_actor_skinned('honoka_1', 'sungmin/honoka_apron.dmd')
+        local e = scene.create_actor_skinned('figure_1', 'sungmin2/tamaki_seifuku.dmd')
+        e:set_anim_index(0)
+
         local t = e:get_transform()
-        t:set_scale(1)
+        t:set_scale(0.95)
         e:notify_transform_change();
     end
 
@@ -94,7 +96,7 @@ function before_rendering_every_frame()
 
     do
         local light = scene.get_slight_at(1)
-        light:get_pos():set_xyz(math.cos(t*0.3) * 3, 1, 4.5);
+        light:get_pos():set_xyz(math.cos(t*0.3) * 3, 1.5, 0.8);
     end
 
     do
