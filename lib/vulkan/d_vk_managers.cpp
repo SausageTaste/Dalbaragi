@@ -181,7 +181,6 @@ namespace dal {
 
             view.each([this](cpnt::ActorStatic& actor) {
                 if (!actor.m_model->is_ready()) {
-                    dalDebug(fmt::format("Model not ready: {} at time{}", actor.m_model->name(), dal::get_cur_sec()));
                     return;
                 }
 
@@ -196,7 +195,6 @@ namespace dal {
 
             view.each([this](cpnt::ActorAnimated& actor) {
                 if (!actor.m_model->is_ready()) {
-                    dalDebug(fmt::format("Model not ready: {} at time{}", actor.m_model->name(), dal::get_cur_sec()));
                     return;
                 }
 
