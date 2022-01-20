@@ -448,7 +448,10 @@ void main() {
     // Spot lights
     for (uint i = 0; i < u_global_light.m_slight_count; ++i) {
         const float shadow = how_much_not_in_shadow_pcf_bilinear(world_pos, u_global_light.m_slight_mat[i], u_slight_shadow_maps[i]);
-        const vec3 frag_to_light_direc = normalize(u_global_light.m_slight_pos_n_max_dist[i].xyz - world_pos);
+
+        const vec3 frag_to_light = u_global_light.m_slight_pos_n_max_dist[i].xyz - world_pos;
+        const float light_distance = length(frag_to_light);
+        const vec3 frag_to_light_direc = frag_to_light / light_distance;
 
         const float attenuation = calc_slight_attenuation(
             world_pos,
@@ -466,7 +469,7 @@ void main() {
             F0,
             -view_direc,
             frag_to_light_direc,
-            1,
+            light_distance,
             u_global_light.m_slight_color_n_fade_end[i].xyz
         ) * (attenuation * shadow);
     }
