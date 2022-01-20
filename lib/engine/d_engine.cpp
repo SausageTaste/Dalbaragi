@@ -437,6 +437,12 @@ namespace dal {
         this->m_screen_width = win_width;
         this->m_screen_height = win_height;
 
+        if (0 == win_width || 0 == win_height) {
+            this->m_res_man.invalidate_renderer();
+            this->m_renderer = dal::create_renderer_null();
+            return;
+        }
+
         std::vector<const char*> extensions;
         for (const auto& x : extensions_str)
             extensions.push_back(x.c_str());
