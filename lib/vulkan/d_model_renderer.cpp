@@ -25,6 +25,8 @@ namespace dal {
                 logi_device
             );
         }
+
+        this->m_transform_update_needed = dal::MAX_FRAMES_IN_FLIGHT;
     }
 
     void ActorVK::destroy(DescAllocator& desc_allocator, const VkDevice logi_device) {
