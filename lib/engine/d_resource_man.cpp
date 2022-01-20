@@ -54,6 +54,7 @@ namespace {
         dal::ResPath m_respath;
 
         std::vector<uint8_t> m_file_data;
+        std::string m_result_msg;
         std::optional<dal::ImageData> out_image;
 
     private:
@@ -83,11 +84,15 @@ namespace {
     private:
         bool stage_0() {
             auto file = this->m_filesys.open(this->m_respath);
-            if (!file->is_ready())
+            if (!file->is_ready()) {
+                this->m_result_msg = fmt::format("Failed to open image file: {}", this->m_respath.make_str());
                 return true;
+            }
 
-            if (!file->read_stl<std::vector<uint8_t>>(this->m_file_data))
+            if (!file->read_stl<std::vector<uint8_t>>(this->m_file_data)) {
+                this->m_result_msg = fmt::format("Failed to read image file: {}", this->m_respath.make_str());
                 return true;
+            }
 
             this->m_stage = 1;
             return false;
@@ -95,6 +100,9 @@ namespace {
 
         bool stage_1() {
             this->out_image = dal::parse_image_stb(this->m_file_data.data(), this->m_file_data.size());
+            if (!this->out_image.has_value()) {
+                this->m_result_msg = fmt::format("Failed to parse image file: {}", this->m_respath.make_str());
+            }
 
             this->m_stage = 2;
             return true;
@@ -478,10 +486,15 @@ namespace dal {
         auto& task_result = *reinterpret_cast<Task_LoadImage*>(task.get());
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
-        if (this->m_waiting_file.end() != found) {
-            found->second.get()->set_image(task_result.out_image.value());
-            this->m_waiting_file.erase(found);
+        if (this->m_waiting_file.end() == found)
+            return;
+        if (!task_result.out_image.has_value()) {
+            dalError(task_result.m_result_msg);
+            return;
         }
+
+        found->second.get()->set_image(task_result.out_image.value());
+        this->m_waiting_file.erase(found);
     }
 
     void TextureBuilder::start(const ResPath& respath, HTexture h_texture, Filesystem& filesys, TaskManager& task_man) {
