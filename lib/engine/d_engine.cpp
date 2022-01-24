@@ -465,7 +465,7 @@ namespace dal {
         if (this->m_scene.m_registry.empty()) {
             this->m_lua.call_void_func("on_renderer_init");
 
-            // Create scene objects
+            // Create a mirror
             {
                 auto& mirror = this->m_scene.m_mirrors.emplace_back();
 
@@ -486,6 +486,24 @@ namespace dal {
                 mirror.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
                 mirror.m_actor->m_transform.m_pos = glm::vec3{-14, 1.2, 0};
                 mirror.m_actor->notify_transform_change();
+            }
+
+            // Create a horizontal water plane
+            {
+                auto& water = this->m_scene.m_water_planes.emplace_back();
+
+                water.m_mesh = this->m_res_man.request_mesh(std::make_unique<QuadMeshGenerator>(
+                    glm::vec3{-5, 0, -5},
+                    glm::vec3{-5, 0,  5},
+                    glm::vec3{ 5, 0,  5},
+                    glm::vec3{ 5, 0, -5}
+                ));
+
+                water.m_plane = Plane{
+                    glm::vec3{-5, 0, -5},
+                    glm::vec3{-5, 0,  5},
+                    glm::vec3{ 5, 0,  5}
+                };
             }
         }
     }

@@ -297,25 +297,14 @@ namespace dal {
         }*/
 
         // Horizontal water
-        /*for (auto& water : scene.m_water_planes) {
-            constexpr float x = 1000;
+        for (auto& water : scene.m_water_planes) {
             auto& one = this->m_render_waters.emplace_back();
 
-            one.m_polygon.push_back(triangle_t{
-                glm::vec3{-x, water.m_height, -x},
-                glm::vec3{-x, water.m_height,  x},
-                glm::vec3{ x, water.m_height,  x},
-            });
-
-            one.m_polygon.push_back(triangle_t{
-                glm::vec3{-x, water.m_height, -x},
-                glm::vec3{ x, water.m_height,  x},
-                glm::vec3{ x, water.m_height, -x},
-            });
-
+            one.m_mesh = &handle_cast(water.m_mesh).get();
+            one.m_model_mat = glm::mat4{1};
             one.m_orient_mat = water.m_plane.make_reflect_mat();
             one.m_clip_plane = water.m_plane.coeff();
-        }*/
+        }
     }
 
     RenderListVK::RenderPair_O_S& RenderListVK::get_render_pair(HRenModel& h_model) {
@@ -556,7 +545,11 @@ namespace dal {
                 vkCmdDrawIndexed(cmd_buf, render_plane.m_mesh->index_size(), 1, 0, 0, 0);
             }
 
-            /*for (auto& render_plane : render_list.m_render_waters) {
+            for (auto& render_plane : render_list.m_render_waters) {
+                std::array<VkBuffer, 1> vert_bufs{ render_plane.m_mesh->vertex_buffer() };
+                vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                vkCmdBindIndexBuffer(cmd_buf, render_plane.m_mesh->index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
                 vkCmdBindDescriptorSets(
                     cmd_buf,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -570,23 +563,17 @@ namespace dal {
                 pc_data.m_model_mat = glm::mat4{1};
                 pc_data.m_proj_view_mat = proj_view_mat;
 
-                for (auto& triangle : render_plane.m_polygon) {
-                    pc_data.m_vertices[0] = glm::vec4{triangle[0], 1};
-                    pc_data.m_vertices[1] = glm::vec4{triangle[1], 1};
-                    pc_data.m_vertices[2] = glm::vec4{triangle[2], 1};
+                vkCmdPushConstants(
+                    cmd_buf,
+                    pipeline.layout(),
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    0,
+                    sizeof(U_PC_Mirror),
+                    &pc_data
+                );
 
-                    vkCmdPushConstants(
-                        cmd_buf,
-                        pipeline.layout(),
-                        VK_SHADER_STAGE_VERTEX_BIT,
-                        0,
-                        sizeof(U_PC_Mirror),
-                        &pc_data
-                    );
-
-                    vkCmdDraw(cmd_buf, 3, 1, 0, 0);
-                }
-            }*/
+                vkCmdDrawIndexed(cmd_buf, render_plane.m_mesh->index_size(), 1, 0, 0, 0);
+            }
         }
 
         vkCmdEndRenderPass(cmd_buf);

@@ -43,8 +43,8 @@ namespace dal::scene {
     };
 
     struct HorizontalWater {
+        HMesh m_mesh;
         dal::Plane m_plane;
-        float m_height;
     };
 
 }
