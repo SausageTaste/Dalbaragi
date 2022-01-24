@@ -147,6 +147,8 @@ namespace dal {
             return this->plane().normal();
         }
 
+        PlaneOriented transform(const glm::mat4& mat) const;
+
         glm::mat4 make_origin_align_mat() const;
 
     };

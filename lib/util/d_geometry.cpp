@@ -216,6 +216,14 @@ namespace dal {
 
     }
 
+    PlaneOriented PlaneOriented::transform(const glm::mat4& mat) const {
+        return PlaneOriented{
+            mat * glm::vec4{ this->m_center_point,  1},
+            mat * glm::vec4{ this->m_top_point,     1},
+            mat * glm::vec4{ this->m_winding_point, 1}
+        };
+    }
+
     glm::mat4 PlaneOriented::make_origin_align_mat() const {
         glm::mat4 output{1};
 
