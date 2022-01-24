@@ -153,6 +153,12 @@ namespace dal {
         return this->m_normal;
     }
 
+    Plane Plane::transform(const glm::mat4& mat) const {
+        const auto new_normal = mat * glm::vec4{ this->normal(), 0 };
+        const auto new_point = mat * glm::vec4{ this->one_point(), 1 };
+        return Plane{new_point, new_normal};
+    }
+
     glm::vec3 Plane::one_point() const {
         const auto t = -this->calc_signed_dist(glm::vec3{0});
         return t * this->normal();

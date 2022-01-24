@@ -239,6 +239,18 @@ namespace dal {
             return this->m_vertices.is_ready();
         }
 
+        auto index_size() const {
+            return this->m_vertices.index_size();
+        }
+
+        auto vertex_buffer() const {
+            return this->m_vertices.vertex_buffer();
+        }
+
+        auto index_buffer() const {
+            return this->m_vertices.index_buffer();
+        }
+
     };
 
 
@@ -261,6 +273,14 @@ namespace dal {
         void clear_dependencies();
 
         bool are_dependencies_ready() const;
+
+        auto& get() {
+            return this->m_mesh;
+        }
+
+        auto& get() const {
+            return this->m_mesh;
+        }
 
         // Overridings
 

@@ -92,7 +92,7 @@ namespace dal {
         }
 
         // Mirrors
-        {
+        /*{
             auto& mirror = this->m_mirrors.emplace_back();
 
             const auto rotation = glm::rotate(glm::mat4{1}, glm::radians<float>(90), glm::vec3{0, 1, 0});
@@ -104,7 +104,7 @@ namespace dal {
             }
 
             mirror.m_plane = dal::Plane{mirror.m_vertices[0], mirror.m_vertices[1], mirror.m_vertices[2]};
-        }
+        }*/
 
         // Portal pair
         /*{

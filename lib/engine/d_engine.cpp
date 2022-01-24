@@ -461,8 +461,32 @@ namespace dal {
 
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
+        // This happens only once
         if (this->m_scene.m_registry.empty()) {
             this->m_lua.call_void_func("on_renderer_init");
+
+            // Create scene objects
+            {
+                auto& mirror = this->m_scene.m_mirrors.emplace_back();
+
+                mirror.m_mesh = this->m_res_man.request_mesh(std::make_unique<QuadMeshGenerator>(
+                    glm::vec3{-2,  1, 0},
+                    glm::vec3{-3, -1, 0},
+                    glm::vec3{ 3, -1, 0},
+                    glm::vec3{ 2,  1, 0}
+                ));
+
+                mirror.m_plane = Plane{
+                    glm::vec3{-1,  1, 0},
+                    glm::vec3{-1, -1, 0},
+                    glm::vec3{ 1, -1, 0}
+                };
+
+                mirror.m_actor = this->m_res_man.request_actor();
+                mirror.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
+                mirror.m_actor->m_transform.m_pos = glm::vec3{-14, 1.2, 0};
+                mirror.m_actor->notify_transform_change();
+            }
         }
     }
 

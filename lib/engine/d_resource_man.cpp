@@ -642,6 +642,17 @@ namespace dal {
 }
 
 
+// ResourceManager::MeshBuildData
+namespace dal {
+
+    void ResourceManager::MeshBuildData::init_gen_mesh() {
+        const auto mesh_builder = this->m_gen->generate_points();
+        this->m_mesh->init_mesh(mesh_builder.output_data().m_vertices, mesh_builder.output_data().m_indices);
+    }
+
+}
+
+
 // ResourceManager
 namespace dal {
 
@@ -679,6 +690,11 @@ namespace dal {
             actor->init();
         }
 
+        for (auto& mesh : this->m_meshes) {
+            renderer.register_handle(mesh.m_mesh);
+            mesh.init_gen_mesh();
+        }
+
         this->m_missing_tex = this->request_texture(::MISSING_TEX_PATH);
         this->m_missing_model = this->request_model(::MISSING_MODEL_PATH);
         this->m_missing_model_skinned = this->request_model_skinned(::MISSING_MODEL_PATH);
@@ -710,6 +726,9 @@ namespace dal {
 
         for (auto& x : this->m_skinned_actors)
             x->destroy();
+
+        for (auto& x : this->m_meshes)
+            x.m_mesh->destroy();
 
         this->m_renderer = nullptr;
     }
@@ -784,15 +803,31 @@ namespace dal {
     }
 
     HActor ResourceManager::request_actor() {
+        dalAssert(nullptr != this->m_renderer);
+
         this->m_actors.push_back(this->m_renderer->create_actor());
         this->m_actors.back()->init();
         return this->m_actors.back();
     }
 
     HActorSkinned ResourceManager::request_actor_skinned() {
+        dalAssert(nullptr != this->m_renderer);
+
         this->m_skinned_actors.push_back(this->m_renderer->create_actor_skinned());
         this->m_skinned_actors.back()->init();
         return this->m_skinned_actors.back();
+    }
+
+    HMesh ResourceManager::request_mesh(std::unique_ptr<IStaticMeshGenerator>&& mesh_gen) {
+        dalAssert(nullptr != this->m_renderer);
+
+        auto& mesh_data = this->m_meshes.emplace_back();
+        mesh_data.m_gen = std::move(mesh_gen);
+
+        mesh_data.m_mesh = this->m_renderer->create_mesh();
+        mesh_data.init_gen_mesh();
+
+        return mesh_data.m_mesh;
     }
 
 }

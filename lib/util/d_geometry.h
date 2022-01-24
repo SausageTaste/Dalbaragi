@@ -93,6 +93,8 @@ namespace dal {
 
         const glm::vec3& normal() const;
 
+        Plane transform(const glm::mat4& mat) const;
+
         glm::vec3 one_point() const;
 
         float calc_signed_dist(const glm::vec3& p) const;

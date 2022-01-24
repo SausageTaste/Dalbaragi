@@ -37,7 +37,8 @@ namespace dal::scene {
     };
 
     struct MirrorPlane {
-        std::array<glm::vec3, 4> m_vertices;
+        HMesh m_mesh;
+        HActor m_actor;
         dal::Plane m_plane;
     };
 

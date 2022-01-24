@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <unordered_map>
 
 #include <daltools/crypto.h>
@@ -82,7 +83,9 @@ namespace dal {
     private:
         struct MeshBuildData {
             HMesh m_mesh;
-            std::unique_ptr<IMeshGenerator> m_gen;
+            std::unique_ptr<IStaticMeshGenerator> m_gen;
+
+            void init_gen_mesh();
         };
 
     private:
@@ -131,6 +134,8 @@ namespace dal {
         HActor request_actor();
 
         HActorSkinned request_actor_skinned();
+
+        HMesh request_mesh(std::unique_ptr<IStaticMeshGenerator>&& mesh_gen);
 
     };
 

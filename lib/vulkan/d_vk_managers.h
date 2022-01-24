@@ -109,10 +109,11 @@ namespace dal {
         using triangle_t = std::array<glm::vec3, 3>;
 
         struct PlaneRender {
-            std::vector<triangle_t> m_polygon;
+            glm::mat4 m_model_mat;
             glm::mat4 m_orient_mat;
             glm::vec4 m_clip_plane;
             size_t reflection_map_index;
+            MeshVK* m_mesh = nullptr;
         };
 
         struct WaterRender : public PlaneRender {

@@ -246,24 +246,20 @@ namespace dal {
 
         // Mirrors
         for (auto& mirror : scene.m_mirrors) {
+            auto& mirror_mesh = handle_cast(mirror.m_mesh);
             auto& dst = this->m_render_planes.emplace_back();
 
-            dst.m_polygon.push_back({
-                mirror.m_vertices[0],
-                mirror.m_vertices[1],
-                mirror.m_vertices[2],
-            });
-            dst.m_polygon.push_back({
-                mirror.m_vertices[0],
-                mirror.m_vertices[2],
-                mirror.m_vertices[3],
-            });
-            dst.m_orient_mat = mirror.m_plane.make_reflect_mat();
-            dst.m_clip_plane = mirror.m_plane.coeff();
+            const auto model_mat = mirror.m_actor->m_transform.make_mat4();
+            const auto plane = mirror.m_plane.transform(model_mat);
+
+            dst.m_mesh = &mirror_mesh.get();
+            dst.m_model_mat = model_mat;
+            dst.m_orient_mat = plane.make_reflect_mat();
+            dst.m_clip_plane = plane.coeff();
         }
 
         // Portal pair
-        for (auto& ppair : scene.m_portal_pairs) {
+        /*for (auto& ppair : scene.m_portal_pairs) {
             auto& p1 = ppair.m_portals[0];
             auto& p2 = ppair.m_portals[1];
 
@@ -298,10 +294,10 @@ namespace dal {
                 plane1.m_orient_mat = dal::make_portal_mat(p2.m_plane, p1.m_plane);
                 plane1.m_clip_plane = p1.m_plane.coeff();
             }
-        }
+        }*/
 
         // Horizontal water
-        for (auto& water : scene.m_water_planes) {
+        /*for (auto& water : scene.m_water_planes) {
             constexpr float x = 1000;
             auto& one = this->m_render_waters.emplace_back();
 
@@ -319,7 +315,7 @@ namespace dal {
 
             one.m_orient_mat = water.m_plane.make_reflect_mat();
             one.m_clip_plane = water.m_plane.coeff();
-        }
+        }*/
     }
 
     RenderListVK::RenderPair_O_S& RenderListVK::get_render_pair(HRenModel& h_model) {
@@ -528,7 +524,39 @@ namespace dal {
             vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
             for (auto& render_plane : render_list.m_render_planes) {
+                std::array<VkBuffer, 1> vert_bufs{ render_plane.m_mesh->vertex_buffer() };
+                vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                vkCmdBindIndexBuffer(cmd_buf, render_plane.m_mesh->index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                vkCmdBindDescriptorSets(
+                    cmd_buf,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.layout(),
+                    0,
+                    1, &(reflection_mgr.reflection_planes().at(render_plane.reflection_map_index).m_desc.get()),
+                    0, nullptr
+                );
+
+                U_PC_Mirror pc_data;
+                pc_data.m_model_mat = render_plane.m_model_mat;
+                pc_data.m_proj_view_mat = proj_view_mat;
+
+                vkCmdPushConstants(
+                    cmd_buf,
+                    pipeline.layout(),
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    0,
+                    sizeof(U_PC_Mirror),
+                    &pc_data
+                );
+
+                vkCmdDrawIndexed(cmd_buf, render_plane.m_mesh->index_size(), 1, 0, 0, 0);
+            }
+
+            /*for (auto& render_plane : render_list.m_render_waters) {
                 vkCmdBindDescriptorSets(
                     cmd_buf,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -558,39 +586,7 @@ namespace dal {
 
                     vkCmdDraw(cmd_buf, 3, 1, 0, 0);
                 }
-            }
-
-            for (auto& render_plane : render_list.m_render_waters) {
-                vkCmdBindDescriptorSets(
-                    cmd_buf,
-                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    pipeline.layout(),
-                    0,
-                    1, &(reflection_mgr.reflection_planes().at(render_plane.reflection_map_index).m_desc.get()),
-                    0, nullptr
-                );
-
-                U_PC_Mirror pc_data;
-                pc_data.m_model_mat = glm::mat4{1};
-                pc_data.m_proj_view_mat = proj_view_mat;
-
-                for (auto& triangle : render_plane.m_polygon) {
-                    pc_data.m_vertices[0] = glm::vec4{triangle[0], 1};
-                    pc_data.m_vertices[1] = glm::vec4{triangle[1], 1};
-                    pc_data.m_vertices[2] = glm::vec4{triangle[2], 1};
-
-                    vkCmdPushConstants(
-                        cmd_buf,
-                        pipeline.layout(),
-                        VK_SHADER_STAGE_VERTEX_BIT,
-                        0,
-                        sizeof(U_PC_Mirror),
-                        &pc_data
-                    );
-
-                    vkCmdDraw(cmd_buf, 3, 1, 0, 0);
-                }
-            }
+            }*/
         }
 
         vkCmdEndRenderPass(cmd_buf);
