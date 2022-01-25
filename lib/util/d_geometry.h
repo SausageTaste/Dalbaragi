@@ -167,6 +167,14 @@ namespace dal {
     public:
         Triangle() = default;
 
+        Triangle(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2) {
+            this->m_vertices[0] = p0;
+            this->m_vertices[1] = p1;
+            this->m_vertices[2] = p2;
+        }
+
+        Triangle transform(const glm::mat4& mat) const;
+
         Plane make_plane() const {
             return Plane{ this->m_vertices[0], this->m_vertices[1], this->m_vertices[2] };
         }

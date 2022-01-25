@@ -488,6 +488,53 @@ namespace dal {
                 mirror.m_actor->notify_transform_change();
             }
 
+            // Create a portal pair
+            {
+                auto& portal_pair = this->m_scene.m_portal_pairs.emplace_back();
+
+                {
+                    auto& portal = portal_pair.m_portals[0];
+
+                    portal.m_mesh = this->m_res_man.request_mesh(std::make_unique<QuadMeshGenerator>(
+                        glm::vec3{-0.5,  1, 0},
+                        glm::vec3{-0.5, -1, 0},
+                        glm::vec3{ 0.5, -1, 0},
+                        glm::vec3{ 0.5,  1, 0}
+                    ));
+
+                    portal.m_plane = PlaneOriented{
+                        glm::vec3{ 0.5, -1, 0},
+                        glm::vec3{ 0.5,  1, 0},
+                        glm::vec3{-0.5,  1, 0}
+                    };
+
+                    portal.m_collider.emplace_back(Triangle{
+                        glm::vec3{-0.5,  1, 0},
+                        glm::vec3{-0.5, -1, 0},
+                        glm::vec3{ 0.5, -1, 0}
+                    });
+                    portal.m_collider.emplace_back(Triangle{
+                        glm::vec3{-0.5,  1, 0},
+                        glm::vec3{ 0.5, -1, 0},
+                        glm::vec3{ 0.5,  1, 0}
+                    });
+
+                    portal.m_actor = this->m_res_man.request_actor();
+                }
+
+                {
+                    auto& portal = portal_pair.m_portals[1];
+
+                    portal.m_mesh = portal_pair.m_portals[0].m_mesh;
+
+                    portal.m_plane = portal_pair.m_portals[0].m_plane;
+
+                    portal.m_collider = portal_pair.m_portals[0].m_collider;
+
+                    portal.m_actor = this->m_res_man.request_actor();
+                }
+            }
+
             // Create a horizontal water plane
             {
                 auto& water = this->m_scene.m_water_planes.emplace_back();

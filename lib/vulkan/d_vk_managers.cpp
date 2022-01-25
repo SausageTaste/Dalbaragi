@@ -259,42 +259,32 @@ namespace dal {
         }
 
         // Portal pair
-        /*for (auto& ppair : scene.m_portal_pairs) {
+        for (auto& ppair : scene.m_portal_pairs) {
             auto& p1 = ppair.m_portals[0];
             auto& p2 = ppair.m_portals[1];
+            const auto model_mat_1 = p1.m_actor->m_transform.make_mat4();
+            const auto model_mat_2 = p2.m_actor->m_transform.make_mat4();
+            const auto plane_1 = p1.m_plane.transform(model_mat_1);
+            const auto plane_2 = p2.m_plane.transform(model_mat_2);
 
             {
                 auto& plane1 = this->m_render_planes.emplace_back();
-                plane1.m_polygon.push_back({
-                    p1.m_vertices[0],
-                    p1.m_vertices[1],
-                    p1.m_vertices[2],
-                });
-                plane1.m_polygon.push_back({
-                    p1.m_vertices[0],
-                    p1.m_vertices[2],
-                    p1.m_vertices[3],
-                });
-                plane1.m_orient_mat = dal::make_portal_mat(p1.m_plane, p2.m_plane);
-                plane1.m_clip_plane = p2.m_plane.coeff();
+
+                plane1.m_mesh = &handle_cast(p1.m_mesh).get();
+                plane1.m_model_mat = model_mat_1;
+                plane1.m_orient_mat = dal::make_portal_mat(plane_1, plane_2);
+                plane1.m_clip_plane = plane_2.coeff();
             }
 
             {
                 auto& plane1 = this->m_render_planes.emplace_back();
-                plane1.m_polygon.push_back({
-                    p2.m_vertices[0],
-                    p2.m_vertices[1],
-                    p2.m_vertices[2],
-                });
-                plane1.m_polygon.push_back({
-                    p2.m_vertices[0],
-                    p2.m_vertices[2],
-                    p2.m_vertices[3],
-                });
-                plane1.m_orient_mat = dal::make_portal_mat(p2.m_plane, p1.m_plane);
-                plane1.m_clip_plane = p1.m_plane.coeff();
+
+                plane1.m_mesh = &handle_cast(p2.m_mesh).get();
+                plane1.m_model_mat = model_mat_2;
+                plane1.m_orient_mat = dal::make_portal_mat(plane_2, plane_1);
+                plane1.m_clip_plane = plane_1.coeff();
             }
-        }*/
+        }
 
         // Horizontal water
         for (auto& water : scene.m_water_planes) {

@@ -21,6 +21,7 @@ add_library(libdal_util STATIC
     d_json_util.h           d_json_util.cpp
     d_geometry.h            d_geometry.cpp
     d_mesh_builder.h        d_mesh_builder.cpp
+    d_collider.h            d_collider.cpp
 )
 target_compile_features(libdal_util PUBLIC cxx_std_17)
 target_include_directories(libdal_util PUBLIC ./)

@@ -33,39 +33,27 @@ namespace {
 namespace dal::scene {
 
     std::optional<SegmentIntersectionInfo> PortalPlane::find_intersection(const Segment& seg) const {
-        const auto tri0 = dal::Triangle{ this->m_vertices[0], this->m_vertices[1], this->m_vertices[2] };
-        const auto tri1 = dal::Triangle{ this->m_vertices[0], this->m_vertices[2], this->m_vertices[3] };
+        return this->m_collider.find_intersection(seg);
+    }
 
-        {
-            const auto result = tri0.find_intersection(seg, true);
-            if (result)
-                return result;
-        }
-
-        {
-            const auto result = tri1.find_intersection(seg, true);
-            if (result)
-                return result;
-        }
-
-        return std::nullopt;
+    PlaneOriented PortalPlane::make_transformed_plane() const {
+        return this->m_plane.transform(this->m_actor->m_transform.make_mat4());
     }
 
     std::optional<glm::mat4> PortalPair::calc_mat_to_teleport(const dal::Segment& seg) const {
-        if (seg.length_sqr() != 0.f) {
-            const auto intersection = this->m_portals[0].find_intersection(seg);
-            if (intersection) {
-                const auto a = intersection->calc_intersecting_point(seg);
-                const auto portal_mat = dal::make_portal_mat(this->m_portals[1].m_plane, this->m_portals[0].m_plane);
-                return portal_mat;
-            }
-        }
+        const auto plane0 = this->m_portals[0].make_transformed_plane();
+        const auto plane1 = this->m_portals[1].make_transformed_plane();
 
         if (seg.length_sqr() != 0.f) {
-            const auto intersection = this->m_portals[1].find_intersection(seg);
-            if (intersection) {
+            if (const auto intersection = this->m_portals[0].find_intersection(seg); intersection.has_value()) {
                 const auto a = intersection->calc_intersecting_point(seg);
-                const auto portal_mat = dal::make_portal_mat(this->m_portals[0].m_plane, this->m_portals[1].m_plane);
+                const auto portal_mat = dal::make_portal_mat(plane1, plane0);
+                return portal_mat;
+            }
+
+            if (const auto intersection = this->m_portals[1].find_intersection(seg); intersection.has_value()) {
+                const auto a = intersection->calc_intersecting_point(seg);
+                const auto portal_mat = dal::make_portal_mat(plane0, plane1);
                 return portal_mat;
             }
         }
@@ -168,21 +156,24 @@ namespace dal {
         for (size_t i = 0; i < this->m_portal_pairs.size(); ++i) {
             auto& ppair = this->m_portal_pairs[i];
 
-            const auto translate1 = glm::translate(glm::mat4{1}, glm::vec3{-sin(t * 0.3) * 3 - 4.5, 1 + 2*i, 1});
-            const auto translate2 = glm::translate(glm::mat4{1}, glm::vec3{3, 1, -static_cast<int>(2 + 2*i)});
-            const auto rotation1 = glm::rotate(glm::mat4{1}, glm::radians<float>(t * 20), glm::vec3{0, 1, 0}) * glm::rotate(glm::mat4{1}, glm::radians<float>(-90), glm::vec3{1, 0, 0});
-            const auto rotation2 = glm::rotate(glm::mat4{1}, glm::radians<float>(cos(t) * 20), glm::vec3{0, 1, 0});
+            auto& t0 = ppair.m_portals[0].m_actor->m_transform;
+            auto& t1 = ppair.m_portals[1].m_actor->m_transform;
 
-            const auto m1 = translate1 * rotation1;
-            const auto m2 = translate2 * rotation2;
+            t0.m_pos = glm::vec3{-sin(t * 0.3) * 3 - 4.5, 1 + 2*i, 1};
+            t1.m_pos = glm::vec3{3, 1, -static_cast<int>(2 + 2*i)};
 
-            for (int i = 0; i < 4; ++i) {
-                ppair.m_portals[0].m_vertices[i] = m1 * TEMPLATE_VERTICES[i];
-                ppair.m_portals[1].m_vertices[i] = m2 * TEMPLATE_VERTICES[i];
-            }
+            t0.m_quat = glm::quat{};
+            t0.rotate(glm::radians<float>(t * 20), glm::vec3{0, 1, 0});
+            t0.rotate(glm::radians<float>(-90), glm::vec3{1, 0, 0});
 
-            ppair.m_portals[0].m_plane = ::make_plane_of_quad(ppair.m_portals[0].m_vertices);
-            ppair.m_portals[1].m_plane = ::make_plane_of_quad(ppair.m_portals[1].m_vertices);
+            t1.m_quat = glm::quat{};
+            t1.rotate(glm::radians<float>(cos(t) * 20), glm::vec3{0, 1, 0});
+
+            ppair.m_portals[0].m_actor->notify_transform_change();
+            ppair.m_portals[1].m_actor->notify_transform_change();
+
+            ppair.m_portals[0].m_collider.m_transformation = t0.make_mat4();
+            ppair.m_portals[1].m_collider.m_transformation = t1.make_mat4();
         }
 
         // Update member variables

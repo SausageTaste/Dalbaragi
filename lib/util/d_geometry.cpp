@@ -250,6 +250,14 @@ namespace dal {
 // Triangle
 namespace dal {
 
+    Triangle Triangle::transform(const glm::mat4& mat) const {
+        return Triangle{
+            mat * glm::vec4{ this->m_vertices[0], 1 },
+            mat * glm::vec4{ this->m_vertices[1], 1 },
+            mat * glm::vec4{ this->m_vertices[2], 1 }
+        };
+    }
+
     std::optional<SegmentIntersectionInfo> Triangle::find_intersection(const Segment& seg, const bool ignore_from_back) const {
         const auto plane = this->make_plane();
         const auto plane_col = plane.find_intersection(seg);

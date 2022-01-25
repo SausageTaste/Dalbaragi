@@ -2,7 +2,7 @@
 
 #include <entt/entt.hpp>
 
-#include "d_geometry.h"
+#include "d_collider.h"
 #include "d_render_cpnt.h"
 
 
@@ -24,10 +24,14 @@ namespace dal::cpnt {
 namespace dal::scene {
 
     struct PortalPlane {
-        std::array<glm::vec3, 4> m_vertices;
-        dal::PlaneOriented m_plane;
+        HMesh m_mesh;
+        HActor m_actor;
+        PlaneOriented m_plane;
+        TriangleSoup m_collider;
 
         std::optional<SegmentIntersectionInfo> find_intersection(const Segment& seg) const;
+
+        PlaneOriented make_transformed_plane() const;
     };
 
     struct PortalPair {
