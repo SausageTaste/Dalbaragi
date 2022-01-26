@@ -168,29 +168,28 @@ namespace {
                 return true;
             }
 
-            const auto unzipped = dal::parser::unzip_dmd(model_content->data(), model_content->size());
-            if (!unzipped) {
-                out_model = std::nullopt;
-                out_result_msg = "Failed to unzip dmd";
-                return true;
+            dal::parser::ModelParseResult parse_result;
+            if ("_asset" != this->m_respath.dir_list().front()) {
+                parse_result = dal::parser::parse_dmd(
+                    this->m_parsed_model,
+                    model_content->data(),
+                    model_content->size()
+                );
+            }
+            else {
+                parse_result = dal::parser::parse_verify_dmd(
+                    this->m_parsed_model,
+                    model_content->data(),
+                    model_content->size(),
+                    ::DAL_KEY_PUBLIC_ASSET,
+                    this->m_sign_mgr
+                );
             }
 
-            const auto parse_result = dal::parser::parse_dmd(this->m_parsed_model, unzipped->data(), unzipped->size());
             if (dal::parser::ModelParseResult::success != parse_result) {
                 out_model = std::nullopt;
                 out_result_msg = "Failed to parse dmd";
                 return true;
-            }
-
-            if ("_asset" == this->m_respath.dir_list().front()) {
-                const dal::crypto::PublicKeySignature::Signature signature{ this->m_parsed_model.m_signature_hex };
-                const auto result = this->m_sign_mgr.verify(unzipped->data(), unzipped->size() - this->m_parsed_model.m_signature_hex.size() - 1, ::DAL_KEY_PUBLIC_ASSET, signature);
-
-                if (!result) {
-                    out_model = std::nullopt;
-                    out_result_msg = "The asset is not signed with a proper key";
-                    return true;
-                }
             }
 
             this->out_model = dal::ModelStatic{};
@@ -318,26 +317,27 @@ namespace {
                 return true;
             }
 
-            const auto unzipped = dal::parser::unzip_dmd(model_content->data(), model_content->size());
-            if (!unzipped) {
-                out_model = std::nullopt;
-                return true;
+            dal::parser::ModelParseResult parse_result;
+            if ("_asset" != this->m_respath.dir_list().front()) {
+                parse_result = dal::parser::parse_dmd(
+                    this->m_parsed_model,
+                    model_content->data(),
+                    model_content->size()
+                );
+            }
+            else {
+                parse_result = dal::parser::parse_verify_dmd(
+                    this->m_parsed_model,
+                    model_content->data(),
+                    model_content->size(),
+                    ::DAL_KEY_PUBLIC_ASSET,
+                    this->m_sign_mgr
+                );
             }
 
-            const auto parse_result = dal::parser::parse_dmd(this->m_parsed_model, unzipped->data(), unzipped->size());
             if (dal::parser::ModelParseResult::success != parse_result) {
                 out_model = std::nullopt;
                 return true;
-            }
-
-            if ("_asset" == this->m_respath.dir_list().front()) {
-                const dal::crypto::PublicKeySignature::Signature signature{ this->m_parsed_model.m_signature_hex };
-                const auto result = this->m_sign_mgr.verify(unzipped->data(), unzipped->size() - this->m_parsed_model.m_signature_hex.size() - 1, ::DAL_KEY_PUBLIC_ASSET, signature);
-
-                if (!result) {
-                    out_model = std::nullopt;
-                    return true;
-                }
             }
 
             this->out_model = dal::ModelSkinned{};
