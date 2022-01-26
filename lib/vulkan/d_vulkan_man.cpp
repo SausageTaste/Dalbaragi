@@ -18,7 +18,7 @@
 namespace {
 
     constexpr float PROJ_NEAR = 0.1;
-    constexpr float PROJ_FAR = 50;
+    constexpr float PROJ_FAR = 1000;
 
 
     VkExtent2D calc_smaller_extent(const VkExtent2D& extent, const float scale) {
@@ -266,6 +266,8 @@ namespace dal {
     VulkanState::~VulkanState() {
         this->wait_idle();
 
+        this->m_vk_res_man.destroy();
+
         this->m_ref_planes.destroy(this->m_logi_device.get());
         this->m_shadow_maps.destroy(this->m_logi_device.get());
         this->m_desc_allocator.destroy(this->m_logi_device.get());
@@ -334,16 +336,16 @@ namespace dal {
         render_list.apply(scene, camera.view_pos());
 
         for (auto x : render_list.m_used_actors) {
-            auto& actor = dal::actor_cast(x);
+            auto& actor = dal::handle_cast(x);
 
-            if (actor.m_transform_update_needed > 0) {
-                --actor.m_transform_update_needed;
+            if (actor.get().m_transform_update_needed > 0) {
+                --actor.get().m_transform_update_needed;
                 actor.apply_transform(this->in_flight_index());
             }
         }
 
         for (auto x : render_list.m_used_skin_actors) {
-            auto& actor = dal::actor_cast(x);
+            auto& actor = dal::handle_cast(x);
 
             actor.apply_animation(this->in_flight_index());
             actor.apply_transform(this->in_flight_index());
@@ -782,148 +784,125 @@ namespace dal {
     }
 
     HTexture VulkanState::create_texture() {
-        return std::make_shared<TextureUnit>();
+        return this->m_vk_res_man.create_texture(
+            this->m_cmd_man.general_pool(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
+
+    HMesh VulkanState::create_mesh() {
+        return this->m_vk_res_man.create_mesh(
+            this->m_cmd_man.general_pool(),
+            this->m_phys_device.get(),
+            this->m_logi_device
+        );
     }
 
     HRenModel VulkanState::create_model() {
-        return std::make_shared<ModelRenderer>();
+        return this->m_vk_res_man.create_model(
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
     }
 
     HRenModelSkinned VulkanState::create_model_skinned() {
-        return std::make_shared<ModelSkinnedRenderer>();
+        return this->m_vk_res_man.create_model_skinned(
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
     }
 
     HActor VulkanState::create_actor() {
-        return std::make_shared<ActorVK>();
-    }
-
-    HActorSkinned VulkanState::create_actor_skinned() {
-        return std::make_shared<ActorSkinnedVK>();
-    }
-
-    bool VulkanState::init(ITexture& h_tex, const ImageData& img_data) {
-        auto& tex = reinterpret_cast<TextureUnit&>(h_tex);
-
-        return tex.init(
-            this->m_cmd_man.general_pool(),
-            img_data,
-            this->m_logi_device.queue_graphics(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
-    }
-
-    bool VulkanState::init(IRenModel& h_model, const dal::ModelStatic& model_data, const char* const fallback_namespace) {
-        auto& model = reinterpret_cast<ModelRenderer&>(h_model);
-
-        model.init(this->m_phys_device.get(), this->m_logi_device.get());
-
-        model.upload_meshes(
-            model_data,
-            this->m_cmd_man.general_pool(),
-            this->m_texture_man,
-            fallback_namespace,
-            this->m_desc_layout_man.layout_per_actor(),
-            this->m_desc_layout_man.layout_per_material(),
-            this->m_logi_device.queue_graphics(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
-
-        return true;
-    }
-
-    bool VulkanState::init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) {
-        auto& m = reinterpret_cast<ModelSkinnedRenderer&>(model);
-
-        m.init(this->m_phys_device.get(), this->m_logi_device.get());
-
-        m.upload_meshes(
-            model_data,
-            this->m_cmd_man.general_pool(),
-            this->m_texture_man,
-            fallback_namespace,
-            this->m_desc_layout_man.layout_per_actor(),
-            this->m_desc_layout_man.layout_per_material(),
-            this->m_logi_device.queue_graphics(),
-            this->m_phys_device.get(),
-            this->m_logi_device.get()
-        );
-
-        return true;
-    }
-
-    bool VulkanState::init(IActor& actor) {
-        auto& a = dal::actor_cast(actor);
-
-        a.init(
+        return this->m_vk_res_man.create_actor(
             this->m_desc_allocator,
             this->m_desc_layout_man.layout_per_actor(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
-
-        return true;
     }
 
-    bool VulkanState::init(IActorSkinned& actor) {
-        auto& a = dal::actor_cast(actor);
-
-        a.init(
+    HActorSkinned VulkanState::create_actor_skinned() {
+        return this->m_vk_res_man.create_actor_skinned(
             this->m_desc_allocator,
             this->m_desc_layout_man.layout_actor_animated(),
             this->m_phys_device.get(),
             this->m_logi_device.get()
         );
-
-        return true;
     }
 
-    bool VulkanState::prepare(IRenModel& h_model) {
-        auto& model = reinterpret_cast<ModelRenderer&>(h_model);
-
-        return model.fetch_one_resource(
-            this->m_desc_layout_man.layout_per_material(),
-            this->m_sampler_man.sampler_tex(),
+    void VulkanState::register_handle(HTexture& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_cmd_man.general_pool(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
             this->m_logi_device.get()
         );
     }
 
-    bool VulkanState::prepare(IRenModelSkineed& model) {
-        auto& m = reinterpret_cast<ModelSkinnedRenderer&>(model);
-
-        return m.fetch_one_resource(
-            this->m_desc_layout_man.layout_per_material(),
-            this->m_sampler_man.sampler_tex(),
-            this->m_logi_device.get()
-        );
-    }
-
-    // Mesh
-
-    HMesh VulkanState::create_mesh() {
-        return std::make_shared<MeshVK>();
-    }
-
-    bool VulkanState::init(IMesh& i_mesh, const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) {
-        auto& mesh = mesh_cast(i_mesh);
-
-        mesh.init(
-            vertices, indices,
+    void VulkanState::register_handle(HMesh& handle) {
+        handle_cast(handle).give_dependencies(
             this->m_cmd_man.general_pool(),
             this->m_phys_device.get(),
             this->m_logi_device
         );
-
-        return true;
     }
 
-    bool VulkanState::destroy(IMesh& i_mesh) {
-        auto& mesh = mesh_cast(i_mesh);
+    void VulkanState::register_handle(HRenModel& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
 
-        mesh.destroy(this->m_logi_device.get());
+    void VulkanState::register_handle(HRenModelSkinned& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_cmd_man.general_pool(),
+            this->m_texture_man,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_desc_layout_man.layout_per_material(),
+            this->m_sampler_man.sampler_tex(),
+            this->m_logi_device.queue_graphics(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
 
-        return true;
+    void VulkanState::register_handle(HActor& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_desc_allocator,
+            this->m_desc_layout_man.layout_per_actor(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
+    }
+
+    void VulkanState::register_handle(HActorSkinned& handle) {
+        handle_cast(handle).give_dependencies(
+            this->m_desc_allocator,
+            this->m_desc_layout_man.layout_actor_animated(),
+            this->m_phys_device.get(),
+            this->m_logi_device.get()
+        );
     }
 
     // Private

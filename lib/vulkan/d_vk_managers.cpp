@@ -26,6 +26,152 @@ namespace {
 }
 
 
+// VulkanResourceManager
+namespace dal {
+
+    VulkanResourceManager::~VulkanResourceManager() {
+        dalAssert(this->m_textures.empty());
+        dalAssert(this->m_models.empty());
+        dalAssert(this->m_skinned_models.empty());
+        dalAssert(this->m_actors.empty());
+        dalAssert(this->m_skinned_actors.empty());
+    }
+
+    void VulkanResourceManager::destroy() {
+        for (auto& x : this->m_textures) {
+            x->destroy();
+            x->clear_dependencies();
+        }
+        this->m_textures.clear();
+
+        for (auto& x : this->m_models) {
+            x->destroy();
+            x->clear_dependencies();
+        }
+        this->m_models.clear();
+
+        for (auto& x : this->m_skinned_models) {
+            x->destroy();
+        }
+        this->m_skinned_models.clear();
+
+        for (auto& x : this->m_actors) {
+            x->destroy();
+            x->clear_dependencies();
+        }
+        this->m_actors.clear();
+
+        for (auto& x : this->m_skinned_actors) {
+            x->destroy();
+            x->clear_dependencies();
+        }
+        this->m_skinned_actors.clear();
+    }
+
+    HTexture VulkanResourceManager::create_texture(
+        dal::CommandPool& cmd_pool,
+        const VkQueue graphics_queue,
+        const VkPhysicalDevice phys_device,
+        const VkDevice logi_device
+    ) {
+        this->m_textures.push_back(std::make_shared<TextureProxy>());
+        auto& tex = this->m_textures.back();
+        tex->give_dependencies(cmd_pool, graphics_queue, phys_device, logi_device);
+        return tex;
+    }
+
+    HMesh VulkanResourceManager::create_mesh(
+        dal::CommandPool& cmd_pool,
+        const VkPhysicalDevice phys_device,
+        const dal::LogicalDevice& logi_device
+    ) {
+        this->m_meshes.push_back(std::make_shared<MeshProxy>());
+        auto& mesh = this->m_meshes.back();
+        mesh->give_dependencies(cmd_pool, phys_device, logi_device);
+        return mesh;
+    }
+
+    HRenModel VulkanResourceManager::create_model(
+        CommandPool&                  cmd_pool,
+        ITextureManager&              tex_man,
+        DescLayout_PerActor const&    layout_per_actor,
+        DescLayout_PerMaterial const& layout_per_material,
+        SamplerTexture const&         sampler,
+        VkQueue                       graphics_queue,
+        VkPhysicalDevice              phys_device,
+        VkDevice                      logi_device
+    ) {
+        this->m_models.push_back(std::make_shared<ModelProxy>());
+        auto& model = this->m_models.back();
+
+        model->give_dependencies(
+            cmd_pool,
+            tex_man,
+            layout_per_actor,
+            layout_per_material,
+            sampler,
+            graphics_queue,
+            phys_device,
+            logi_device
+        );
+
+        return model;
+    }
+
+    HRenModelSkinned VulkanResourceManager::create_model_skinned(
+        CommandPool&                  cmd_pool,
+        ITextureManager&              tex_man,
+        DescLayout_PerActor const&    layout_per_actor,
+        DescLayout_PerMaterial const& layout_per_material,
+        SamplerTexture const&         sampler,
+        VkQueue                       graphics_queue,
+        VkPhysicalDevice              phys_device,
+        VkDevice                      logi_device
+    ) {
+        this->m_skinned_models.push_back(std::make_shared<ModelSkinnedProxy>());
+        auto& model = this->m_skinned_models.back();
+
+        model->give_dependencies(
+            cmd_pool,
+            tex_man,
+            layout_per_actor,
+            layout_per_material,
+            sampler,
+            graphics_queue,
+            phys_device,
+            logi_device
+        );
+
+        return model;
+    }
+
+    HActor VulkanResourceManager::create_actor(
+        DescAllocator& desc_allocator,
+        const DescLayout_PerActor& desc_layout,
+        VkPhysicalDevice phys_device,
+        VkDevice logi_device
+    ) {
+        this->m_actors.push_back(std::make_shared<ActorProxy>());
+        auto& actor = this->m_actors.back();
+        actor->give_dependencies(desc_allocator, desc_layout, phys_device, logi_device);
+        return actor;
+    }
+
+    HActorSkinned VulkanResourceManager::create_actor_skinned(
+        DescAllocator& desc_allocator,
+        const DescLayout_ActorAnimated& desc_layout,
+        VkPhysicalDevice phys_device,
+        VkDevice logi_device
+    ) {
+        this->m_skinned_actors.push_back(std::make_shared<ActorSkinnedProxy>());
+        auto& actor = this->m_skinned_actors.back();
+        actor->give_dependencies(desc_allocator, desc_layout, phys_device, logi_device);
+        return actor;
+    }
+
+}
+
+
 // RenderListVK
 namespace dal {
 
@@ -34,11 +180,12 @@ namespace dal {
             auto view = scene.m_registry.view<cpnt::ActorStatic>();
 
             view.each([this](cpnt::ActorStatic& actor) {
-                if (!actor.m_model->is_ready())
+                if (!actor.m_model->is_ready()) {
                     return;
+                }
 
                 auto& dst_opaque = this->get_render_pair(actor.m_model);
-                dst_opaque.m_actors.push_back(&actor_cast(actor.m_actor));
+                dst_opaque.m_actors.push_back(&handle_cast(actor.m_actor));
                 this->m_used_actors.emplace(actor.m_actor);
             });
         }
@@ -47,11 +194,12 @@ namespace dal {
             auto view = scene.m_registry.view<cpnt::ActorAnimated>();
 
             view.each([this](cpnt::ActorAnimated& actor) {
-                if (!actor.m_model->is_ready())
+                if (!actor.m_model->is_ready()) {
                     return;
+                }
 
                 auto& dst_opaque = this->get_render_pair(actor.m_model);
-                dst_opaque.m_actors.push_back(&actor_cast(actor.m_actor));
+                dst_opaque.m_actors.push_back(&handle_cast(actor.m_actor));
                 this->m_used_skin_actors.emplace(actor.m_actor);
             });
         }
@@ -98,109 +246,84 @@ namespace dal {
 
         // Mirrors
         for (auto& mirror : scene.m_mirrors) {
+            auto& mirror_mesh = handle_cast(mirror.m_mesh);
             auto& dst = this->m_render_planes.emplace_back();
 
-            dst.m_polygon.push_back({
-                mirror.m_vertices[0],
-                mirror.m_vertices[1],
-                mirror.m_vertices[2],
-            });
-            dst.m_polygon.push_back({
-                mirror.m_vertices[0],
-                mirror.m_vertices[2],
-                mirror.m_vertices[3],
-            });
-            dst.m_orient_mat = mirror.m_plane.make_reflect_mat();
-            dst.m_clip_plane = mirror.m_plane.coeff();
+            const auto model_mat = mirror.m_actor->m_transform.make_mat4();
+            const auto plane = mirror.m_plane.transform(model_mat);
+
+            dst.m_mesh = &mirror_mesh.get();
+            dst.m_model_mat = model_mat;
+            dst.m_orient_mat = plane.make_reflect_mat();
+            dst.m_clip_plane = plane.coeff();
         }
 
         // Portal pair
         for (auto& ppair : scene.m_portal_pairs) {
             auto& p1 = ppair.m_portals[0];
             auto& p2 = ppair.m_portals[1];
+            const auto model_mat_1 = p1.m_actor->m_transform.make_mat4();
+            const auto model_mat_2 = p2.m_actor->m_transform.make_mat4();
+            const auto plane_1 = p1.m_plane.transform(model_mat_1);
+            const auto plane_2 = p2.m_plane.transform(model_mat_2);
 
             {
                 auto& plane1 = this->m_render_planes.emplace_back();
-                plane1.m_polygon.push_back({
-                    p1.m_vertices[0],
-                    p1.m_vertices[1],
-                    p1.m_vertices[2],
-                });
-                plane1.m_polygon.push_back({
-                    p1.m_vertices[0],
-                    p1.m_vertices[2],
-                    p1.m_vertices[3],
-                });
-                plane1.m_orient_mat = dal::make_portal_mat(p1.m_plane, p2.m_plane);
-                plane1.m_clip_plane = p2.m_plane.coeff();
+
+                plane1.m_mesh = &handle_cast(p1.m_mesh).get();
+                plane1.m_model_mat = model_mat_1;
+                plane1.m_orient_mat = dal::make_portal_mat(plane_1, plane_2);
+                plane1.m_clip_plane = plane_2.coeff();
             }
 
             {
                 auto& plane1 = this->m_render_planes.emplace_back();
-                plane1.m_polygon.push_back({
-                    p2.m_vertices[0],
-                    p2.m_vertices[1],
-                    p2.m_vertices[2],
-                });
-                plane1.m_polygon.push_back({
-                    p2.m_vertices[0],
-                    p2.m_vertices[2],
-                    p2.m_vertices[3],
-                });
-                plane1.m_orient_mat = dal::make_portal_mat(p2.m_plane, p1.m_plane);
-                plane1.m_clip_plane = p1.m_plane.coeff();
+
+                plane1.m_mesh = &handle_cast(p2.m_mesh).get();
+                plane1.m_model_mat = model_mat_2;
+                plane1.m_orient_mat = dal::make_portal_mat(plane_2, plane_1);
+                plane1.m_clip_plane = plane_1.coeff();
             }
         }
 
         // Horizontal water
         for (auto& water : scene.m_water_planes) {
-            constexpr float x = 1000;
             auto& one = this->m_render_waters.emplace_back();
 
-            one.m_polygon.push_back(triangle_t{
-                glm::vec3{-x, water.m_height, -x},
-                glm::vec3{-x, water.m_height,  x},
-                glm::vec3{ x, water.m_height,  x},
-            });
-
-            one.m_polygon.push_back(triangle_t{
-                glm::vec3{-x, water.m_height, -x},
-                glm::vec3{ x, water.m_height,  x},
-                glm::vec3{ x, water.m_height, -x},
-            });
-
+            one.m_mesh = &handle_cast(water.m_mesh).get();
+            one.m_model_mat = glm::mat4{1};
             one.m_orient_mat = water.m_plane.make_reflect_mat();
             one.m_clip_plane = water.m_plane.coeff();
         }
     }
 
     RenderListVK::RenderPair_O_S& RenderListVK::get_render_pair(HRenModel& h_model) {
-        auto& model = dal::model_cast(h_model);
+        auto& model = dal::handle_cast(h_model);
 
         for (auto& x : this->m_static_models) {
-            if (x.m_model == &model) {
+            if (x.m_model == &model.get()) {
                 return x;
             }
         }
 
         this->m_used_models.emplace(h_model);
         auto& output = this->m_static_models.emplace_back();
-        output.m_model = &model;
+        output.m_model = &model.get();
         return output;
     }
 
     RenderListVK::RenderPair_O_A& RenderListVK::get_render_pair(HRenModelSkinned& h_model) {
-        auto& model = dal::model_cast(h_model);
+        auto& model = dal::handle_cast(h_model);
 
         for (auto& x : this->m_skinned_models) {
-            if (x.m_model == &model) {
+            if (x.m_model == &model.get()) {
                 return x;
             }
         }
 
         this->m_used_skin_models.emplace(h_model);
         auto& output = this->m_skinned_models.emplace_back();
-        output.m_model = &model;
+        output.m_model = &model.get();
         return output;
     }
 
@@ -380,7 +503,13 @@ namespace dal {
             vkCmdNextSubpass(cmd_buf, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline());
 
+            std::array<VkDeviceSize, 1> vert_offsets{ 0 };
+
             for (auto& render_plane : render_list.m_render_planes) {
+                std::array<VkBuffer, 1> vert_bufs{ render_plane.m_mesh->vertex_buffer() };
+                vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                vkCmdBindIndexBuffer(cmd_buf, render_plane.m_mesh->index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
                 vkCmdBindDescriptorSets(
                     cmd_buf,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -391,28 +520,26 @@ namespace dal {
                 );
 
                 U_PC_Mirror pc_data;
-                pc_data.m_model_mat = glm::mat4{1};
+                pc_data.m_model_mat = render_plane.m_model_mat;
                 pc_data.m_proj_view_mat = proj_view_mat;
 
-                for (auto& triangle : render_plane.m_polygon) {
-                    pc_data.m_vertices[0] = glm::vec4{triangle[0], 1};
-                    pc_data.m_vertices[1] = glm::vec4{triangle[1], 1};
-                    pc_data.m_vertices[2] = glm::vec4{triangle[2], 1};
+                vkCmdPushConstants(
+                    cmd_buf,
+                    pipeline.layout(),
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    0,
+                    sizeof(U_PC_Mirror),
+                    &pc_data
+                );
 
-                    vkCmdPushConstants(
-                        cmd_buf,
-                        pipeline.layout(),
-                        VK_SHADER_STAGE_VERTEX_BIT,
-                        0,
-                        sizeof(U_PC_Mirror),
-                        &pc_data
-                    );
-
-                    vkCmdDraw(cmd_buf, 3, 1, 0, 0);
-                }
+                vkCmdDrawIndexed(cmd_buf, render_plane.m_mesh->index_size(), 1, 0, 0, 0);
             }
 
             for (auto& render_plane : render_list.m_render_waters) {
+                std::array<VkBuffer, 1> vert_bufs{ render_plane.m_mesh->vertex_buffer() };
+                vkCmdBindVertexBuffers(cmd_buf, 0, vert_bufs.size(), vert_bufs.data(), vert_offsets.data());
+                vkCmdBindIndexBuffer(cmd_buf, render_plane.m_mesh->index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+
                 vkCmdBindDescriptorSets(
                     cmd_buf,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -426,22 +553,16 @@ namespace dal {
                 pc_data.m_model_mat = glm::mat4{1};
                 pc_data.m_proj_view_mat = proj_view_mat;
 
-                for (auto& triangle : render_plane.m_polygon) {
-                    pc_data.m_vertices[0] = glm::vec4{triangle[0], 1};
-                    pc_data.m_vertices[1] = glm::vec4{triangle[1], 1};
-                    pc_data.m_vertices[2] = glm::vec4{triangle[2], 1};
+                vkCmdPushConstants(
+                    cmd_buf,
+                    pipeline.layout(),
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    0,
+                    sizeof(U_PC_Mirror),
+                    &pc_data
+                );
 
-                    vkCmdPushConstants(
-                        cmd_buf,
-                        pipeline.layout(),
-                        VK_SHADER_STAGE_VERTEX_BIT,
-                        0,
-                        sizeof(U_PC_Mirror),
-                        &pc_data
-                    );
-
-                    vkCmdDraw(cmd_buf, 3, 1, 0, 0);
-                }
+                vkCmdDrawIndexed(cmd_buf, render_plane.m_mesh->index_size(), 1, 0, 0, 0);
             }
         }
 

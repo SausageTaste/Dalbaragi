@@ -153,15 +153,14 @@ namespace dal {
     };
 
 
-    class TextureUnit : public ITexture {
+    class TextureUnit {
 
     private:
         TextureImage m_image;
         ImageView m_view;
-        VkDevice m_logi_device = VK_NULL_HANDLE;
 
     public:
-        ~TextureUnit() override;
+        ~TextureUnit();
 
         bool init(
             dal::CommandPool& cmd_pool,
@@ -171,15 +170,67 @@ namespace dal {
             const VkDevice logi_device
         );
 
-        void destroy() override;
+        void destroy(const VkDevice logi_device);
 
-        bool is_ready() const override;
+        bool is_ready() const;
 
         auto& view() const {
             return this->m_view;
         }
 
     };
+
+
+    class TextureProxy : public ITexture {
+
+    private:
+        TextureUnit m_texture;
+
+        dal::CommandPool* m_cmd_pool       = nullptr;
+        VkQueue           m_graphics_queue = VK_NULL_HANDLE;
+        VkPhysicalDevice  m_phys_device    = VK_NULL_HANDLE;
+        VkDevice          m_logi_devic     = VK_NULL_HANDLE;
+
+    public:
+        void give_dependencies(
+            dal::CommandPool& cmd_pool,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
+
+        void clear_dependencies();
+
+        bool are_dependencies_ready() const;
+
+        auto raw_view() const {
+            return this->m_texture.view().get();
+        }
+
+        bool set_image(const dal::ImageData& img_data) override;
+
+        void destroy() override;
+
+        bool is_ready() const override;
+
+    };
+
+
+    inline auto& handle_cast(dal::ITexture& handle) {
+        return dynamic_cast<TextureProxy&>(handle);
+    }
+
+    inline auto& handle_cast(const dal::ITexture& handle) {
+        return dynamic_cast<const TextureProxy&>(handle);
+    }
+
+    inline auto& handle_cast(dal::HTexture& handle) {
+        return dynamic_cast<TextureProxy&>(*handle.get());
+    }
+
+    inline auto& handle_cast(const dal::HTexture& handle) {
+        return dynamic_cast<const TextureProxy&>(*handle.get());
+    }
 
 
     class SamplerManager {

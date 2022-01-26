@@ -210,6 +210,10 @@ namespace dal {
             return this->m_final_transforms;
         }
 
+        auto& transform_array() const {
+            return this->m_final_transforms;
+        }
+
         auto selected_anim_index() const {
             return this->m_selected_anim_index;
         }

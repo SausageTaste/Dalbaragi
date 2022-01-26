@@ -54,6 +54,7 @@ namespace {
         dal::ResPath m_respath;
 
         std::vector<uint8_t> m_file_data;
+        std::string m_result_msg;
         std::optional<dal::ImageData> out_image;
 
     private:
@@ -83,11 +84,15 @@ namespace {
     private:
         bool stage_0() {
             auto file = this->m_filesys.open(this->m_respath);
-            if (!file->is_ready())
+            if (!file->is_ready()) {
+                this->m_result_msg = fmt::format("Failed to open image file: {}", this->m_respath.make_str());
                 return true;
+            }
 
-            if (!file->read_stl<std::vector<uint8_t>>(this->m_file_data))
+            if (!file->read_stl<std::vector<uint8_t>>(this->m_file_data)) {
+                this->m_result_msg = fmt::format("Failed to read image file: {}", this->m_respath.make_str());
                 return true;
+            }
 
             this->m_stage = 1;
             return false;
@@ -95,6 +100,9 @@ namespace {
 
         bool stage_1() {
             this->out_image = dal::parse_image_stb(this->m_file_data.data(), this->m_file_data.size());
+            if (!this->out_image.has_value()) {
+                this->m_result_msg = fmt::format("Failed to parse image file: {}", this->m_respath.make_str());
+            }
 
             this->m_stage = 2;
             return true;
@@ -112,6 +120,7 @@ namespace {
 
         dal::parser::Model m_parsed_model;
         std::optional<dal::ModelStatic> out_model;
+        std::string out_result_msg;
 
     private:
         int m_stage = 0;
@@ -148,24 +157,28 @@ namespace {
             auto file = this->m_filesys.open(this->m_respath);
             if (!file->is_ready()) {
                 out_model = std::nullopt;
+                out_result_msg = "Failed to open file";
                 return true;
             }
 
             const auto model_content = file->read_stl<std::vector<uint8_t>>();
             if (!model_content.has_value()) {
                 out_model = std::nullopt;
+                out_result_msg = "Failed to load file contents";
                 return true;
             }
 
             const auto unzipped = dal::parser::unzip_dmd(model_content->data(), model_content->size());
             if (!unzipped) {
                 out_model = std::nullopt;
+                out_result_msg = "Failed to unzip dmd";
                 return true;
             }
 
             const auto parse_result = dal::parser::parse_dmd(this->m_parsed_model, unzipped->data(), unzipped->size());
             if (dal::parser::ModelParseResult::success != parse_result) {
                 out_model = std::nullopt;
+                out_result_msg = "Failed to parse dmd";
                 return true;
             }
 
@@ -175,6 +188,7 @@ namespace {
 
                 if (!result) {
                     out_model = std::nullopt;
+                    out_result_msg = "The asset is not signed with a proper key";
                     return true;
                 }
             }
@@ -464,33 +478,26 @@ namespace dal {
 
     }
 
-    void TextureBuilder::set_renderer(IRenderer& renderer) {
-        this->m_renderer = &renderer;
-    }
-
     void TextureBuilder::invalidate_renderer() {
         this->m_waiting_file.clear();
-
-        this->m_renderer = nullptr;
     }
 
     void TextureBuilder::notify_task_done(HTask& task) {
         auto& task_result = *reinterpret_cast<Task_LoadImage*>(task.get());
         const auto found = this->m_waiting_file.find(task_result.m_respath.make_str());
 
-        if (this->m_waiting_file.end() != found) {
-            this->m_renderer->init(
-                *found->second.get(),
-                task_result.out_image.value()
-            );
-
-            this->m_waiting_file.erase(found);
+        if (this->m_waiting_file.end() == found)
+            return;
+        if (!task_result.out_image.has_value()) {
+            dalError(task_result.m_result_msg);
+            return;
         }
+
+        found->second.get()->set_image(task_result.out_image.value());
+        this->m_waiting_file.erase(found);
     }
 
     void TextureBuilder::start(const ResPath& respath, HTexture h_texture, Filesystem& filesys, TaskManager& task_man) {
-        dalAssert(nullptr != this->m_renderer);
-
         auto task = std::make_shared<::Task_LoadImage>(respath, filesys);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_texture);
         //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
@@ -511,23 +518,18 @@ namespace dal {
                 iter = this->m_waiting_prepare.erase(iter);
             }
             else {
-                if (this->m_renderer->prepare(model))
+                if (model.prepare()) {
                     return;
+                }
 
                 ++iter;
             }
         }
     }
 
-    void ModelBuilder::set_renderer(IRenderer& renderer) {
-        this->m_renderer = &renderer;
-    }
-
     void ModelBuilder::invalidate_renderer() {
         this->m_waiting_file.clear();
         this->m_waiting_prepare.clear();
-
-        this->m_renderer = nullptr;
     }
 
     void ModelBuilder::notify_task_done(HTask& task) {
@@ -536,8 +538,8 @@ namespace dal {
 
         if (this->m_waiting_file.end() != found) {
             if (task_result.out_model.has_value()) {
-                this->m_renderer->init(
-                    *found->second.get(),
+                found->second->init_model(
+                    task_result.m_respath.make_str().c_str(),
                     task_result.out_model.value(),
                     task_result.m_respath.dir_list().front().c_str()
                 );
@@ -545,8 +547,12 @@ namespace dal {
                 this->m_waiting_prepare.push_back(found->second);
             }
             else {
-                const auto msg = fmt::format("Failed to load model: {}", task_result.m_respath.make_str());
-                dalError(msg.c_str());
+                const auto msg = fmt::format(
+                    "Failed to load model: {}, the reason is '{}'",
+                    task_result.m_respath.make_str(),
+                    task_result.out_result_msg
+                );
+                dalError(msg);
             }
 
             this->m_waiting_file.erase(found);
@@ -560,8 +566,6 @@ namespace dal {
         TaskManager& task_man,
         crypto::PublicKeySignature& sign_mgr
     ) {
-        dalAssert(nullptr != this->m_renderer);
-
         auto task = std::make_unique<::Task_LoadModel>(respath, filesys, sign_mgr);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
         //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
@@ -582,7 +586,7 @@ namespace dal {
                 iter = this->m_waiting_prepare.erase(iter);
             }
             else {
-                if (this->m_renderer->prepare(model))
+                if (model.prepare())
                     return;
 
                 ++iter;
@@ -590,15 +594,9 @@ namespace dal {
         }
     }
 
-    void ModelSkinnedBuilder::set_renderer(IRenderer& renderer) {
-        this->m_renderer = &renderer;
-    }
-
     void ModelSkinnedBuilder::invalidate_renderer() {
         this->m_waiting_file.clear();
         this->m_waiting_prepare.clear();
-
-        this->m_renderer = nullptr;
     }
 
     void ModelSkinnedBuilder::notify_task_done(HTask& task) {
@@ -607,8 +605,8 @@ namespace dal {
 
         if (this->m_waiting_file.end() != found) {
             if (task_result.out_model.has_value()) {
-                this->m_renderer->init(
-                    *found->second.get(),
+                found->second.get()->init_model(
+                    task_result.m_respath.make_str().c_str(),
                     task_result.out_model.value(),
                     task_result.m_respath.dir_list().front().c_str()
                 );
@@ -635,12 +633,21 @@ namespace dal {
         TaskManager& task_man,
         crypto::PublicKeySignature& sign_mgr
     ) {
-        dalAssert(nullptr != this->m_renderer);
-
         auto task = std::make_unique<::Task_LoadModelSkinned>(respath, filesys, sign_mgr);
         auto [iter, success] = this->m_waiting_file.emplace(respath.make_str(), h_model);
         //task_man.order_task(std::make_shared<::Task_SlowTest>(), nullptr);
         task_man.order_task(std::move(task), this);
+    }
+
+}
+
+
+// ResourceManager::MeshBuildData
+namespace dal {
+
+    void ResourceManager::MeshBuildData::init_gen_mesh() {
+        const auto mesh_builder = this->m_gen->generate_points();
+        this->m_mesh->init_mesh(mesh_builder.output_data().m_vertices, mesh_builder.output_data().m_indices);
     }
 
 }
@@ -658,28 +665,35 @@ namespace dal {
     void ResourceManager::set_renderer(IRenderer& renderer) {
         this->m_renderer = &renderer;
 
-        this->m_tex_builder.set_renderer(renderer);
-        this->m_model_builder.set_renderer(renderer);
-        this->m_model_skinned_builder.set_renderer(renderer);
-
         for (auto& [respath, texture] : this->m_textures) {
+            renderer.register_handle(texture);
             this->m_tex_builder.start(respath, texture, this->m_filesys, this->m_task_man);
         }
 
         for (auto& [respath, model] : this->m_models) {
+            renderer.register_handle(model);
             this->m_model_builder.start(respath, model, this->m_filesys, this->m_task_man, this->m_sign_mgr);
         }
 
         for (auto& [respath, model] : this->m_skinned_models) {
+            renderer.register_handle(model);
             this->m_model_skinned_builder.start(respath, model, this->m_filesys, this->m_task_man, this->m_sign_mgr);
         }
 
         for (auto& actor : this->m_actors) {
-            this->m_renderer->init(*actor.get());
+            renderer.register_handle(actor);
+            actor->init();
         }
 
-        for (auto& actor : this->m_skinned_actors)
-            this->m_renderer->init(*actor.get());
+        for (auto& actor : this->m_skinned_actors) {
+            renderer.register_handle(actor);
+            actor->init();
+        }
+
+        for (auto& mesh : this->m_meshes) {
+            renderer.register_handle(mesh.m_mesh);
+            mesh.init_gen_mesh();
+        }
 
         this->m_missing_tex = this->request_texture(::MISSING_TEX_PATH);
         this->m_missing_model = this->request_model(::MISSING_MODEL_PATH);
@@ -712,6 +726,9 @@ namespace dal {
 
         for (auto& x : this->m_skinned_actors)
             x->destroy();
+
+        for (auto& x : this->m_meshes)
+            x.m_mesh->destroy();
 
         this->m_renderer = nullptr;
     }
@@ -786,15 +803,31 @@ namespace dal {
     }
 
     HActor ResourceManager::request_actor() {
+        dalAssert(nullptr != this->m_renderer);
+
         this->m_actors.push_back(this->m_renderer->create_actor());
-        this->m_renderer->init(*this->m_actors.back().get());
+        this->m_actors.back()->init();
         return this->m_actors.back();
     }
 
     HActorSkinned ResourceManager::request_actor_skinned() {
+        dalAssert(nullptr != this->m_renderer);
+
         this->m_skinned_actors.push_back(this->m_renderer->create_actor_skinned());
-        this->m_renderer->init(*this->m_skinned_actors.back());
+        this->m_skinned_actors.back()->init();
         return this->m_skinned_actors.back();
+    }
+
+    HMesh ResourceManager::request_mesh(std::unique_ptr<IStaticMeshGenerator>&& mesh_gen) {
+        dalAssert(nullptr != this->m_renderer);
+
+        auto& mesh_data = this->m_meshes.emplace_back();
+        mesh_data.m_gen = std::move(mesh_gen);
+
+        mesh_data.m_mesh = this->m_renderer->create_mesh();
+        mesh_data.init_gen_mesh();
+
+        return mesh_data.m_mesh;
     }
 
 }

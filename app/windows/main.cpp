@@ -46,13 +46,23 @@ int main(int argc, char** argv) {
         window.get_vulkan_extensions()
     );
 
-    window.set_callback_fbuf_resize([&engine](int width, int height) { engine.on_screen_resize(width, height); });
+    window.set_callback_fbuf_resize([&engine, &window](int width, int height) {
+/*/
+        engine.destory_vulkan();
+        engine.init_vulkan(width, height, window.get_vk_surface_creator(), window.get_vulkan_extensions());
+/*/
+        engine.on_screen_resize(width, height);
+//*/
+    });
+
     window.set_callback_mouse_event([&engine](const dal::MouseEvent& e) {
         engine.input_manager().touch_manager().push_back(static_cast<dal::TouchEvent>(e));
     });
+
     window.set_callback_key_event([&engine](const dal::KeyEvent& e) {
         engine.input_manager().key_manager().push_back(e);
     });
+
     window.set_callback_gamepad_connection([&engine](const dal::GamepadConnectionEvent& e) {
         engine.input_manager().gamepad_manager().notify_connection_change(e);
     });

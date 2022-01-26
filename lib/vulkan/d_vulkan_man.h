@@ -23,6 +23,7 @@ namespace dal {
         ITextureManager& m_texture_man;
 
         RendererConfig m_config;
+        VulkanResourceManager m_vk_res_man;
 
         VkInstance m_instance = VK_NULL_HANDLE;
         VkSurfaceKHR m_surface = VK_NULL_HANDLE;
@@ -83,6 +84,8 @@ namespace dal {
 
         HTexture create_texture() override;
 
+        HMesh create_mesh() override;
+
         HRenModel create_model() override;
 
         HRenModelSkinned create_model_skinned() override;
@@ -91,27 +94,17 @@ namespace dal {
 
         HActorSkinned create_actor_skinned() override;
 
-        bool init(ITexture& tex, const ImageData& img_data) override;
+        void register_handle(HTexture& handle) override;
 
-        bool init(IRenModel& model, const dal::ModelStatic& model_data, const char* const fallback_namespace) override;
+        void register_handle(HMesh& handle) override;
 
-        bool init(IRenModelSkineed& model, const dal::ModelSkinned& model_data, const char* const fallback_namespace) override;
+        void register_handle(HRenModel& handle) override;
 
-        bool init(IActor& actor) override;
+        void register_handle(HRenModelSkinned& handle) override;
 
-        bool init(IActorSkinned& actor) override;
+        void register_handle(HActor& handle) override;
 
-        bool prepare(IRenModel& model) override;
-
-        bool prepare(IRenModelSkineed& model) override;
-
-        // Mesh
-
-        HMesh create_mesh() override;
-
-        bool init(IMesh& mesh, const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) override;
-
-        bool destroy(IMesh& mesh) override;
+        void register_handle(HActorSkinned& handle) override;
 
     private:
         // Returns true if recreation is still needed.

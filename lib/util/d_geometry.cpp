@@ -153,6 +153,12 @@ namespace dal {
         return this->m_normal;
     }
 
+    Plane Plane::transform(const glm::mat4& mat) const {
+        const auto new_normal = mat * glm::vec4{ this->normal(), 0 };
+        const auto new_point = mat * glm::vec4{ this->one_point(), 1 };
+        return Plane{new_point, new_normal};
+    }
+
     glm::vec3 Plane::one_point() const {
         const auto t = -this->calc_signed_dist(glm::vec3{0});
         return t * this->normal();
@@ -210,6 +216,14 @@ namespace dal {
 
     }
 
+    PlaneOriented PlaneOriented::transform(const glm::mat4& mat) const {
+        return PlaneOriented{
+            mat * glm::vec4{ this->m_center_point,  1},
+            mat * glm::vec4{ this->m_top_point,     1},
+            mat * glm::vec4{ this->m_winding_point, 1}
+        };
+    }
+
     glm::mat4 PlaneOriented::make_origin_align_mat() const {
         glm::mat4 output{1};
 
@@ -235,6 +249,14 @@ namespace dal {
 
 // Triangle
 namespace dal {
+
+    Triangle Triangle::transform(const glm::mat4& mat) const {
+        return Triangle{
+            mat * glm::vec4{ this->m_vertices[0], 1 },
+            mat * glm::vec4{ this->m_vertices[1], 1 },
+            mat * glm::vec4{ this->m_vertices[2], 1 }
+        };
+    }
 
     std::optional<SegmentIntersectionInfo> Triangle::find_intersection(const Segment& seg, const bool ignore_from_back) const {
         const auto plane = this->make_plane();

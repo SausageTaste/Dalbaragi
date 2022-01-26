@@ -93,6 +93,8 @@ namespace dal {
 
         const glm::vec3& normal() const;
 
+        Plane transform(const glm::mat4& mat) const;
+
         glm::vec3 one_point() const;
 
         float calc_signed_dist(const glm::vec3& p) const;
@@ -145,6 +147,8 @@ namespace dal {
             return this->plane().normal();
         }
 
+        PlaneOriented transform(const glm::mat4& mat) const;
+
         glm::mat4 make_origin_align_mat() const;
 
     };
@@ -162,6 +166,14 @@ namespace dal {
 
     public:
         Triangle() = default;
+
+        Triangle(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2) {
+            this->m_vertices[0] = p0;
+            this->m_vertices[1] = p1;
+            this->m_vertices[2] = p2;
+        }
+
+        Triangle transform(const glm::mat4& mat) const;
 
         Plane make_plane() const {
             return Plane{ this->m_vertices[0], this->m_vertices[1], this->m_vertices[2] };

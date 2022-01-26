@@ -15,6 +15,7 @@ Supported platforms are Windows, Linux and Android.
 * Download [LunarG Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) and install it
 * *CMake* is the only supported build system so please use it
 * *Git* is required for CMake to fetch dependencies automatically
+* *Python* must be installed
 
 ## For Windows
 

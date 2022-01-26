@@ -19,69 +19,71 @@ namespace dal {
     class PlanarReflectionManager;
 
 
-    inline auto& actor_cast(dal::IActor& actor) {
-        return dynamic_cast<dal::ActorVK&>(actor);
-    }
+    class VulkanResourceManager {
 
-    inline auto& actor_cast(const dal::IActor& actor) {
-        return dynamic_cast<const dal::ActorVK&>(actor);
-    }
+    private:
+        std::vector< std::shared_ptr<TextureProxy>         > m_textures;
+        std::vector< std::shared_ptr<MeshProxy>            > m_meshes;
+        std::vector< std::shared_ptr<ModelProxy>           > m_models;
+        std::vector< std::shared_ptr<ModelSkinnedProxy>    > m_skinned_models;
+        std::vector< std::shared_ptr<ActorProxy>           > m_actors;
+        std::vector< std::shared_ptr<ActorSkinnedProxy>    > m_skinned_actors;
 
-    inline auto& actor_cast(dal::HActor& actor) {
-        return dynamic_cast<dal::ActorVK&>(*actor.get());
-    }
+    public:
+        ~VulkanResourceManager();
 
-    inline auto& actor_cast(const dal::HActor& actor) {
-        return dynamic_cast<const dal::ActorVK&>(*actor.get());
-    }
+        void destroy();
 
-    inline auto& actor_cast(dal::IActorSkinned& actor) {
-        return dynamic_cast<dal::ActorSkinnedVK&>(actor);
-    }
+        HTexture create_texture(
+            dal::CommandPool& cmd_pool,
+            const VkQueue graphics_queue,
+            const VkPhysicalDevice phys_device,
+            const VkDevice logi_device
+        );
 
-    inline auto& actor_cast(const dal::IActorSkinned& actor) {
-        return dynamic_cast<const dal::ActorSkinnedVK&>(actor);
-    }
+        HMesh create_mesh(
+            dal::CommandPool& cmd_pool,
+            const VkPhysicalDevice phys_device,
+            const dal::LogicalDevice& logi_device
+        );
 
-    inline auto& actor_cast(dal::HActorSkinned& actor) {
-        return dynamic_cast<dal::ActorSkinnedVK&>(*actor.get());
-    }
+        HRenModel create_model(
+            CommandPool&                  cmd_pool,
+            ITextureManager&              tex_man,
+            DescLayout_PerActor const&    layout_per_actor,
+            DescLayout_PerMaterial const& layout_per_material,
+            SamplerTexture const&         sampler,
+            VkQueue                       graphics_queue,
+            VkPhysicalDevice              phys_device,
+            VkDevice                      logi_device
+        );
 
-    inline auto& actor_cast(const dal::HActorSkinned& actor) {
-        return dynamic_cast<const dal::ActorSkinnedVK&>(*actor.get());
-    }
+        HRenModelSkinned create_model_skinned(
+            CommandPool&                  cmd_pool,
+            ITextureManager&              tex_man,
+            DescLayout_PerActor const&    layout_per_actor,
+            DescLayout_PerMaterial const& layout_per_material,
+            SamplerTexture const&         sampler,
+            VkQueue                       graphics_queue,
+            VkPhysicalDevice              phys_device,
+            VkDevice                      logi_device
+        );
 
-    inline auto& model_cast(dal::IRenModel& model) {
-        return dynamic_cast<dal::ModelRenderer&>(model);
-    }
+        HActor create_actor(
+            DescAllocator& desc_allocator,
+            const DescLayout_PerActor& desc_layout,
+            VkPhysicalDevice phys_device,
+            VkDevice logi_device
+        );
 
-    inline auto& model_cast(const dal::IRenModel& model) {
-        return dynamic_cast<const dal::ModelRenderer&>(model);
-    }
+        HActorSkinned create_actor_skinned(
+            DescAllocator& desc_allocator,
+            const DescLayout_ActorAnimated& desc_layout,
+            VkPhysicalDevice phys_device,
+            VkDevice logi_device
+        );
 
-    inline auto& model_cast(dal::HRenModel& model) {
-        return dynamic_cast<dal::ModelRenderer&>(*model);
-    }
-
-    inline auto& model_cast(const dal::HRenModel& model) {
-        return dynamic_cast<const dal::ModelRenderer&>(*model);
-    }
-
-    inline auto& model_cast(dal::IRenModelSkineed& model) {
-        return dynamic_cast<dal::ModelSkinnedRenderer&>(model);
-    }
-
-    inline auto& model_cast(const dal::IRenModelSkineed& model) {
-        return dynamic_cast<const dal::ModelSkinnedRenderer&>(model);
-    }
-
-    inline auto& model_cast(dal::HRenModelSkinned& model) {
-        return dynamic_cast<dal::ModelSkinnedRenderer&>(*model);
-    }
-
-    inline auto& model_cast(const dal::HRenModelSkinned& model) {
-        return dynamic_cast<const dal::ModelSkinnedRenderer&>(*model);
-    }
+    };
 
 
     class RenderListVK {
@@ -107,10 +109,11 @@ namespace dal {
         using triangle_t = std::array<glm::vec3, 3>;
 
         struct PlaneRender {
-            std::vector<triangle_t> m_polygon;
+            glm::mat4 m_model_mat;
             glm::mat4 m_orient_mat;
             glm::vec4 m_clip_plane;
             size_t reflection_map_index;
+            MeshVK* m_mesh = nullptr;
         };
 
         struct WaterRender : public PlaneRender {
@@ -119,10 +122,10 @@ namespace dal {
 
         // O : Opaque, A : Alpha
         // S : Static, A : Animated
-        using RenderPair_O_S = RenderPairOpaqueVK<ModelRenderer,        ActorVK       >;
-        using RenderPair_O_A = RenderPairOpaqueVK<ModelSkinnedRenderer, ActorSkinnedVK>;
-        using RenderPair_A_S = RenderPairTranspVK<ActorVK       >;
-        using RenderPair_A_A = RenderPairTranspVK<ActorSkinnedVK>;
+        using RenderPair_O_S = RenderPairOpaqueVK<ModelRenderer,        ActorProxy       >;
+        using RenderPair_O_A = RenderPairOpaqueVK<ModelSkinnedRenderer, ActorSkinnedProxy>;
+        using RenderPair_A_S = RenderPairTranspVK<ActorProxy       >;
+        using RenderPair_A_A = RenderPairTranspVK<ActorSkinnedProxy>;
 
     public:
         std::unordered_set<dal::HRenModel> m_used_models;

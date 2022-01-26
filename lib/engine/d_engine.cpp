@@ -320,8 +320,15 @@ namespace dal {
         : m_sign_mgr(crypto::CONTEXT_PARSER)
         , m_res_man(this->m_task_man, *create_info.m_filesystem, this->m_sign_mgr)
     {
+        dalAssert(create_info.check_validity());
+        this->m_create_info = create_info;
+
         this->m_task_man.init(2);
-        this->init(create_info);
+        this->m_renderer = dal::create_renderer_null();
+
+        this->m_input_listeners.clear();
+        this->m_input_listeners.push_back(&g_touch_dpad); g_touch_dpad.reset();
+        this->m_input_listeners.push_back(&g_touch_view); g_touch_view.reset();
 
         // Load main config
         {
@@ -353,9 +360,12 @@ namespace dal {
         ::test(*this->m_create_info.m_filesystem);
 #endif
 
+        this->m_timer.check();
     }
 
     Engine::~Engine() {
+        this->destory_vulkan();
+
         if (auto file = this->m_create_info.m_filesystem->open_write(::MAIN_CONFIG_PATH); file->is_ready()) {
             const auto data = this->m_config.export_str();
             file->write(data.data(), data.size());
@@ -363,25 +373,6 @@ namespace dal {
 
         this->m_lua.clear_dependencies();
         this->m_task_man.destroy();
-        this->destroy();
-    }
-
-    void Engine::init(const EngineCreateInfo& create_info) {
-        this->destroy();
-        this->m_renderer = dal::create_renderer_null();
-
-        dalAssert(create_info.check_validity());
-        this->m_create_info = create_info;
-
-        this->m_input_listeners.clear();
-        this->m_input_listeners.push_back(&g_touch_dpad); g_touch_dpad.reset();
-        this->m_input_listeners.push_back(&g_touch_view); g_touch_view.reset();
-
-        this->m_timer.check();
-    }
-
-    void Engine::destroy() {
-        this->destory_vulkan();
     }
 
     void Engine::update() {
@@ -446,6 +437,12 @@ namespace dal {
         this->m_screen_width = win_width;
         this->m_screen_height = win_height;
 
+        if (0 == win_width || 0 == win_height) {
+            this->m_res_man.invalidate_renderer();
+            this->m_renderer = dal::create_renderer_null();
+            return;
+        }
+
         std::vector<const char*> extensions;
         for (const auto& x : extensions_str)
             extensions.push_back(x.c_str());
@@ -464,8 +461,97 @@ namespace dal {
 
         this->m_res_man.set_renderer(*this->m_renderer.get());
 
+        // This happens only once
         if (this->m_scene.m_registry.empty()) {
             this->m_lua.call_void_func("on_renderer_init");
+
+            // Create a mirror
+            {
+                auto& mirror = this->m_scene.m_mirrors.emplace_back();
+
+                mirror.m_mesh = this->m_res_man.request_mesh(std::make_unique<QuadMeshGenerator>(
+                    glm::vec3{-2,  1, 0},
+                    glm::vec3{-3, -1, 0},
+                    glm::vec3{ 3, -1, 0},
+                    glm::vec3{ 2,  1, 0}
+                ));
+
+                mirror.m_plane = Plane{
+                    glm::vec3{-1,  1, 0},
+                    glm::vec3{-1, -1, 0},
+                    glm::vec3{ 1, -1, 0}
+                };
+
+                mirror.m_actor = this->m_res_man.request_actor();
+                mirror.m_actor->m_transform.rotate(glm::radians<float>(90), glm::vec3{0, 1, 0});
+                mirror.m_actor->m_transform.m_pos = glm::vec3{-14, 1.2, 0};
+                mirror.m_actor->notify_transform_change();
+            }
+
+            // Create a portal pair
+            {
+                auto& portal_pair = this->m_scene.m_portal_pairs.emplace_back();
+
+                {
+                    auto& portal = portal_pair.m_portals[0];
+
+                    portal.m_mesh = this->m_res_man.request_mesh(std::make_unique<QuadMeshGenerator>(
+                        glm::vec3{-0.5,  1, 0},
+                        glm::vec3{-0.5, -1, 0},
+                        glm::vec3{ 0.5, -1, 0},
+                        glm::vec3{ 0.5,  1, 0}
+                    ));
+
+                    portal.m_plane = PlaneOriented{
+                        glm::vec3{ 0.5, -1, 0},
+                        glm::vec3{ 0.5,  1, 0},
+                        glm::vec3{-0.5,  1, 0}
+                    };
+
+                    portal.m_collider.emplace_back(Triangle{
+                        glm::vec3{-0.5,  1, 0},
+                        glm::vec3{-0.5, -1, 0},
+                        glm::vec3{ 0.5, -1, 0}
+                    });
+                    portal.m_collider.emplace_back(Triangle{
+                        glm::vec3{-0.5,  1, 0},
+                        glm::vec3{ 0.5, -1, 0},
+                        glm::vec3{ 0.5,  1, 0}
+                    });
+
+                    portal.m_actor = this->m_res_man.request_actor();
+                }
+
+                {
+                    auto& portal = portal_pair.m_portals[1];
+
+                    portal.m_mesh = portal_pair.m_portals[0].m_mesh;
+
+                    portal.m_plane = portal_pair.m_portals[0].m_plane;
+
+                    portal.m_collider = portal_pair.m_portals[0].m_collider;
+
+                    portal.m_actor = this->m_res_man.request_actor();
+                }
+            }
+
+            // Create a horizontal water plane
+            {
+                auto& water = this->m_scene.m_water_planes.emplace_back();
+
+                water.m_mesh = this->m_res_man.request_mesh(std::make_unique<QuadMeshGenerator>(
+                    glm::vec3{-5, 0, -5},
+                    glm::vec3{-5, 0,  5},
+                    glm::vec3{ 5, 0,  5},
+                    glm::vec3{ 5, 0, -5}
+                ));
+
+                water.m_plane = Plane{
+                    glm::vec3{-5, 0, -5},
+                    glm::vec3{-5, 0,  5},
+                    glm::vec3{ 5, 0,  5}
+                };
+            }
         }
     }
 

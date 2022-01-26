@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 #include <memory>
 #include <cstdlib>
@@ -48,6 +49,13 @@ namespace dal {
             const LogLevel level, const char* const str,
             const int line, const char* const func, const char* const file
         );
+
+        void put(
+            const LogLevel level, const std::string& str,
+            const int line, const char* const func, const char* const file
+        ) {
+            this->put(level, str.c_str(), line, func, file);
+        }
 
     };
 

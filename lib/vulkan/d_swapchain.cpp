@@ -296,6 +296,9 @@ namespace dal {
         const VkPhysicalDevice phys_device,
         const VkDevice logi_device
     ) {
+        if (0 == desired_width || 0 == desired_height)
+            return false;
+
         this->destroy_except_swapchain(logi_device);
 
         const SwapChainSupportDetails swapchain_support{ surface, phys_device };

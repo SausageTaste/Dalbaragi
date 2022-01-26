@@ -4,13 +4,10 @@
 #include <vector>
 #include <memory>
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-
 #include "d_actor.h"
 #include "d_animation.h"
+#include "d_model_data.h"
+#include "d_image_parser.h"
 
 
 // Lights
@@ -118,6 +115,8 @@ namespace dal {
     public:
         virtual ~ITexture() = default;
 
+        virtual bool set_image(const dal::ImageData& img_data) = 0;
+
         virtual void destroy() = 0;
 
         virtual bool is_ready() const = 0;
@@ -130,6 +129,10 @@ namespace dal {
     public:
         virtual ~IMesh() = default;
 
+        virtual bool init_mesh(const std::vector<VertexStatic>& vertices, const std::vector<uint32_t>& indices) = 0;
+
+        virtual void destroy() = 0;
+
         virtual bool is_ready() const = 0;
 
     };
@@ -139,6 +142,12 @@ namespace dal {
 
     public:
         virtual ~IRenModel() = default;
+
+        virtual const char* name() const = 0;
+
+        virtual bool init_model(const char* const name, const dal::ModelStatic& model_data, const char* const fallback_namespace) = 0;
+
+        virtual bool prepare() = 0;
 
         virtual void destroy() = 0;
 
@@ -151,6 +160,12 @@ namespace dal {
 
     public:
         virtual ~IRenModelSkineed() = default;
+
+        virtual const char* name() const = 0;
+
+        virtual bool init_model(const char* const name, const dal::ModelSkinned& model_data, const char* const fallback_namespace) = 0;
+
+        virtual bool prepare() = 0;
 
         virtual void destroy() = 0;
 
@@ -173,7 +188,11 @@ namespace dal {
     public:
         virtual ~IActor() = default;
 
+        virtual bool init() = 0;
+
         virtual void destroy() = 0;
+
+        virtual bool is_ready() const = 0;
 
         virtual void notify_transform_change() = 0;
 
@@ -183,13 +202,17 @@ namespace dal {
     class IActorSkinned {
 
     public:
-        Transform m_transform;
-        AnimationState m_anim_state;
+        dal::Transform m_transform;
+        dal::AnimationState m_anim_state;
 
     public:
         virtual ~IActorSkinned() = default;
 
+        virtual bool init() = 0;
+
         virtual void destroy() = 0;
+
+        virtual bool is_ready() const = 0;
 
         virtual void notify_transform_change() = 0;
 

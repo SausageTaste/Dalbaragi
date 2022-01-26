@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <unordered_map>
 
 #include <daltools/crypto.h>
@@ -7,6 +8,7 @@
 #include "d_renderer.h"
 #include "d_filesystem.h"
 #include "d_task_thread.h"
+#include "d_mesh_builder.h"
 
 
 namespace dal {
@@ -16,12 +18,8 @@ namespace dal {
     private:
         std::unordered_map<std::string, HTexture> m_waiting_file;
 
-        IRenderer* m_renderer = nullptr;
-
     public:
         void update();
-
-        void set_renderer(IRenderer& renderer);
 
         void invalidate_renderer();
 
@@ -38,12 +36,8 @@ namespace dal {
         std::unordered_map<std::string, HRenModel> m_waiting_file;
         std::vector<HRenModel> m_waiting_prepare;
 
-        IRenderer* m_renderer = nullptr;
-
     public:
         void update();
-
-        void set_renderer(IRenderer& renderer);
 
         void invalidate_renderer();
 
@@ -66,12 +60,8 @@ namespace dal {
         std::unordered_map<std::string, HRenModelSkinned> m_waiting_file;
         std::vector<HRenModelSkinned> m_waiting_prepare;
 
-        IRenderer* m_renderer = nullptr;
-
     public:
         void update();
-
-        void set_renderer(IRenderer& renderer);
 
         void invalidate_renderer();
 
@@ -91,11 +81,20 @@ namespace dal {
     class ResourceManager : public ITextureManager {
 
     private:
+        struct MeshBuildData {
+            HMesh m_mesh;
+            std::unique_ptr<IStaticMeshGenerator> m_gen;
+
+            void init_gen_mesh();
+        };
+
+    private:
         std::unordered_map<std::string, HTexture> m_textures;
         std::unordered_map<std::string, HRenModel> m_models;
         std::unordered_map<std::string, HRenModelSkinned> m_skinned_models;
         std::vector<HActor> m_actors;
         std::vector<HActorSkinned> m_skinned_actors;
+        std::vector<MeshBuildData> m_meshes;
 
         HTexture m_missing_tex;
         HRenModel m_missing_model;
@@ -135,6 +134,8 @@ namespace dal {
         HActor request_actor();
 
         HActorSkinned request_actor_skinned();
+
+        HMesh request_mesh(std::unique_ptr<IStaticMeshGenerator>&& mesh_gen);
 
     };
 
