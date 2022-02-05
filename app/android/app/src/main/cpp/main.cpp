@@ -4,10 +4,10 @@
 #include <fmt/format.h>
 #include <android/log.h>
 
+#include <daltools/util.h>
 #include <d_logger.h>
 #include <d_vulkan_header.h>
 #include <d_engine.h>
-#include <d_timer.h>
 
 #include "filesys_android.h"
 
