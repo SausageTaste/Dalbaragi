@@ -8,7 +8,8 @@
 
 #include <fmt/format.h>
 
-#include "d_timer.h"
+#include <daltools/util.h>
+
 #include "d_logger.h"
 #include "d_defines.h"
 #include "d_vert_data.h"

@@ -13,8 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <daltools/struct.h>
-
-#include "d_timer.h"
+#include <daltools/util.h>
 
 
 namespace dal {

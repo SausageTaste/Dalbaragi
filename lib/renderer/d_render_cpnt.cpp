@@ -4,8 +4,9 @@
 
 #include <fmt/format.h>
 
+#include <daltools/util.h>
+
 #include "d_logger.h"
-#include "d_timer.h"
 
 
 namespace {

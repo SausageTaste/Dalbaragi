@@ -6,7 +6,8 @@
 #include <GLFW/glfw3.h>
 #include <fmt/format.h>
 
-#include "d_timer.h"
+#include <daltools/util.h>
+
 #include "d_logger.h"
 #include "d_defines.h"
 

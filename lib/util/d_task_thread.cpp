@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include "d_timer.h"
+#include <daltools/util.h>
 
 
 // IPriorityTask

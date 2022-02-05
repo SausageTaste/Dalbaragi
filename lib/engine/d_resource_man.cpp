@@ -4,8 +4,8 @@
 
 #include <daltools/model_parser.h>
 #include <daltools/modifier.h>
+#include <daltools/util.h>
 
-#include "d_timer.h"
 #include "d_logger.h"
 #include "d_image_parser.h"
 

@@ -11,10 +11,11 @@ extern "C" {
 #include <lualib.h>
 }
 
+#include <daltools/util.h>
+
 #include "d_logger.h"
 #include "d_scene.h"
 #include "d_resource_man.h"
-#include "d_timer.h"
 
 
 // Dependencies

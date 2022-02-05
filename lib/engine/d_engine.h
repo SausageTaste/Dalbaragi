@@ -2,9 +2,10 @@
 
 #include <mutex>
 
+#include <daltools/util.h>
+
 #include "d_resource_man.h"
 #include "d_inputs.h"
-#include "d_timer.h"
 #include "d_input_consumer.h"
 #include "d_scene.h"
 #include "d_script_engine.h"
