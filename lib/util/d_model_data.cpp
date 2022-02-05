@@ -28,7 +28,7 @@ namespace dal {
             4, 5, 6, 4, 6, 7,
         };
 
-        for (int i = 0; i < intermediate_data.m_indices.size() / 3; ++i) {
+        for (size_t i = 0; i < intermediate_data.m_indices.size() / 3; ++i) {
             const auto i0 = intermediate_data.m_indices.at(3 * i + 0);
             const auto i1 = intermediate_data.m_indices.at(3 * i + 1);
             const auto i2 = intermediate_data.m_indices.at(3 * i + 2);

@@ -242,7 +242,7 @@ namespace dal {
         Animation output{ this->name(), this->tick_per_sec(), this->duration_in_tick() };
         output.m_joints.resize(skeleton.size());
 
-        for (size_t i = 0; i < skeleton.size(); ++i) {
+        for (dal::jointID_t i = 0; i < skeleton.size(); ++i) {
             const auto src_joint = this->find_by_name(skeleton.at(i).name());
             if (nullptr != src_joint) {
                 output.m_joints[i] = *src_joint;
