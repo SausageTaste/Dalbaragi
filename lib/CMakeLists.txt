@@ -5,6 +5,9 @@ include(FetchContent)
 set(extern_dir ./../extern)
 
 
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+
+
 # Define external libraries
 #-------------------------------------------------------------------------------
 
