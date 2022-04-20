@@ -14,7 +14,7 @@ layout(push_constant) uniform PushConstant {
 } u_pc;
 
 layout(set = 0, binding = 1) uniform U_AnimTransform {
-    mat4 m_transforms[128];
+    mat4 m_transforms[256];
 } u_anim_transform;
 
 

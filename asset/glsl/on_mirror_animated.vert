@@ -18,7 +18,7 @@ layout(set = 1, binding = 0) uniform U_PerActor {
 } u_actor;
 
 layout(set = 1, binding = 1) uniform U_AnimTransform {
-    mat4 m_transforms[128];
+    mat4 m_transforms[256];
 } u_anim_transform;
 
 

@@ -11,7 +11,7 @@ namespace dal {
     constexpr int MAX_PLIGHT_COUNT = 3;
     constexpr int MAX_SLIGHT_COUNT = 3;
 
-    constexpr int MAX_JOINT_COUNT = 128;
+    constexpr int MAX_JOINT_COUNT = 256;
 
     const char* const FOLDER_NAME_ASSET = "asset";
     const char* const FOLDER_NAME_USERDATA = "userdata";
