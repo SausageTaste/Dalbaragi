@@ -160,11 +160,11 @@ namespace dal {
     // Private
 
     bool JointAnim::has_key_frames() const {
-        return (this->m_data.m_translates.size() + this->m_data.m_rotations.size() + this->m_data.m_scales.size()) != 0;
+        return (this->m_data.m_positions.size() + this->m_data.m_rotations.size() + this->m_data.m_scales.size()) != 0;
     }
 
     glm::vec3 JointAnim::interpolate_translate(const float anim_tick) const {
-        return this->m_data.m_translates.empty() ? glm::vec3{0} : ::make_interp_value(anim_tick, this->m_data.m_translates);
+        return this->m_data.m_positions.empty() ? glm::vec3{0} : ::make_interp_value(anim_tick, this->m_data.m_positions);
     }
 
     glm::quat JointAnim::interpolate_rotation(const float anim_tick) const {
@@ -200,9 +200,6 @@ namespace dal {
         TransformArray& trans_array,
         const jointModifierRegistry_t& modifiers
     ) const {
-        static const auto SPACE_ANIM_TO_MODEL = glm::rotate(glm::mat4{ 1.f }, glm::radians(-90.f), glm::vec3{ 1.f, 0.f, 0.f });
-        static const auto SPACE_MODEL_TO_ANIM = glm::inverse(SPACE_ANIM_TO_MODEL);
-
         const auto num_joints = interf.size();
         dalAssert(num_joints == this->m_joints.size());
 
@@ -219,14 +216,12 @@ namespace dal {
 
         for (int i = 0; i < num_joints; ++i) {
             dal::jointID_t cur_jid = i;
-            glm::mat4 total_trans = interf.at(i).offset_inv();
+            trans_array.at(i) = interf.at(i).offset_inv();
 
             while (-1 != cur_jid) {
-                total_trans = interf.at(cur_jid).to_parent_mat() * joint_transforms[cur_jid] * total_trans;
+                trans_array.at(i) = interf.at(cur_jid).to_parent_mat() * joint_transforms[cur_jid] * trans_array.at(i);
                 cur_jid = interf.at(cur_jid).parent_index();
             }
-
-            trans_array.at(i) = SPACE_ANIM_TO_MODEL * total_trans * SPACE_MODEL_TO_ANIM;
         }
 
         return;

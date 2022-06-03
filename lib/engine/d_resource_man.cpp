@@ -43,7 +43,7 @@ namespace {
         dst.m_roughness = src.m_roughness;
         dst.m_metallic = src.m_metallic;
         dst.m_albedo_map = src.m_albedo_map;
-        dst.m_alpha_blending = src.alpha_blend;
+        dst.m_alpha_blending = src.m_transparency;
     }
 
 
@@ -402,7 +402,7 @@ namespace {
                     dalWarn(fmt::format("Joint count {} is bigger than limit {}", src_anim.m_joints.size(), dal::MAX_JOINT_COUNT).c_str());
                 }
 
-                auto& dst_anim = this->out_model->m_animations.emplace_back(src_anim.m_name, src_anim.m_ticks_par_sec, src_anim.m_duration_tick);
+                auto& dst_anim = this->out_model->m_animations.emplace_back(src_anim.m_name, src_anim.m_ticks_per_sec, src_anim.calc_duration_in_ticks());
                 for (auto& out_joint : src_anim.m_joints) {
                     dst_anim.new_joint().m_data = out_joint;
                 }
