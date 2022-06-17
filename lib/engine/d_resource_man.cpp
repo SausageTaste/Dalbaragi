@@ -5,6 +5,7 @@
 #include <daltools/model_parser.h>
 #include <daltools/modifier.h>
 #include <daltools/util.h>
+#include <daltools/crypto.h>
 
 #include "d_logger.h"
 #include "d_image_parser.h"
@@ -15,7 +16,21 @@ namespace {
     const char* const MISSING_TEX_PATH = "_asset/image/missing_tex.png";
     const char* const MISSING_MODEL_PATH = "_asset/model/missing_model.dmd";
 
-    const dal::crypto::PublicKeySignature::PublicKey DAL_KEY_PUBLIC_ASSET{"99b50a1d0c13a3b1ab0442e33d3107f99d9f61567121666144903e4cef061b2b"};
+
+    auto get_asset_public_key() {
+        const std::string DAL_KEY_PUBLIC_ASSET{
+            "mAAAAAAAAAB4nHPxdo1kZGBgkADiBCCuAGIFIA4u"
+            "zUvPzcxTCM/PZyjPzy+2sLC0dEjPTczM0UvOz2UI"
+            "ycgsVshOrVQoz8zJUUhKVSgtTk1RSMsvUkgsLk4t"
+            "KVYAanVJzElKLEpMz1RwzUvPzEtlAAFGvRWSwRes"
+            "GPbLzrf2l1PutFtleM/ifr/z9+VpFr84ZRivaT9g"
+            "k3T5mA0AYQcvfQ=="
+        };
+
+        return dal::crypto::parse_key_store<dal::crypto::PublicKeySignature::PublicKey>(DAL_KEY_PUBLIC_ASSET, "").first;
+    }
+
+    const auto ASSET_PUBLIC_KEY = ::get_asset_public_key();
 
 
     template <typename _VertType>
@@ -181,7 +196,7 @@ namespace {
                     this->m_parsed_model,
                     model_content->data(),
                     model_content->size(),
-                    ::DAL_KEY_PUBLIC_ASSET,
+                    ::ASSET_PUBLIC_KEY,
                     this->m_sign_mgr
                 );
             }
@@ -330,7 +345,7 @@ namespace {
                     this->m_parsed_model,
                     model_content->data(),
                     model_content->size(),
-                    ::DAL_KEY_PUBLIC_ASSET,
+                    ::ASSET_PUBLIC_KEY,
                     this->m_sign_mgr
                 );
             }
