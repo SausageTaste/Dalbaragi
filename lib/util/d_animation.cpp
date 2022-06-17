@@ -224,6 +224,10 @@ namespace dal {
             }
         }
 
+        for (auto& x : trans_array) {
+            x = interf.m_root_mat * x;
+        }
+
         return;
     }
 

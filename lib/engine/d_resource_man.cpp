@@ -428,6 +428,8 @@ namespace {
         }
 
         bool stage_4() {
+            this->out_model->m_skeleton.m_root_mat = this->m_parsed_model.m_skeleton.m_root_transform;
+
             for (auto& src_joint : this->m_parsed_model.m_skeleton.m_joints) {
                 const auto jid = this->out_model->m_skeleton.get_or_make_index_of(src_joint.m_name);
                 auto& dst_joint = this->out_model->m_skeleton.at(jid);

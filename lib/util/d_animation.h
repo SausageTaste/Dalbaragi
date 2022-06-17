@@ -78,6 +78,9 @@ namespace dal {
 
     class SkeletonInterface {
 
+    public:
+        glm::mat4 m_root_mat{1};
+
     private:
         std::map<std::string, jointID_t> m_name_joint_map;
         std::vector<JointSkel> m_joints;
