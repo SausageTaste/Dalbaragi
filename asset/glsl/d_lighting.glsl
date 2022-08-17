@@ -155,6 +155,22 @@ vec3 _fresnel_Schlick(const float cosTheta, const vec3 F0) {
     return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
 }
 
+float _sqr(const float x) {
+    return x * x;
+}
+
+
+// https://lisyarus.github.io/blog/graphics/2022/07/30/point-light-attenuation.html
+float _calc_attenuation(const float frag_distance, const float max_light_dist) {
+    const float s = frag_distance / max_light_dist;
+
+    if (s > 1.0)
+        return 0.0;
+
+    const float ss = _sqr(s);
+    return _sqr(1.0 - ss) / (1.0 + ss * 1.0);
+}
+
 
 vec3 calc_pbr_illumination(
     const float roughness,
@@ -171,7 +187,7 @@ vec3 calc_pbr_illumination(
     const vec3 L = frag_to_light_direc;
     const vec3 H = normalize(view_direc + L);
     const float dist = light_distance;
-    const float attenuation = 1.0 / (dist * dist);
+    const float attenuation = _calc_attenuation(dist, 15);
     const vec3 radiance = light_color * attenuation;
 
     // Cook-Torrance BRDF
