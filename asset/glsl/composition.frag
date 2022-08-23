@@ -217,12 +217,7 @@ vec3 calculate_dlight_scattering(
 
     // if the ray did not hit the atmosphere, return a black color
     if (ray_length.x > ray_length.y) return scene_color;
-    // prevent the mie glow from appearing if there's an object in front of the camera
-#ifdef DAL_VOLUMETRIC_ATMOS
-    const bool allow_mie = true;
-#else
-    const bool allow_mie = max_dist > ray_length.y;
-#endif
+
     // make sure the ray is no longer than allowed
     ray_length.y = min(ray_length.y, max_dist);
     ray_length.x = max(ray_length.x, 0.0);
@@ -252,7 +247,13 @@ vec3 calculate_dlight_scattering(
     const float mumu = mu * mu;
     const float gg = g * g;
     const float phase_ray = 3.0 / (16.0 * DAL_PI) * (1.0 + mumu);
-    const float phase_mie = allow_mie ? 3.0 / (8.0 * DAL_PI) * ((1.0 - gg) * (mumu + 1.0)) / (pow(1.0 + gg - 2.0 * mu * g, 1.5) * (2.0 + gg)) : 0.0;
+
+    // prevent the mie glow from appearing if there's an object in front of the camera
+#ifdef DAL_VOLUMETRIC_ATMOS
+    const float phase_mie = 3.0 / (8.0 * DAL_PI) * ((1.0 - gg) * (mumu + 1.0)) / (pow(1.0 + gg - 2.0 * mu * g, 1.5) * (2.0 + gg));
+#else
+    const float phase_mie = (max_dist > ray_length.y) ? 3.0 / (8.0 * DAL_PI) * ((1.0 - gg) * (mumu + 1.0)) / (pow(1.0 + gg - 2.0 * mu * g, 1.5) * (2.0 + gg)) : 0.0;
+#endif
 
 #ifdef DAL_ATMOS_DITHERING
     const float dither_value = get_dither_value();
