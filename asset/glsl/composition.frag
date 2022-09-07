@@ -164,17 +164,17 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
 vec4 calc_ray_sphere_factors(const vec3 ray_start, const vec3 ray_direction, const vec3 sphere_center, const float sphere_radius) {
     const vec3 rel_ray_start = ray_start - sphere_center;
     const float a = dot(ray_direction, ray_direction);
-    const float b = 2.0 * dot(ray_direction, rel_ray_start);
+    const float b = dot(ray_direction, rel_ray_start);
     const float c = dot(rel_ray_start, rel_ray_start) - (sphere_radius * sphere_radius);
-    const float d = (b * b) - 4.0 * a * c;
+    const float d = (b * b) - a * c;
     return vec4(a, b, c, d);
 }
 
 
 vec2 calc_ray_sphere_length_pair(const vec4 factors, const float max_distance) {
     return vec2(
-        max((-factors.y - sqrt(factors.w)) / (2.0 * factors.x), 0.0),
-        min((-factors.y + sqrt(factors.w)) / (2.0 * factors.x), max_distance)
+        max((-factors.y - sqrt(factors.w)) / (factors.x), 0.0),
+        min((-factors.y + sqrt(factors.w)) / (factors.x), max_distance)
     );
 }
 
