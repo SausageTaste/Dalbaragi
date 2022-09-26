@@ -161,6 +161,24 @@ vec3 calc_scattering(const vec3 frag_pos, const float frag_depth, const vec3 vie
 }
 
 
+vec4 calc_ray_sphere_factors(const vec3 ray_start, const vec3 ray_direction, const vec3 sphere_center, const float sphere_radius) {
+    const vec3 rel_ray_start = ray_start - sphere_center;
+    const float a = dot(ray_direction, ray_direction);
+    const float b = dot(ray_direction, rel_ray_start);
+    const float c = dot(rel_ray_start, rel_ray_start) - (sphere_radius * sphere_radius);
+    const float d = (b * b) - a * c;
+    return vec4(a, b, c, d);
+}
+
+
+vec2 calc_ray_sphere_length_pair(const vec4 factors, const float max_distance) {
+    return vec2(
+        max((-factors.y - sqrt(factors.w)) / (factors.x), 0.0),
+        min((-factors.y + sqrt(factors.w)) / (factors.x), max_distance)
+    );
+}
+
+
 vec3 calculate_dlight_scattering(
     const vec3 view_pos,            // the view position (the camera position)
     const vec3 dir,                 // the direction of the ray (the camera vector), must be normalized
@@ -189,28 +207,17 @@ vec3 calculate_dlight_scattering(
 
     // calculate the start and end position of the ray, as a distance along the ray
     // we do this with a ray sphere intersect
-    float a = dot(dir, dir);
-    float b = 2.0 * dot(dir, start);
-    float c = dot(start, start) - (atmo_radius * atmo_radius);
-    float d = (b * b) - 4.0 * a * c;
+    vec4 abcd1 = calc_ray_sphere_factors(view_pos, dir, planet_position, atmo_radius);
 
     // stop early if there is no intersect
-    if (d < 0.0) return scene_color;
+    if (abcd1[3] < 0.0) return scene_color;
 
     // calculate the ray length
-    vec2 ray_length = vec2(
-        max((-b - sqrt(d)) / (2.0 * a), 0.0),
-        min((-b + sqrt(d)) / (2.0 * a), max_dist)
-    );
+    vec2 ray_length = calc_ray_sphere_length_pair(abcd1, max_dist);
 
     // if the ray did not hit the atmosphere, return a black color
     if (ray_length.x > ray_length.y) return scene_color;
-    // prevent the mie glow from appearing if there's an object in front of the camera
-#ifdef DAL_VOLUMETRIC_ATMOS
-    const bool allow_mie = true;
-#else
-    const bool allow_mie = max_dist > ray_length.y;
-#endif
+
     // make sure the ray is no longer than allowed
     ray_length.y = min(ray_length.y, max_dist);
     ray_length.x = max(ray_length.x, 0.0);
@@ -240,7 +247,13 @@ vec3 calculate_dlight_scattering(
     const float mumu = mu * mu;
     const float gg = g * g;
     const float phase_ray = 3.0 / (16.0 * DAL_PI) * (1.0 + mumu);
-    const float phase_mie = allow_mie ? 3.0 / (8.0 * DAL_PI) * ((1.0 - gg) * (mumu + 1.0)) / (pow(1.0 + gg - 2.0 * mu * g, 1.5) * (2.0 + gg)) : 0.0;
+
+    // prevent the mie glow from appearing if there's an object in front of the camera
+#ifdef DAL_VOLUMETRIC_ATMOS
+    const float phase_mie = 3.0 / (8.0 * DAL_PI) * ((1.0 - gg) * (mumu + 1.0)) / (pow(1.0 + gg - 2.0 * mu * g, 1.5) * (2.0 + gg));
+#else
+    const float phase_mie = (max_dist > ray_length.y) ? 3.0 / (8.0 * DAL_PI) * ((1.0 - gg) * (mumu + 1.0)) / (pow(1.0 + gg - 2.0 * mu * g, 1.5) * (2.0 + gg)) : 0.0;
+#endif
 
 #ifdef DAL_ATMOS_DITHERING
     const float dither_value = get_dither_value();
@@ -311,14 +324,11 @@ vec3 calculate_dlight_scattering(
             // Calculate the step size of the light ray.
             // again with a ray sphere intersect
             // a, b, c and d are already defined
-            a = dot(light_dir, light_dir);
-            b = 2.0 * dot(light_dir, pos_i);
-            c = dot(pos_i, pos_i) - (atmo_radius * atmo_radius);
-            d = (b * b) - 4.0 * a * c;
+            const vec4 abcd2 = calc_ray_sphere_factors(pos_i, light_dir, planet_position, atmo_radius);
 
             // no early stopping, this one should always be inside the atmosphere
             // calculate the ray length
-            const float step_size_l = (-b + sqrt(d)) / (2.0 * a * float(steps_l));
+            const float step_size_l = (-abcd2[1] + sqrt(abcd2[3])) / (2.0 * abcd2[0] * float(steps_l));
 
             // and the position along this ray
             // this time we are sure the ray is in the atmosphere, so set it to 0
