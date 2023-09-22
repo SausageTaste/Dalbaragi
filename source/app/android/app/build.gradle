@@ -48,6 +48,7 @@ android {
             assets.srcDirs = ['../../../asset']
         }
     }
+    namespace 'com.sausagetaste.dalbaragi_android'
 }
 
 dependencies {
