@@ -23,8 +23,7 @@ FILES_TO_EXCLUDE = [
 ]
 
 TARGET_DIRS = [
-    os.path.join(ptt.find_repo_root_path(), "app"),
-    os.path.join(ptt.find_repo_root_path(), "lib"),
+    os.path.join(ptt.find_repo_root_path(), "source"),
     os.path.join(ptt.find_repo_root_path(), "asset"),
 ]
 
