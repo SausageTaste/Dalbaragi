@@ -1,0 +1,5 @@
+if (WIN32)
+    add_subdirectory(windows)
+elseif ("${CMAKE_SYSTEM}" MATCHES "Linux")
+    add_subdirectory(linux)
+endif()

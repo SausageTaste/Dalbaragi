@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11.0)
 
 include(FetchContent)
 
-set(extern_dir ./../extern)
+set(extern_dir ${CMAKE_CURRENT_SOURCE_DIR}/../../extern)
 
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -137,17 +137,5 @@ target_include_directories(lua_static PUBLIC ${fetch_lua_SOURCE_DIR})
 # Add project directories
 #-------------------------------------------------------------------------------
 
-add_subdirectory(./util)
-add_subdirectory(./renderer)
-add_subdirectory(./vulkan)
-add_subdirectory(./engine)
-
-
-if (WIN32)
-    add_subdirectory(./window)
-
-elseif ("${CMAKE_SYSTEM}" MATCHES "Linux")
-    add_subdirectory(./window)
-
-elseif (ANDROID)
-endif()
+add_subdirectory(util)
+add_subdirectory(engine)
