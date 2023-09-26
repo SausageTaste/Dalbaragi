@@ -6,8 +6,7 @@ add_executable(dalbaragi_windows
 )
 target_compile_features(dalbaragi_windows PUBLIC cxx_std_17)
 
-target_link_libraries(dalbaragi_windows
-    PRIVATE
-        libdal_window
-        libdal_engine
+target_link_libraries(dalbaragi_windows PUBLIC
+    dal::glfw
+    libdal_engine
 )

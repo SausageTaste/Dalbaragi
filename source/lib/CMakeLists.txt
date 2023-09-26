@@ -18,16 +18,6 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-    fetch_glfw
-    GIT_REPOSITORY https://github.com/glfw/glfw
-    GIT_TAG        3.3.6
-)
-option(GLFW_BUILD_DOCS off)
-option(GLFW_BUILD_EXAMPLES off)
-option(GLFW_BUILD_TESTS off)
-option(GLFW_USE_HYBRID_HPG on)
-
-FetchContent_Declare(
     fetch_stb
     GIT_REPOSITORY    https://github.com/nothings/stb
     GIT_TAG           master
@@ -87,12 +77,8 @@ add_subdirectory(${extern_dir}/shaderc ${CMAKE_CURRENT_BINARY_DIR}/shaderc)
 
 if (WIN32)
     find_package(Vulkan REQUIRED)
-    FetchContent_MakeAvailable(fetch_glfw)
-
 elseif ("${CMAKE_SYSTEM}" MATCHES "Linux")
     find_package(Vulkan REQUIRED)
-    FetchContent_MakeAvailable(fetch_glfw)
-
 elseif (ANDROID)
 endif()
 

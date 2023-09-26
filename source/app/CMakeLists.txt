@@ -1,5 +1,7 @@
 if (WIN32)
+    add_subdirectory(lib/glfw)
     add_subdirectory(windows)
 elseif ("${CMAKE_SYSTEM}" MATCHES "Linux")
+    add_subdirectory(lib/glfw)
     add_subdirectory(linux)
 endif()
