@@ -1,7 +1,7 @@
 #pragma once
 
-#include <d_defines.h>
-#include <d_filesystem.h>
+#include <dal/util/defines.h>
+#include <dal/util/filesystem.h>
 
 #include <android_native_app_glue.h>
 

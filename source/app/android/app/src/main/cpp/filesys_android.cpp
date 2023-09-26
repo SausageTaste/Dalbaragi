@@ -5,7 +5,7 @@
 
 #include <fmt/format.h>
 
-#include <d_konsts.h>
+#include <dal/util/konsts.h>
 
 
 namespace fs = std::filesystem;

@@ -5,7 +5,7 @@
 #include <android/log.h>
 
 #include <daltools/util.h>
-#include <d_logger.h>
+#include <dal/util/logger.h>
 #include <d_vulkan_header.h>
 #include <d_engine.h>
 
