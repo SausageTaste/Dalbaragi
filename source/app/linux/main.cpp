@@ -3,7 +3,7 @@
 #include <fmt/format.h>
 
 #include "d_glfw.h"
-#include "d_logger.h"
+#include "dal/util/logger.h"
 #include "d_engine.h"
 #include "d_filesystem_std.h"
 

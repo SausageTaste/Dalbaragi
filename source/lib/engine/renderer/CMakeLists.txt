@@ -14,7 +14,7 @@ target_include_directories(libdal_renderer PUBLIC ./)
 target_link_libraries(libdal_renderer
     PUBLIC
         EnTT::EnTT
-        libdal_util
+        dalbaragi::util
 
     PRIVATE
         libdal_vulkan

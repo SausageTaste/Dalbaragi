@@ -1,4 +1,4 @@
-#include "d_filesystem_std.h"
+#include "dal/util/filesystem_std.h"
 
 #if defined(DAL_OS_WINDOWS) || defined(DAL_OS_LINUX)
 
@@ -14,7 +14,7 @@
 
 #include <fmt/format.h>
 
-#include "d_konsts.h"
+#include "dal/util/konsts.h"
 
 
 namespace fs = std::filesystem;

@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "d_model_data.h"
+#include "dal/util/model_data.h"
 #include "d_vulkan_header.h"
 #include "d_command.h"
 #include "d_buffer_memory.h"

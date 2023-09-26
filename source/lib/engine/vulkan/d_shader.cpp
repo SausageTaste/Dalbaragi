@@ -7,11 +7,11 @@
 #include <fmt/format.h>
 #include <shaderc/shaderc.hpp>
 
-#include "d_logger.h"
+#include "dal/util/logger.h"
+#include "dal/util/filesystem.h"
+#include "dal/util/json_util.h"
 #include "d_uniform.h"
-#include "d_filesystem.h"
 #include "d_vert_data.h"
-#include "d_json_util.h"
 
 
 #define DAL_HASH_SHADER_CACHE_NAME false

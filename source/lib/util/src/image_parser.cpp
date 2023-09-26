@@ -1,4 +1,4 @@
-#include "d_image_parser.h"
+#include "dal/util/image_parser.h"
 
 #include <type_traits>
 
@@ -9,7 +9,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "d_logger.h"
+#include "dal/util/logger.h"
 
 
 // ImageFormat

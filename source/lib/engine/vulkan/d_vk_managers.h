@@ -2,11 +2,11 @@
 
 #include <vector>
 
-#include "d_konsts.h"
+#include "dal/util/konsts.h"
+#include "dal/util/indices.h"
+#include "dal/util/geometry.h"
 #include "d_shader.h"
-#include "d_indices.h"
 #include "d_command.h"
-#include "d_geometry.h"
 #include "d_vk_device.h"
 #include "d_swapchain.h"
 #include "d_render_pass.h"

@@ -2,7 +2,7 @@
 
 #include <entt/entt.hpp>
 
-#include "d_collider.h"
+#include "dal/util/collider.h"
 #include "d_render_cpnt.h"
 
 

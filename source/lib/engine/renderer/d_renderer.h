@@ -2,11 +2,11 @@
 
 #include <functional>
 
+#include "dal/util/indices.h"
+#include "dal/util/filesystem.h"
+#include "dal/util/image_parser.h"
+#include "dal/util/model_data.h"
 #include "d_scene.h"
-#include "d_indices.h"
-#include "d_filesystem.h"
-#include "d_model_data.h"
-#include "d_image_parser.h"
 #include "d_render_config.h"
 
 

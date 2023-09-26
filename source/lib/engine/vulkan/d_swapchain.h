@@ -9,7 +9,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
-#include "d_indices.h"
+#include "dal/util/indices.h"
 #include "d_image_obj.h"
 #include "d_sync_primitives.h"
 

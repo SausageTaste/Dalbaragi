@@ -4,7 +4,7 @@
 #include <cassert>
 #include <stdexcept>
 
-#include "d_logger.h"
+#include "dal/util/logger.h"
 
 
 namespace {

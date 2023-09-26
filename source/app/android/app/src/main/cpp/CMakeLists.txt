@@ -27,7 +27,7 @@ target_link_libraries(dal_android_native_lib
     android
     ${log-lib}
 
+    dalbaragi::util
     libdal_vulkan
-    libdal_util
     libdal_engine
 )

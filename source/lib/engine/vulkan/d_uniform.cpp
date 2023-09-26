@@ -2,8 +2,8 @@
 
 #include <array>
 
-#include "d_logger.h"
-#include "d_static_list.h"
+#include "dal/util/logger.h"
+#include "dal/util/static_list.h"
 
 
 namespace {

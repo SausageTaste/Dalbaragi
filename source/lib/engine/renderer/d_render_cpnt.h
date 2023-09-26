@@ -4,10 +4,10 @@
 #include <vector>
 #include <memory>
 
-#include "d_actor.h"
-#include "d_animation.h"
-#include "d_model_data.h"
-#include "d_image_parser.h"
+#include "dal/util/actor.h"
+#include "dal/util/animation.h"
+#include "dal/util/model_data.h"
+#include "dal/util/image_parser.h"
 
 
 // Lights

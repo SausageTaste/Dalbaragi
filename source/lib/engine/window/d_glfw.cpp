@@ -8,8 +8,8 @@
 
 #include <daltools/util.h>
 
-#include "d_logger.h"
-#include "d_defines.h"
+#include "dal/util/logger.h"
+#include "dal/util/defines.h"
 
 
 #define DAL_ASSERT_JID(jid) { dalAssertm(::is_joystick_id_valid(jid), fmt::format("Invalid joystick id: {}", (jid)).c_str()); }

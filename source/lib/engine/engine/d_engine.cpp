@@ -4,7 +4,7 @@
 
 #include <daltools/konst.h>
 
-#include "d_logger.h"
+#include "dal/util/logger.h"
 #include "d_renderer_create.h"
 
 

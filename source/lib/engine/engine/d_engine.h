@@ -4,12 +4,12 @@
 
 #include <daltools/util.h>
 
-#include "d_resource_man.h"
+#include "dal/util/input_consumer.h"
+#include "dal/util/logger.h"
 #include "d_inputs.h"
-#include "d_input_consumer.h"
+#include "d_resource_man.h"
 #include "d_scene.h"
 #include "d_script_engine.h"
-#include "d_logger.h"
 #include "d_config.h"
 
 

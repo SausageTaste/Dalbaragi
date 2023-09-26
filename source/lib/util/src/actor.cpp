@@ -1,12 +1,12 @@
-#include "d_actor.h"
+#include "dal/util/actor.h"
 
 #define _USE_MATH_DEFINES
 #include <math.h>
 
 #include <fmt/format.h>
 
-#include "d_logger.h"
-#include "d_geometry.h"
+#include "dal/util/logger.h"
+#include "dal/util/geometry.h"
 
 
 namespace {

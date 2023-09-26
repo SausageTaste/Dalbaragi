@@ -13,7 +13,7 @@ extern "C" {
 
 #include <daltools/util.h>
 
-#include "d_logger.h"
+#include "dal/util/logger.h"
 #include "d_scene.h"
 #include "d_resource_man.h"
 

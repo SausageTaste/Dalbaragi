@@ -5,7 +5,7 @@
 #include <memory>
 #include <cstdlib>
 
-#include "d_log_channel.h"
+#include "dal/util/log_channel.h"
 
 
 #define DAL_ENABLE_ASSERT true

@@ -3,10 +3,10 @@
 #include <vector>
 #include <functional>
 
-#include "d_actor.h"
+#include "dal/util/actor.h"
+#include "dal/util/filesystem.h"
+#include "dal/util/task_thread.h"
 #include "d_renderer.h"
-#include "d_filesystem.h"
-#include "d_task_thread.h"
 #include "d_vk_managers.h"
 
 

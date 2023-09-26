@@ -8,7 +8,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
-#include "d_konsts.h"
+#include "dal/util/konsts.h"
 #include "d_image_obj.h"
 #include "d_vulkan_header.h"
 #include "d_buffer_memory.h"

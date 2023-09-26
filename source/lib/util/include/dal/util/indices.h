@@ -3,7 +3,7 @@
 #include <limits>
 #include <cstdint>
 
-#include "d_konsts.h"
+#include "dal/util/konsts.h"
 
 
 namespace dal {

@@ -7,8 +7,8 @@
 #include <daltools/util.h>
 #include <daltools/crypto.h>
 
-#include "d_logger.h"
-#include "d_image_parser.h"
+#include "dal/util/logger.h"
+#include "dal/util/image_parser.h"
 
 
 namespace {

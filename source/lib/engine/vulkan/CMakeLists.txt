@@ -34,7 +34,7 @@ endif()
 
 target_link_libraries(libdal_vulkan
     PUBLIC
-        libdal_util
+        dalbaragi::util
         libdal_renderer
         shaderc
 )

@@ -10,10 +10,10 @@
 
 #include <daltools/util.h>
 
-#include "d_logger.h"
-#include "d_defines.h"
+#include "dal/util/logger.h"
+#include "dal/util/defines.h"
+#include "dal/util/image_parser.h"
 #include "d_vert_data.h"
-#include "d_image_parser.h"
 
 
 namespace {
