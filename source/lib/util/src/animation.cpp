@@ -90,11 +90,11 @@ namespace {
 namespace dal {
 
     void JointSkel::set(const dal::parser::SkelJoint& src_joint) {
-        this->m_name = src_joint.m_name;
+        this->m_name = src_joint.name_;
 
-        this->m_parent_index = src_joint.m_parent_index;
-        this->set_offset_mat(src_joint.m_offset_mat);
-        this->m_joint_type = src_joint.m_joint_type;
+        this->m_parent_index = src_joint.parent_index_;
+        this->set_offset_mat(src_joint.offset_mat_);
+        this->m_joint_type = src_joint.joint_type_;
     }
 
     glm::vec3 JointSkel::local_pos(void) const {
@@ -160,19 +160,19 @@ namespace dal {
     // Private
 
     bool JointAnim::has_key_frames() const {
-        return (this->m_data.m_positions.size() + this->m_data.m_rotations.size() + this->m_data.m_scales.size()) != 0;
+        return (this->m_data.translations_.size() + this->m_data.rotations_.size() + this->m_data.scales_.size()) != 0;
     }
 
     glm::vec3 JointAnim::interpolate_translate(const float anim_tick) const {
-        return this->m_data.m_positions.empty() ? glm::vec3{0} : ::make_interp_value(anim_tick, this->m_data.m_positions);
+        return this->m_data.translations_.empty() ? glm::vec3{0} : ::make_interp_value(anim_tick, this->m_data.translations_);
     }
 
     glm::quat JointAnim::interpolate_rotation(const float anim_tick) const {
-        return this->m_data.m_rotations.empty() ? glm::quat{} : ::make_interp_value(anim_tick, this->m_data.m_rotations);
+        return this->m_data.rotations_.empty() ? glm::quat{} : ::make_interp_value(anim_tick, this->m_data.rotations_);
     }
 
     float JointAnim::interpolate_scale(const float anim_tick) const {
-        return this->m_data.m_scales.empty() ? 1 : ::make_interp_value(anim_tick, this->m_data.m_scales);
+        return this->m_data.scales_.empty() ? 1 : ::make_interp_value(anim_tick, this->m_data.scales_);
     }
 
 }
@@ -247,7 +247,7 @@ namespace dal {
                 output.m_joints[i] = *src_joint;
             }
             else {
-                output.m_joints[i].m_data.m_name = skeleton.at(i).name();
+                output.m_joints[i].m_data.name_ = skeleton.at(i).name();
             }
         }
 
@@ -258,7 +258,7 @@ namespace dal {
 
     const JointAnim* Animation::find_by_name(const std::string& name) const {
         for (auto& joint : this->m_joints) {
-            if (joint.m_data.m_name == name) {
+            if (joint.m_data.name_ == name) {
                 return &joint;
             }
         }

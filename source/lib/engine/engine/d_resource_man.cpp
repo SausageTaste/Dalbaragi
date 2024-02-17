@@ -55,10 +55,10 @@ namespace {
     }
 
     void copy_material(dal::Material& dst, const dal::parser::Material& src) {
-        dst.m_roughness = src.m_roughness;
-        dst.m_metallic = src.m_metallic;
-        dst.m_albedo_map = src.m_albedo_map;
-        dst.m_alpha_blending = src.m_transparency;
+        dst.m_roughness = src.roughness_;
+        dst.m_metallic = src.metallic_;
+        dst.m_albedo_map = src.albedo_map_;
+        dst.m_alpha_blending = src.transparency_;
     }
 
 
@@ -215,18 +215,18 @@ namespace {
 
         bool stage_1() {
             static_assert(sizeof(dal::parser::Vertex) == sizeof(dal::VertexStatic));
-            static_assert(offsetof(dal::parser::Vertex, m_position) == offsetof(dal::VertexStatic, m_pos));
-            static_assert(offsetof(dal::parser::Vertex, m_normal) == offsetof(dal::VertexStatic, m_normal));
-            static_assert(offsetof(dal::parser::Vertex, m_uv_coords) == offsetof(dal::VertexStatic, m_uv_coord));
+            static_assert(offsetof(dal::parser::Vertex, pos_) == offsetof(dal::VertexStatic, m_pos));
+            static_assert(offsetof(dal::parser::Vertex, normal_) == offsetof(dal::VertexStatic, m_normal));
+            static_assert(offsetof(dal::parser::Vertex, uv_) == offsetof(dal::VertexStatic, m_uv_coord));
 
-            for (const auto& src_unit : this->m_parsed_model.m_units_indexed) {
+            for (const auto& src_unit : this->m_parsed_model.units_indexed_) {
                 auto& dst_unit = this->out_model->m_units.emplace_back();
 
-                dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
-                memcpy(dst_unit.m_vertices.data(), src_unit.m_mesh.m_vertices.data(), dst_unit.m_vertices.size() * sizeof(dal::VertexStatic));
+                dst_unit.m_vertices.resize(src_unit.mesh_.vertices_.size());
+                memcpy(dst_unit.m_vertices.data(), src_unit.mesh_.vertices_.data(), dst_unit.m_vertices.size() * sizeof(dal::VertexStatic));
 
-                dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
-                ::copy_material(dst_unit.m_material, src_unit.m_material);
+                dst_unit.m_indices.assign(src_unit.mesh_.indices_.begin(), src_unit.mesh_.indices_.end());
+                ::copy_material(dst_unit.m_material, src_unit.material_);
                 dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
             }
 
@@ -235,21 +235,21 @@ namespace {
         }
 
         bool stage_2() {
-            for (const auto& src_unit : this->m_parsed_model.m_units_indexed_joint) {
+            for (const auto& src_unit : this->m_parsed_model.units_indexed_joint_) {
                 auto& dst_unit = this->out_model->m_units.emplace_back();
 
-                dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+                dst_unit.m_vertices.resize(src_unit.mesh_.vertices_.size());
                 for (size_t i = 0; i < dst_unit.m_vertices.size(); ++i) {
                     auto& out_vert = dst_unit.m_vertices[i];
-                    auto& in_vert = src_unit.m_mesh.m_vertices[i];
+                    auto& in_vert = src_unit.mesh_.vertices_[i];
 
-                    out_vert.m_pos = in_vert.m_position;
-                    out_vert.m_normal = in_vert.m_normal;
-                    out_vert.m_uv_coord = in_vert.m_uv_coords;
+                    out_vert.m_pos = in_vert.pos_;
+                    out_vert.m_normal = in_vert.normal_;
+                    out_vert.m_uv_coord = in_vert.uv_;
                 }
 
-                dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
-                ::copy_material(dst_unit.m_material, src_unit.m_material);
+                dst_unit.m_indices.assign(src_unit.mesh_.indices_.begin(), src_unit.mesh_.indices_.end());
+                ::copy_material(dst_unit.m_material, src_unit.material_);
                 dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
             }
 
@@ -258,7 +258,7 @@ namespace {
         }
 
         bool stage_3() {
-            if (!this->m_parsed_model.m_units_straight.empty())
+            if (!this->m_parsed_model.units_straight_.empty())
                 dalWarn("Not supported vertex data: straight");
 
             this->m_stage = 4;
@@ -266,7 +266,7 @@ namespace {
         }
 
         bool stage_4() {
-            if (!this->m_parsed_model.m_units_straight_joint.empty())
+            if (!this->m_parsed_model.units_straight_joint_.empty())
                 dalWarn("Not supported vertex data: straight joint");
 
             this->m_stage = 5;
@@ -362,23 +362,23 @@ namespace {
         }
 
         bool stage_1() {
-            for (const auto& src_unit : this->m_parsed_model.m_units_indexed) {
+            for (const auto& src_unit : this->m_parsed_model.units_indexed_) {
                 auto& dst_unit = this->out_model->m_units.emplace_back();
 
-                dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+                dst_unit.m_vertices.resize(src_unit.mesh_.vertices_.size());
                 for (size_t i = 0; i < dst_unit.m_vertices.size(); ++i) {
                     auto& dst_vert = dst_unit.m_vertices[i];
-                    auto& src_vert = src_unit.m_mesh.m_vertices[i];
+                    auto& src_vert = src_unit.mesh_.vertices_[i];
 
                     dst_vert.m_joint_ids     = glm::ivec4{-1, -1, -1, -1};
                     dst_vert.m_joint_weights = glm::vec4{0, 0, 0, 0};
-                    dst_vert.m_pos           = src_vert.m_position;
-                    dst_vert.m_normal        = src_vert.m_normal;
-                    dst_vert.m_uv_coord      = src_vert.m_uv_coords;
+                    dst_vert.m_pos           = src_vert.pos_;
+                    dst_vert.m_normal        = src_vert.normal_;
+                    dst_vert.m_uv_coord      = src_vert.uv_;
                 }
 
-                dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
-                ::copy_material(dst_unit.m_material, src_unit.m_material);
+                dst_unit.m_indices.assign(src_unit.mesh_.indices_.begin(), src_unit.mesh_.indices_.end());
+                ::copy_material(dst_unit.m_material, src_unit.material_);
                 dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
             }
 
@@ -387,23 +387,23 @@ namespace {
         }
 
         bool stage_2() {
-            for (const auto& src_unit : this->m_parsed_model.m_units_indexed_joint) {
+            for (const auto& src_unit : this->m_parsed_model.units_indexed_joint_) {
                 auto& dst_unit = this->out_model->m_units.emplace_back();
 
-                dst_unit.m_vertices.resize(src_unit.m_mesh.m_vertices.size());
+                dst_unit.m_vertices.resize(src_unit.mesh_.vertices_.size());
                 for (size_t i = 0; i < dst_unit.m_vertices.size(); ++i) {
                     auto& dst_vert = dst_unit.m_vertices[i];
-                    auto& src_vert = src_unit.m_mesh.m_vertices[i];
+                    auto& src_vert = src_unit.mesh_.vertices_[i];
 
-                    dst_vert.m_joint_ids     = src_vert.m_joint_indices;
-                    dst_vert.m_joint_weights = src_vert.m_joint_weights;
-                    dst_vert.m_pos           = src_vert.m_position;
-                    dst_vert.m_normal        = src_vert.m_normal;
-                    dst_vert.m_uv_coord      = src_vert.m_uv_coords;
+                    dst_vert.m_joint_ids     = src_vert.joint_indices_;
+                    dst_vert.m_joint_weights = src_vert.joint_weights_;
+                    dst_vert.m_pos           = src_vert.pos_;
+                    dst_vert.m_normal        = src_vert.normal_;
+                    dst_vert.m_uv_coord      = src_vert.uv_;
                 }
 
-                dst_unit.m_indices.assign(src_unit.m_mesh.m_indices.begin(), src_unit.m_mesh.m_indices.end());
-                ::copy_material(dst_unit.m_material, src_unit.m_material);
+                dst_unit.m_indices.assign(src_unit.mesh_.indices_.begin(), src_unit.mesh_.indices_.end());
+                ::copy_material(dst_unit.m_material, src_unit.material_);
                 dst_unit.m_weight_center = ::calc_weight_center(dst_unit.m_vertices);
             }
 
@@ -412,13 +412,13 @@ namespace {
         }
 
         bool stage_3() {
-            for (auto& src_anim : this->m_parsed_model.m_animations) {
-                if (src_anim.m_joints.size() > dal::MAX_JOINT_COUNT) {
-                    dalWarn(fmt::format("Joint count {} is bigger than limit {}", src_anim.m_joints.size(), dal::MAX_JOINT_COUNT).c_str());
+            for (auto& src_anim : this->m_parsed_model.animations_) {
+                if (src_anim.joints_.size() > dal::MAX_JOINT_COUNT) {
+                    dalWarn(fmt::format("Joint count {} is bigger than limit {}", src_anim.joints_.size(), dal::MAX_JOINT_COUNT).c_str());
                 }
 
-                auto& dst_anim = this->out_model->m_animations.emplace_back(src_anim.m_name, src_anim.m_ticks_per_sec, src_anim.calc_duration_in_ticks());
-                for (auto& out_joint : src_anim.m_joints) {
+                auto& dst_anim = this->out_model->m_animations.emplace_back(src_anim.name_, src_anim.ticks_per_sec_, src_anim.calc_duration_in_ticks());
+                for (auto& out_joint : src_anim.joints_) {
                     dst_anim.new_joint().m_data = out_joint;
                 }
             }
@@ -428,10 +428,10 @@ namespace {
         }
 
         bool stage_4() {
-            this->out_model->m_skeleton.m_root_mat = this->m_parsed_model.m_skeleton.m_root_transform;
+            this->out_model->m_skeleton.m_root_mat = this->m_parsed_model.skeleton_.root_transform_;
 
-            for (auto& src_joint : this->m_parsed_model.m_skeleton.m_joints) {
-                const auto jid = this->out_model->m_skeleton.get_or_make_index_of(src_joint.m_name);
+            for (auto& src_joint : this->m_parsed_model.skeleton_.joints_) {
+                const auto jid = this->out_model->m_skeleton.get_or_make_index_of(src_joint.name_);
                 auto& dst_joint = this->out_model->m_skeleton.at(jid);
                 dst_joint.set(src_joint);
             }
@@ -452,9 +452,9 @@ namespace {
                 }
             }
 
-            if (!this->m_parsed_model.m_units_straight.empty())
+            if (!this->m_parsed_model.units_straight_.empty())
                 dalWarn("Not supported vertex data: straight");
-            if (!this->m_parsed_model.m_units_straight_joint.empty())
+            if (!this->m_parsed_model.units_straight_joint_.empty())
                 dalWarn("Not supported vertex data: straight joint");
 
             this->m_stage = 6;
