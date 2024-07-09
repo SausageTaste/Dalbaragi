@@ -4,7 +4,7 @@
 
 #include <fmt/format.h>
 
-#include <daltools/util.h>
+#include <daltools/common/util.h>
 
 #include "dal/util/logger.h"
 

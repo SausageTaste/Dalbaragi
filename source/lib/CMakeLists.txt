@@ -34,7 +34,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     fetch_daltools
     GIT_REPOSITORY https://github.com/SausageTaste/DalbaragiTools
-    GIT_TAG        main
+    GIT_TAG        b63306b38747ea26762dd250d52239abd9cd2269
 )
 
 FetchContent_Declare(

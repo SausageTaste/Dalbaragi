@@ -2,10 +2,10 @@
 
 #include <fmt/format.h>
 
-#include <daltools/model_parser.h>
-#include <daltools/modifier.h>
-#include <daltools/util.h>
-#include <daltools/crypto.h>
+#include <daltools/dmd/parser.h>
+#include <daltools/scene/modifier.h>
+#include <daltools/common/util.h>
+#include <daltools/common/crypto.h>
 
 #include "dal/util/logger.h"
 #include "dal/util/image_parser.h"
@@ -183,23 +183,11 @@ namespace {
                 return true;
             }
 
-            dal::parser::ModelParseResult parse_result;
-            if ("_asset" != this->m_respath.dir_list().front()) {
-                parse_result = dal::parser::parse_dmd(
-                    this->m_parsed_model,
-                    model_content->data(),
-                    model_content->size()
-                );
-            }
-            else {
-                parse_result = dal::parser::parse_verify_dmd(
-                    this->m_parsed_model,
-                    model_content->data(),
-                    model_content->size(),
-                    ::ASSET_PUBLIC_KEY,
-                    this->m_sign_mgr
-                );
-            }
+            auto parse_result = dal::parser::parse_dmd(
+                this->m_parsed_model,
+                model_content->data(),
+                model_content->size()
+            );
 
             if (dal::parser::ModelParseResult::success != parse_result) {
                 out_model = std::nullopt;
@@ -332,23 +320,11 @@ namespace {
                 return true;
             }
 
-            dal::parser::ModelParseResult parse_result;
-            if ("_asset" != this->m_respath.dir_list().front()) {
-                parse_result = dal::parser::parse_dmd(
-                    this->m_parsed_model,
-                    model_content->data(),
-                    model_content->size()
-                );
-            }
-            else {
-                parse_result = dal::parser::parse_verify_dmd(
-                    this->m_parsed_model,
-                    model_content->data(),
-                    model_content->size(),
-                    ::ASSET_PUBLIC_KEY,
-                    this->m_sign_mgr
-                );
-            }
+            const auto parse_result = dal::parser::parse_dmd(
+                this->m_parsed_model,
+                model_content->data(),
+                model_content->size()
+            );
 
             if (dal::parser::ModelParseResult::success != parse_result) {
                 out_model = std::nullopt;

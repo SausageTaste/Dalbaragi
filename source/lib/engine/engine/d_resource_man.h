@@ -3,7 +3,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include <daltools/crypto.h>
+#include <daltools/common/crypto.h>
 
 #include "dal/util/filesystem.h"
 #include "dal/util/task_thread.h"

@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-#include <daltools/konst.h>
+#include <daltools/common/konst.h>
 
 #include "dal/util/logger.h"
 #include "d_renderer_create.h"

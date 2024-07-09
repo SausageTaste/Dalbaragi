@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <fmt/format.h>
 
-#include <daltools/util.h>
+#include <daltools/common/util.h>
 
 #include "dal/util/logger.h"
 #include "dal/util/defines.h"

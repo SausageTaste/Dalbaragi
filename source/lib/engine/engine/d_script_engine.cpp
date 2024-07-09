@@ -11,7 +11,7 @@ extern "C" {
 #include <lualib.h>
 }
 
-#include <daltools/util.h>
+#include <daltools/common/util.h>
 
 #include "dal/util/logger.h"
 #include "d_scene.h"

@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-#include <daltools/util.h>
+#include <daltools/common/util.h>
 
 #include "dal/util/input_consumer.h"
 #include "dal/util/logger.h"

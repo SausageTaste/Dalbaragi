@@ -12,8 +12,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <daltools/struct.h>
-#include <daltools/util.h>
+#include <daltools/scene/struct.h>
+#include <daltools/common/util.h>
 
 
 namespace dal {

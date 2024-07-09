@@ -4,7 +4,7 @@
 #include <fmt/format.h>
 #include <android/log.h>
 
-#include <daltools/util.h>
+#include <daltools/common/util.h>
 #include <dal/util/logger.h>
 #include <d_vulkan_header.h>
 #include <d_engine.h>
